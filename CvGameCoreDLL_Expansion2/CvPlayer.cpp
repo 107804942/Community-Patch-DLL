@@ -12181,7 +12181,7 @@ int CvPlayer::GetScoreFromPolicies() const
 		return 0;
 	}
 
-	int iScore = GetPlayerPolicies()->GetNumPoliciesOwned() * /*4 in CP, 16 in VP*/ GD_INT_GET(SCORE_POLICY_MULTIPLIER);
+	int iScore = GetPlayerPolicies()->GetNumPoliciesOwned(true, false, true) * /*4 in CP, 16 in VP*/ GD_INT_GET(SCORE_POLICY_MULTIPLIER);
 
 	return iScore;
 }
@@ -51757,7 +51757,7 @@ CvString CvPlayer::GetVassalIndependenceTooltipAsVassal() const
 	
 	szTooltip += GetLocalizedText("TXT_KEY_VO_INDEPENDENCE_POSSIBLE_MASTER_TT") + "[NEWLINE][NEWLINE]";
 
-	bool bVoluntary = kVassalTeam.IsVoluntaryVassal(getTeam());
+	bool bVoluntary = kVassalTeam.IsVoluntaryVassal(eMaster);
 	bool bSatisfied = false;
 
 	int iMinimumVassalTurns = bVoluntary ? GC.getGame().getGameSpeedInfo().getMinimumVoluntaryVassalTurns() : GC.getGame().getGameSpeedInfo().getMinimumVassalTurns();
