@@ -365,7 +365,7 @@ public:
 
 	// End Resource Demanded
 
-	int getFoodTurnsLeft(int iCorpMod = -1) const;
+	int getFoodTurnsLeft() const;
 	bool isProduction() const;
 	bool isProductionLimited() const;
 	bool isProductionUnit() const;
@@ -539,15 +539,17 @@ public:
 	void SetIgnoredForExpansionBickering(PlayerTypes ePlayer, bool bValue);
 	bool IsIgnoredForExpansionBickering(PlayerTypes ePlayer) const;
 #endif
+	int foodConsumptionNonSpecialistTimes100() const;
 	int foodConsumptionSpecialistTimes100() const;
 	int foodConsumption(bool bNoAngry = false, int iExtra = 0) const;
 	int foodConsumptionTimes100(bool bNoAngry = false, int iExtra = 0) const;
-	int foodDifference(bool bBottom = true, bool bJustCheckingStarve = false) const;
-	int foodDifferenceTimes100(bool bBottom = true, bool bJustCheckingStarve = false, int iCorpMod = -1, CvString* toolTipSink = NULL) const;
+	int foodDifference(bool bJustCheckingStarve = false) const;
+	int foodDifferenceTimes100(bool bJustCheckingStarve = false, CvString* toolTipSink = NULL) const;
 	int growthThreshold() const;
 
 	int getGrowthMods() const;
 #if defined(MOD_BALANCE_CORE)
+	int GetNumFreeSpecialists();
 	int GetUnhappinessFromCitySpecialists();
 #endif
 

@@ -51,6 +51,8 @@ protected:
 #if defined(MOD_BALANCE_CORE)
 	static int lInitNamedUnit(lua_State* L);
 #endif
+	static int lGetHistoricEventTourism(lua_State* L);
+	static int lGetNumHistoricEvents(lua_State* L);
 #if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	static int lGetResourceMonopolyPlayer(lua_State* L);
 	static int lGetMonopolyPercent(lua_State* L);
@@ -1200,6 +1202,7 @@ protected:
 	static int lIsCarnaval(lua_State* L);
 	static int lGetTraitConquestOfTheWorldCityAttackMod(lua_State* L);
 #endif
+	static int lIsAnnexedCityStatesGiveYields(lua_State* L);
 	static int lGetGoldPerTurnFromAnnexedMinors(lua_State* L);
 	static int lGetCulturePerTurnFromAnnexedMinors(lua_State* L);
 	static int lGetFaithPerTurnFromAnnexedMinors(lua_State* L);
@@ -1257,6 +1260,7 @@ protected:
 	static int lGetCachedValueOfPeaceWithHuman(lua_State* L);
 	static int lGetTotalValueToMe(lua_State* L);
 	static int lIsTradeSanctioned(lua_State* L);
+	static int lIsTradeItemValuedImpossible(lua_State* L);
 	static int lGetTotalValueToMeNormal(lua_State* L);
 	static int lGetSpyChanceAtCity(lua_State* L);
 	static int lGetCityPotentialInfo(lua_State* L);

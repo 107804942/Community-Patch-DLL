@@ -59,6 +59,8 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(InitUnit);
 	Method(InitUnitWithNameOffset);
 	Method(InitNamedUnit);
+	Method(GetHistoricEventTourism);
+	Method(GetNumHistoricEvents);
 #if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	Method(GetResourceMonopolyPlayer);
 	Method(GetMonopolyPercent);
@@ -1098,6 +1100,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(IsDiplomaticMarriage);
 	Method(IsGPWLTKD);
 	Method(IsCarnaval);
+	Method(IsAnnexedCityStatesGiveYields);
 	Method(GetGoldPerTurnFromAnnexedMinors);
 	Method(GetCulturePerTurnFromAnnexedMinors);
 	Method(GetFaithPerTurnFromAnnexedMinors);
@@ -1151,6 +1154,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 
 	Method(GetEspionageCityStatus);
 	Method(IsTradeSanctioned);
+	Method(IsTradeItemValuedImpossible);
 	Method(GetTotalValueToMeNormal);
 	Method(GetTotalValueToMe);
 	Method(GetRandomIntrigue);
@@ -1630,6 +1634,44 @@ int CvLuaPlayer::lInitNamedUnit(lua_State* L)
 		pkUnit->setFacingDirection(eFacingDirection);
 
 	CvLuaUnit::Push(L, pkUnit);
+	return 1;
+}
+
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lGetHistoricEventTourism(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	const HistoricEventTypes eHistoricEvent = (HistoricEventTypes)lua_tointeger(L, 2);
+	int iCity = luaL_optint(L, 3, -1);
+	CvCity* pkCity = NULL;
+	if (iCity != -1)
+	{
+		pkCity = pkPlayer->getCity(iCity);
+
+		//sometimes Lua city IDs are actually sequential indices
+		//global IDs start at 1000
+		if (!pkCity && iCity < 1000)
+		{
+			if (iCity > 0)
+			{
+				iCity--;
+				pkCity = pkPlayer->nextCity(&iCity);
+			}
+			else
+			{
+				pkCity = pkPlayer->firstCity(&iCity);
+			}
+		}
+	}
+	const int iResult = pkPlayer->GetHistoricEventTourism(eHistoricEvent, pkCity);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+
+int CvLuaPlayer::lGetNumHistoricEvents(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	lua_pushinteger(L, pkPlayer->GetNumHistoricEvents());
 	return 1;
 }
 
@@ -12358,6 +12400,16 @@ int CvLuaPlayer::lIsCarnaval(lua_State* L)
 }
 #endif
 //------------------------------------------------------------------------------
+int CvLuaPlayer::lIsAnnexedCityStatesGiveYields(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	if (pkPlayer)
+	{
+		lua_pushboolean(L, (pkPlayer->GetPlayerTraits()->IsAnnexedCityStatesGiveYields()));
+	}
+	return 1;
+}
+//------------------------------------------------------------------------------
 int CvLuaPlayer::lGetGoldPerTurnFromAnnexedMinors(lua_State* L)
 {
 	CvPlayer* pkPlayer = GetInstance(L);
@@ -15619,6 +15671,31 @@ int CvLuaPlayer::lIsTradeSanctioned(lua_State* L)
 	}
 
 	lua_pushboolean(L, bResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lIsTradeItemValuedImpossible(lua_State* L)
+{
+	CvPlayerAI* pkThisPlayer = GetInstance(L);
+	const TradeableItems eItem = (TradeableItems)lua_tointeger(L, 2);
+	const PlayerTypes eOtherPlayer = (PlayerTypes)lua_tointeger(L, 3);
+	const bool bFromMe = lua_toboolean(L, 4);
+	const int iDuration = lua_tointeger(L, 5);
+	const int iData1 = luaL_optint(L, 6, -1);
+	const int iData2 = luaL_optint(L, 7, -1);
+	const int iData3 = luaL_optint(L, 8, -1);
+	const bool bFlag1 = luaL_optbool(L, 9, false);
+
+	if (!GET_PLAYER(pkThisPlayer->GetID()).isHuman())
+	{
+		int iResult = pkThisPlayer->GetDealAI()->GetTradeItemValue(eItem, bFromMe, eOtherPlayer, iData1, iData2, iData3, bFlag1, iDuration);
+		if (iResult == INT_MAX || iResult == (INT_MAX * -1))
+		{
+			lua_pushboolean(L, true);
+			return 1;
+		}
+	}
+	lua_pushboolean(L, false);
 	return 1;
 }
 //------------------------------------------------------------------------------

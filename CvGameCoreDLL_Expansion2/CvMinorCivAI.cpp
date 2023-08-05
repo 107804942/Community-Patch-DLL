@@ -3519,10 +3519,11 @@ bool CvMinorCivQuest::DoFinishQuest()
 	CvString sSummary = strSummary.toUTF8();
 
 	// This quest involved multiple minors, so grab their names for the notification
-	if(veNamesToShow.size() > 0)
-	{
-		sMessage = sMessage + pMinor->GetMinorCivAI()->GetNamesListAsString(veNamesToShow);
-	}
+	if (veNamesToShow.size() > 0)
+		sMessage += pMinor->GetMinorCivAI()->GetNamesListAsString(veNamesToShow);
+	else
+		sMessage += "(None)";
+
 	// This quest reward changed our status, so grab that info for the notification
 	if ((!bWasFriends && bNowFriends) || (!bWasAllies && bNowAllies))
 	{
@@ -15369,7 +15370,7 @@ int CvMinorCivAI::CalculateBullyScore(PlayerTypes eBullyPlayer, bool bHeavyTribu
 			}
 		}
 
-		if (iBulliedVeryRecentlyScore > 0)
+		if (iBulliedVeryRecentlyScore != 0)
 		{
 			iScore += iBulliedVeryRecentlyScore;
 			if (sTooltipSink)
@@ -15380,7 +15381,7 @@ int CvMinorCivAI::CalculateBullyScore(PlayerTypes eBullyPlayer, bool bHeavyTribu
 				sFactors += strNegativeFactor.toUTF8();
 			}
 		}
-		else if (iBulliedRecentlyScore > 0)
+		else if (iBulliedRecentlyScore != 0)
 		{
 			iScore += iBulliedRecentlyScore;
 			if (sTooltipSink)

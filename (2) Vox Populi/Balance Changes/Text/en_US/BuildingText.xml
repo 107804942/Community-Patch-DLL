@@ -119,7 +119,7 @@
 			<Text>Unique Swedish replacement for the Public School. This building is cheaper, more effective, and costs less maintenance than the building it replaces, and also boosts the City's [ICON_CULTURE] Culture.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_BUILDING_SKOLA_HELP">
-			<Text>Allows [COLOR_YELLOW]Archaeologists[ENDCOLOR] to be built in this City. +1 [ICON_CULTURE] Culture for every 3 [ICON_CITIZEN] Citizens, and +1 [ICON_RESEARCH] Science for every [ICON_CITIZEN] Citizen in the City.[NEWLINE][NEWLINE]-1 [ICON_HAPPINESS_3] Unhappiness from [ICON_RESEARCH] Illiteracy.</Text>
+			<Text>+1 [ICON_CULTURE] Culture for every 2 [ICON_CITIZEN] Citizens, and +3 [ICON_RESEARCH] Science for every 2 [ICON_CITIZEN] Citizens in the City.[NEWLINE][NEWLINE]-1 [ICON_HAPPINESS_3] Unhappiness from [ICON_RESEARCH] Illiteracy.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_BUILDING_BASILICA_DESC">
 			<Text>Tetraconch</Text>
@@ -185,23 +185,23 @@
 			<Text>An altar is any structure upon which offerings such as sacrifices are made for religious purposes. Altars are usually found at shrines, and they can be located in temples, churches and other places of worship. Today they are used particularly in Christianity, Buddhism, Hinduism, Shinto, Taoism, as well as in Neopaganism and Ceremonial Magic. Judaism used such a structure until the destruction of the Second Temple. Many historical faiths also made use of them, including Greek and Norse religion.</Text>
 		</Row>
 
-		<Row Tag="TXT_KEY_BUILDING_RELIQUARY_HELP">
-			<Text>+5 [ICON_TOURISM] Tourism from all Holy Sites.[NEWLINE][NEWLINE]May only be constructed in a Holy City, and only if at least 15% of the global population follows your Religion (scaling with map size). Reduces [ICON_HAPPINESS_3] Religious Unrest, and allows you to select a Reformation Belief.[NEWLINE][NEWLINE]Boosts Pressure of [ICON_RELIGION] Religious Majority emanating from this City by 25%, and increases the City's resistance to conversion by 10%.[NEWLINE][NEWLINE]Contains 4 slots for Great Works of Art or Artifacts. +10 [ICON_PEACE] Faith if Themed.</Text>
+		<Row Tag="TXT_KEY_BUILDING_RELIGIOUS_LIBRARY_HELP">
+			<Text>+5 [ICON_RESEARCH] Science from all Holy Sites.[NEWLINE][NEWLINE]May only be constructed in a Holy City, and only if at least 15% of the global population follows your Religion (scaling with map size). Reduces [ICON_HAPPINESS_3] Religious Unrest, and allows you to select a Reformation Belief.[NEWLINE][NEWLINE]Boosts Pressure of [ICON_RELIGION] Religious Majority emanating from this city by 25%, and increases the city's resistance to conversion by 20%.[NEWLINE][NEWLINE] Receive 1 [COLOR_POSITIVE_TEXT]Additional[ENDCOLOR] [ICON_DIPLOMAT] Delegates in the World Congress for every 10 Cities following your [ICON_RELIGION] Religion.[NEWLINE][NEWLINE]Contains 3 slots for Great Works of Writing[NEWLINE]+6 [ICON_RESEARCH] Science and +4 [ICON_PEACE] Faith when Themed</Text>
 		</Row>
-		<Row Tag="TXT_KEY_BUILDING_RELIQUARY">
-			<Text>Reliquary</Text>
+		<Row Tag="TXT_KEY_BUILDING_RELIGIOUS_LIBRARY_STRATEGY">
+			<Text>Build the Religious Library to gain [ICON_GOLDEN_AGE] Golden Age Points, [ICON_TOURISM] Tourism and [ICON_CULTURE] Culture from researching techs and to improve all Holy Sites. Constructing this National Wonder will also allow you to choose a Reformation Belief. May only be constructed in a Holy City, and only if at least 15% of the global population follows your Religion (scaling with map size).</Text>
 		</Row>
-		<Row Tag="TXT_KEY_BUILDING_RELIQUARY_STRATEGY">
-			<Text>Build the Reliquary for a powerful Tourism-centric bonus and bonuses for all Holy Sites. The building's Tourism bonus is only possible if all four Works of Art/Artifacts come from differing players. Constructing this National Wonder will also allow you to choose a Reformation Belief. May only be constructed in a Holy City, and only if at least 15% of the global population follows your Religion (scaling with map size). Reduces [ICON_HAPPINESS_3] Religious Unrest, and allows you to select a Reformation Belief.</Text>
+		<Row Tag="TXT_KEY_BUILDING_RELIGIOUS_LIBRARY_PEDIA">
+			<Text>The Chartarium was a collection of correspondences and minutes held privately by the office of the Papacy. This collection formed the precursor to the Vatican's Secret Archives.</Text>
+		</Row>	
+		<Row Tag="TXT_KEY_BUILDING_RELIGIOUS_LIBRARY">
+			<Text>Chartarium</Text>
 		</Row>
-		<Row Tag="TXT_KEY_BUILDING_RELIQUARY_TEXT">
-			<Text>A reliquary is a container for relics. These may be the purported physical remains of saints, such as bones, pieces of clothing, or some object associated with saints or other religious figures. The authenticity of any given relic is often a matter of debate; for that reason, some churches require documentation of the relic's provenance. Relics have long been important to Buddhists, Christians, Hindus and many other religions. In these cultures, reliquaries are often presented in shrines, churches, or temples to which the faithful make pilgrimages in order to gain blessings. In Central West Africa, reliquaries used in the Bwete rituals contain objects considered magical, or the bones of ancestors, and are commonly constructed with a guardian figure attached to the reliquary.</Text>
+		<Row Tag="TXT_KEY_THEMING_BONUS_RELIGIOUS_LIBRARY">
+			<Text>Repository of Secret {2_CivAdjective} Correspondences</Text>
 		</Row>
-		<Row Tag="TXT_KEY_THEMING_BONUS_RELIQUARY_HELP">
-			<Text>To maximize your bonus, make sure the Great Work Slots are all filled with Works of Art/Artifacts from differing players.</Text>
-		</Row>
-		<Row Tag="TXT_KEY_THEMING_BONUS_RELIQUARY">
-			<Text>Holy Reliquary of {2_CivAdjective}</Text>
+		<Row Tag="TXT_KEY_BUILDING_RELIGIOUS_LIBRARY_THEMING_BONUS_HELP">
+			<Text>To maximize your bonus, make sure all slots are filled with Writing from the Same Civilization.</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_BUILDING_DIVINE_COURT_HELP">
@@ -278,6 +278,9 @@
 		<Row Tag="TXT_KEY_BUILDING_LODGE">
 			<Text>Lodge</Text>
 		</Row>
+		<Row Tag="TXT_KEY_BUILDING_GALLERY">
+			<Text>Gallery</Text>
+		</Row>
 		<Row Tag="TXT_KEY_BUILDING_HERBALIST">
 			<Text>Herbalist</Text>
 		</Row>
@@ -310,6 +313,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_BUILDING_LODGE_STRATEGY">
 			<Text>The Lodge boosts production from Camps and camp resources, and provides food to your City whenever it claims new tiles. Build Lodges throughout your empire to boost local yields from camps.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_BUILDING_GALLERY_STRATEGY">
+			<Text>The Gallery boosts the production of Great Artists, strengthens your Artist Guilds, and Great Works. Build Galleries in your Guild cities to boost the production of Artists and Great Works.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_BUILDING_BATH_STRATEGY">
 			<Text>The Bath generates Culture, and boosts the Gold and Culture yield of Temples, Gardens, and Amphitheaters in the City. Also generates additional Culture during Golden Ages. Baths can be constructed only in cities next to fresh water.</Text>
@@ -350,6 +356,9 @@
 		<Row Tag="TXT_KEY_BUILDING_LODGE_HELP">
 			<Text>+1 [ICON_PRODUCTION] Production from Camps. Gain 5 [ICON_FOOD] Food in the City when its borders expand, scaling with Era. +2 [ICON_CULTURE_LOCAL] Border Growth in this City.[NEWLINE][NEWLINE]Nearby [ICON_RES_DEER] Deer: +1 [ICON_FOOD] Food.[NEWLINE]Nearby [ICON_RES_BISON] Bison: +1 [ICON_FOOD] Food.</Text>
 		</Row>
+		<Row Tag="TXT_KEY_BUILDING_GALLERY_HELP">
+			<Text>[ICON_GREAT_WORK] Great Works in the City produce +1 [ICON_TOURISM] Tourism. +33% [ICON_GREAT_ARTIST] Great Artist Rate in the City, and all Artists' Guilds produce +1 [ICON_GOLD] Gold.[NEWLINE][NEWLINE]Contains 1 slot for a [ICON_GREAT_WORK] Great Work of Art or Artifact.</Text>
+		</Row>
 		<Row Tag="TXT_KEY_BUILDING_WELL_HELP">
 			<Text>+1 [ICON_PRODUCTION] Production for every 5 [ICON_CITIZEN] Citizens in the City.[NEWLINE][NEWLINE]City must not be built next to a River.</Text>
 		</Row>
@@ -388,6 +397,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_BUILDING_LODGE_TEXT">
 			<Text>A lodge is a small dwelling set apart from a main dwelling, used for recreation. The term has become associated with recreational hunting, especially in relation to nobility and the recreational sportsmen in modern times. In many cultures, wild preserves were set aside for kings and their entourages to engage in hunting for pleausre.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_BUILDING_GALLERY_TEXT">
+			<Text>An Art Gallery is a space dedicated to displaying visual art like paintings or sculptures. The original galleries were long covered hallways in the private palaces and churches, which were lined with private art collections as a display of status. Today, many Art Galleries are publicly owned and display art to the public for its historic, educational, and aesthetic value. Galleries continue to serve as places for networking and promotion of local artists, art collectors, and tastemakers in the world of fine art.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CIV5_BUILDINGS_BATH_TEXT">
 			<Text>Throughout history, societies devised systems to enable water to be brought to population centres. Ancient Greece utilized small bathtubs, wash basins, and foot baths for personal cleanliness. The earliest findings of baths date from the mid-2nd millennium BC in the palace complex at Knossos, Crete, and the luxurious alabaster bathtubs excavated in Akrotiri, Santorini. The Greeks established public baths and showers within gymnasiums for relaxation and personal hygiene. In fact, the word gymnasium comes from the Greek word gymnos, meaning naked. Ancient Rome developed a network of aqueducts to supply water to all large towns and population centres and had indoor plumbing, with pipes that terminated in homes and at public wells and fountains. The Roman public baths were called thermae. With the fall of the Roman Empire the aqueduct network fell into disrepair and most of it ceased to be used. In the Middle Ages, bathing commonly took place in public bathhouses. However, public nudity was frowned upon by liturgical factions of the period. Public baths were also havens for prostitution, which created opposition to the public baths. Rich people bathed at home, most likely in their bedroom, as 'bath' rooms were not common. Bathing was done in large, wooden tubs with a linen cloth laid in it to protect the bather from splinters. Additionally, during the Renaissance and Protestant Reformation, the quality and condition of the clothing (as opposed to the actual cleanliness of the body itself) were thought to reflect the soul of an individual. Clean clothing also reflected one's social status; clothes made the man or woman. Additionally, from the late Middle Ages through to the end of the 18th century, etiquette and medical manuals advised people to only wash the parts of the body that were visible to the public; for example, the ears, hands, feet, and face and neck. This did away with the public baths and left the cleaning of oneself to the privacy of one's home.</Text>
