@@ -387,7 +387,7 @@ void CvHomelandAI::FindHomelandTargets()
 			bool bArtifact = pLoopPlot->getResourceType(eTeam) == eArtifactResourceType;
 			bool bHiddenArtifact = pLoopPlot->getResourceType(eTeam) == eHiddenArtifactResourceType;
 			if ((bArtifact || bHiddenArtifact) &&
-				!(pLoopPlot->getOwner() == m_pPlayer->GetID() && ((bArtifact && pCivImproveArtifact) || (bHiddenArtifact && pCivImproveHiddenArtifact))) &&
+				(pLoopPlot->getOwner() != m_pPlayer->GetID() || ((!bArtifact || !pCivImproveArtifact) && (!bHiddenArtifact || !pCivImproveHiddenArtifact))) &&
 				!m_pPlayer->GetDiplomacyAI()->IsPlayerBadTheftTarget(pLoopPlot->getOwner(), THEFT_TYPE_ARTIFACT, pLoopPlot))
 			{
 				newTarget.SetTargetType(AI_HOMELAND_TARGET_ANTIQUITY_SITE);
@@ -1145,6 +1145,7 @@ void CvHomelandAI::ExecuteUnitGift()
 		return;
 
 	UnitTypes eUnitType = NO_UNIT;
+	int iMinExperienceRequired = 0;
 	PlayerTypes ePlayer = m_pPlayer->GetID();
 	CvPlayer* pMinor = NULL;
 
@@ -1164,6 +1165,7 @@ void CvHomelandAI::ExecuteUnitGift()
 					if (pMinorCivAI->getIncomingUnitGift(ePlayer).getArrivalCountdown() == -1)
 					{
 						eUnitType = (UnitTypes)pMinorCivAI->GetQuestData1(ePlayer, MINOR_CIV_QUEST_GIFT_SPECIFIC_UNIT);
+						iMinExperienceRequired = pMinorCivAI->GetQuestData2(ePlayer, MINOR_CIV_QUEST_GIFT_SPECIFIC_UNIT);
 						break;
 					}
 				}
@@ -1177,7 +1179,7 @@ void CvHomelandAI::ExecuteUnitGift()
 		int iLoop = 0;
 		for (CvUnit* pUnit = m_pPlayer->firstUnit(&iLoop); pUnit != NULL; pUnit = m_pPlayer->nextUnit(&iLoop))
 		{
-			if (pUnit->getUnitType() == eUnitType && !pUnit->IsGarrisoned() && !pUnit->isDelayedDeath())
+			if (pUnit->getUnitType() == eUnitType && !pUnit->IsGarrisoned() && !pUnit->isDelayedDeath() && pUnit->getExperienceTimes100() >= iMinExperienceRequired * 100)
 			{
 				if (pUnit->CanDistanceGift(pMinor->GetID()) && pUnit->canUseForAIOperation())
 				{
@@ -1220,7 +1222,8 @@ void CvHomelandAI::ExecuteUnitGift()
 		// Do we have units to spare?
 		bool bCanSendLandUnit = GET_PLAYER(ePlayer).GetMilitaryAI()->GetLandDefenseState() == DEFENSE_STATE_ENOUGH || GET_PLAYER(ePlayer).GetMilitaryAI()->GetLandDefenseState() == DEFENSE_STATE_NEUTRAL;
 		bool bCanSendNavalUnit = GET_PLAYER(ePlayer).GetMilitaryAI()->GetNavalDefenseState() == DEFENSE_STATE_ENOUGH || GET_PLAYER(ePlayer).GetMilitaryAI()->GetNavalDefenseState() == DEFENSE_STATE_NEUTRAL;
-		bool bPrioritizeLand = false, bPrioritizeNaval = false;
+		bool bPrioritizeLand = false;
+		bool bPrioritizeNaval = false;
 
 		if (bCanSendLandUnit && bCanSendNavalUnit)
 		{
@@ -1377,7 +1380,8 @@ void CvHomelandAI::PlotPatrolMoves()
 void CvHomelandAI::ExecutePatrolMoves()
 {
 	//check what kind of units we have
-	int iUnitsSea = 0, iUnitsLand = 0;
+	int iUnitsSea = 0;
+	int iUnitsLand = 0;
 	for(CHomelandUnitArray::iterator itUnit = m_CurrentMoveUnits.begin(); itUnit != m_CurrentMoveUnits.end(); ++itUnit)
 	{
 		CvUnit* pUnit = m_pPlayer->getUnit(itUnit->GetID());
@@ -2457,8 +2461,8 @@ void CvHomelandAI::ExecuteFirstTurnSettlerMoves()
 		CvPlot* pLoopPlotSearch = NULL;
 		for (int iI = 0; iI < 3; iI++)
 		{
-			int iRandomDirection = GC.getGame().getSmallFakeRandNum(NUM_DIRECTION_TYPES, iI);
-			pLoopPlotSearch = plotDirection(pUnit->plot()->getX(), pUnit->plot()->getY(), ((DirectionTypes)iRandomDirection));
+			uint uRandomDirection = GC.getGame().urandLimitExclusive(static_cast<uint>(NUM_DIRECTION_TYPES), CvSeeder(iI));
+			pLoopPlotSearch = plotDirection(pUnit->plot()->getX(), pUnit->plot()->getY(), static_cast<DirectionTypes>(uRandomDirection));
 
 			if (pLoopPlotSearch != NULL && pUnit->GetDanger(pLoopPlotSearch)<INT_MAX)
 			{
@@ -2602,9 +2606,9 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 		if(!pEvalPlot)
 			continue;
 
-		//we can pass through a minor's territory but we don't want to stay there
+		//we can pass through a minor's territory but we don't want to stay there (unless we're friends)
 		//this check shouldn't be necessary because of IsValidExplorerEndTurnPlot() but sometimes it is
-		if(pEvalPlot->isOwned() && GET_PLAYER(pEvalPlot->getOwner()).isMinorCiv())
+		if(pEvalPlot->isOwned() && GET_PLAYER(pEvalPlot->getOwner()).isMinorCiv() && !GET_PLAYER(pEvalPlot->getOwner()).GetMinorCivAI()->IsPlayerHasOpenBorders(m_pPlayer->GetID()))
 			continue;
 
 		//don't embark to reach a close-range target
@@ -2659,10 +2663,6 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 			if(pUnit->getDomainType() == DOMAIN_SEA && pEvalPlot->isWater() && (pEvalPlot->getResourceType() != NO_RESOURCE || pEvalPlot->getFeatureType() != NO_FEATURE))
 				iScoreExtra += 25;
 
-			//We should always be moving.
-			if( pEvalPlot == pUnit->plot())
-				iScoreExtra -= 50;
-
 			if(pUnit->canSellExoticGoods(pEvalPlot))
 			{
 				float fRewardFactor = pUnit->calculateExoticGoodsDistanceFactor(pEvalPlot);
@@ -2676,7 +2676,7 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 				}
 			}
 
-			int iRandom = GC.getGame().getSmallFakeRandNum(23,*pEvalPlot);
+			int iRandom = GC.getGame().randRangeExclusive(0, 23, pEvalPlot->GetPseudoRandomSeed());
 			int iTotalScore = iScoreBase+iScoreExtra+iScoreBonus+iRandom;
 
 			//careful with plots that are too dangerous
@@ -4663,7 +4663,7 @@ bool CvHomelandAI::MoveCivilianToGarrison(CvUnit* pUnit)
 		if(!pUnit->canMoveInto(*pLoopPlot, CvUnit::MOVEFLAG_DESTINATION))
 			continue;
 
-		int iValue = 100; //default
+		int iValue = 1000; //default
 
 		//try to spread out
 		int iNumFriendlies = pLoopPlot->getNumUnitsOfAIType(pUnit->AI_getUnitAIType());
@@ -4676,7 +4676,7 @@ bool CvHomelandAI::MoveCivilianToGarrison(CvUnit* pUnit)
 		if (m_pPlayer->getCapitalCity())
 			iValue -= plotDistance(m_pPlayer->getCapitalCity()->getX(), m_pPlayer->getCapitalCity()->getY(), pLoopCity->getX(), pLoopCity->getY());
 
-		aBestPlotList.push_back(pLoopPlot, iValue);
+		aBestPlotList.push_back(pLoopPlot, max(iValue, 0));
 	}
 
 	CvPlot* pBestPlot = NULL;
@@ -5372,7 +5372,8 @@ void CvHomelandAI::LogHomelandMessage(const CvString& strMsg)
 	{
 		CvString strOutBuf;
 		CvString strBaseString;
-		CvString strTemp, szTemp2;
+		CvString strTemp;
+		CvString szTemp2;
 		CvString strPlayerName;
 		FILogFile* pLog = NULL;
 
@@ -5637,6 +5638,13 @@ bool CvHomelandAI::IsValidExplorerEndTurnPlot(const CvUnit* pUnit, CvPlot* pPlot
 	if (pUnit->isEnemy(pPlot->getTeam()))
 	{
 		return false;
+	}
+
+	//don't target goody huts if we can't claim them with this unit
+	if (MOD_BALANCE_CORE_GOODY_RECON_ONLY && pPlot->isGoody())
+	{
+		if (pUnit->getUnitCombatType() != (UnitCombatTypes) GC.getInfoTypeForString("UNITCOMBAT_RECON", true) && !pUnit->IsGainsXPFromScouting())
+			return false;
 	}
 
 	// see if we can capture a civilian?

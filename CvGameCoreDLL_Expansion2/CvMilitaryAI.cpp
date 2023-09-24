@@ -1031,8 +1031,10 @@ int CvMilitaryAI::ScoreAttackTarget(const CvAttackTarget& target)
 	if(target.m_armyType==ARMY_TYPE_LAND)
 	{
 		// interpolate linearly between a low and a high distance
-		float fDistanceLow = 8, fWeightLow = 10;
-		float fDistanceHigh = 24, fWeightHigh = 1;
+		float fDistanceLow = 8;
+		float fWeightLow = 10;
+		float fDistanceHigh = 24;
+		float fWeightHigh = 1;
 
 		float fSlope = (fWeightHigh-fWeightLow) / (fDistanceHigh-fDistanceLow);
 		fDistWeightInterpolated = (target.GetPathLength()-fDistanceLow) * fSlope + fWeightLow;
@@ -1041,8 +1043,10 @@ int CvMilitaryAI::ScoreAttackTarget(const CvAttackTarget& target)
 	else
 	{
 		// interpolate linearly between a low and a high distance
-		float fDistanceLow = 8, fWeightLow = 6;
-		float fDistanceHigh = 36, fWeightHigh = 1;
+		float fDistanceLow = 8;
+		float fWeightLow = 6;
+		float fDistanceHigh = 36;
+		float fWeightHigh = 1;
 
 		float fSlope = (fWeightHigh-fWeightLow) / (fDistanceHigh-fDistanceLow);
 		fDistWeightInterpolated = (target.GetPathLength()-fDistanceLow) * fSlope + fWeightLow;
@@ -1063,7 +1067,7 @@ int CvMilitaryAI::ScoreAttackTarget(const CvAttackTarget& target)
 	}
 
 	//Going after a City-State? Depends if it has allies
-	if(GET_PLAYER(pTargetCity->getOwner()).isMinorCiv())
+	if (GET_PLAYER(pTargetCity->getOwner()).isMinorCiv())
 	{
 		//in general prefer to target major players, except rome
 		//todo: maybe also factor in other traits? austria, venice, germany, greece? what about statecraft
@@ -1077,7 +1081,7 @@ int CvMilitaryAI::ScoreAttackTarget(const CvAttackTarget& target)
 			if (GET_TEAM(GET_PLAYER(eAlly).getTeam()).isAtWar(GetPlayer()->getTeam()))
 			{
 				fDesirability *= m_pPlayer->GetPlayerTraits()->GetCityStateCombatModifier() > 0 ? 200 : 100;
-				fDesirability /= max(1, /*250*/ GD_INT_GET(AI_MILITARY_CAPTURING_ORIGINAL_CAPITAL));
+				fDesirability /= 250;
 			}
 		}
 		else if (m_pPlayer->IsAtWarAnyMajor() && !m_pPlayer->IsAtWarWith(pTargetCity->getOwner()))
@@ -1092,59 +1096,61 @@ int CvMilitaryAI::ScoreAttackTarget(const CvAttackTarget& target)
 		}
 	}
 
-	//If we were given a quest to go to war with this player, that should influence our decision. Plus, it probably means he's a total jerk.
-	for(int iMinorLoop = MAX_MAJOR_CIVS; iMinorLoop < MAX_CIV_PLAYERS; iMinorLoop++)
+	if (m_pPlayer->isMajorCiv())
 	{
-		PlayerTypes eMinor = (PlayerTypes) iMinorLoop;
-		CvPlayer* pMinor = &GET_PLAYER(eMinor);
-		if (!pMinor->isAlive())
-			continue;
-
-		CvMinorCivAI* pMinorCivAI = pMinor->GetMinorCivAI();
-
-		if(pMinorCivAI->IsActiveQuestForPlayer(m_pPlayer->GetID(), MINOR_CIV_QUEST_LIBERATION))
+		// If we were given a quest to go to war with this player, that should influence our decision. Plus, it probably means he's a total jerk.
+		bool bAnyLiberationQuest = false;
+		for (int iMinorLoop = MAX_MAJOR_CIVS; iMinorLoop < MAX_CIV_PLAYERS; iMinorLoop++)
 		{
-			if(pTargetCity->getOriginalOwner() == pMinor->GetMinorCivAI()->GetQuestData1(m_pPlayer->GetID(), MINOR_CIV_QUEST_LIBERATION))
-			{
-				fDesirability *= /*200*/ GD_INT_GET(AI_MILITARY_RECAPTURING_CITY_STATE);
-				fDesirability /= 100;
-			}	
-		}
+			PlayerTypes eMinor = (PlayerTypes) iMinorLoop;
+			CvPlayer* pMinor = &GET_PLAYER(eMinor);
+			if (!pMinor->isAlive())
+				continue;
 
-		if(pMinorCivAI->IsActiveQuestForPlayer(GetPlayer()->GetID(), MINOR_CIV_QUEST_WAR))
-		{
-			if(pMinorCivAI->GetQuestData1(GetPlayer()->GetID(), MINOR_CIV_QUEST_WAR) == pTargetCity->getOwner())
+			CvMinorCivAI* pMinorCivAI = pMinor->GetMinorCivAI();
+
+			if (pMinorCivAI->IsActiveQuestForPlayer(m_pPlayer->GetID(), MINOR_CIV_QUEST_LIBERATION))
 			{
-				fDesirability *= /*150*/ GD_INT_GET(AI_MILITARY_RECAPTURING_OWN_CITY);
-				fDesirability /= 100;
+				if (m_pPlayer->GetPlayerToLiberate(pTargetCity) == pMinor->GetMinorCivAI()->GetQuestData3(m_pPlayer->GetID(), MINOR_CIV_QUEST_LIBERATION)
+					&& pTargetCity->getX() == pMinor->GetMinorCivAI()->GetQuestData1(m_pPlayer->GetID(), MINOR_CIV_QUEST_LIBERATION)
+					&& pTargetCity->getY() == pMinor->GetMinorCivAI()->GetQuestData2(m_pPlayer->GetID(), MINOR_CIV_QUEST_LIBERATION))
+				{
+					fDesirability *= /*200*/ GD_INT_GET(AI_MILITARY_RECAPTURING_CITY_STATE);
+					fDesirability /= 100;
+					bAnyLiberationQuest = true;
+				}
 			}
-		}
-		if(pMinorCivAI->IsActiveQuestForPlayer(GetPlayer()->GetID(), MINOR_CIV_QUEST_LIBERATION))
-		{
-			if(pMinorCivAI->GetQuestData1(GetPlayer()->GetID(), MINOR_CIV_QUEST_LIBERATION) == eMinor)
+
+			if (pMinorCivAI->IsActiveQuestForPlayer(GetPlayer()->GetID(), MINOR_CIV_QUEST_WAR))
 			{
-				TeamTypes eConquerorTeam = GET_TEAM(pMinor->getTeam()).GetKilledByTeam();	
-				if(eConquerorTeam == pTargetCity->getTeam())
+				if (pMinorCivAI->GetQuestData1(GetPlayer()->GetID(), MINOR_CIV_QUEST_WAR) == pTargetCity->getOwner())
 				{
 					fDesirability *= /*150*/ GD_INT_GET(AI_MILITARY_RECAPTURING_OWN_CITY);
 					fDesirability /= 100;
 				}
 			}
-		}
-		if(pMinorCivAI->IsActiveQuestForPlayer(GetPlayer()->GetID(), MINOR_CIV_QUEST_UNIT_GET_CITY))
-		{
-			int iX = pMinorCivAI->GetQuestData1(GetPlayer()->GetID(), MINOR_CIV_QUEST_UNIT_GET_CITY);
-			int iY = pMinorCivAI->GetQuestData2(GetPlayer()->GetID(), MINOR_CIV_QUEST_UNIT_GET_CITY);
 
-			CvPlot* pPlot = GC.getMap().plot(iX, iY);
-			if(pPlot != NULL && pPlot->isCity())
+			if (pMinorCivAI->IsActiveQuestForPlayer(GetPlayer()->GetID(), MINOR_CIV_QUEST_ACQUIRE_CITY))
 			{
-				if(pPlot->getOwner() == pTargetCity->getOwner())
+				int iX = pMinorCivAI->GetQuestData1(GetPlayer()->GetID(), MINOR_CIV_QUEST_ACQUIRE_CITY);
+				int iY = pMinorCivAI->GetQuestData2(GetPlayer()->GetID(), MINOR_CIV_QUEST_ACQUIRE_CITY);
+
+				CvPlot* pPlot = GC.getMap().plot(iX, iY);
+				if (pPlot != NULL && pPlot->isCity())
 				{
-					fDesirability *= /*150*/ GD_INT_GET(AI_MILITARY_RECAPTURING_OWN_CITY);
-					fDesirability /= 100;
+					if (pPlot->getOwner() == pTargetCity->getOwner())
+					{
+						fDesirability *= /*150*/ GD_INT_GET(AI_MILITARY_RECAPTURING_OWN_CITY);
+						fDesirability /= 100;
+					}
 				}
 			}
+		}
+		// Are we trying to liberate this city for a non-quest reason? That deserves a bonus.
+		if (!bAnyLiberationQuest && m_pPlayer->GetDiplomacyAI()->IsTryingToLiberate(pTargetCity))
+		{
+			fDesirability *= /*150*/ GD_INT_GET(AI_MILITARY_RECAPTURING_OWN_CITY);
+			fDesirability /= 100;
 		}
 	}
 
@@ -1167,7 +1173,7 @@ int CvMilitaryAI::ScoreAttackTarget(const CvAttackTarget& target)
 		}
 	}
 
-	if(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
+	if (MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	{
 		for(int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 		{
@@ -2055,7 +2061,7 @@ void CvMilitaryAI::UpdateMilitaryStrategies()
 					if(LuaSupport::CallTestAll(pkScriptSystem, "MilitaryStrategyCanActivate", args.get(), bResult))
 					{
 						// Check the result.
-						if(bResult == false)
+						if(!bResult)
 						{
 							bStrategyShouldBeActive = false;
 						}
@@ -2187,7 +2193,7 @@ void CvMilitaryAI::DoNuke(PlayerTypes ePlayer)
 				if (bRollForNuke)
 				{
 					int iFlavorNuke = m_pPlayer->GetFlavorManager()->GetPersonalityFlavorForDiplomacy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_USE_NUKE"));
-					int iRoll = GC.getGame().getSmallFakeRandNum(10, m_pPlayer->GetPseudoRandomSeed() + GET_PLAYER(ePlayer).GetPseudoRandomSeed());
+					int iRoll = GC.getGame().randRangeExclusive(0, 10, m_pPlayer->GetPseudoRandomSeed().mix(GET_PLAYER(ePlayer).GetPseudoRandomSeed()));
 					if (iRoll <= iFlavorNuke)
 					{
 						bLaunchNuke = true;
@@ -2423,17 +2429,17 @@ void CvMilitaryAI::DisbandObsoleteUnits()
 		return;
 
 	// Don't do this if at war
-	if(GetNumberCivsAtWarWith(false) > 0)
+	if (GetNumberCivsAtWarWith(m_pPlayer->isMinorCiv()) > 0)
 	{
-		if (m_pPlayer->GetDiplomacyAI()->GetStateAllWars() == STATE_ALL_WARS_LOSING)
+		if (m_pPlayer->isMinorCiv())
+			return;
+
+		if (m_pPlayer->isMajorCiv() && m_pPlayer->GetDiplomacyAI()->GetStateAllWars() == STATE_ALL_WARS_LOSING)
 			return;
 	}
 
 	if (m_pPlayer->isMinorCiv())
 	{
-		if (m_pPlayer->GetMinorCivAI()->IsRecentlyBulliedByAnyMajor())
-			return;
-
 		if (m_pPlayer->GetMinorCivAI()->GetNumThreateningBarbarians() > 0)
 			return;
 	}
@@ -3554,56 +3560,31 @@ bool MilitaryAIHelpers::IsTestStrategy_EnoughMilitaryUnits(CvPlayer* pPlayer)
 /// "Empire Defense" Player Strategy: Adjusts military flavors if the player doesn't have the recommended number of units
 bool MilitaryAIHelpers::IsTestStrategy_EmpireDefense(CvPlayer* pPlayer)
 {
-	if(pPlayer->GetMilitaryAI()->GetLandDefenseState() == DEFENSE_STATE_NEEDED)
-	{
-		return true;
-	}
-
-	return false;
+	return pPlayer->GetMilitaryAI()->GetLandDefenseState() == DEFENSE_STATE_NEEDED;
 }
 
 /// "Empire Defense" Player Strategy: If we have less than 1 unit per city (tweaked a bit by threat level), we NEED some units
 bool MilitaryAIHelpers::IsTestStrategy_EmpireDefenseCritical(CvPlayer* pPlayer)
 {
-	if(pPlayer->GetMilitaryAI()->GetLandDefenseState() == DEFENSE_STATE_CRITICAL)
-	{
-		return true;
-	}
-
-	return false;
+	return pPlayer->GetMilitaryAI()->GetLandDefenseState() == DEFENSE_STATE_CRITICAL;
 }
 
 /// "Enough Naval Units" Strategy: build navies
 bool MilitaryAIHelpers::IsTestStrategy_EnoughNavalUnits(CvPlayer* pPlayer)
 {
-	if(pPlayer->GetMilitaryAI()->GetNavalDefenseState() == DEFENSE_STATE_ENOUGH)
-	{
-		return true;
-	}
-
-	return false;
+	return pPlayer->GetMilitaryAI()->GetNavalDefenseState() == DEFENSE_STATE_ENOUGH;
 }
 
 /// "Need Naval Units" Strategy: build navies
 bool MilitaryAIHelpers::IsTestStrategy_NeedNavalUnits(CvPlayer* pPlayer)
 {
-	if(pPlayer->GetMilitaryAI()->GetNavalDefenseState() == DEFENSE_STATE_NEEDED)
-	{
-		return true;
-	}
-
-	return false;
+	return pPlayer->GetMilitaryAI()->GetNavalDefenseState() == DEFENSE_STATE_NEEDED;
 }
 
 /// "Need Naval Units Critical" Strategy: build navies NOW
 bool MilitaryAIHelpers::IsTestStrategy_NeedNavalUnitsCritical(CvPlayer* pPlayer)
 {
-	if(pPlayer->GetMilitaryAI()->GetNavalDefenseState() == DEFENSE_STATE_CRITICAL)
-	{
-		return true;
-	}
-
-	return false;
+	return pPlayer->GetMilitaryAI()->GetNavalDefenseState() == DEFENSE_STATE_CRITICAL;
 }
 
 /// "War Mobilization" Player Strategy: Does this player want to mobilize for war?  If so, adjust flavors
@@ -3693,12 +3674,7 @@ bool MilitaryAIHelpers::IsTestStrategy_WarMobilization(MilitaryAIStrategyTypes e
 /// "At War" Player Strategy: If the player is at war, increase OFFENSE, DEFENSE and MILITARY_TRAINING.  Then look into which operation(s) to run
 bool MilitaryAIHelpers::IsTestStrategy_AtWar(CvPlayer* pPlayer, bool bMinor)
 {
-	if (pPlayer->GetMilitaryAI()->GetNumberCivsAtWarWith(bMinor) > 0)
-	{
-		return true;
-	}
-
-	return false;
+	return pPlayer->GetMilitaryAI()->GetNumberCivsAtWarWith(bMinor) > 0;
 }
 
 /// "Minor Civ GeneralDefense" Player Strategy: Prioritize CITY_DEFENSE and DEFENSE
@@ -3710,23 +3686,13 @@ bool MilitaryAIHelpers::IsTestStrategy_MinorCivGeneralDefense()
 /// "Minor Civ Threat Elevated" Player Strategy: If a Minor Civ is in danger, turn CITY_DEFENSE and DEFENSE up
 bool MilitaryAIHelpers::IsTestStrategy_MinorCivThreatElevated(CvPlayer* pPlayer)
 {
-	if (pPlayer->GetMinorCivAI()->GetStatus() == MINOR_CIV_STATUS_ELEVATED)
-	{
-		return true;
-	}
-
-	return false;
+	return pPlayer->GetMinorCivAI()->GetStatus() == MINOR_CIV_STATUS_ELEVATED;
 }
 
 /// "Minor Civ Threat Critical" Player Strategy: If a Minor Civ is in danger, turn CITY_DEFENSE and DEFENSE up
 bool MilitaryAIHelpers::IsTestStrategy_MinorCivThreatCritical(CvPlayer* pPlayer)
 {
-	if (pPlayer->GetMinorCivAI()->GetStatus() == MINOR_CIV_STATUS_CRITICAL)
-	{
-		return true;
-	}
-
-	return false;
+	return pPlayer->GetMinorCivAI()->GetStatus() == MINOR_CIV_STATUS_CRITICAL;
 }
 
 /// "Eradicate Barbarians" Player Strategy: If there is a large group of barbarians units or camps near our civilization, increase OFFENSE
@@ -3886,12 +3852,7 @@ bool MilitaryAIHelpers::IsTestStrategy_NeedRangedUnits(CvPlayer* pPlayer, int iN
 bool MilitaryAIHelpers::IsTestStrategy_NeedRangedDueToEarlySneakAttack(CvPlayer* pPlayer)
 {
 	MilitaryAIStrategyTypes eStrategyWarMob = (MilitaryAIStrategyTypes) GC.getInfoTypeForString("MILITARYAISTRATEGY_WAR_MOBILIZATION");
-	if(pPlayer->GetMilitaryAI()->IsUsingStrategy(eStrategyWarMob))
-	{
-		return true;
-	}
-
-	return false;
+	return pPlayer->GetMilitaryAI()->IsUsingStrategy(eStrategyWarMob);
 }
 
 /// "Enough Mobile" Player Strategy: If a player has too many mobile units
@@ -4187,16 +4148,16 @@ CvPlot* MilitaryAIHelpers::GetCoastalWaterNearPlot(CvPlot *pTarget, bool bCheckT
 		{ 0,5,6,3,2,4,1,14,13,17,16,15,11,8,9,18,12,7,10 },
 		{ 0,2,1,5,4,3,6,14,8,15,12,18,16,9,7,11,10,13,17 },
 		{ 0,6,3,2,5,1,4,18,15,16,14,12,17,8,7,10,9,13,11 } };
-	int iShuffleType = GC.getGame().getSmallFakeRandNum(3, *pTarget);
+	uint uShuffleType = GC.getGame().urandLimitExclusive(3, pTarget->GetPseudoRandomSeed());
 
 	for(int iI = RING0_PLOTS; iI < RING2_PLOTS; iI++)
 	{
-		CvPlot* pAdjacentPlot = iterateRingPlots(pTarget->getX(), pTarget->getY(), aiShuffle[iShuffleType][iI]);
+		CvPlot* pAdjacentPlot = iterateRingPlots(pTarget->getX(), pTarget->getY(), aiShuffle[uShuffleType][iI]);
 		if(pAdjacentPlot != NULL && 
 			(!bCheckTeam || pAdjacentPlot->getTeam()==eTeam || pAdjacentPlot->getTeam()==NO_TEAM) && //ownership check
 			pAdjacentPlot->isShallowWater() && //coastal
 			pAdjacentPlot->getFeatureType()==NO_FEATURE && //no ice
-			pAdjacentPlot->isLake()==false && //no lake
+			!pAdjacentPlot->isLake() && //no lake
 			pAdjacentPlot->countPassableNeighbors(DOMAIN_SEA)>2) //no bays
 		{
 			return pAdjacentPlot;

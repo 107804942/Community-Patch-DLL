@@ -177,6 +177,7 @@ public:
 	void DoLiberatePlayer(PlayerTypes ePlayer, int iOldCityID, bool bForced, bool bSphereRemoval);
 	bool CanLiberatePlayer(PlayerTypes ePlayer);
 	bool CanLiberatePlayerCity(PlayerTypes ePlayer);
+	PlayerTypes GetPlayerToLiberate(CvCity* pCity);
 
 	CvUnit* initUnit(UnitTypes eUnit, int iX, int iY, UnitAITypes eUnitAI = NO_UNITAI, UnitCreationReason eReason = REASON_DEFAULT, bool bNoMove = false, bool bSetupGraphical = true, int iMapLayer = 0, int iNumGoodyHutsPopped = 0, ContractTypes eContract = NO_CONTRACT, bool bHistoric = true, CvUnit* pPassUnit = NULL);
 	CvUnit* initUnitWithNameOffset(UnitTypes eUnit, int nameOffset, int iX, int iY, UnitAITypes eUnitAI = NO_UNITAI, UnitCreationReason eReason = REASON_DEFAULT, bool bNoMove = false, bool bSetupGraphical = true, int iMapLayer = 0, int iNumGoodyHutsPopped = 0, ContractTypes eContract = NO_CONTRACT, bool bHistoric = true, CvUnit* pPassUnit = NULL);
@@ -311,7 +312,7 @@ public:
 	void unraze(CvCity* pCity);
 	void disband(CvCity* pCity);
 
-	bool canReceiveGoody(CvPlot* pPlot, GoodyTypes eGoody, CvUnit* pUnit) const;
+	bool canReceiveGoody(CvPlot* pPlot, GoodyTypes eGoody, CvUnit* pUnit);
 	void receiveGoody(CvPlot* pPlot, GoodyTypes eGoody, CvUnit* pUnit);
 	void doGoody(CvPlot* pPlot, CvUnit* pUnit);
 
@@ -365,7 +366,7 @@ public:
 
 	int getBuildingClassPrereqBuilding(BuildingTypes eBuilding, BuildingClassTypes ePrereqBuildingClass, int iExtra = 0) const;
 	void removeBuildingClass(BuildingClassTypes eBuildingClass);
-	void processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, CvArea* pArea);
+	void processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, CvCity* pSourceCity);
 	int GetBuildingClassYieldChange(BuildingClassTypes eBuildingClass, YieldTypes eYieldType);
 	int GetBuildingClassYieldModifier(BuildingClassTypes eBuildingClass, YieldTypes eYieldType);
 	int GetBuildingClassYieldChange(BuildingClassTypes eBuildingClass, YieldTypes eYieldType, const vector<int>& preexistingBuildingsCount);
@@ -558,6 +559,7 @@ public:
 	void DoTechFromCityConquer(CvCity* pConqueredCity);
 
 	void DoHealGlobal(int iValue);
+	void DoHealLocal(int iValue, CvPlot* pPlot);
 #if defined(MOD_BALANCE_CORE)
 	void DoFreeGreatWorkOnConquest(PlayerTypes ePlayer, CvCity* pCity);
 	void DoWarVictoryBonuses();
@@ -810,6 +812,8 @@ public:
 	void ChangeEspionageTurnsModifierEnemy(int iChange);
 	int GetStartingSpyRank() const;
 	void ChangeStartingSpyRank(int iChange);
+	int GetSpyPoints(bool bTotal) const;
+	void CreateSpies(int iNumSpies, bool bScaling = true);
 	// END Espionage
 
 #if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
@@ -1344,6 +1348,7 @@ public:
 	int getHappyPerMilitaryUnit() const;
 	void changeHappyPerMilitaryUnit(int iChange);
 	int GetHappinessFromMilitaryUnits() const;
+	int GetYieldFromMilitaryUnits(YieldTypes eIndex) const;
 
 	int getHappinessToCulture() const;
 	void changeHappinessToCulture(int iChange);
@@ -1628,6 +1633,9 @@ public:
 	int GetSpecialistFoodChange() const;
 	void ChangeSpecialistFoodChange(int iChange);
 
+	int GetNonSpecialistFoodChange() const;
+	void ChangeNonSpecialistFoodChange(int iChange);
+
 	int GetWarWearinessModifier() const;
 	void ChangeWarWearinessModifier(int iChange);
 
@@ -1655,6 +1663,7 @@ public:
 	int GetOriginalCapitalX() const;
 	int GetOriginalCapitalY() const;
 	void setOriginalCapitalXY(CvCity* pCapitalCity);
+	void resetOriginalCapitalXY();
 	bool IsHasLostCapital() const;
 	void SetHasLostCapital(bool bValue, PlayerTypes eConqueror);
 
@@ -1725,6 +1734,7 @@ public:
 	bool IsHasBetrayedMinorCiv() const;
 	void SetHasBetrayedMinorCiv(bool bValue);
 
+	void setEverAlive(bool bNewValue);
 	void setAlive(bool bNewValue, bool bNotify = true);
 	void verifyAlive(PlayerTypes eKiller = NO_PLAYER);
 	bool isAlive() const
@@ -1884,7 +1894,7 @@ public:
 	int getGoldenAgeYieldMod(YieldTypes eIndex)	const;
 	void changeGoldenAgeYieldMod(YieldTypes eIndex, int iChange);
 
-	std::vector<SPlayerActiveEspionageEvent> CvPlayer::GetActiveEspionageEventsList() const;
+	std::vector<SPlayerActiveEspionageEvent> GetActiveEspionageEventsList() const;
 
 	int GetNumAnnexedCityStates(MinorCivTraitTypes eIndex)	const;
 	void ChangeNumAnnexedCityStates(MinorCivTraitTypes eIndex, int iChange);
@@ -1912,6 +1922,9 @@ public:
 
 	int getCityCaptureHealGlobal() const;
 	void changeCityCaptureHealGlobal(int iChange);
+
+	int getCityCaptureHealLocal() const;
+	void changeCityCaptureHealLocal(int iChange);
 
 	int getNumBuildingClassInLiberatedCities(BuildingClassTypes eIndex)	const;
 	void changeNumBuildingClassInLiberatedCities(BuildingClassTypes eIndex, int iChange);
@@ -2023,13 +2036,11 @@ public:
 	void ChangeBullyGlobalCSReduction(int iValue);
 	int GetBullyGlobalCSReduction() const;
 #endif
-#if defined(MOD_BALANCE_CORE_SPIES)
 	void changeMaxAirUnits(int iChange);
 	int getMaxAirUnits() const;
 
 	int GetImprovementExtraYield(ImprovementTypes eImprovement, YieldTypes eYield) const;
 	void ChangeImprovementExtraYield(ImprovementTypes eImprovement, YieldTypes eYield, int iChange);
-#endif
 #if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
 	int GetInvestmentModifier() const;
 	void changeInvestmentModifier(int iChange);
@@ -2183,6 +2194,29 @@ public:
 	void setResourceFromCSAlliances(ResourceTypes eIndex, int iChange);
 
 #endif
+
+	const std::vector<ResourceTypes>& GetResourcesNotForSale() const { return m_vResourcesNotForSale; }
+	bool IsResourceNotForSale(ResourceTypes eResource);
+	void SetResourceAvailable(ResourceTypes eResource);
+	void SetResourceNotForSale(ResourceTypes eResource);
+
+	bool IsRefuseOpenBordersTrade();
+	void SetRefuseOpenBordersTrade(bool refuseTrade);
+
+	bool IsRefuseEmbassyTrade();
+	void SetRefuseEmbassyTrade(bool refuseTrade);
+
+	bool IsRefuseDefensivePactTrade();
+	void SetRefuseDefensivePactTrade(bool refuseTrade);
+
+	bool IsRefuseBrokeredWarTrade();
+	void SetRefuseBrokeredWarTrade(bool refuseTrade);
+
+	bool IsRefuseBrokeredPeaceTrade();
+	void SetRefuseBrokeredPeaceTrade(bool refuseTrade);
+
+	bool IsRefuseResearchAgreementTrade();
+	void SetRefuseResearchAgreementTrade(bool refuseTrade);
 
 	bool IsResourceCityTradeable(ResourceTypes eResource, bool bCheckTeam = true) const;
 	bool IsResourceRevealed(ResourceTypes eResource, bool bCheckTeam = true) const;
@@ -2340,9 +2374,6 @@ public:
 
 	int GetYieldFromWLTKD(YieldTypes eYield) const;
 	void ChangeYieldFromWLTKD(YieldTypes eYield, int iChange);
-
-	int getBuildingClassYieldChange(BuildingClassTypes eIndex1, YieldTypes eIndex2) const;
-	void changeBuildingClassYieldChange(BuildingClassTypes eIndex1, YieldTypes eIndex2, int iChange);
 
 #if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	int getSpecificGreatPersonRateModifierFromMonopoly(GreatPersonTypes eIndex1, MonopolyTypes eIndex2) const;
@@ -2572,7 +2603,7 @@ public:
 	int GetNumRealCities() const;
 	int GetNumCapitalCities() const;
 	int GetNumMinorsControlled() const;
-	int GetNumEffectiveCities(bool bIncludePuppets = false);
+	int GetNumEffectiveCities(bool bIncludePuppets = false) const;
 	int GetNumEffectiveCoastalCities() const;
 
 #if defined(MOD_BALANCE_CORE_MILITARY)
@@ -2770,7 +2801,7 @@ public:
 	bool HasActiveDiplomacyRequests() const;
 
 	CvTreasury* GetTreasury() const;
-	int GetPseudoRandomSeed() const;
+	CvSeeder GetPseudoRandomSeed() const;
 
 	int GetCityDistanceHighwaterMark() const;
 	void SetCityDistanceHighwaterMark(int iNewValue);
@@ -2859,7 +2890,7 @@ public:
 	virtual void AI_doTurnUnitsPre() = 0;
 	virtual void AI_doTurnUnitsPost() = 0;
 	virtual void AI_unitUpdate() = 0;
-	virtual void AI_conquerCity(CvCity* pCity, PlayerTypes ePlayerToLiberate, bool bGift, bool bAllowSphereRemoval) = 0;
+	virtual void AI_conquerCity(CvCity* pCity, bool bGift, bool bAllowSphereRemoval) = 0;
 	bool HasSameIdeology(PlayerTypes ePlayer) const;
 
 #if defined(MOD_BALANCE_CORE_EVENTS)
@@ -3085,6 +3116,8 @@ protected:
 	int m_iEspionageModifier;
 	int m_iEspionageTurnsModifierFriendly;
 	int m_iEspionageTurnsModifierEnemy;
+	int m_iSpyPoints;
+	int m_iSpyPointsTotal;
 	int m_iSpyStartingRank;
 #if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	int m_iConversionModifier;
@@ -3205,6 +3238,7 @@ protected:
 	int m_iHappfromXSpecialists;
 	int m_iNoUnhappfromXSpecialistsCapital;
 	int m_iSpecialistFoodChange;
+	int m_iNonSpecialistFoodChange;
 	int m_iWarWearinessModifier;
 	int m_iWarScoreModifier;
 #if defined(MOD_BALANCE_CORE_POLICIES)
@@ -3232,10 +3266,9 @@ protected:
 	int m_iExperienceForLiberation;
 	int m_iUnitsInLiberatedCities;
 	int m_iCityCaptureHealGlobal;
+	int m_iCityCaptureHealLocal;
 #endif
-#if defined(MOD_BALANCE_CORE_SPIES)
 	int m_iMaxAirUnits;
-#endif
 #if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
 	int m_iInvestmentModifier;
 	int m_iMissionInfluenceModifier;
@@ -3623,6 +3656,14 @@ protected:
 	int m_iCombatDefenseBonusFromMonopolies;
 #endif
 
+	std::vector<ResourceTypes> m_vResourcesNotForSale;
+	bool m_refuseOpenBordersTrade;
+	bool m_refuseEmbassyTrade;
+	bool m_refuseDefensivePactTrade;
+	bool m_refuseBrokeredWarTrade;
+	bool m_refuseBrokeredPeaceTrade;
+	bool m_refuseResearchAgreementTrade;
+
 	std::vector<bool> m_pabGetsScienceFromPlayer;
 
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppaaiSpecialistExtraYield;
@@ -3646,7 +3687,6 @@ protected:
 	std::vector<int> m_piYieldChangeWorldWonder;
 	std::vector<int> m_piYieldFromMinorDemand;
 	std::vector<int> m_piYieldFromWLTKD;
-	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiBuildingClassYieldChange;
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppaaiImprovementYieldChange;
 #if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	std::map<GreatPersonTypes, std::map<MonopolyTypes, int>> m_ppiSpecificGreatPersonRateModifierFromMonopoly;
@@ -3803,6 +3843,7 @@ protected:
 #endif
 
 	mutable int m_iNumUnitsSuppliedCached; //not serialized
+	mutable int m_iNumUnitsSuppliedCachedWarWeariness; //not serialized
 
 #if defined(MOD_BATTLE_ROYALE)
 	int m_iNumMilitarySeaUnits;
@@ -3923,6 +3964,8 @@ SYNC_ARCHIVE_VAR(int, m_iHappinessPerXGreatWorks)
 SYNC_ARCHIVE_VAR(int, m_iEspionageModifier)
 SYNC_ARCHIVE_VAR(int, m_iEspionageTurnsModifierFriendly)
 SYNC_ARCHIVE_VAR(int, m_iEspionageTurnsModifierEnemy)
+SYNC_ARCHIVE_VAR(int, m_iSpyPoints)
+SYNC_ARCHIVE_VAR(int, m_iSpyPointsTotal)
 SYNC_ARCHIVE_VAR(int, m_iSpyStartingRank)
 SYNC_ARCHIVE_VAR(int, m_iConversionModifier)
 SYNC_ARCHIVE_VAR(int, m_iFoodInCapitalFromAnnexedMinors)
@@ -4031,6 +4074,7 @@ SYNC_ARCHIVE_VAR(int, m_iNoUnhappfromXSpecialists)
 SYNC_ARCHIVE_VAR(int, m_iHappfromXSpecialists)
 SYNC_ARCHIVE_VAR(int, m_iNoUnhappfromXSpecialistsCapital)
 SYNC_ARCHIVE_VAR(int, m_iSpecialistFoodChange)
+SYNC_ARCHIVE_VAR(int, m_iNonSpecialistFoodChange)
 SYNC_ARCHIVE_VAR(int, m_iWarWearinessModifier)
 SYNC_ARCHIVE_VAR(int, m_iWarScoreModifier)
 SYNC_ARCHIVE_VAR(int, m_iGarrisonsOccupiedUnhappinessMod)
@@ -4375,7 +4419,6 @@ SYNC_ARCHIVE_VAR(std::vector<bool>, m_pabHasGlobalMonopoly)
 SYNC_ARCHIVE_VAR(std::vector<bool>, m_pabHasStrategicMonopoly)
 SYNC_ARCHIVE_VAR(std::vector<bool>, m_pabGetsScienceFromPlayer)
 SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > >), m_ppaaiSpecialistExtraYield)
-SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > >), m_ppiBuildingClassYieldChange)
 SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > >), m_ppaaiImprovementYieldChange)
 SYNC_ARCHIVE_VAR(bool, m_bEverPoppedGoody)
 SYNC_ARCHIVE_VAR(bool, m_bEverTrainedBuilder)
@@ -4394,6 +4437,13 @@ SYNC_ARCHIVE_VAR(int, m_iNumMilitaryLandUnits)
 SYNC_ARCHIVE_VAR(int, m_iMilitarySeaMight)
 SYNC_ARCHIVE_VAR(int, m_iMilitaryAirMight)
 SYNC_ARCHIVE_VAR(int, m_iMilitaryLandMight)
+SYNC_ARCHIVE_VAR(std::vector<ResourceTypes>, m_vResourcesNotForSale)
+SYNC_ARCHIVE_VAR(bool, m_refuseOpenBordersTrade)
+SYNC_ARCHIVE_VAR(bool, m_refuseEmbassyTrade)
+SYNC_ARCHIVE_VAR(bool, m_refuseDefensivePactTrade)
+SYNC_ARCHIVE_VAR(bool, m_refuseBrokeredWarTrade)
+SYNC_ARCHIVE_VAR(bool, m_refuseBrokeredPeaceTrade)
+SYNC_ARCHIVE_VAR(bool, m_refuseResearchAgreementTrade)
 SYNC_ARCHIVE_END()
 
 

@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -250,6 +250,7 @@ CvTraitEntry::CvTraitEntry() :
 	m_piYieldFromLevelUp(NULL),
 	m_piYieldFromHistoricEvent(NULL),
 	m_piYieldFromOwnPantheon(NULL),
+	m_piYieldFromXMilitaryUnits(NULL),
 	m_tradeRouteEndYield(),
 	m_piYieldFromRouteMovement(NULL),
 	m_piYieldFromExport(NULL),
@@ -301,6 +302,7 @@ CvTraitEntry::CvTraitEntry() :
 	m_ppiTerrainYieldChanges(NULL),
 	m_piYieldFromKills(NULL),
 	m_piYieldFromBarbarianKills(NULL),
+	m_piYieldFromMinorDemand(NULL),
 	m_piYieldChangeTradeRoute(NULL),
 	m_piYieldChangeWorldWonder(NULL),
 	m_ppiTradeRouteYieldChange(NULL),
@@ -1128,6 +1130,10 @@ int CvTraitEntry::YieldFromHistoricEvent(int i) const
 {
 	return m_piYieldFromHistoricEvent ? m_piYieldFromHistoricEvent[i] : -1;
 }
+int CvTraitEntry::YieldFromXMilitaryUnits(int i) const
+{
+	return m_piYieldFromXMilitaryUnits ? m_piYieldFromXMilitaryUnits[i] : -1;
+}
 int CvTraitEntry::YieldFromLevelUp(int i) const
 {
 	return m_piYieldFromLevelUp ? m_piYieldFromLevelUp[i] : -1;
@@ -1562,6 +1568,10 @@ int CvTraitEntry::GetYieldFromHistoricEvent(int i) const
 {
 	return m_piYieldFromHistoricEvent? m_piYieldFromHistoricEvent[i] : -1;
 }
+int CvTraitEntry::GetYieldFromXMilitaryUnits(int i) const
+{
+	return m_piYieldFromXMilitaryUnits ? m_piYieldFromXMilitaryUnits[i] : -1;
+}
 int CvTraitEntry::GetYieldFromLevelUp(int i) const
 {
 	return m_piYieldFromLevelUp ? m_piYieldFromLevelUp[i] : -1;
@@ -1777,6 +1787,13 @@ int CvTraitEntry::GetYieldFromBarbarianKills(YieldTypes eYield) const
 	CvAssertMsg((int)eYield < NUM_YIELD_TYPES, "Yield type out of bounds");
 	CvAssertMsg((int)eYield > -1, "Index out of bounds");
 	return m_piYieldFromBarbarianKills ? m_piYieldFromBarbarianKills[(int)eYield] : 0;
+}
+
+int CvTraitEntry::GetYieldFromMinorDemand(YieldTypes eYield) const
+{
+	CvAssertMsg((int)eYield < NUM_YIELD_TYPES, "Yield type out of bounds");
+	CvAssertMsg((int)eYield > -1, "Index out of bounds");
+	return m_piYieldFromMinorDemand ? m_piYieldFromMinorDemand[(int)eYield] : 0;
 }
 
 int CvTraitEntry::GetYieldChangeTradeRoute(int i) const
@@ -2122,12 +2139,7 @@ bool CvTraitEntry::IsNoBuild(BuildTypes eBuild) const
 {
 	std::vector<int>::const_iterator it = find(m_aiNoBuilds.begin(), m_aiNoBuilds.end(), (int)eBuild);
 
-	if (it != m_aiNoBuilds.end())
-	{
-		return true;
-	}
-
-	return false;
+	return it != m_aiNoBuilds.end();
 }
 
 /// Accessor:: Does the civ have a production modifier for domain type per worked specialist?
@@ -2197,14 +2209,7 @@ bool CvTraitEntry::IsEnabledByTech(TeamTypes eTeam)
 {
 	if(m_iPrereqTech != NO_TECH)
 	{
-		if(GET_TEAM(eTeam).GetTeamTechs()->HasTech((TechTypes)m_iPrereqTech))
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		return GET_TEAM(eTeam).GetTeamTechs()->HasTech((TechTypes)m_iPrereqTech);
 	}
 	return true;
 }
@@ -3242,6 +3247,7 @@ bool CvTraitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& 
 #if defined(MOD_BALANCE_CORE)
 	kUtility.SetYields(m_piYieldFromLevelUp, "Trait_YieldFromLevelUp", "TraitType", szTraitType);
 	kUtility.SetYields(m_piYieldFromHistoricEvent, "Trait_YieldFromHistoricEvent", "TraitType", szTraitType);
+	kUtility.SetYields(m_piYieldFromXMilitaryUnits, "Trait_YieldFromXMilitaryUnits", "TraitType", szTraitType);
 	kUtility.SetYields(m_piYieldFromOwnPantheon, "Trait_YieldFromOwnPantheon", "TraitType", szTraitType);
 	// Trait_TradeRouteEndYield
 	{
@@ -3416,6 +3422,7 @@ bool CvTraitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& 
 	
 	kUtility.SetYields(m_piYieldFromKills, "Trait_YieldFromKills", "TraitType", szTraitType);
 	kUtility.SetYields(m_piYieldFromBarbarianKills, "Trait_YieldFromBarbarianKills", "TraitType", szTraitType);
+	kUtility.SetYields(m_piYieldFromMinorDemand, "Trait_YieldFromMinorDemand", "TraitType", szTraitType);
 	kUtility.SetYields(m_piYieldChangeTradeRoute, "Trait_YieldChangeTradeRoute", "TraitType", szTraitType);
 	kUtility.SetYields(m_piYieldChangeWorldWonder, "Trait_YieldChangeWorldWonder", "TraitType", szTraitType);
 
@@ -3838,7 +3845,7 @@ void CvPlayerTraits::SetIsWarmonger()
 		GetLandUnitMaintenanceModifier() != 0 ||
 		GetNavalUnitMaintenanceModifier() != 0 ||
 		GetProductionBonusModifierConquest() != 0 ||
-		GetGoldenAgeFromVictory() != 0 ||
+		GetGoldenAgeFromVictory() > 0 ||
 		GetWarWearinessModifier() != 0 ||
 		GetEnemyWarWearinessModifier() != 0 ||
 		GetGoldenAgeFromGreatPersonBirth(GetGreatPersonFromUnitClass((UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_GREAT_GENERAL"))) != 0 ||
@@ -4256,7 +4263,8 @@ void CvPlayerTraits::SetIsReligious()
 		GetExtraMissionaryStrength() > 0 ||
 		GetGoldenAgeYieldModifier(YIELD_FAITH) > 0 ||
 		GetYieldFromBarbarianCampClear(YIELD_FAITH, true) > 0 ||
-		GetYieldFromBarbarianCampClear(YIELD_FAITH, false) > 0)
+		GetYieldFromBarbarianCampClear(YIELD_FAITH, false) > 0 ||
+		GetYieldFromXMilitaryUnits(YIELD_FAITH) != 0)
 	{
 		m_bIsReligious = true;
 		return;
@@ -4769,6 +4777,7 @@ void CvPlayerTraits::InitPlayerTraits()
 						Firaxis::Array<int, NUM_YIELD_TYPES> yields = m_ppiYieldFromTileEarnTerrainType[iTerrainLoop];
 						yields[iYield] = (m_ppiYieldFromTileEarnTerrainType[iTerrainLoop][iYield] + iChange);
 						m_ppiYieldFromTileEarnTerrainType[iTerrainLoop] = yields;
+						m_bHasYieldFromTileEarn = true;
 					}
 					iChange = trait->GetYieldFromTilePurchaseTerrainType((TerrainTypes)iTerrainLoop, (YieldTypes)iYield);
 					if (iChange > 0)
@@ -4776,6 +4785,7 @@ void CvPlayerTraits::InitPlayerTraits()
 						Firaxis::Array<int, NUM_YIELD_TYPES> yields = m_ppiYieldFromTilePurchaseTerrainType[iTerrainLoop];
 						yields[iYield] = (m_ppiYieldFromTilePurchaseTerrainType[iTerrainLoop][iYield] + iChange);
 						m_ppiYieldFromTilePurchaseTerrainType[iTerrainLoop] = yields;
+						m_bHasYieldFromTilePurchase = true;
 					}
 					iChange = trait->GetYieldFromTileConquest((TerrainTypes)iTerrainLoop, (YieldTypes)iYield);
 					if (iChange > 0)
@@ -4790,6 +4800,7 @@ void CvPlayerTraits::InitPlayerTraits()
 						Firaxis::Array<int, NUM_YIELD_TYPES> yields = m_ppiYieldFromTileCultureBomb[iTerrainLoop];
 						yields[iYield] = (m_ppiYieldFromTileCultureBomb[iTerrainLoop][iYield] + iChange);
 						m_ppiYieldFromTileCultureBomb[iTerrainLoop] = yields;
+						m_bHasYieldFromTileCultureBomb = true;
 					}
 					iChange = trait->GetYieldFromTileStealCultureBomb((TerrainTypes)iTerrainLoop, (YieldTypes)iYield);
 					if (iChange > 0)
@@ -4820,6 +4831,7 @@ void CvPlayerTraits::InitPlayerTraits()
 #if defined(MOD_BALANCE_CORE)
 				m_iYieldFromLevelUp[iYield] = trait->GetYieldFromLevelUp(iYield);
 				m_iYieldFromHistoricEvent[iYield] = trait->GetYieldFromHistoricEvent(iYield);
+				m_iYieldFromXMilitaryUnits[iYield] = trait->GetYieldFromXMilitaryUnits(iYield);
 				m_iYieldFromOwnPantheon[iYield] = trait->GetYieldFromOwnPantheon(iYield);
 				// TradeRouteEndYield
 				{
@@ -4863,7 +4875,15 @@ void CvPlayerTraits::InitPlayerTraits()
 				m_iYieldFromExport[iYield] = trait->GetYieldFromExport(iYield);
 				m_iYieldFromImport[iYield] = trait->GetYieldFromImport(iYield);
 				m_iYieldFromTilePurchase[iYield] = trait->GetYieldFromTilePurchase(iYield);
+				if (m_iYieldFromTilePurchase[iYield] > 0)
+				{
+					m_bHasYieldFromTilePurchase = true;
+				}
 				m_iYieldFromTileEarn[iYield] = trait->GetYieldFromTileEarn(iYield);
+				if (m_iYieldFromTileEarn[iYield] > 0)
+				{
+					m_bHasYieldFromTileEarn = true;
+				}
 				m_iYieldFromCSAlly[iYield] = trait->GetYieldFromCSAlly(iYield);
 				m_iYieldFromCSFriend[iYield] = trait->GetYieldFromCSFriend(iYield);
 				m_iYieldFromSettle[iYield] = trait->GetYieldFromSettle(iYield);
@@ -4957,6 +4977,7 @@ void CvPlayerTraits::InitPlayerTraits()
 
 				m_iYieldFromKills[iYield] = trait->GetYieldFromKills((YieldTypes) iYield);
 				m_iYieldFromBarbarianKills[iYield] = trait->GetYieldFromBarbarianKills((YieldTypes) iYield);
+				m_iYieldFromMinorDemand[iYield] = trait->GetYieldFromMinorDemand((YieldTypes)iYield);
 				m_iYieldChangeTradeRoute[iYield] = trait->GetYieldChangeTradeRoute(iYield);
 				m_iYieldChangeWorldWonder[iYield] = trait->GetYieldChangeWorldWonder(iYield);
 
@@ -5485,6 +5506,7 @@ void CvPlayerTraits::Reset()
 #if defined(MOD_BALANCE_CORE)
 		m_iYieldFromLevelUp[iYield] = 0;
 		m_iYieldFromHistoricEvent[iYield] = 0;
+		m_iYieldFromXMilitaryUnits[iYield] = 0;
 		m_iYieldFromOwnPantheon[iYield] = 0;
 		m_iYieldFromRouteMovement[iYield] = 0;
 		m_iYieldFromExport[iYield] = 0;
@@ -5543,6 +5565,7 @@ void CvPlayerTraits::Reset()
 		}
 		m_iYieldFromKills[iYield] = 0;
 		m_iYieldFromBarbarianKills[iYield] = 0;
+		m_iYieldFromMinorDemand[iYield] = 0;
 		m_iYieldChangeTradeRoute[iYield] = 0;
 		m_iYieldChangeWorldWonder[iYield] = 0;
 		for(int iDomain = 0; iDomain < NUM_DOMAIN_TYPES; iDomain++)
@@ -5776,25 +5799,25 @@ bool CvPlayerTraits::IsRandomGreatPersonProgressFromKills() const
 }
 
 /// Instant random great person progress when killing enemy units
-std::pair<GreatPersonTypes, int> CvPlayerTraits::GetRandomGreatPersonProgressFromKills(int iAdditionalSeed) const
+std::pair<GreatPersonTypes, int> CvPlayerTraits::GetRandomGreatPersonProgressFromKills(const CvSeeder& additionalSeed) const
 {
 	// how many options we have
 	int iSize = m_aiRandomGreatPersonProgressFromKills.size();
-	int iChoice = -1;
+	uint uChoice = 0;
 
 	if (iSize > 0)
 	{
 		// get our pseudo RNG seed
-		iChoice = GC.getGame().getSmallFakeRandNum(m_aiRandomGreatPersonProgressFromKills.size(), m_pPlayer->GetPseudoRandomSeed() + GC.getGame().getNumCities() + iAdditionalSeed);
+		uChoice = GC.getGame().urandLimitExclusive(m_aiRandomGreatPersonProgressFromKills.size(), additionalSeed.mix(m_pPlayer->GetPseudoRandomSeed()).mix(GC.getGame().getNumCities()));
 
 		// access the element at the position of our RNG seed
 		for (std::map<int, int>::const_iterator it = m_aiRandomGreatPersonProgressFromKills.begin(); it != m_aiRandomGreatPersonProgressFromKills.end(); it++) // find returns the iterator to map::end if the key eIndex is not present in the map
 		{
-			if (iChoice == 0)
+			if (uChoice == 0)
 			{
 				return std::make_pair((GreatPersonTypes)it->first, it->second);
 			}
-			iChoice--;
+			uChoice--;
 		}
 	}
 
@@ -6056,6 +6079,13 @@ int CvPlayerTraits::GetYieldFromBarbarianKills(YieldTypes eYield) const
 	return m_iYieldFromBarbarianKills[(int)eYield];
 }
 
+int CvPlayerTraits::GetYieldFromMinorDemand(YieldTypes eYield) const
+{
+	CvAssertMsg((int)eYield < NUM_YIELD_TYPES, "Yield type out of bounds");
+	CvAssertMsg((int)eYield > -1, "Index out of bounds");
+	return m_iYieldFromMinorDemand[(int)eYield];
+}
+
 /// Extra yield from this specialist
 int CvPlayerTraits::GetTradeRouteYieldChange(DomainTypes eDomain, YieldTypes eYield) const
 {
@@ -6267,12 +6297,7 @@ bool CvPlayerTraits::IsNoBuild(BuildTypes eBuild) const
 
 	std::vector<int>::const_iterator it = find(m_aiNoBuilds.begin(), m_aiNoBuilds.end(), (int)eBuild);
 
-	if (it != m_aiNoBuilds.end())
-	{
-		return true;
-	}
-
-	return false;
+	return it != m_aiNoBuilds.end();
 }
 /// What is the production modifier for the domain type for each worked specialist?
 int CvPlayerTraits::GetDomainProductionModifiersPerSpecialist(DomainTypes eDomain) const
@@ -6434,8 +6459,8 @@ bool CvPlayerTraits::AddUniqueLuxuriesAround(CvCity *pCity, int iNumResourceToGi
 		return false;
 
 	//choose one
-	int iChoice = GC.getGame().getSmallFakeRandNum( vPossibleResources.size(), pCity->plot()->GetPlotIndex() + GET_PLAYER(pCity->getOwner()).GetPseudoRandomSeed() + GC.getGame().GetCultureMedian() );
-	ResourceTypes eResourceToGive = vPossibleResources[iChoice];
+	uint uChoice = GC.getGame().urandLimitExclusive(vPossibleResources.size(), CvSeeder(pCity->plot()->GetPseudoRandomSeed()).mix(GET_PLAYER(pCity->getOwner()).GetPseudoRandomSeed()).mix(GC.getGame().GetCultureMedian()));
+	ResourceTypes eResourceToGive = vPossibleResources[uChoice];
 		
 	//first round. place on owned non-city, non-resource plots without improvement
 	int iNumResourceGiven = 0;
@@ -6755,12 +6780,15 @@ int CvPlayerTraits::GetCapitalBuildingDiscount(BuildingTypes eBuilding)
 int CvPlayerTraits::GetWonderProductionToBuildingDiscount(BuildingTypes eBuilding)
 {
 	CvBuildingEntry* thisBuildingEntry = GC.getBuildingInfo(eBuilding);
-	const CvBuildingClassInfo& kBuildingClassInfo = thisBuildingEntry->GetBuildingClassInfo();
-	if(GetWonderProductionModifierToBuilding() > 0)
+	if (thisBuildingEntry)
 	{
-		if(!(::isWorldWonderClass(kBuildingClassInfo) || ::isTeamWonderClass(kBuildingClassInfo) || ::isNationalWonderClass(kBuildingClassInfo)))
+		const CvBuildingClassInfo& kBuildingClassInfo = thisBuildingEntry->GetBuildingClassInfo();
+		if (GetWonderProductionModifierToBuilding() > 0)
 		{
-			return (GetWonderProductionModifierToBuilding());
+			if (!(::isWorldWonderClass(kBuildingClassInfo) || ::isTeamWonderClass(kBuildingClassInfo) || ::isNationalWonderClass(kBuildingClassInfo)))
+			{
+				return (GetWonderProductionModifierToBuilding());
+			}
 		}
 	}
 	return 0;
@@ -7261,12 +7289,7 @@ bool CvPlayerTraits::IsProphetValid() const
 	}
 	// Post-medieval? True.
 	EraTypes eMedieval = (EraTypes) GC.getInfoTypeForString("ERA_MEDIEVAL", true);
-	if (m_pPlayer->GetCurrentEra() > eMedieval)
-	{
-		return true;
-	}
-
-	return false;
+	return m_pPlayer->GetCurrentEra() > eMedieval;
 }
 
 /// Have Maya unlocked free choice of Great People?
@@ -7626,6 +7649,9 @@ void CvPlayerTraits::Serialize(PlayerTraits& playerTraits, Visitor& visitor)
 	visitor(playerTraits.m_ppiYieldFromTileSettle);
 	visitor(playerTraits.m_ppaaiYieldChangePerImprovementBuilt);
 	visitor(playerTraits.m_pbiYieldFromBarbarianCampClear);
+	visitor(playerTraits.m_bHasYieldFromTileCultureBomb);
+	visitor(playerTraits.m_bHasYieldFromTileEarn);
+	visitor(playerTraits.m_bHasYieldFromTilePurchase);
 	visitor(playerTraits.m_aiGoldenAgeYieldModifier);
 	visitor(playerTraits.m_aibUnitCombatProductionCostModifier);
 	visitor(playerTraits.m_iNonSpecialistFoodChange);
@@ -7642,6 +7668,7 @@ void CvPlayerTraits::Serialize(PlayerTraits& playerTraits, Visitor& visitor)
 	visitor(playerTraits.m_ppiPlotYieldChange);
 	visitor(playerTraits.m_iYieldFromLevelUp);
 	visitor(playerTraits.m_iYieldFromHistoricEvent);
+	visitor(playerTraits.m_iYieldFromXMilitaryUnits);
 	visitor(playerTraits.m_iYieldFromOwnPantheon);
 	visitor(playerTraits.m_tradeRouteEndYieldDomestic);
 	visitor(playerTraits.m_tradeRouteEndYieldInternational);
@@ -7682,6 +7709,7 @@ void CvPlayerTraits::Serialize(PlayerTraits& playerTraits, Visitor& visitor)
 	visitor(playerTraits.m_ppiTerrainYieldChange);
 	visitor(playerTraits.m_iYieldFromKills);
 	visitor(playerTraits.m_iYieldFromBarbarianKills);
+	visitor(playerTraits.m_iYieldFromMinorDemand);
 	visitor(playerTraits.m_iYieldChangeTradeRoute);
 	visitor(playerTraits.m_iYieldChangeWorldWonder);
 	visitor(playerTraits.m_ppiTradeRouteYieldChange);
@@ -7746,7 +7774,7 @@ bool CvPlayerTraits::ConvertBarbarianCamp(CvUnit* pByUnit, CvPlot* pPlot)
 	}
 
 	// Roll die to see if it converts
-	if (GC.getGame().getSmallFakeRandNum(100, *pPlot) < m_iLandBarbarianConversionPercent)
+	if (GC.getGame().randRangeInclusive(1, 100, CvSeeder::fromRaw(0x960ab208).mix(pByUnit->GetID()).mix(pPlot->GetPseudoRandomSeed())) <= m_iLandBarbarianConversionPercent)
 	{
 		pPlot->setImprovementType(NO_IMPROVEMENT);
 
@@ -7825,7 +7853,7 @@ bool CvPlayerTraits::ConvertBarbarianNavalUnit(CvUnit* pByUnit, CvUnit* pUnit)
 	}
 
 	// Roll die to see if it converts
-	if(GC.getGame().getSmallFakeRandNum(100, *pUnit->plot()) < m_iSeaBarbarianConversionPercent)
+	if (GC.getGame().randRangeInclusive(1, 100, CvSeeder::fromRaw(0x960ab208).mix(pByUnit->GetID()).mix(pUnit->GetID())) <= m_iSeaBarbarianConversionPercent)
 	{
 		int iNumGold = /*25*/ GD_INT_GET(GOLD_FROM_BARBARIAN_CONVERSION);
 		m_pPlayer->GetTreasury()->ChangeGold(iNumGold);

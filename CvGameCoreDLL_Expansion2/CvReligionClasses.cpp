@@ -851,7 +851,7 @@ CvGameReligions::FOUNDING_RESULT CvGameReligions::CanCreatePantheon(PlayerTypes 
 				bool bResult = false;
 				if (LuaSupport::CallTestAll(pkScriptSystem, "PlayerCanFoundPantheon", args.get(), bResult))
 				{
-					if (bResult == false) 
+					if (!bResult) 
 					{
 						return FOUNDING_INVALID_PLAYER;
 					}
@@ -1035,11 +1035,11 @@ ReligionTypes CvGameReligions::GetReligionToFound(PlayerTypes ePlayer)
 #if defined(MOD_RELIGION_RANDOMISE)
 	// Pick a random religion
 	if (!availableReligions.empty()) {
-		int index = 0;
+		uint index = 0;
 		
 		// Pick a random one if required
 		if (MOD_RELIGION_RANDOMISE) {
-			index = GC.getGame().getSmallFakeRandNum(availableReligions.size(), ePlayer);
+			index = GC.getGame().urandLimitExclusive(availableReligions.size(), CvSeeder(ePlayer));
 		}
 		
 		// CUSTOMLOG("GetReligionToFound: Using random %i", availableReligions[index]);
@@ -1210,7 +1210,7 @@ void CvGameReligions::FoundReligion(PlayerTypes ePlayer, ReligionTypes eReligion
 	CvReligion kReligion(eReligion, ePlayer, pkHolyCity, false);
 
 	// Copy over belief from your pantheon
-	BeliefTypes eBelief = GC.getGame().GetGameReligions()->GetBeliefInPantheon(kPlayer.GetID());
+	BeliefTypes eBelief = kPlayer.GetReligions()->HasCreatedPantheon() ? GC.getGame().GetGameReligions()->GetBeliefInPantheon(kPlayer.GetID()) : NO_BELIEF;
 	if (eBelief != NO_BELIEF)
 	{
 		CvReligionBeliefs beliefs = GC.getGame().GetGameReligions()->GetReligion(RELIGION_PANTHEON, ePlayer)->m_Beliefs;
@@ -1972,10 +1972,7 @@ BeliefTypes CvGameReligions::GetBeliefInPantheon(PlayerTypes ePlayer) const
 /// Has this player created a pantheon?
 bool CvGameReligions::HasCreatedPantheon(PlayerTypes ePlayer) const
 {
-	if (GET_PLAYER(ePlayer).GetReligions()->GetReligionCreatedByPlayer(true) != NO_RELIGION)
-		return true;
-
-	return false;
+	return static_cast<bool>(GET_PLAYER(ePlayer).GetReligions()->GetReligionCreatedByPlayer(true) != NO_RELIGION);
 }
 
 /// How many players have created a pantheon?
@@ -2906,13 +2903,15 @@ int CvGameReligions::GetAdjacentCityReligiousPressure(ReligionTypes eReligion, C
 	int iBasePressure = GC.getGame().getGameSpeedInfo().getReligiousPressureAdjacentCity();
 	int iPressureMod = 0;
 
-	// India: +1 base pressure per follower
+	// India: +10% base pressure per follower
 	if (GET_PLAYER(pFromCity->getOwner()).GetPlayerTraits()->IsPopulationBoostReligion())
 	{
 		if (eReligion == GET_PLAYER(pFromCity->getOwner()).GetReligions()->GetStateReligion(true))
 		{
 			int iPopExtraPressure = pFromCity->GetCityReligions()->GetNumFollowers(eReligion);
-			iBasePressure += min(24, iPopExtraPressure) * /*10*/ GD_INT_GET(RELIGION_MISSIONARY_PRESSURE_MULTIPLIER);
+			int iBasePressureMod = min(35, iPopExtraPressure) * 10;
+			iBasePressure *= 100 + iBasePressureMod;
+			iBasePressure /= 100;
 		}
 	}
 
@@ -3201,6 +3200,7 @@ bool CvGameReligions::CheckSpawnGreatProphet(CvPlayer& kPlayer)
 	{
 		return false;
 	}
+
 #if defined(MOD_NO_AUTO_SPAWN_PROPHET)
 	bool prophetboughtwithfaith = false;
 #endif
@@ -3213,9 +3213,13 @@ bool CvGameReligions::CheckSpawnGreatProphet(CvPlayer& kPlayer)
 #endif
 
 	ReligionTypes ePlayerReligion = GET_PLAYER(kPlayer.GetID()).GetReligions()->GetOwnedReligion();
-	if (ePlayerReligion > RELIGION_PANTHEON)
+	if (ePlayerReligion != NO_RELIGION)
 	{
 		pReligion = GetReligion(ePlayerReligion, kPlayer.GetID());
+
+		// Don't check this in Classical for Byzantium, if a religion is owned
+		if (kPlayer.GetCurrentEra() >= GetFaithPurchaseGreatPeopleEra(&kPlayer))
+			return false;
 	}
 
 	// If player hasn't founded a religion yet, drop out of this if all religions have been founded
@@ -3237,11 +3241,9 @@ bool CvGameReligions::CheckSpawnGreatProphet(CvPlayer& kPlayer)
 
 	iChance += (iFaith - iCost);
 
-	int iRand = GC.getGame().getSmallFakeRandNum(100, kPlayer.GetPseudoRandomSeed());
-	if(iRand >= iChance)
-	{
+	int iRand = GC.getGame().randRangeInclusive(1, 100, CvSeeder::fromRaw(0x88a8fa44).mix(kPlayer.GetID()));
+	if (iRand > iChance)
 		return false;
-	}
 
 	CvCity* pSpawnCity = pReligion ? pReligion->GetHolyCity() : NULL;
 	if(pSpawnCity != NULL && pSpawnCity->getOwner() == kPlayer.GetID())
@@ -3339,7 +3341,7 @@ bool CvGameReligions::CheckSpawnGreatProphet(CvPlayer& kPlayer)
 			for(pLoopCity = kPlayer.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kPlayer.nextCity(&iLoop))
 			{
 				iTempWeight = pLoopCity->GetFaithPerTurn() * 5;
-				iTempWeight += theGame.getSmallFakeRandNum(15, kPlayer.GetPseudoRandomSeed() + iLoop);
+				iTempWeight += theGame.randRangeExclusive(0, 15, CvSeeder(kPlayer.GetPseudoRandomSeed()).mix(iLoop));
 
 				if(iTempWeight > iBestWeight)
 				{
@@ -6180,8 +6182,7 @@ BeliefTypes CvReligionAI::ChoosePantheonBelief()
 	BeliefTypes rtnValue = NO_BELIEF;
 	if (beliefChoices.size() > 0)
 	{
-		RandomNumberDelegate fcn = MakeDelegate(&GC.getGame(), &CvGame::getJonRandNum);
-		rtnValue = beliefChoices.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getBeliefChoiceCutoffThreshold(), &fcn, "Choosing belief from Top Choices");
+		rtnValue = beliefChoices.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getBeliefChoiceCutoffThreshold(), CvSeeder::fromRaw(0x0af7fe29).mix(GET_PLAYER(ePlayer).GetID()).mix(availableBeliefs.size()));
 		LogBeliefChoices(beliefChoices, rtnValue);
 	}
 
@@ -6221,8 +6222,7 @@ BeliefTypes CvReligionAI::ChooseFounderBelief()
 	BeliefTypes rtnValue = NO_BELIEF;
 	if (beliefChoices.size() > 0)
 	{
-		RandomNumberDelegate fcn = MakeDelegate(&GC.getGame(), &CvGame::getJonRandNum);
-		rtnValue = beliefChoices.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getBeliefChoiceCutoffThreshold(), &fcn, "Choosing belief from Top Choices");
+		rtnValue = beliefChoices.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getBeliefChoiceCutoffThreshold(), CvSeeder::fromRaw(0x9db23f3c).mix(GET_PLAYER(ePlayer).GetID()).mix(availableBeliefs.size()));
 		LogBeliefChoices(beliefChoices, rtnValue);
 	}
 
@@ -6262,8 +6262,7 @@ BeliefTypes CvReligionAI::ChooseFollowerBelief()
 	BeliefTypes rtnValue = NO_BELIEF;
 	if (beliefChoices.size() > 0)
 	{
-		RandomNumberDelegate fcn = MakeDelegate(&GC.getGame(), &CvGame::getJonRandNum);
-		rtnValue = beliefChoices.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getBeliefChoiceCutoffThreshold(), &fcn, "Choosing belief from Top Choices");
+		rtnValue = beliefChoices.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getBeliefChoiceCutoffThreshold(), CvSeeder::fromRaw(0x93c8983d).mix(GET_PLAYER(ePlayer).GetID()).mix(availableBeliefs.size()));
 		LogBeliefChoices(beliefChoices, rtnValue);
 	}
 
@@ -6303,8 +6302,7 @@ BeliefTypes CvReligionAI::ChooseEnhancerBelief()
 	BeliefTypes rtnValue = NO_BELIEF;
 	if (beliefChoices.size() > 0)
 	{
-		RandomNumberDelegate fcn = MakeDelegate(&GC.getGame(), &CvGame::getJonRandNum);
-		rtnValue = beliefChoices.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getBeliefChoiceCutoffThreshold(), &fcn, "Choosing belief from Top Choices");
+		rtnValue = beliefChoices.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getBeliefChoiceCutoffThreshold(), CvSeeder::fromRaw(0x3a862bb8).mix(GET_PLAYER(ePlayer).GetID()).mix(availableBeliefs.size()));
 		LogBeliefChoices(beliefChoices, rtnValue);
 	}
 
@@ -6347,8 +6345,7 @@ BeliefTypes CvReligionAI::ChooseBonusBelief(int iExcludeBelief1, int iExcludeBel
 	BeliefTypes rtnValue = NO_BELIEF;
 	if (beliefChoices.size() > 0)
 	{
-		RandomNumberDelegate fcn = MakeDelegate(&GC.getGame(), &CvGame::getJonRandNum);
-		rtnValue = beliefChoices.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getBeliefChoiceCutoffThreshold(), &fcn, "Choosing belief from Top Choices");
+		rtnValue = beliefChoices.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getBeliefChoiceCutoffThreshold(), CvSeeder::fromRaw(0xc0809801).mix(GET_PLAYER(ePlayer).GetID()).mix(availableBeliefs.size()));
 		LogBeliefChoices(beliefChoices, rtnValue);
 	}
 
@@ -6388,8 +6385,7 @@ BeliefTypes CvReligionAI::ChooseReformationBelief()
 	BeliefTypes rtnValue = NO_BELIEF;
 	if (beliefChoices.size() > 0)
 	{
-		RandomNumberDelegate fcn = MakeDelegate(&GC.getGame(), &CvGame::getJonRandNum);
-		rtnValue = beliefChoices.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getBeliefChoiceCutoffThreshold(), &fcn, "Choosing belief from Top Choices");
+		rtnValue = beliefChoices.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getBeliefChoiceCutoffThreshold(), CvSeeder::fromRaw(0x894eaafe).mix(GET_PLAYER(ePlayer).GetID()).mix(availableBeliefs.size()));
 		LogBeliefChoices(beliefChoices, rtnValue);
 	}
 
@@ -7525,11 +7521,7 @@ bool CvReligionAI::BuyAnyAvailableNonFaithUnit()
 			}
 		}
 	}
-	if(bPurchased == true)
-	{
-		return true;
-	}
-	return false;
+	return bPurchased == true;
 }
 #endif
 /// Any building that we can build with Faith (not Faith-generating ones)
@@ -7661,11 +7653,11 @@ int CvReligionAI::ScoreBelief(CvBeliefEntry* pEntry, bool bForBonus, bool bConsi
 	{
 		int iModifier = 0;
 		if (pEntry->IsFounderBelief())
-			iModifier += 5;
+			iModifier += 8;
 		else if(pEntry->IsPantheonBelief())
 			iModifier += -5;
 		else if (pEntry->IsEnhancerBelief())
-			iModifier += 5;
+			iModifier += 2;
 		else if (pEntry->IsFollowerBelief())
 		{
 			bool bNoBuilding = true;
@@ -7748,7 +7740,7 @@ int CvReligionAI::ScoreBelief(CvBeliefEntry* pEntry, bool bForBonus, bool bConsi
 		pLog->Msg(strOutBuf);
 	}
 
-	return iRtnValue;
+	return max(0, iRtnValue);
 }
 
 int CvReligionAI::GetValidPlotYield(CvBeliefEntry* pEntry, CvPlot* pPlot, YieldTypes iI, bool bConsiderFutureTech) const
@@ -8165,7 +8157,7 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity) const
 
 			iTempValue += (pEntry->GetYieldPerLux(iI) * max(1, iNumLuxuries)) * ModifierValue;
 		}
-		if (pEntry->GetYieldPerBorderGrowth((YieldTypes)iI) > 0)
+		if (pEntry->GetYieldPerBorderGrowth((YieldTypes)iI) > 0) // FIXME: also evaluate the yields that are scaling with era
 		{
 			int iVal = ((pEntry->GetYieldPerBorderGrowth((YieldTypes)iI) * iCulture) / max(4, pCity->GetJONSCultureLevel() * 4));
 			if (m_pPlayer->GetPlayerTraits()->IsBuyOwnedTiles()) // America UA has an anti-synergy with this
@@ -9444,11 +9436,15 @@ int CvReligionAI::ScoreBeliefForPlayer(CvBeliefEntry* pEntry, bool bReturnConque
 
 						if (pHolyCity != NULL)
 						{
-							iBuildingTemp += pHolyCity->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(eBuilding, iSanity, false, true, true);
+							int iValue = pHolyCity->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(eBuilding, iSanity, false, true, true);
+							if (iValue > 0)
+								iBuildingTemp += iValue;
 						}
 						else
 						{
-							iBuildingTemp += m_pPlayer->getCapitalCity()->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(eBuilding, iSanity, true, true, true);
+							int iValue = m_pPlayer->getCapitalCity()->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(eBuilding, iSanity, true, true, true);
+							if (iValue > 0)
+								iBuildingTemp += iValue;
 						}
 
 						//Do we already have a faith building? Let's not double down.									
@@ -10091,6 +10087,10 @@ int CvReligionAI::ScoreCityForInquisitorOffensive(CvCity* pCity, CvUnit* pUnit, 
 	{
 		// How much impact would using the inquistor have? let's ignore resilience here ...
 		int iNumOtherFollowers = pCity->GetCityReligions()->GetFollowersOtherReligions(eMyReligion);
+
+		//should we consider GD_INT_GET(INQUISITION_EFFECTIVENESS)?
+		//it could happen that the inquisitor changes nothing ...
+		//but doesn't matter usually, we still want to target the same cities!
 	
 		// More pressing if majority is another religion
 		if (pCity->GetCityReligions()->GetReligiousMajority() != eMyReligion)
@@ -10405,10 +10405,10 @@ BuildingClassTypes CvReligionAI::FaithBuildingAvailable(ReligionTypes eReligion,
 				if (eBestBuilding != NO_BUILDINGCLASS)
 					return eBestBuilding;
 				else
-					return choices[GC.getGame().getSmallFakeRandNum(choices.size(), *pCity->plot())];
+					return choices[GC.getGame().urandLimitExclusive(choices.size(), CvSeeder(pCity->plot()->GetPseudoRandomSeed()))];
 			}
 			else
-				return choices[GC.getGame().getSmallFakeRandNum(choices.size(), *pCity->plot())];
+				return choices[GC.getGame().urandLimitExclusive(choices.size(), CvSeeder(pCity->plot()->GetPseudoRandomSeed()))];
 		}
 		else
 			return choices[0];

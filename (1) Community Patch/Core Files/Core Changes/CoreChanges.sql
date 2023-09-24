@@ -36,6 +36,12 @@ UPDATE CustomModOptions SET Value = 0 WHERE Name = 'ALTERNATE_ASSYRIA_TRAIT';
 -- Activates Active Diplomacy in DLL for Multiplayer trade deals between Human and AI
 UPDATE CustomModOptions SET Value = 1 WHERE Name = 'ACTIVE_DIPLOMACY';
 
+-- For some reason the Firaxis DLL hardcoded "City-State Territory = Friendly Territory" to Greece's CityStateFriendshipModifier bonus, despite having a separate, functional trait column for this ability
+-- The Community Patch unhardcodes it and assigns the ability to Greece for identical functionality
+UPDATE Traits
+SET AngerFreeIntrusionOfCityStates = 1
+WHERE Type = 'TRAIT_CITY_STATE_FRIENDSHIP';
+
 -- TR fix for religion spread
 UPDATE Gamespeeds
 SET ReligiousPressureAdjacentCity = 25 WHERE Type = 'GAMESPEED_MARATHON';
@@ -63,6 +69,9 @@ UPDATE Features SET SeeThrough = 0 WHERE Type = 'FEATURE_SOLOMONS_MINES';
 UPDATE ArtDefine_Landmarks
 SET Scale = 0.8
 WHERE ImprovementType = 'ART_DEF_IMPROVEMENT_CITADEL';
+
+-- Bad goodies are never triggered even in BNW, so we can remove this ability to reduce clutter
+UPDATE Units SET NoBadGoodies = '0';
 
 -- Set Forbidden Palace to 2 votes for CP (we'll reset in CBP)
 UPDATE Buildings

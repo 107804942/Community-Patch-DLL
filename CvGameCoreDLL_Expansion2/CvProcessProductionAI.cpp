@@ -9,6 +9,7 @@
 #include "CvProcessProductionAI.h"
 #include "CvInfosSerializationHelper.h"
 #if defined(MOD_BALANCE_CORE)
+#include "CvDiplomacyAI.h"
 #include "CvMilitaryAI.h"
 #include "CvEconomicAI.h"
 #include "CvVotingClasses.h"
@@ -307,6 +308,14 @@ int CvProcessProductionAI::CheckProcessBuildSanity(ProcessTypes eProcess, int iT
 					}
 				}
 				break;
+				case YIELD_TOURISM:
+				{
+					if (!kPlayer.isMajorCiv())
+						return 0;
+
+					iModifier += kPlayer.GetDiplomacyAI()->IsGoingForCultureVictory() ? 300 : 100;
+				}
+				break;
 				default:
 				// No default processes exist for other yield types.
 				// Not unreachable though because a mod could add more.
@@ -353,7 +362,8 @@ int CvProcessProductionAI::CheckProcessBuildSanity(ProcessTypes eProcess, int iT
 							if(kPlayer.getCapitalCity() != NULL)
 							{
 								iValue = kPlayer.getCapitalCity()->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(pRewardInfo->GetBuilding(), iValue);
-								iModifier += iValue;
+								if (iValue > 0)
+									iModifier += iValue;
 							}
 							else
 							{
@@ -441,7 +451,8 @@ int CvProcessProductionAI::CheckProcessBuildSanity(ProcessTypes eProcess, int iT
 								{
 									iValue = kPlayer.getCapitalCity()->GetCityStrategyAI()->GetUnitProductionAI()->CheckUnitBuildSanity(eUnit, false, iValue);
 								}
-								iModifier += iValue;
+								if (iValue > 0)
+									iModifier += iValue;
 							}
 						}
 					}

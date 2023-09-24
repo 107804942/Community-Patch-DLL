@@ -35,7 +35,7 @@ CvGreatWork::CvGreatWork()
 }
 
 /// Constructor
-CvGreatWork::CvGreatWork(CvString szGreatPersonName, GreatWorkType eType, GreatWorkClass eClassType, int iTurn, EraTypes eEra, PlayerTypes ePlayer)
+CvGreatWork::CvGreatWork(const CvString& szGreatPersonName, GreatWorkType eType, GreatWorkClass eClassType, int iTurn, EraTypes eEra, PlayerTypes ePlayer)
 	: m_szGreatPersonName(szGreatPersonName)
 	, m_eType(eType)
 	, m_eClassType(eClassType)
@@ -104,7 +104,7 @@ void CvGameCulture::DoTurn()
 }
 
 // Factory method to create a Great Work, returns index of the new work
-int CvGameCulture::CreateGreatWork(GreatWorkType eType, GreatWorkClass eClass, PlayerTypes ePlayer, EraTypes eEra, CvString szCreator)
+int CvGameCulture::CreateGreatWork(GreatWorkType eType, GreatWorkClass eClass, PlayerTypes ePlayer, EraTypes eEra, const CvString& szCreator)
 {
 	CvGreatWork newGreatWork;
 	newGreatWork.m_eType = eType;
@@ -3622,9 +3622,7 @@ void CvPlayerCulture::DoArchaeologyChoice (ArchaeologyChoiceType eChoice)
 
 		m_pPlayer->changeJONSCulture(iValue);
 		if (pPlot->getEffectiveOwningCity() != NULL && pPlot->getOwner() == m_pPlayer->GetID())
-		{
 			pPlot->getEffectiveOwningCity()->ChangeJONSCultureStored(iValue);
-		}
 
 		if (pUnit)
 			pPlot->setImprovementType(NO_IMPROVEMENT);
@@ -4869,7 +4867,7 @@ int CvPlayerCulture::GetInfluenceMajorCivSpyRankBonus(PlayerTypes ePlayer) const
 }
 
 /// Get spy rank tooltip associated with bonus from cultural influence
-CvString CvPlayerCulture::GetInfluenceSpyRankTooltip(CvString szName, CvString szRank, PlayerTypes ePlayer, bool bNoBasicHelp, int iSpyID)
+CvString CvPlayerCulture::GetInfluenceSpyRankTooltip(const CvString& szName, const CvString& szRank, PlayerTypes ePlayer, bool bNoBasicHelp, int iSpyID)
 {
 	CvString szRtnValue = "";
 	if (!MOD_BALANCE_CORE_SPIES_ADVANCED) 
@@ -5352,6 +5350,8 @@ int CvPlayerCulture::ComputeWarWeariness()
 			continue;
 		if (kPlayer.getNumCities() <= 0)
 			continue;
+		if (m_pPlayer->getTeam() == kPlayer.getTeam())
+			continue;
 
 		iNumOtherCivs++;
 
@@ -5420,12 +5420,12 @@ int CvPlayerCulture::ComputeWarWeariness()
 		bRecentPeace = true;
 	}
 
-	// By default weariness is falling...
+	// Otherwise, by default weariness is falling...
 	int iFallingWarWeariness = iCurrentWarWeariness;
-	if (iLeastPeaceTurns > 1 && iLeastPeaceTurns < INT_MAX)
+	if (!bRecentPeace && iLeastPeaceTurns > 1 && iLeastPeaceTurns < INT_MAX)
 	{
 		//apparently we made peace recently ... reduce the value step by step
-		int iReduction = max(1, GC.getGame().getSmallFakeRandNum( max(3, iLeastPeaceTurns/2), iHighestWarDamage));
+		int iReduction = GC.getGame().randRangeInclusive(1, max(3, iLeastPeaceTurns/2), CvSeeder::fromRaw(0x91cbcd34).mix(m_pPlayer->GetID()));
 		iFallingWarWeariness = max(iCurrentWarWeariness-iReduction, 0);
 	}
 
@@ -5854,7 +5854,8 @@ void CvPlayerCulture::DoPublicOpinion()
 			locText = Localization::Lookup("TXT_KEY_CO_OPINION_TT_UNHAPPINESS_LINE2");
 			m_strOpinionUnhappinessTooltip += locText.toUTF8();
 
-			int iPerCityUnhappy = 0, iUnhappyPerXPop = 0;
+			int iPerCityUnhappy = 0;
+			int iUnhappyPerXPop = 0;
 			if (iDissatisfaction < 3)
 			{
 				iPerCityUnhappy = 1;
@@ -6001,11 +6002,7 @@ bool CvPlayerCulture::WantsDiplomatDoingPropaganda(PlayerTypes eTargetPlayer) co
 
 	InfluenceLevelTypes eInfluenceLevel = GetInfluenceLevel(eTargetPlayer);
 	InfluenceLevelTrend eInfluenceTrend = GetInfluenceTrend(eTargetPlayer);
-	if (eInfluenceLevel > INFLUENCE_LEVEL_FAMILIAR && eInfluenceTrend >= INFLUENCE_TREND_STATIC)
-	{
-		return true;
-	}
-	return false;
+	return eInfluenceLevel > INFLUENCE_LEVEL_FAMILIAR && eInfluenceTrend >= INFLUENCE_TREND_STATIC;
 }
 
 int CvPlayerCulture::GetNumCivsFollowingIdeology(PolicyBranchTypes ePolicyBranch)
@@ -6089,7 +6086,8 @@ int CvPlayerCulture::ComputePublicOpinionUnhappiness(int iDissatisfaction)
 
 	if (!MOD_BALANCE_CORE_POLICIES)
 	{
-		int iPerCityUnhappy = 0, iUnhappyPerXPop = 0;
+		int iPerCityUnhappy = 0;
+		int iUnhappyPerXPop = 0;
 
 		if (iDissatisfaction < 3)
 		{
@@ -6229,7 +6227,7 @@ void CvPlayerCulture::LogCultureData()
 }
 
 /// Utility function - AppendToLog
-void CvPlayerCulture::AppendToLog(CvString& strHeader, CvString& strLog, CvString strHeaderValue, CvString strValue)
+void CvPlayerCulture::AppendToLog(CvString& strHeader, CvString& strLog, const CvString& strHeaderValue, const CvString& strValue)
 {
 	strHeader += strHeaderValue;
 	strHeader += ",";
@@ -6237,7 +6235,7 @@ void CvPlayerCulture::AppendToLog(CvString& strHeader, CvString& strLog, CvStrin
 	strLog += ",";
 }
 
-void CvPlayerCulture::AppendToLog(CvString& strHeader, CvString& strLog, CvString strHeaderValue, int iValue)
+void CvPlayerCulture::AppendToLog(CvString& strHeader, CvString& strLog, const CvString& strHeaderValue, int iValue)
 {
 	strHeader += strHeaderValue;
 	strHeader += ",";
@@ -6246,7 +6244,7 @@ void CvPlayerCulture::AppendToLog(CvString& strHeader, CvString& strLog, CvStrin
 	strLog += str;
 }
 
-void CvPlayerCulture::AppendToLog(CvString& strHeader, CvString& strLog, CvString strHeaderValue, float fValue)
+void CvPlayerCulture::AppendToLog(CvString& strHeader, CvString& strLog, const CvString& strHeaderValue, float fValue)
 {
 	strHeader += strHeaderValue;
 	strHeader += ",";
@@ -6995,8 +6993,8 @@ CvString CvCityCulture::GetTourismTooltip()
 		CvBuildingEntry *pkBuilding = GC.getBuildingInfo(eBuilding);
 		if (pkBuilding)
 		{
-			int iTechEnhancedTourism = GC.getBuildingInfo(eBuilding)->GetTechEnhancedTourism();
-			if (iTechEnhancedTourism != 0 && GET_TEAM(m_pCity->getTeam()).GetTeamTechs()->HasTech((TechTypes)GC.getBuildingInfo(eBuilding)->GetEnhancedYieldTech()))
+			int iTechEnhancedTourism = pkBuilding->GetTechEnhancedTourism();
+			if (iTechEnhancedTourism != 0 && GET_TEAM(m_pCity->getTeam()).GetTeamTechs()->HasTech((TechTypes)pkBuilding->GetEnhancedYieldTech()))
 			{
 				iTechEnhancedTourism *= m_pCity->GetCityBuildings()->GetNumBuilding(eBuilding);
 
@@ -7263,7 +7261,7 @@ CvString CvCityCulture::GetTourismTooltip()
 	iTempMod = m_pCity->getYieldRateModifier(YIELD_TOURISM);
 	if (iTempMod != 0)
 	{
-		if (bHasCityModTooltip == false)
+		if (!bHasCityModTooltip)
 		{
 			if (szRtnValue.length() > 0)
 			{
@@ -7280,7 +7278,7 @@ CvString CvCityCulture::GetTourismTooltip()
 		iTempMod = pCityPlot->getUnitByIndex(iUnitLoop)->GetYieldModifier(YIELD_TOURISM);
 		if (iTempMod != 0)
 		{
-			if (bHasCityModTooltip == false)
+			if (!bHasCityModTooltip)
 			{
 				if (szRtnValue.length() > 0)
 				{
@@ -7295,7 +7293,7 @@ CvString CvCityCulture::GetTourismTooltip()
 	iTempMod = m_pCity->getResourceYieldRateModifier(YIELD_TOURISM);
 	if (iTempMod != 0)
 	{
-		if (bHasCityModTooltip == false)
+		if (!bHasCityModTooltip)
 		{
 			if (szRtnValue.length() > 0)
 			{
@@ -7309,7 +7307,7 @@ CvString CvCityCulture::GetTourismTooltip()
 	iTempMod = m_pCity->getHappinessModifier(YIELD_TOURISM);
 	if (iTempMod != 0)
 	{
-		if (bHasCityModTooltip == false)
+		if (!bHasCityModTooltip)
 		{
 			if (szRtnValue.length() > 0)
 			{
@@ -7326,7 +7324,7 @@ CvString CvCityCulture::GetTourismTooltip()
 		iTempMod = pArea->getYieldRateModifier(m_pCity->getOwner(), YIELD_TOURISM);
 		if (iTempMod != 0)
 		{
-			if (bHasCityModTooltip == false)
+			if (!bHasCityModTooltip)
 			{
 				if (szRtnValue.length() > 0)
 				{
@@ -7341,7 +7339,7 @@ CvString CvCityCulture::GetTourismTooltip()
 	iTempMod = GET_PLAYER(m_pCity->getOwner()).getYieldRateModifier(YIELD_TOURISM);
 	if (iTempMod != 0)
 	{
-		if (bHasCityModTooltip == false)
+		if (!bHasCityModTooltip)
 		{
 			if (szRtnValue.length() > 0)
 			{
@@ -7357,7 +7355,7 @@ CvString CvCityCulture::GetTourismTooltip()
 		iTempMod = GET_PLAYER(m_pCity->getOwner()).getCapitalYieldRateModifier(YIELD_TOURISM);
 		if (iTempMod != 0)
 		{
-			if (bHasCityModTooltip == false)
+			if (!bHasCityModTooltip)
 			{
 				if (szRtnValue.length() > 0)
 				{
@@ -7373,7 +7371,7 @@ CvString CvCityCulture::GetTourismTooltip()
 	iTempMod = (m_pCity->GetTradeRouteCityMod(YIELD_TOURISM));
 	if (iTempMod != 0)
 	{
-		if (bHasCityModTooltip == false)
+		if (!bHasCityModTooltip)
 		{
 			if (szRtnValue.length() > 0)
 			{
@@ -7387,7 +7385,7 @@ CvString CvCityCulture::GetTourismTooltip()
 	iTempMod = m_pCity->GetYieldModifierFromHappiness(YIELD_TOURISM);
 	if (iTempMod != 0)
 	{
-		if (bHasCityModTooltip == false)
+		if (!bHasCityModTooltip)
 		{
 			if (szRtnValue.length() > 0)
 			{
@@ -7401,7 +7399,7 @@ CvString CvCityCulture::GetTourismTooltip()
 	iTempMod = m_pCity->GetYieldModifierFromHealth(YIELD_TOURISM);
 	if (iTempMod != 0)
 	{
-		if (bHasCityModTooltip == false)
+		if (!bHasCityModTooltip)
 		{
 			if (szRtnValue.length() > 0)
 			{
@@ -7415,7 +7413,7 @@ CvString CvCityCulture::GetTourismTooltip()
 	iTempMod = m_pCity->GetYieldModifierFromDevelopment(YIELD_TOURISM);
 	if (iTempMod != 0)
 	{
-		if (bHasCityModTooltip == false)
+		if (!bHasCityModTooltip)
 		{
 			if (szRtnValue.length() > 0)
 			{
@@ -7429,7 +7427,7 @@ CvString CvCityCulture::GetTourismTooltip()
 	iTempMod = m_pCity->GetYieldModifierFromDevelopment(YIELD_TOURISM);
 	if (iTempMod != 0)
 	{
-		if (bHasCityModTooltip == false)
+		if (!bHasCityModTooltip)
 		{
 			if (szRtnValue.length() > 0)
 			{
@@ -7443,7 +7441,7 @@ CvString CvCityCulture::GetTourismTooltip()
 	iTempMod = min(20, (GET_PLAYER(m_pCity->getOwner()).getYieldModifierFromGreatWorks(YIELD_TOURISM) * m_pCity->GetCityBuildings()->GetNumGreatWorks()));
 	if (iTempMod != 0)
 	{
-		if (bHasCityModTooltip == false)
+		if (!bHasCityModTooltip)
 		{
 			if (szRtnValue.length() > 0)
 			{
@@ -7453,11 +7451,10 @@ CvString CvCityCulture::GetTourismTooltip()
 		}
 		szRtnValue += GetLocalizedText("TXT_KEY_PRODMOD_GREAT_WORKS", iTempMod);
 	}
-
-	iTempMod = min(30, (GET_PLAYER(m_pCity->getOwner()).getYieldModifierFromActiveSpies(YIELD_TOURISM) * GET_PLAYER(m_pCity->getOwner()).GetEspionage()->GetNumAssignedSpies()));
+	iTempMod = min(30, (GET_PLAYER(m_pCity->getOwner()).getYieldModifierFromActiveSpies(YIELD_TOURISM) * GET_PLAYER(m_pCity->getOwner()).GetSpyPoints(true) / 100));
 	if (iTempMod != 0)
 	{
-		if (bHasCityModTooltip == false)
+		if (!bHasCityModTooltip)
 		{
 			if (szRtnValue.length() > 0)
 			{
@@ -7478,7 +7475,7 @@ CvString CvCityCulture::GetTourismTooltip()
 			iTempMod = pYield->getGoldenAgeYieldMod();
 			if (iTempMod != 0)
 			{
-				if (bHasCityModTooltip == false)
+				if (!bHasCityModTooltip)
 				{
 					if (szRtnValue.length() > 0)
 					{
@@ -7493,7 +7490,7 @@ CvString CvCityCulture::GetTourismTooltip()
 		iTempMod = m_pCity->GetGoldenAgeYieldMod(YIELD_TOURISM);
 		if (iTempMod != 0)
 		{
-			if (bHasCityModTooltip == false)
+			if (!bHasCityModTooltip)
 			{
 				if (szRtnValue.length() > 0)
 				{
@@ -7507,7 +7504,7 @@ CvString CvCityCulture::GetTourismTooltip()
 		iTempMod = GET_PLAYER(m_pCity->getOwner()).getGoldenAgeYieldMod(YIELD_TOURISM);
 		if (iTempMod != 0)
 		{
-			if (bHasCityModTooltip == false)
+			if (!bHasCityModTooltip)
 			{
 				if (szRtnValue.length() > 0)
 				{
@@ -7536,7 +7533,7 @@ CvString CvCityCulture::GetTourismTooltip()
 			iTempMod = min(max, iReligionYieldMaxFollowersPercent);
 			if (iTempMod != 0)
 			{
-				if (bHasCityModTooltip == false)
+				if (!bHasCityModTooltip)
 				{
 					if (szRtnValue.length() > 0)
 					{
@@ -7556,7 +7553,7 @@ CvString CvCityCulture::GetTourismTooltip()
 				iTempMod = min(iFollowers, iReligionYieldMaxFollowers);
 				if (iTempMod != 0)
 				{
-					if (bHasCityModTooltip == false)
+					if (!bHasCityModTooltip)
 					{
 						if (szRtnValue.length() > 0)
 						{
@@ -7578,7 +7575,7 @@ CvString CvCityCulture::GetTourismTooltip()
 		if (iTempMod != 0)
 		{
 			iTempMod += GET_PLAYER(m_pCity->getOwner()).GetMonopolyModPercent();
-			if (bHasCityModTooltip == false)
+			if (!bHasCityModTooltip)
 			{
 				if (szRtnValue.length() > 0)
 				{
@@ -7605,7 +7602,7 @@ CvString CvCityCulture::GetTourismTooltip()
 					iTempMod = iGoldenAge;
 					if (iTempMod != 0)
 					{
-						if (bHasCityModTooltip == false)
+						if (!bHasCityModTooltip)
 						{
 							if (szRtnValue.length() > 0)
 							{
@@ -7625,7 +7622,7 @@ CvString CvCityCulture::GetTourismTooltip()
 					iTempMod = iWLTKD;
 					if (iTempMod != 0)
 					{
-						if (bHasCityModTooltip == false)
+						if (!bHasCityModTooltip)
 						{
 							if (szRtnValue.length() > 0)
 							{
@@ -7644,7 +7641,7 @@ CvString CvCityCulture::GetTourismTooltip()
 		iTempMod = (m_pCity->GetYieldFromWLTKD(YIELD_TOURISM) + GET_PLAYER(m_pCity->getOwner()).GetYieldFromWLTKD(YIELD_TOURISM));
 		if (iTempMod != 0)
 		{
-			if (bHasCityModTooltip == false)
+			if (!bHasCityModTooltip)
 			{
 				if (szRtnValue.length() > 0)
 				{
@@ -7661,7 +7658,7 @@ CvString CvCityCulture::GetTourismTooltip()
 		iTempMod = GET_PLAYER(m_pCity->getOwner()).GetPuppetYieldPenaltyMod() + GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->GetPuppetPenaltyReduction() + /*0 in CP, -80 in VP*/ GD_INT_GET(PUPPET_TOURISM_MODIFIER);
 		if (GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->GetPuppetPenaltyReduction() != 0 && iTempMod > 0)
 			iTempMod = 0;
-		if (bHasCityModTooltip == false)
+		if (!bHasCityModTooltip)
 		{
 			if (szRtnValue.length() > 0)
 			{
@@ -7691,7 +7688,9 @@ CvString CvCityCulture::GetFilledSlotsTooltip()
 CvString CvCityCulture::GetTotalSlotsTooltip()
 {
 	CvString szRtnValue = "";
-	CvString szTemp1, szTemp2, szTemp3;
+	CvString szTemp1;
+	CvString szTemp2;
+	CvString szTemp3;
 	
 	GreatWorkSlotType eLiteratureSlot = CvTypes::getGREAT_WORK_SLOT_LITERATURE();
 	int iFilledWriting = m_pCity->GetCityBuildings()->GetNumGreatWorks(eLiteratureSlot);
@@ -8139,7 +8138,7 @@ GreatWorkType CultureHelpers::GetArtifact(CvPlot *pPlot)
 	Database::Results kQuery;
 	if(db->Execute(kQuery, szSql))
 	{
-		if(bHasEraSpecificItems == true)
+		if(bHasEraSpecificItems)
 			kQuery.Bind(1, archData.m_eEra);
 		else
 			kQuery.BindNULL(1);

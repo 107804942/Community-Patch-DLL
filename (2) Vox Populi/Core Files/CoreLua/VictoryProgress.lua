@@ -314,9 +314,9 @@ function PopulateDomination()
 
 					for pCity in pPlayer:Cities() do
 						if (pCity:IsOriginalMajorCapital()) then
-							print(pCity:GetName());
+							--print(pCity:GetName());
 							iNumCapitals = iNumCapitals + 1;
-							aiCapitalOwner[pCity:GetOriginalOwner()] = iPlayerLoop;
+							aiCapitalOwner[pCity:GetOriginalOwner()] = pCity:GetOwnerForDominationVictory();
 							if (Teams[Players[pCity:GetOriginalOwner()]:GetTeam()]:IsVassal(iTeamLoop)) then
 								iNumCapitals = iNumCapitals - 1; --Don't double count Vassal and Capturing Enemy Capital
 							end
@@ -324,6 +324,28 @@ function PopulateDomination()
 						end
 					end
 					iNumVassals = Teams[pPlayer:GetTeam()]:GetNumVassals(); -- Vassalage: Get Number here
+					if (iNumVassals > 0) then -- Vassalage: And then we need to suddenly iterate through every player again... to count vassal's conquered capitals.
+						for iVassalLoop = 0, GameDefines.MAX_MAJOR_CIVS-1, 1 do
+							local pVassal = Players[iVassalLoop];
+							if (Teams[pVassal:GetTeam()]:IsVassal(pPlayer:GetTeam())) then
+								for pCity in pVassal:Cities() do
+									if (pCity:IsOriginalMajorCapital() and pCity:GetOriginalOwner() ~= iVassalLoop and pCity:GetOriginalOwner() ~= iPlayerLoop) then
+										iNumDisplayCapital = iNumDisplayCapital + 1;
+									end
+								end
+							end
+						end
+					end
+					for iCityStateLoop = GameDefines.MAX_MAJOR_CIVS, GameDefines.MAX_MINOR_CIVS-1, 1 do
+						local pCityState = Players[iCityStateLoop];
+						if pCityState:IsAlive() and pCityState:IsAllies(iPlayerLoop) then
+							for pCity in pCityState:Cities() do
+								if (pCity:IsOriginalMajorCapital() and pCity:GetOriginalOwner() ~= iCityStateLoop and pCity:GetOriginalOwner() ~= iPlayerLoop) then
+									iNumDisplayCapital = iNumDisplayCapital + 1;
+								end
+							end
+						end
+					end
 					iNumDisplayCapital = iNumDisplayCapital + iNumVassals; --Get Total of Vassals and Captured Enemy Capitals
 					--print(pPlayer:GetName() .. "iNumCapitals: " .. iNumCapitals);
 					--print(pPlayer:GetName() .. "iNumVassals: " .. iNumVassals);
@@ -365,6 +387,7 @@ function PopulateDomination()
 				end
 
 				local dominatingPlayer = Players[aiCapitalOwner[iPlayerLoop]];
+
 				--print("who is" .. aiCapitalOwner[iPlayerLoop])
 				if (Teams[pPlayer:GetTeam()]:GetMaster() ~= -1) then --Vassalage: Get Master's Team Leader first, then move on!
 					dominatingPlayer = Players[Teams[Teams[pPlayer:GetTeam()]:GetMaster()]:GetLeaderID()];
@@ -930,107 +953,6 @@ function CompareSpaceRace(a, b)
 		return false;
 	end
 end
-
-----------------------------------------------------------------
-----------------------------------------------------------------
---[[
-function PopulateDiploScreen()
-	g_DiploIM:ResetInstances();
-	g_DiploList = {};
-	
-	local numDiplo = 0;
-	local tintColor = {x = 1, y = 1, z = 1, w = 0.25};
-	local totalVotes = 0;
-	
-	local sortedPlayerList = {};
-	-- Loop through all the civs the active player knows
-	for iPlayerLoop = 0, GameDefines.MAX_CIV_PLAYERS-1, 1 do
-		local pPlayer = Players[iPlayerLoop];
-		if(not pPlayer:IsMinorCiv() and pPlayer:IsEverAlive()) then
-			table.insert(sortedPlayerList, iPlayerLoop);			
-		end
-	end
-	
-	table.sort(sortedPlayerList, function(a, b) return Teams[Players[b]:GetTeam()]:GetTotalSecuredVotes() < 
-													   Teams[Players[a]:GetTeam()]:GetTotalSecuredVotes() end );
-
-	for i, v in ipairs(sortedPlayerList) do	
-		local pPlayer = Players[v];
-		local pTeam = pPlayer:GetTeam();
-		local iPlayerLoop = pPlayer:GetID();
-
-		-- Create Instance
-		numDiplo = numDiplo + 1;
-		local controlTable = g_DiploIM:GetInstance();
-		g_DiploList[numDiplo] = controlTable;
-
-		-- Set Civ Number
-		controlTable.Name:SetText( Locale.ConvertTextKey("TXT_KEY_NUMBERING_FORMAT", numDiplo) );
-		
-		-- Set Civ Icon
-		SetCivIcon(pPlayer, 45, controlTable.Icon, controlTable.IconFrame, controlTable.IconOut,
-				    not pPlayer:IsAlive() or Teams[pTeam]:GetLiberatedByTeam() ~= -1,
-				    controlTable.CivIconBG, controlTable.CivIconShadow);
-		
-		-- Alternate Colors
-		if(numDiplo % 2 == 0) then
-			controlTable.Civ:SetColor(tintColor);
-		end
-		
-		-- Set Votes
-		local selfVote = 0;
-		local csVotes = 0;
-		local libCityState = 0;
-		local libCiv = 0;
-		totalVotes = 0;
-		for i, v in pairs(Teams) do
-		    local iLeader = v:GetLeaderID();
-		    if( iLeader ~= -1 ) then
-    			local curPlayer = Players[v:GetLeaderID()];
-    			if(v:IsAlive()) then
-    				totalVotes = totalVotes + 1;
-    			end
-    			
-    			if(v:IsHomeOfUnitedNations()) then
-    				totalVotes = totalVotes + 1;
-    			end
-    			
-    			if(curPlayer:IsAlive()) then
-    				if(v:GetTeamVotingForInDiplo() == pTeam) then
-    					if(i == pTeam) then
-    						if(v:IsHomeOfUnitedNations()) then
-    							selfVote = 2;
-    						else
-    							selfVote = 1;
-    						end
-    					elseif(v:IsMinorCiv()) then
-    						if(pTeam == v:GetLiberatedByTeam()) then
-    							libCityState = libCityState + 1;
-    						elseif(iPlayerLoop == curPlayer:GetAlly()) then
-    							csVotes = csVotes + 1;
-    						end
-    					else
-    						if(pTeam == v:GetLiberatedByTeam()) then
-    							libCiv = libCiv + 1;
-    						end
-    					end
-    				end
-    			end
-			end
-		end	
-		
-		controlTable.TotalVotes:SetText(Teams[pTeam]:GetTotalSecuredVotes());
-		controlTable.SelfVote:SetText(selfVote);
-		controlTable.CityStates:SetText(csVotes);	
-		controlTable.LiberatedCityStates:SetText(libCityState);		
-		controlTable.LiberatedCivs:SetText(libCiv);		
-
-	end	
-	Controls.TotalDiploVotes:SetText(Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_VOTES").." "..totalVotes);
-	Controls.NeededVotes:SetText(Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_VOTES_NEEDED").." "..Game.GetVotesNeededForDiploVictory());
-	Controls.DiploScrollPanel:CalculateInternalSize();
-end
---]]
 
 ----------------------------------------------------------------
 ----------------------------------------------------------------

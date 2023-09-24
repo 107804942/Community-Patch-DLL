@@ -41,6 +41,8 @@ protected:
 
 	static int lInitCity(lua_State* L);
 	static int lAcquireCity(lua_State* L);
+	static int lCanLiberatePlayer(lua_State* L);
+	static int lGetPlayerToLiberate(lua_State* L);
 	static int lKillCities(lua_State* L);
 
 	static int lGetNewCityName(lua_State* L);
@@ -271,6 +273,7 @@ protected:
 	LUAAPIEXTN(GetWoundedUnitDamageMod, int);
 	LUAAPIEXTN(SetCapitalCity, void);
 	LUAAPIEXTN(SetOriginalCapitalXY, void);
+	LUAAPIEXTN(ResetOriginalCapitalXY, void);
 	LUAAPIEXTN(GetNumWonders, int);
 	LUAAPIEXTN(GetOriginalCapitalPlot, int);
 #if defined(MOD_BALANCE_CORE_POLICIES)
@@ -432,8 +435,6 @@ protected:
 	LUAAPIEXTN(GetWarDamageValue, int);
 	LUAAPIEXTN(IsWantsPeaceWithPlayer, bool);
 	LUAAPIEXTN(GetTreatyWillingToOffer, int);
-	LUAAPIEXTN(DoUpdateWarDamage, void);
-	LUAAPIEXTN(DoUpdatePeaceTreatyWillingness, void);
 	LUAAPIEXTN(GetDominationResistance, int);
 	LUAAPIEXTN(GetCivOpinion, int);
 	LUAAPIEXTN(GetMajorityReligion, int);
@@ -758,7 +759,7 @@ protected:
 	static int lGetMinorCivFriendshipAnchorWithMajor(lua_State* L);
 	static int lGetFriendshipNeededForNextLevel(lua_State* L);
 #if defined(MOD_BALANCE_CORE_MINORS)
-	LUAAPIEXTN(GetJerk, int);
+	LUAAPIEXTN(GetJerkTurnsRemaining, int);
 	LUAAPIEXTN(GetCoupCooldown, int);
 #endif
 #if defined(MOD_BALANCE_CORE)
@@ -793,6 +794,7 @@ protected:
 	static int lGetMinorCivNumDisplayedQuestsForPlayer(lua_State* L);
 	static int lGetQuestData1(lua_State* L);
 	static int lGetQuestData2(lua_State* L);
+	static int lGetQuestData3(lua_State* L);
 	static int lGetQuestTurnsRemaining(lua_State* L);
 #if defined(MOD_BALANCE_CORE)
 	static int lGetRewardString(lua_State* L);
@@ -839,6 +841,8 @@ protected:
 	static int lGetCurrentSpawnEstimate(lua_State* L);
 	static int lGetCurrentScienceFriendshipBonusTimes100(lua_State* L);
 	static int lIsPeaceBlocked(lua_State* L);
+	static int lGetPeaceBlockedTurns(lua_State* L);
+	static int lIsAllyAtWar(lua_State* L);
 	static int lIsMinorPermanentWar(lua_State* L);
 	static int lGetNumMinorCivsMet(lua_State* L);
 	static int lDoMinorLiberationByMajor(lua_State* L);
@@ -852,7 +856,6 @@ protected:
 #if defined(MOD_BALANCE_CORE)
 	static int lSetBullyUnit(lua_State* L);
 	static int lGetBullyUnit(lua_State* L);
-	static int lGetYieldTheftAmount(lua_State* L);
 	static int lGetPledgeProtectionInvalidReason(lua_State* L);
 #endif
 	static int lCanMajorBullyGold(lua_State* L);
@@ -861,6 +864,8 @@ protected:
 	static int lGetMajorBullyUnitDetails(lua_State* L);
 	static int lGetMajorBullyAnnexDetails(lua_State* L);
 	static int lGetMajorBullyValue(lua_State* L);
+	static int lGetUnitSpawnCounter(lua_State* L);
+	static int lSetUnitSpawnCounter(lua_State* L);
 	static int lCanMajorBuyout(lua_State* L);
 #if defined(MOD_BALANCE_CORE)
 	static int lCanMajorMarry(lua_State* L);
@@ -1262,6 +1267,7 @@ protected:
 	static int lIsTradeSanctioned(lua_State* L);
 	static int lIsTradeItemValuedImpossible(lua_State* L);
 	static int lGetTotalValueToMeNormal(lua_State* L);
+	static int lGetSpyPoints(lua_State* L);
 	static int lGetSpyChanceAtCity(lua_State* L);
 	static int lGetCityPotentialInfo(lua_State* L);
 	static int lDoSpyEvent(lua_State* L);
@@ -1500,6 +1506,28 @@ protected:
 	static int lGetMilitaryAirMight(lua_State* L);
 	static int lGetMilitaryLandMight(lua_State* L);
 #endif
+
+	LUAAPIEXTN(IsResourceNotForSale, bool, eResource);
+	LUAAPIEXTN(SetResourceAvailable, void, eResource);
+	LUAAPIEXTN(SetResourceNotForSale, void, eResource);
+
+	LUAAPIEXTN(IsRefuseOpenBordersTrade, bool);
+	LUAAPIEXTN(SetRefuseOpenBordersTrade, void, bRefuse);
+
+	LUAAPIEXTN(IsRefuseEmbassyTrade, bool);
+	LUAAPIEXTN(SetRefuseEmbassyTrade, void, bRefuse);
+
+	LUAAPIEXTN(IsRefuseDefensivePactTrade, bool);
+	LUAAPIEXTN(SetRefuseDefensivePactTrade, void, bRefuse);
+
+	LUAAPIEXTN(IsRefuseBrokeredWarTrade, bool);
+	LUAAPIEXTN(SetRefuseBrokeredWarTrade, void, bRefuse);
+
+	LUAAPIEXTN(IsRefuseBrokeredPeaceTrade, bool);
+	LUAAPIEXTN(SetRefuseBrokeredPeaceTrade, void, bRefuse);
+
+	LUAAPIEXTN(IsRefuseResearchAgreementTrade, bool);
+	LUAAPIEXTN(SetRefuseResearchAgreementTrade, void, bRefuse);
 };
 
 namespace CvLuaArgs

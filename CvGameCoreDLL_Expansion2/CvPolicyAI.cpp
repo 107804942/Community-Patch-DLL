@@ -34,7 +34,7 @@ void CvPolicyAI::Reset()
 {
 	m_PolicyAIWeights.clear();
 	m_iPolicyWeightPropagationLevels = /*2*/ GD_INT_GET(POLICY_WEIGHT_PROPAGATION_LEVELS);
-	m_iPolicyWeightPercentDropNewBranch = /*90*/ GD_INT_GET(POLICY_WEIGHT_PERCENT_DROP_NEW_BRANCH);
+	m_iPolicyWeightPercentDropNewBranch = /*90*/ max(GD_INT_GET(POLICY_WEIGHT_PERCENT_DROP_NEW_BRANCH), 0);
 
 	CvAssertMsg(m_pCurrentPolicies != NULL, "Policy AI init failure: player policy data is NULL");
 	if(m_pCurrentPolicies != NULL)
@@ -126,10 +126,8 @@ int CvPolicyAI::ChooseNextPolicy(CvPlayer* pPlayer)
 	if (!pPlayer->isMajorCiv())
 		return 0;
 
-	RandomNumberDelegate fcn;
-	fcn = MakeDelegate(&GC.getGame(), &CvGame::getJonRandNum);
 	int iRtnValue = (int)NO_POLICY;
-	int iPolicyLoop;
+	int iPolicyLoop = 0;
 	vector<int> aLevel3Tenets;
 
 	bool bMustChooseTenet = (pPlayer->GetNumFreeTenets() > 0);
@@ -235,7 +233,7 @@ int CvPolicyAI::ChooseNextPolicy(CvPlayer* pPlayer)
 	// Make our policy choice from the top choices
 	if (m_AdoptablePolicies.size() > 0)
 	{
-		iRtnValue = m_AdoptablePolicies.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getPolicyChoiceCutoffThreshold(), &fcn, "Choosing policy from Top Choices");
+		iRtnValue = m_AdoptablePolicies.ChooseAbovePercentThreshold(GC.getGame().getHandicapInfo().getPolicyChoiceCutoffThreshold(), CvSeeder::fromRaw(0x5fef0474).mix(pPlayer->GetID()).mix(pPlayer->GetPlayerPolicies()->GetNumPoliciesOwned(false, false, true)));
 
 		// Log our choice
 		if (iRtnValue != (int)NO_POLICY)
@@ -1189,6 +1187,25 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 		else
 		{
 			yield[YIELD_TOURISM] += PolicyInfo->GetGoldenAgeMeterMod() * max(1, pPlayer->GetNumGoldenAges());
+		}
+	}
+	if (PolicyInfo->GetGAPFromHappinessModifier() != 0)
+	{
+		int iTotalGAP = 0;
+		int iLoop = 0;
+		for (const CvCity* pLoopCity = pPlayer->firstCity(&iLoop); pLoopCity != NULL; pLoopCity = pPlayer->nextCity(&iLoop))
+		{
+			int iGAP = pLoopCity->getHappinessDelta();
+			if (iGAP > 0)
+				iTotalGAP += iGAP;
+		}
+		if (pPlayerTraits->IsTourism() || pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_GOLDEN_AGE_POINTS] += iTotalGAP * PolicyInfo->GetGAPFromHappinessModifier() / 100 * 2;
+		}
+		else
+		{
+			yield[YIELD_GOLDEN_AGE_POINTS] += iTotalGAP * PolicyInfo->GetGAPFromHappinessModifier() / 100;
 		}
 	}
 	if (PolicyInfo->GetGoldenAgeDurationMod() != 0)
@@ -2628,18 +2645,6 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 			yield[YIELD_TOURISM] += PolicyInfo->GetStealGWFasterModifier();
 		}
 	}
-	if (PolicyInfo->GetExtraYieldsFromHeavyTribute() != 0)
-	{
-		int iTraitsModifier = pPlayerTraits->IsWarmonger() ? 4 : 1;
-		iTraitsModifier *= 100 + pPlayerTraits->GetBullyValueModifier();
-		iTraitsModifier /= 100;
-		
-		yield[YIELD_FOOD] += iTraitsModifier * PolicyInfo->GetExtraYieldsFromHeavyTribute() / 20;
-		yield[YIELD_PRODUCTION] += iTraitsModifier * PolicyInfo->GetExtraYieldsFromHeavyTribute() / 20;
-		yield[YIELD_CULTURE] += iTraitsModifier * PolicyInfo->GetExtraYieldsFromHeavyTribute() / 20;
-		yield[YIELD_SCIENCE] += iTraitsModifier * PolicyInfo->GetExtraYieldsFromHeavyTribute() / 20;
-		yield[YIELD_FAITH] += iTraitsModifier * PolicyInfo->GetExtraYieldsFromHeavyTribute() / 20;
-	}
 	if (PolicyInfo->GetEventTourism() != 0)
 	{
 		if (pPlayerTraits->IsTourism())
@@ -3082,11 +3087,23 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 	{
 		if (pPlayerTraits->IsSmaller() || pPlayerTraits->IsTourism() || pPlayerTraits->IsNerd())
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetSpecialistFoodChange() * -10 * max(1, (iPopulation / 5));
+			yield[YIELD_FOOD] += PolicyInfo->GetSpecialistFoodChange() * -2 * max(1, (iPopulation / 3));
 		}
 		else
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetSpecialistFoodChange() * -4 * max(1, (iPopulation / 10));
+			yield[YIELD_FOOD] += PolicyInfo->GetSpecialistFoodChange() * -1 * max(1, (iPopulation / 5));
+		}
+	}
+
+	if (PolicyInfo->GetNonSpecialistFoodChange() != 0)
+	{
+		if (pPlayerTraits->IsSmaller() || pPlayerTraits->IsTourism() || pPlayerTraits->IsNerd())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetNonSpecialistFoodChange() * -2 * max(1, (iPopulation * 2 / 3));
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetNonSpecialistFoodChange() * -1 * max(1, (iPopulation * 4 / 5));
 		}
 	}
 
@@ -3739,11 +3756,14 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 					if (pUnitEntry)
 					{
 						int iValue = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetUnitProductionAI()->CheckUnitBuildSanity(eUnit, false, 10, true, true);
-						if (pPlayerTraits->IsReligious())
+						if (iValue > 0)
 						{
-							iValue *= 2;
+							if (pPlayerTraits->IsReligious())
+							{
+								iValue *= 2;
+							}
+							yield[YIELD_FAITH] += min(225, iValue);
 						}
-						yield[YIELD_FAITH] += min(225, iValue);
 					}
 				}
 			}
@@ -3755,14 +3775,17 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 				if (pUnitEntry && pUnitEntry->GetPolicyType() == ePolicy)
 				{
 					int iValue = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetUnitProductionAI()->CheckUnitBuildSanity(eUnit, false, 10, true, true);
-					if (pPlayerTraits->IsWarmonger())
+					if (iValue > 0)
 					{
-						iValue *= 2;
+						if (pPlayerTraits->IsWarmonger())
+						{
+							iValue *= 2;
+						}
+						if (pUnitEntry->GetDomainType() == DOMAIN_LAND || pUnitEntry->GetDomainType() == DOMAIN_AIR)
+							yield[YIELD_GREAT_GENERAL_POINTS] += min(150, iValue);
+						else
+							yield[YIELD_GREAT_ADMIRAL_POINTS] += min(150, iValue);
 					}
-					if (pUnitEntry->GetDomainType() == DOMAIN_LAND || pUnitEntry->GetDomainType() == DOMAIN_AIR)
-						yield[YIELD_GREAT_GENERAL_POINTS] += min(150, iValue);
-					else
-						yield[YIELD_GREAT_ADMIRAL_POINTS] += min(150, iValue);
 				}
 			}
 		}
@@ -3841,7 +3864,8 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 			}
 		}
 
-		if (GC.getResourceInfo(eResource) != NULL && GC.getResourceInfo(eResource)->getPolicyReveal() == ePolicy)
+		CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
+		if (pkResourceInfo != NULL && pkResourceInfo->getPolicyReveal() == ePolicy)
 		{
 			yield[YIELD_GOLD] += 100;
 		}
@@ -4887,7 +4911,8 @@ int CvPolicyAI::WeighPolicy(CvPlayer* pPlayer, PolicyTypes ePolicy)
 			}
 		}
 	}
-	return iWeight;
+
+	return max(iWeight, 0);
 }
 
 /// Priority for opening up this branch
@@ -4977,7 +5002,7 @@ int CvPolicyAI::WeighBranch(CvPlayer* pPlayer, PolicyBranchTypes eBranch)
 		}
 	}
 
-	return iWeight;
+	return max(iWeight, 0);
 }
 
 /// Based on game options (religion off, science off, etc.), would this branch do us any good?

@@ -390,7 +390,7 @@ private:
 //	unify these?
 ///------------------------------
 	void PlotGarrisonMoves(int iTurnsToArrive);
-	void PlotBastionMoves(int iTurnsToArrive);
+	void PlotBastionMoves(int iTurnsToArrive, bool bEmergencyOnly);
 	void PlotGuardImprovementMoves(int iTurnsToArrive);
 //--------------------------------
 
@@ -693,7 +693,6 @@ public:
 
 	bool isEnemy(eTactPlotDomain eDomain = TD_BOTH) const { return aiEnemyDistance[eDomain]==0; }
 	bool isEnemyCity() const { return isEnemy() && pPlot->isCity(); }
-	bool isEnemyCombatUnit() const { return isEnemy() && !pPlot->isCity(); } //garrisons are ignored ...
 	bool isEnemyCivilian() const { return bEnemyCivilianPresent; }
 
 	bool isEdgePlot() const { return bEdgeOfTheKnownWorld; }
@@ -720,6 +719,7 @@ public:
 	void setEnemyDistance(eTactPlotDomain eDomain, int iDistance);
 	bool checkEdgePlotsForSurprises(const CvTacticalPosition& currentPosition, vector<int>& landEnemies, vector<int>& seaEnemies);
 	bool isValid() const { return pPlot != NULL; }
+	bool isEnemyCombatUnit() const { return bHasEnemyCombatUnit; }
 	bool isCombatEndTurn() const { return bFriendlyDefenderEndTurn; }
 	void changeNeighboringUnitCount(CvTacticalPosition& currentPosition, const STacticalAssignment& assignment, int iChange) const;
 	void setCombatUnitEndTurn(CvTacticalPosition& currentPosition, eTactPlotDomain unitDomain);
@@ -752,6 +752,7 @@ protected:
 	bool bAdjacentToEnemyCitadel:1;
 
 	bool bFriendlyDefenderEndTurn:1; 
+	bool bHasEnemyCombatUnit:1; //there may also be cities without garrison!
 };
 
 struct SAttackStats
@@ -807,9 +808,6 @@ protected:
 	PlotIndexContainer freedPlots; //plot indices for killed enemy units, to be ignored for ZOC
 	UnitIdContainer killedEnemies; //enemy units which were killed, to be ignored for danger
 	int movePlotUpdateFlag; //zero for nothing to do, unit id for a specific unit, -1 for all units
-
-	//performance optimization, unit strength calculation takes too long
-	CAttackCache attackCache;
 
 	//set in constructor, constant afterwards
 	PlayerTypes ePlayer;
@@ -968,7 +966,7 @@ protected:
 	int iSize; //how many do we have
 	int iCount; //how many are currently in use
 	CvTacticalPosition* aPositions; //preallocated block of N positions
-	CAttackCache attackCache; //filled on demand
+	CAttackCache attackCache; //performance optimization, unit strength calculation takes too long
 
 private:
 	//hide copy constructor and assignment operator

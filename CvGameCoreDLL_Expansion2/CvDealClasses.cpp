@@ -56,6 +56,7 @@ CvTradedItem::CvTradedItem()
 	m_eFromPlayer = NO_PLAYER;
 	m_iValue = INT_MAX;
 	m_bValueIsEven = false;
+	m_bDoNotRemove = false;
 }
 
 /// Equals operator
@@ -137,8 +138,6 @@ CvDeal::CvDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer)
 	m_bCheckedForRenewal = false;
 
 	m_bIsGift = false;
-	m_bDoNotModifyFrom = false;
-	m_bDoNotModifyTo = false;
 	m_iFromPlayerValue = -1;
 	m_iToPlayerValue = -1;
 }
@@ -158,8 +157,6 @@ CvDeal::CvDeal(const CvDeal& source)
 	m_bConsideringForRenewal = source.m_bConsideringForRenewal;
 	m_bCheckedForRenewal = source.m_bCheckedForRenewal;
 	m_bIsGift = source.m_bIsGift;
-	m_bDoNotModifyFrom = source.m_bDoNotModifyFrom;
-	m_bDoNotModifyTo = source.m_bDoNotModifyTo;
 	m_iFromPlayerValue = source.m_iFromPlayerValue;
 	m_iToPlayerValue = source.m_iToPlayerValue;
 	m_TradedItems = source.m_TradedItems;
@@ -185,8 +182,6 @@ bool CvDeal::operator==(const CvDeal& other) const
 		m_bConsideringForRenewal == other.m_bConsideringForRenewal &&
 		m_bCheckedForRenewal == other.m_bCheckedForRenewal &&
 		m_bIsGift == other.m_bIsGift &&
-		m_bDoNotModifyFrom == other.m_bDoNotModifyFrom &&
-		m_bDoNotModifyTo == other.m_bDoNotModifyTo &&
 		m_iFromPlayerValue == other.m_iFromPlayerValue &&
 		m_iToPlayerValue == other.m_iToPlayerValue &&
 		m_TradedItems == other.m_TradedItems;
@@ -207,8 +202,6 @@ CvDeal& CvDeal::operator=(const CvDeal& source)
 	m_bConsideringForRenewal = source.m_bConsideringForRenewal;
 	m_bCheckedForRenewal = source.m_bCheckedForRenewal;
 	m_bIsGift = source.m_bIsGift;
-	m_bDoNotModifyFrom = source.m_bDoNotModifyFrom;
-	m_bDoNotModifyTo = source.m_bDoNotModifyTo;
 	m_iFromPlayerValue = source.m_iFromPlayerValue;
 	m_iToPlayerValue = source.m_iToPlayerValue;
 	m_TradedItems = source.m_TradedItems;
@@ -226,8 +219,6 @@ void CvDeal::ClearItems()
 	m_bConsideringForRenewal = false;
 	m_bCheckedForRenewal = false;
 	m_bIsGift = false;
-	m_bDoNotModifyFrom = false;
-	m_bDoNotModifyTo = false;
 	m_iFromPlayerValue = -1;
 	m_iToPlayerValue = -1;
 
@@ -300,16 +291,6 @@ void CvDeal::ChangeToPlayerValue(int iValue)
 void CvDeal::SetDuration(int iValue)
 {
 	m_iDuration = iValue;
-}
-
-void CvDeal::SetDoNotModifyFrom(bool bValue)
-{
-	m_bDoNotModifyFrom = bValue;
-}
-
-void CvDeal::SetDoNotModifyTo(bool bValue)
-{
-	m_bDoNotModifyTo = bValue;
 }
 
 
@@ -444,7 +425,11 @@ bool CvDeal::IsPossibleToTradeItem(PlayerTypes ePlayer, PlayerTypes eToPlayer, T
 	if (BlockTemporaryForPermanentTrade(eItem, ePlayer, eToPlayer))
 		return false;
 
-	std::vector<CvDeal*> pRenewDeals = pFromPlayer->GetDiplomacyAI()->GetDealsToRenew(eToPlayer);
+	std::vector<CvDeal*> pRenewDeals;
+	pRenewDeals = pFromPlayer->GetDiplomacyAI()->GetDealsToRenew(eToPlayer);
+	std::vector<CvDeal*> pTheirRenewDeals;
+	pTheirRenewDeals = pToPlayer->GetDiplomacyAI()->GetDealsToRenew(ePlayer);
+	pRenewDeals.insert(pRenewDeals.end(), pTheirRenewDeals.begin(), pTheirRenewDeals.end());
 
 	////////////////////////////////////////////////////
 	//////// INDIVIDUAL TRADE ITEMS ////////////////////
@@ -492,7 +477,7 @@ bool CvDeal::IsPossibleToTradeItem(PlayerTypes ePlayer, PlayerTypes eToPlayer, T
 				if (LuaSupport::CallTestAll(pkScriptSystem, "IsAbleToMakePeace", args.get(), bResult)) 
 				{
 					// Check the result.
-					if (bResult == false)
+					if (!bResult)
 					{
 						return false;
 					}
@@ -532,7 +517,6 @@ bool CvDeal::IsPossibleToTradeItem(PlayerTypes ePlayer, PlayerTypes eToPlayer, T
 			int iGoldRate = pFromPlayer->calculateGoldRate();
 
 			// If this is a renewal deal, account for the gold already included in the renewal
-			// Recursive: Is this identifying the correct deal?
 			for (uint i = 0; i < pRenewDeals.size(); i++)
 			{
 				CvDeal* pRenewDeal = pRenewDeals[i];
@@ -588,10 +572,10 @@ bool CvDeal::IsPossibleToTradeItem(PlayerTypes ePlayer, PlayerTypes eToPlayer, T
 					return false;
 
 				// How much of this resource do we and the other guy have? Don't call getNumResourceAvailable() for the other player for strategic resources since that's not relevant.
-				int iNumAvailableToUs = pFromPlayer->getNumResourceAvailable(eResource, /*bIncludeImport*/ false), iNumAvailableToOther = eUsage == RESOURCEUSAGE_LUXURY ? pToPlayer->getNumResourceAvailable(eResource, /*bIncludeImport*/ true) : 0;
+				int iNumAvailableToUs = pFromPlayer->getNumResourceAvailable(eResource, /*bIncludeImport*/ false);
+				int iNumAvailableToOther = eUsage == RESOURCEUSAGE_LUXURY ? pToPlayer->getNumResourceAvailable(eResource, /*bIncludeImport*/ true) : 0;
 
 				// If a renewal deal, add/subtract the resources already included in the renewal.
-				// Recursive: Is this identifying the correct deal?
 				if (pRenewDeals.size() > 0)
 				{
 					for (uint i = 0; i < pRenewDeals.size(); i++)
@@ -741,7 +725,6 @@ bool CvDeal::IsPossibleToTradeItem(PlayerTypes ePlayer, PlayerTypes eToPlayer, T
 
 			bool bIgnoreExistingOB = false;
 			// Renewing an Open Borders deal?
-			// Recursive: Is this identifying the correct deal?
 			for (uint i = 0; i < pRenewDeals.size(); i++)
 			{
 				CvDeal* pRenewDeal = pRenewDeals[i];
@@ -789,7 +772,6 @@ bool CvDeal::IsPossibleToTradeItem(PlayerTypes ePlayer, PlayerTypes eToPlayer, T
 
 			bool bIgnoreExistingDP = false;
 			// Renewing a Defensive Pact deal?
-			// Recursive: Is this identifying the correct deal?
 			for (uint i = 0; i < pRenewDeals.size(); i++)
 			{
 				CvDeal* pRenewDeal = pRenewDeals[i];
@@ -808,10 +790,12 @@ bool CvDeal::IsPossibleToTradeItem(PlayerTypes ePlayer, PlayerTypes eToPlayer, T
 			}
 
 			bool bAITradingWithHuman = !bHumanToHuman && pToPlayer->isHuman();
-			int iMyLimit = pFromPlayer->CalculateDefensivePactLimit(bAITradingWithHuman), iMyDefensePacts = pFromPlayer->GetDiplomacyAI()->GetNumDefensePacts();
+			int iMyLimit = pFromPlayer->CalculateDefensivePactLimit(bAITradingWithHuman);
+			int iMyDefensePacts = pFromPlayer->GetDiplomacyAI()->GetNumDefensePacts();
 
 			bAITradingWithHuman = !bHumanToHuman && pFromPlayer->isHuman();
-			int iTheirLimit = pToPlayer->CalculateDefensivePactLimit(bAITradingWithHuman), iTheirDefensePacts = pToPlayer->GetDiplomacyAI()->GetNumDefensePacts();
+			int iTheirLimit = pToPlayer->CalculateDefensivePactLimit(bAITradingWithHuman);
+			int iTheirDefensePacts = pToPlayer->GetDiplomacyAI()->GetNumDefensePacts();
 
 			if (bIgnoreExistingDP)
 			{
@@ -1359,7 +1343,8 @@ bool CvDeal::BlockTemporaryForPermanentTrade(TradeableItems eItemType, PlayerTyp
 	if (eItemType == TRADE_ITEM_THIRD_PARTY_PEACE && GET_PLAYER(eFromPlayer).IsAtWarWith(eToPlayer))
 		return false;
 
-	bool bFromHuman = GET_PLAYER(eFromPlayer).isHuman(), bToHuman = GET_PLAYER(eToPlayer).isHuman();
+	bool bFromHuman = GET_PLAYER(eFromPlayer).isHuman();
+	bool bToHuman = GET_PLAYER(eToPlayer).isHuman();
 	bool bNoHumans = !bFromHuman && !bToHuman;
 
 	// Humans can handle their own dealmaking
@@ -1452,7 +1437,11 @@ bool CvDeal::BlockTemporaryForPermanentTrade(TradeableItems eItemType, PlayerTyp
 /// The Data parameters can be -1, which means we don't care about whatever data is stored there (e.g. -1 for Gold means can we trade ANY amount of Gold?)
 CvString CvDeal::GetReasonsItemUntradeable(PlayerTypes ePlayer, PlayerTypes eToPlayer, TradeableItems eItem, int iData1, int iData2, int iData3, bool bFlag1)
 {
-	CvString strTooltip = "", strReason = "", strDivider = "[NEWLINE][NEWLINE]", strStartColor = "[COLOR_NEGATIVE_TEXT]", strEndColor = "[ENDCOLOR]";
+	CvString strTooltip = "";
+	CvString strReason = "";
+	CvString strDivider = "[NEWLINE][NEWLINE]";
+	CvString strStartColor = "[COLOR_NEGATIVE_TEXT]";
+	CvString strEndColor = "[ENDCOLOR]";
 	CvString strError = ""; // There shouldn't be a tooltip for this reason (because either the situation should not ever occur ingame, or the item is hidden by the UI)
 
 	if (eItem <= TRADE_ITEM_NONE || eItem >= NUM_TRADEABLE_ITEMS)
@@ -1674,7 +1663,6 @@ CvString CvDeal::GetReasonsItemUntradeable(PlayerTypes ePlayer, PlayerTypes eToP
 		{
 			bool bIgnoreExistingOB = false;
 			// Renewing an Open Borders deal?
-			// Recursive: Is this identifying the correct deal?
 			for (uint i = 0; i < pRenewDeals.size(); i++)
 			{
 				CvDeal* pRenewDeal = pRenewDeals[i];
@@ -1761,7 +1749,6 @@ CvString CvDeal::GetReasonsItemUntradeable(PlayerTypes ePlayer, PlayerTypes eToP
 		{
 			bool bIgnoreExistingDP = false;
 			// Renewing a Defensive Pact deal?
-			// Recursive: Is this identifying the correct deal?
 			for (uint i = 0; i < pRenewDeals.size(); i++)
 			{
 				CvDeal* pRenewDeal = pRenewDeals[i];
@@ -1783,8 +1770,10 @@ CvString CvDeal::GetReasonsItemUntradeable(PlayerTypes ePlayer, PlayerTypes eToP
 				return strTooltip;
 			}
 
-			int iMyLimit = pFromPlayer->CalculateDefensivePactLimit(bToHuman), iMyDefensePacts = pFromPlayer->GetDiplomacyAI()->GetNumDefensePacts();
-			int iTheirLimit = pToPlayer->CalculateDefensivePactLimit(bFromHuman), iTheirDefensePacts = pToPlayer->GetDiplomacyAI()->GetNumDefensePacts();
+			int iMyLimit = pFromPlayer->CalculateDefensivePactLimit(bToHuman);
+			int iMyDefensePacts = pFromPlayer->GetDiplomacyAI()->GetNumDefensePacts();
+			int iTheirLimit = pToPlayer->CalculateDefensivePactLimit(bFromHuman);
+			int iTheirDefensePacts = pToPlayer->GetDiplomacyAI()->GetNumDefensePacts();
 
 			if (bIgnoreExistingDP)
 			{
@@ -3148,7 +3137,7 @@ void CvDeal::SetRequestingPlayer(PlayerTypes ePlayer)
 // METHODS TO ADD A CvTradedItem TO A DEAL
 
 /// Insert an immediate gold trade
-void CvDeal::AddGoldTrade(PlayerTypes eFrom, int iAmount)
+void CvDeal::AddGoldTrade(PlayerTypes eFrom, int iAmount, bool bDoNotRemove)
 {
 	CvAssertMsg(iAmount >= 0, "DEAL: Trying to add a negative amount of Gold to a deal.  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
@@ -3161,12 +3150,13 @@ void CvDeal::AddGoldTrade(PlayerTypes eFrom, int iAmount)
 		item.m_iFinalTurn = -1;
 		item.m_iData1 = iAmount;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 }
 
 /// Insert a gold per turn trade
-void CvDeal::AddGoldPerTurnTrade(PlayerTypes eFrom, int iAmount, int iDuration)
+void CvDeal::AddGoldPerTurnTrade(PlayerTypes eFrom, int iAmount, int iDuration, bool bDoNotRemove)
 {
 	CvAssertMsg(iAmount >= 0, "DEAL: Trying to add a negative amount of GPT to a deal.  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 	CvAssertMsg(iDuration >= 0, "DEAL: Trying to add a negative duration to a TradeItem.  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
@@ -3182,6 +3172,7 @@ void CvDeal::AddGoldPerTurnTrade(PlayerTypes eFrom, int iAmount, int iDuration)
 		item.m_iFinalTurn = -1;
 		item.m_iData1 = iAmount;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3191,7 +3182,7 @@ void CvDeal::AddGoldPerTurnTrade(PlayerTypes eFrom, int iAmount, int iDuration)
 }
 
 /// Insert a map trade
-void CvDeal::AddMapTrade(PlayerTypes eFrom)
+void CvDeal::AddMapTrade(PlayerTypes eFrom, bool bDoNotRemove)
 {
 	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 
@@ -3202,6 +3193,7 @@ void CvDeal::AddMapTrade(PlayerTypes eFrom)
 		item.m_iDuration = 0;
 		item.m_iFinalTurn = -1;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3211,7 +3203,7 @@ void CvDeal::AddMapTrade(PlayerTypes eFrom)
 }
 
 /// Insert a resource trade
-void CvDeal::AddResourceTrade(PlayerTypes eFrom, ResourceTypes eResource, int iAmount, int iDuration)
+void CvDeal::AddResourceTrade(PlayerTypes eFrom, ResourceTypes eResource, int iAmount, int iDuration, bool bDoNotRemove)
 {
 	CvAssertMsg(iAmount >= 0, "DEAL: Trying to add a negative amount of a Resource to a deal.  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 	CvAssertMsg(iDuration >= 0, "DEAL: Trying to add a negative duration to a TradeItem.  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
@@ -3228,6 +3220,7 @@ void CvDeal::AddResourceTrade(PlayerTypes eFrom, ResourceTypes eResource, int iA
 		item.m_iData1 = (int)eResource;
 		item.m_iData2 = iAmount;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3237,7 +3230,7 @@ void CvDeal::AddResourceTrade(PlayerTypes eFrom, ResourceTypes eResource, int iA
 }
 
 /// Insert a city trade
-void CvDeal::AddCityTrade(PlayerTypes eFrom, int iCityID)
+void CvDeal::AddCityTrade(PlayerTypes eFrom, int iCityID, bool bDoNotRemove)
 {
 	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 
@@ -3259,6 +3252,7 @@ void CvDeal::AddCityTrade(PlayerTypes eFrom, int iCityID)
 		item.m_iData2 = y;
 
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3268,7 +3262,7 @@ void CvDeal::AddCityTrade(PlayerTypes eFrom, int iCityID)
 }
 
 /// Insert adding an embassy to the deal
-void CvDeal::AddAllowEmbassy(PlayerTypes eFrom)
+void CvDeal::AddAllowEmbassy(PlayerTypes eFrom, bool bDoNotRemove)
 {
 	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 
@@ -3277,6 +3271,7 @@ void CvDeal::AddAllowEmbassy(PlayerTypes eFrom)
 		CvTradedItem item;
 		item.m_eItemType = TRADE_ITEM_ALLOW_EMBASSY;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3286,7 +3281,7 @@ void CvDeal::AddAllowEmbassy(PlayerTypes eFrom)
 }
 
 /// Insert an open borders pact
-void CvDeal::AddOpenBorders(PlayerTypes eFrom, int iDuration)
+void CvDeal::AddOpenBorders(PlayerTypes eFrom, int iDuration, bool bDoNotRemove)
 {
 	CvAssertMsg(iDuration >= 0, "DEAL: Trying to add a negative duration to a TradeItem.  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 	CvAssertMsg(iDuration < GC.getGame().getEstimateEndTurn() * 2, "DEAL: Trade item has a crazy long duration (probably invalid).  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
@@ -3300,6 +3295,7 @@ void CvDeal::AddOpenBorders(PlayerTypes eFrom, int iDuration)
 		//item.m_iFinalTurn = iDuration + GC.getGame().getGameTurn();
 		item.m_iFinalTurn = -1;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3309,7 +3305,7 @@ void CvDeal::AddOpenBorders(PlayerTypes eFrom, int iDuration)
 }
 
 /// Insert a defensive pact
-void CvDeal::AddDefensivePact(PlayerTypes eFrom, int iDuration)
+void CvDeal::AddDefensivePact(PlayerTypes eFrom, int iDuration, bool bDoNotRemove)
 {
 	CvAssertMsg(iDuration >= 0, "DEAL: Trying to add a negative duration to a TradeItem.  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 	CvAssertMsg(iDuration < GC.getGame().getEstimateEndTurn() * 2, "DEAL: Trade item has a crazy long duration (probably invalid).  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
@@ -3323,6 +3319,7 @@ void CvDeal::AddDefensivePact(PlayerTypes eFrom, int iDuration)
 		//item.m_iFinalTurn = iDuration + GC.getGame().getGameTurn();
 		item.m_iFinalTurn = -1;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3332,7 +3329,7 @@ void CvDeal::AddDefensivePact(PlayerTypes eFrom, int iDuration)
 }
 
 /// Insert a Research Agreement
-void CvDeal::AddResearchAgreement(PlayerTypes eFrom, int iDuration)
+void CvDeal::AddResearchAgreement(PlayerTypes eFrom, int iDuration, bool bDoNotRemove)
 {
 	CvAssertMsg(iDuration >= 0, "DEAL: Trying to add a negative duration to a TradeItem.  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 	CvAssertMsg(iDuration < GC.getGame().getEstimateEndTurn() * 2, "DEAL: Trade item has a crazy long duration (probably invalid).  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
@@ -3346,6 +3343,7 @@ void CvDeal::AddResearchAgreement(PlayerTypes eFrom, int iDuration)
 		//item.m_iFinalTurn = iDuration + GC.getGame().getGameTurn();
 		item.m_iFinalTurn = -1;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3355,7 +3353,7 @@ void CvDeal::AddResearchAgreement(PlayerTypes eFrom, int iDuration)
 }
 
 /// Insert ending a war
-void CvDeal::AddPeaceTreaty(PlayerTypes eFrom, int iDuration)
+void CvDeal::AddPeaceTreaty(PlayerTypes eFrom, int iDuration, bool bDoNotRemove)
 {
 	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 
@@ -3366,6 +3364,7 @@ void CvDeal::AddPeaceTreaty(PlayerTypes eFrom, int iDuration)
 		item.m_iDuration = iDuration;
 		item.m_iFinalTurn = -1;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3375,7 +3374,7 @@ void CvDeal::AddPeaceTreaty(PlayerTypes eFrom, int iDuration)
 }
 
 /// Insert going to peace with a third party
-void CvDeal::AddThirdPartyPeace(PlayerTypes eFrom, TeamTypes eThirdPartyTeam, int iDuration)
+void CvDeal::AddThirdPartyPeace(PlayerTypes eFrom, TeamTypes eThirdPartyTeam, int iDuration, bool bDoNotRemove)
 {
 	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 
@@ -3387,6 +3386,7 @@ void CvDeal::AddThirdPartyPeace(PlayerTypes eFrom, TeamTypes eThirdPartyTeam, in
 		item.m_iFinalTurn = -1;
 		item.m_iData1 = eThirdPartyTeam;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3396,7 +3396,7 @@ void CvDeal::AddThirdPartyPeace(PlayerTypes eFrom, TeamTypes eThirdPartyTeam, in
 }
 
 /// Insert going to war with a third party
-void CvDeal::AddThirdPartyWar(PlayerTypes eFrom, TeamTypes eThirdPartyTeam)
+void CvDeal::AddThirdPartyWar(PlayerTypes eFrom, TeamTypes eThirdPartyTeam, bool bDoNotRemove)
 {
 	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 
@@ -3408,6 +3408,7 @@ void CvDeal::AddThirdPartyWar(PlayerTypes eFrom, TeamTypes eThirdPartyTeam)
 		item.m_iFinalTurn = -1;
 		item.m_iData1 = eThirdPartyTeam;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3417,7 +3418,7 @@ void CvDeal::AddThirdPartyWar(PlayerTypes eFrom, TeamTypes eThirdPartyTeam)
 }
 
 /// Insert adding a declaration of peace to the deal
-void CvDeal::AddDeclarationOfFriendship(PlayerTypes eFrom)
+void CvDeal::AddDeclarationOfFriendship(PlayerTypes eFrom, bool bDoNotRemove)
 {
 	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!");
 
@@ -3428,6 +3429,7 @@ void CvDeal::AddDeclarationOfFriendship(PlayerTypes eFrom)
 			CvTradedItem item;
 			item.m_eItemType = TRADE_ITEM_DECLARATION_OF_FRIENDSHIP;
 			item.m_eFromPlayer = eFrom;
+			item.m_bDoNotRemove = bDoNotRemove;
 			m_TradedItems.push_back(item);
 		}
 	}
@@ -3438,7 +3440,7 @@ void CvDeal::AddDeclarationOfFriendship(PlayerTypes eFrom)
 }
 
 /// Insert a vote commitment to the deal
-void CvDeal::AddVoteCommitment(PlayerTypes eFrom, int iResolutionID, int iVoteChoice, int iNumVotes, bool bRepeal)
+void CvDeal::AddVoteCommitment(PlayerTypes eFrom, int iResolutionID, int iVoteChoice, int iNumVotes, bool bRepeal, bool bDoNotRemove)
 {
 	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!");
 
@@ -3451,6 +3453,7 @@ void CvDeal::AddVoteCommitment(PlayerTypes eFrom, int iResolutionID, int iVoteCh
 		item.m_iData2 = iVoteChoice;
 		item.m_iData3 = iNumVotes;
 		item.m_bFlag1 = bRepeal;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3769,8 +3772,13 @@ bool CvDeal::IsPotentiallyRenewable()
 	return false;
 }
 
+bool CvDeal::IsCheckedForRenewal()
+{
+	return m_bCheckedForRenewal;
+}
+
 /// Delete all items from a given player
-bool CvDeal::RemoveAllByPlayer(PlayerTypes eOffering)
+void CvDeal::RemoveAllPossibleItems()
 {
 	//have to do this in a nested fashion to avoid invalidating the iterator
 	bool bFound = false;
@@ -3782,8 +3790,7 @@ bool CvDeal::RemoveAllByPlayer(PlayerTypes eOffering)
 		TradedItemList::iterator it;
 		for (it = m_TradedItems.begin(); it != m_TradedItems.end(); ++it)
 		{
-			//do not remove items which need to be on both sides to make sense
-			if (eOffering == it->m_eFromPlayer && !it->IsTwoSided())
+			if (!it->m_bDoNotRemove)
 			{
 				m_TradedItems.erase(it);
 				bFound = true;
@@ -3793,8 +3800,6 @@ bool CvDeal::RemoveAllByPlayer(PlayerTypes eOffering)
 		}
 	}
 	while (bFound);
-
-	return bChange;
 }
 
 /// Delete a SINGLE trade item that can be identified by type alone
@@ -3969,7 +3974,7 @@ FDataStream& operator<<(FDataStream& saveTo, const CvDeal& readFrom)
 }
 
 /// Insert a tech trade
-void CvDeal::AddTechTrade(PlayerTypes eFrom, TechTypes eTech)
+void CvDeal::AddTechTrade(PlayerTypes eFrom, TechTypes eTech, bool bDoNotRemove)
 {
 	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 
@@ -3981,6 +3986,7 @@ void CvDeal::AddTechTrade(PlayerTypes eFrom, TechTypes eTech)
 		item.m_iFinalTurn = -1;
 		item.m_iData1 = (int)eTech;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -3990,7 +3996,7 @@ void CvDeal::AddTechTrade(PlayerTypes eFrom, TechTypes eTech)
 }
 
 /// Insert Vassalage Trade
-void CvDeal::AddVassalageTrade(PlayerTypes eFrom)
+void CvDeal::AddVassalageTrade(PlayerTypes eFrom, bool bDoNotRemove)
 {
 	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 
@@ -3999,6 +4005,7 @@ void CvDeal::AddVassalageTrade(PlayerTypes eFrom)
 		CvTradedItem item;
 		item.m_eItemType = TRADE_ITEM_VASSALAGE;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -4008,7 +4015,7 @@ void CvDeal::AddVassalageTrade(PlayerTypes eFrom)
 }
 
 /// Insert Vassalage Trade
-void CvDeal::AddRevokeVassalageTrade(PlayerTypes eFrom)
+void CvDeal::AddRevokeVassalageTrade(PlayerTypes eFrom, bool bDoNotRemove)
 {
 	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 
@@ -4017,6 +4024,7 @@ void CvDeal::AddRevokeVassalageTrade(PlayerTypes eFrom)
 		CvTradedItem item;
 		item.m_eItemType = TRADE_ITEM_VASSALAGE_REVOKE;
 		item.m_eFromPlayer = eFrom;
+		item.m_bDoNotRemove = bDoNotRemove;
 		m_TradedItems.push_back(item);
 	}
 	else
@@ -4440,7 +4448,8 @@ void CvGameDeals::ActivateDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, C
 	bool bIsPeaceDeal = kDeal.IsPeaceTreatyTrade(eFromPlayer) || kDeal.IsPeaceTreatyTrade(eToPlayer);
 	bool bHumanToHuman = GET_PLAYER(eFromPlayer).isHuman() && GET_PLAYER(eToPlayer).isHuman();
 	bool bShouldSetHumanSurrender = bHumanToHuman && bIsPeaceDeal;
-	bool bFromPlayerItem = false, bToPlayerItem = false;
+	bool bFromPlayerItem = false;
+	bool bToPlayerItem = false;
 
 	for (TradedItemList::iterator it = kDeal.m_TradedItems.begin(); it != kDeal.m_TradedItems.end(); it++)
 	{
@@ -4495,12 +4504,17 @@ void CvGameDeals::ActivateDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, C
 	kDeal.m_iDuration = iLongestDuration;
 	kDeal.m_iFinalTurn = iLatestItemLastTurn;
 	kDeal.m_iStartTurn = GC.getGame().getGameTurn();
+	// reset this
+	kDeal.m_bConsideringForRenewal = false;
+	kDeal.m_bCheckedForRenewal = false;
 
 	// Add to current deals
 	m_CurrentDeals.push_back(kDeal);
 
 	// Set one-time values here
-	bool bDoDefensivePactNotification = true, bDoResearchAgreementNotification = true, bDoWarVictoryBonuses = true;
+	bool bDoDefensivePactNotification = true;
+	bool bDoResearchAgreementNotification = true;
+	bool bDoWarVictoryBonuses = true;
 
 	// Process each item in the deal!
 	for (TradedItemList::iterator it = kDeal.m_TradedItems.begin(); it != kDeal.m_TradedItems.end(); it++)
@@ -4688,9 +4702,13 @@ void CvGameDeals::ActivateDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, C
 			if (eTargetPlayer == NO_PLAYER)
 				break;
 
-			if (!bIsPeaceDeal && !bCityState && GET_PLAYER(eGivingPlayer).GetDiplomacyAI()->GetWarScore(eTargetPlayer) >= WARSCORE_THRESHOLD_POSITIVE)
+			if (GET_PLAYER(eGivingPlayer).GetDiplomacyAI()->GetWarScore(eTargetPlayer) >= WARSCORE_THRESHOLD_POSITIVE)
 			{
-				GET_PLAYER(eGivingPlayer).DoWarVictoryBonuses();
+				if (!bIsPeaceDeal && !bCityState)
+					GET_PLAYER(eGivingPlayer).DoWarVictoryBonuses();
+
+				if (GET_PLAYER(eTargetPlayer).isMajorCiv())
+					GET_TEAM(eGivingTeam).SetWonLatestWar(eTargetTeam, true);
 			}
 
 			// Make peace!
@@ -5241,10 +5259,12 @@ void CvGameDeals::ActivateDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, C
 				if (GET_PLAYER(eReceivingPlayer).GetDiplomacyAI()->GetWarScore(eGivingPlayer) >= WARSCORE_THRESHOLD_POSITIVE)
 				{
 					GET_PLAYER(eReceivingPlayer).DoWarVictoryBonuses();
+					GET_TEAM(eReceivingTeam).SetWonLatestWar(eGivingTeam, true);
 				}
 				else if (GET_PLAYER(eGivingPlayer).GetDiplomacyAI()->GetWarScore(eReceivingPlayer) >= WARSCORE_THRESHOLD_POSITIVE)
 				{
 					GET_PLAYER(eGivingPlayer).DoWarVictoryBonuses();
+					GET_TEAM(eGivingTeam).SetWonLatestWar(eReceivingTeam, true);
 				}
 
 				bDoWarVictoryBonuses = false;
@@ -5252,7 +5272,6 @@ void CvGameDeals::ActivateDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, C
 
 			GET_TEAM(eGivingTeam).makePeace(eReceivingTeam, true, false, eGivingPlayer);
 			GET_TEAM(eGivingTeam).setForcePeace(eReceivingTeam, true);
-
 			break;
 		}
 		}
@@ -5552,8 +5571,10 @@ void CvGameDeals::DoCancelDealsBetweenTeams(TeamTypes eTeam1, TeamTypes eTeam2)
 {
 	if(m_CurrentDeals.size() > 0)
 	{
-		PlayerTypes eFromPlayer, eToPlayer;
-		int iPlayerLoop1 = 0, iPlayerLoop2 = 0;
+		PlayerTypes eFromPlayer;
+		PlayerTypes eToPlayer;
+		int iPlayerLoop1 = 0;
+		int iPlayerLoop2 = 0;
 
 		// Loop through first set of players
 		for(iPlayerLoop1 = 0; iPlayerLoop1 < MAX_MAJOR_CIVS; iPlayerLoop1++)
@@ -5589,8 +5610,8 @@ void CvGameDeals::DoCancelDealsBetweenTeams(TeamTypes eTeam1, TeamTypes eTeam2)
 	}
 }
 
-/// Deals between these two Players were interrupted (death)
-void CvGameDeals::DoCancelDealsBetweenPlayers(PlayerTypes eFromPlayer, PlayerTypes eToPlayer)
+/// Deals between these two Players were interrupted (death or world congress sanctions)
+void CvGameDeals::DoCancelDealsBetweenPlayers(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, bool bCancelPeaceTreaties)
 {
 	DealList::iterator it;
 	DealList tempDeals;
@@ -5608,9 +5629,9 @@ void CvGameDeals::DoCancelDealsBetweenPlayers(PlayerTypes eFromPlayer, PlayerTyp
 		m_CurrentDeals.clear();
 		for(it = tempDeals.begin(); it != tempDeals.end(); ++it)
 		{
-			// Players on this deal match?
-			if(it->m_eFromPlayer == eFromPlayer && it->m_eToPlayer == eToPlayer ||
-			        it->m_eFromPlayer == eToPlayer && it->m_eToPlayer == eFromPlayer)
+			// Players on this deal match? Are peace treaties canceled as well?
+			if((it->m_eFromPlayer == eFromPlayer && it->m_eToPlayer == eToPlayer ||
+			        it->m_eFromPlayer == eToPlayer && it->m_eToPlayer == eFromPlayer) && (bCancelPeaceTreaties || !it->IsPeaceTreatyTrade(eFromPlayer)))
 			{
 				// Change final turn
 				it->m_iFinalTurn = GC.getGame().getGameTurn();
@@ -5983,6 +6004,8 @@ void CvGameDeals::PrepareRenewDeal(CvDeal* pOldDeal)
 		{
 			continue;
 		}
+
+		oldDealItemIter->m_bDoNotRemove = true;
 
 		TradeableItems eItemType = oldDealItemIter->m_eItemType;
 		if (eItemType == TRADE_ITEM_RESOURCES)
@@ -6838,7 +6861,7 @@ uint CvGameDeals::GetNumHistoricDealsWithPlayer(PlayerTypes ePlayer, PlayerTypes
 
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
-std::vector<CvDeal*> CvGameDeals::GetRenewableDealsWithPlayer(PlayerTypes ePlayer, PlayerTypes eOtherPlayer, uint iMaxCount)
+std::vector<CvDeal*> CvGameDeals::GetRenewableDealsWithPlayer(PlayerTypes ePlayer, PlayerTypes eOtherPlayer, uint iMaxCount, bool bOnlyCheckedDeals)
 {
 
 	std::vector<CvDeal*> renewDeals;
@@ -6847,6 +6870,9 @@ std::vector<CvDeal*> CvGameDeals::GetRenewableDealsWithPlayer(PlayerTypes ePlaye
 		CvDeal& kDeal = m_CurrentDeals[i];
 
 		if (!kDeal.m_bConsideringForRenewal)
+			continue;
+
+		if (!kDeal.m_bCheckedForRenewal && bOnlyCheckedDeals)
 			continue;
 
 		if ((kDeal.m_eToPlayer == ePlayer || kDeal.m_eFromPlayer == ePlayer) &&

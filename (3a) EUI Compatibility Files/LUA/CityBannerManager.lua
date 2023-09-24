@@ -569,7 +569,11 @@ local g_cityToolTips = {
 
 	CityIsUnhappy = function( city)
 		local delta = city:getHappinessDelta() * -1;
-		return L("TXT_KEY_CITY_UNHAPPY", delta) .. "[NEWLINE][NEWLINE]" .. L(city:GetCityUnhappinessBreakdown(false, true))
+		if (delta == 0) then
+			return L(city:GetCityUnhappinessBreakdown(false, true))
+		else
+			return L("TXT_KEY_CITY_UNHAPPY", delta) .. "[NEWLINE][NEWLINE]" .. L(city:GetCityUnhappinessBreakdown(false, true))
+		end
 	end,
 } -- g_cityToolTips
 
@@ -656,10 +660,10 @@ local IsActiveQuestKillCamp
 local questDig = MinorCivQuestTypes.MINOR_CIV_QUEST_ARCHAEOLOGY
 local IsActiveQuestDig
 
-local questPlot = MinorCivQuestTypes.MINOR_CIV_QUEST_DISCOVER_PLOT
+local questPlot = MinorCivQuestTypes.MINOR_CIV_QUEST_EXPLORE_AREA
 local IsActiveQuestPlot
 
-local questCity = MinorCivQuestTypes.MINOR_CIV_QUEST_UNIT_GET_CITY
+local questCity = MinorCivQuestTypes.MINOR_CIV_QUEST_ACQUIRE_CITY
 local IsActiveQuestCity
 -- END
 if bnw_mode then
@@ -1046,7 +1050,7 @@ local function RefreshCityBannersNow()
 			instance.CityIsPuppet:SetHide( not isPuppet )
 			
 			-- Rome UA (Annexed City-States)
-			if Players[city:GetOriginalOwner()]:IsMinorCiv() and cityOwner:IsAnnexedCityStatesGiveYields() then
+			if Players[city:GetOriginalOwner()]:IsMinorCiv() then
 				instance.CityIsCityState:SetHide ( not cityOwner:IsAnnexedCityStatesGiveYields())
 			end
 
@@ -1080,8 +1084,13 @@ local function RefreshCityBannersNow()
 			if isActiveType then
 
 				local delta = city:getHappinessDelta();
-				if(delta < 0) then
+				if(delta <= 0) then
 					instance.CityIsUnhappy:SetHide(false)
+					if (delta == 0) then
+						instance.CityIsUnhappy:SetText("[ICON_ITP_HAPPINESS_NEUTRAL]");
+					else
+						instance.CityIsUnhappy:SetText("[ICON_HAPPINESS_3]");
+					end
 				else
 					instance.CityIsUnhappy:SetHide(true)
 				end
@@ -1302,7 +1311,15 @@ local function RefreshCityBannersNow()
 				else
 					otherCivAlpha = 0.5
 					otherCivID = g_activeTeam:IsHasMet( originalCityOwner:GetTeam() ) and originalCityOwnerID
-					instance.CivIndicator:LocalizeAndSetToolTip( "TXT_KEY_POPUP_CITY_CAPTURE_INFO_LIBERATE", originalCityOwner:GetCivilizationShortDescription() )
+					if (not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_VASSALAGE) and not Players[originalCityOwnerID]:IsAlive() and Teams[Players[Game.GetActivePlayer()]:GetTeam()]:GetCurrentEra() >= Game.GetVassalageEnabledEra() and Players[Game.GetActivePlayer()]:CanLiberatePlayer(originalCityOwnerID)) then
+							instance.CivIndicator:LocalizeAndSetToolTip( "TXT_KEY_POPUP_CITY_CAPTURE_INFO_LIBERATE_RESURRECT", originalCityOwner:GetCivilizationShortDescription() )
+						elseif (Players[Game.GetActivePlayer()]:CanLiberatePlayer(originalCityOwnerID)) then
+							instance.CivIndicator:LocalizeAndSetToolTip( "TXT_KEY_POPUP_CITY_CAPTURE_INFO_LIBERATE", originalCityOwner:GetCivilizationShortDescription() )
+						elseif (not Players[originalCityOwnerID]:IsAlive() and cityOwnerID == Game.GetActivePlayer() ) then
+							instance.CivIndicator:LocalizeAndSetToolTip( "TXT_KEY_POPUP_CITY_CAPTURE_INFO_LIBERATE_CAPTURED", originalCityOwner:GetCivilizationShortDescription() )
+						else
+							instance.CivIndicator:LocalizeAndSetToolTip( "TXT_KEY_POPUP_CITY_CAPTURE_INFO_LIBERATE_NO", originalCityOwner:GetCivilizationShortDescription() )
+					end
 				end
 			end
 			if otherCivID then

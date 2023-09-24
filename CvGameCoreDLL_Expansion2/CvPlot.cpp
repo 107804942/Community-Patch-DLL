@@ -403,7 +403,7 @@ void CvPlot::doImprovement()
 					{
 						if(thisImprovementInfo->GetImprovementResourceDiscoverRand(iI) > 0)
 						{
-							if (GC.getGame().getSmallFakeRandNum(thisImprovementInfo->GetImprovementResourceDiscoverRand(iI), iI) == 0)
+							if (GC.getGame().randRangeExclusive(0, thisImprovementInfo->GetImprovementResourceDiscoverRand(iI), CvSeeder(GetPseudoRandomSeed()).mix(iI)) == 0)
 							{
 								iResourceNum = GC.getMap().getRandomResourceQuantity((ResourceTypes)iI);
 								setResourceType((ResourceTypes)iI, iResourceNum);
@@ -1096,7 +1096,7 @@ bool CvPlot::isCoastalLand(int iMinWaterSize, bool bUseCachedValue, bool bCheckC
 				//If land, must be owned city, fort or citadel
 				else if (pAdjacentPlot->getTeam()==eTeam)
 				{
-					if (!pAdjacentPlot->isCity() && !(pAdjacentPlot->IsImprovementPassable() && !pAdjacentPlot->IsImprovementPillaged()))
+					if (!pAdjacentPlot->isCity() && (!pAdjacentPlot->IsImprovementPassable() || pAdjacentPlot->IsImprovementPillaged()))
 						continue;
 
 					// Must be adjacent to water
@@ -1671,7 +1671,7 @@ void CvPlot::changeAdjacentSight(TeamTypes eTeam, int iRange, bool bIncrement, I
 							scratchpad[ pPlotToCheck->GetPlotIndex() ] = iHighestLevel;
 							if(iSecondInwardLevel < iThisPlotLevel || ((iCenterLevel >= iSecondInwardLevel) && (thisRing < iRangeWithOneExtraRing)))
 							{
-								pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, (bBasedOnUnit && thisRing < 2) ? true : false, pUnit);
+								pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, bBasedOnUnit && thisRing < 2, pUnit);
 							}
 						}
 						else if(fSecondDist - fFirstDist > 0.05)   // we are closer to the first point
@@ -1680,7 +1680,7 @@ void CvPlot::changeAdjacentSight(TeamTypes eTeam, int iRange, bool bIncrement, I
 							scratchpad[ pPlotToCheck->GetPlotIndex() ] = iHighestLevel;
 							if(iFirstInwardLevel < iThisPlotLevel || ((iCenterLevel >= iFirstInwardLevel) && (thisRing < iRangeWithOneExtraRing)))
 							{
-								pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, (bBasedOnUnit && thisRing < 2) ? true : false, pUnit);
+								pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, bBasedOnUnit && thisRing < 2, pUnit);
 							}
 						}
 						else
@@ -1699,7 +1699,7 @@ void CvPlot::changeAdjacentSight(TeamTypes eTeam, int iRange, bool bIncrement, I
 							}
 							if(iLowestInwardLevel < iThisPlotLevel || ((iCenterLevel >= iLowestInwardLevel) && (thisRing < iRangeWithOneExtraRing)))
 							{
-								pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, (bBasedOnUnit && thisRing < 2) ? true : false, pUnit);
+								pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, bBasedOnUnit && thisRing < 2, pUnit);
 							}
 						}
 					}
@@ -1709,7 +1709,7 @@ void CvPlot::changeAdjacentSight(TeamTypes eTeam, int iRange, bool bIncrement, I
 						scratchpad[ pPlotToCheck->GetPlotIndex() ] = iHighestLevel;
 						if(iFirstInwardLevel < iThisPlotLevel || ((iCenterLevel >= iFirstInwardLevel) && (thisRing < iRangeWithOneExtraRing)))
 						{
-							pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, (bBasedOnUnit && thisRing < 2) ? true : false, pUnit);
+							pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, bBasedOnUnit && thisRing < 2, pUnit);
 						}
 					}
 					else if(iSecondInwardLevel != INVALID_RING && !bSecondHalfBlocked)
@@ -1718,7 +1718,7 @@ void CvPlot::changeAdjacentSight(TeamTypes eTeam, int iRange, bool bIncrement, I
 						scratchpad[ pPlotToCheck->GetPlotIndex() ] = iHighestLevel;
 						if(iSecondInwardLevel < iThisPlotLevel || ((iCenterLevel >= iSecondInwardLevel) && (thisRing < iRangeWithOneExtraRing)))
 						{
-							pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, (bBasedOnUnit && thisRing < 2) ? true : false, pUnit);
+							pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, bBasedOnUnit && thisRing < 2, pUnit);
 						}
 					}
 					else if(iFirstInwardLevel != INVALID_RING)
@@ -1727,7 +1727,7 @@ void CvPlot::changeAdjacentSight(TeamTypes eTeam, int iRange, bool bIncrement, I
 						scratchpad[ pPlotToCheck->GetPlotIndex() ] = iHighestLevel;
 						if(iFirstInwardLevel < iThisPlotLevel || ((iCenterLevel >= iFirstInwardLevel) && (thisRing < iRangeWithOneExtraRing)))
 						{
-							pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, (bBasedOnUnit && thisRing < 2) ? true : false, pUnit);
+							pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, bBasedOnUnit && thisRing < 2, pUnit);
 						}
 					}
 					else if(iSecondInwardLevel != INVALID_RING)
@@ -1736,7 +1736,7 @@ void CvPlot::changeAdjacentSight(TeamTypes eTeam, int iRange, bool bIncrement, I
 						scratchpad[ pPlotToCheck->GetPlotIndex() ] = iHighestLevel;
 						if(iSecondInwardLevel < iThisPlotLevel || ((iCenterLevel >= iSecondInwardLevel) && (thisRing < iRangeWithOneExtraRing)))
 						{
-							pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, (bBasedOnUnit && thisRing < 2) ? true : false, pUnit);
+							pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, bBasedOnUnit && thisRing < 2, pUnit);
 						}
 					}
 					else // I have no idea how this can happen, but...
@@ -1746,7 +1746,7 @@ void CvPlot::changeAdjacentSight(TeamTypes eTeam, int iRange, bool bIncrement, I
 				}
 				else // this is the center point
 				{
-					pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, (bBasedOnUnit && thisRing < 2) ? true : false, pUnit);
+					pPlotToCheck->changeVisibilityCount(eTeam, ((bIncrement) ? 1 : -1), eSeeInvisible, true, bBasedOnUnit && thisRing < 2, pUnit);
 					scratchpad[ pPlotToCheck->GetPlotIndex() ] = 0;
 				}
 			}
@@ -1869,14 +1869,7 @@ bool CvPlot::shouldProcessDisplacementPlot(int dx, int dy, int, DirectionTypes e
 			spread = 90 * (double) M_PI / 180;
 		}
 
-		if((theta >= -spread / 2) && (theta <= spread / 2))
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		return (theta >= -spread / 2) && (theta <= spread / 2);
 	}
 }
 
@@ -1963,7 +1956,8 @@ void CvPlot::updateSight(bool bIncrement)
 void CvPlot::updateSeeFromSight(bool bIncrement, bool bRecalculate)
 {
 	CvPlot* pLoopPlot = NULL;
-	int iDX = 0, iDY = 0;
+	int iDX = 0;
+	int iDY = 0;
 
 	int iRange = 1 + /*1*/ GD_INT_GET(UNIT_VISIBILITY_RANGE);
 #if defined(MOD_PROMOTIONS_VARIABLE_RECON)
@@ -2031,6 +2025,7 @@ bool CvPlot::canHaveResource(ResourceTypes eResource, bool bIgnoreLatitude, bool
 	}
 
 	CvResourceInfo& thisResourceInfo = *GC.getResourceInfo(eResource);
+
 	if(getFeatureType() != NO_FEATURE)
 	{
 		if(!(thisResourceInfo.isFeature(getFeatureType())))
@@ -3276,11 +3271,8 @@ bool CvPlot::isRevealedFortification(TeamTypes eTeam) const
 	static const ImprovementTypes eFort = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_FORT");
 	static const ImprovementTypes eCitadel = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_CITADEL");
 
-	if ((eFort != NO_IMPROVEMENT && getRevealedImprovementType(eTeam) == eFort) ||
-		(eCitadel != NO_IMPROVEMENT && getRevealedImprovementType(eTeam) == eCitadel))
-		return true;
-
-	return false;
+	return (eFort != NO_IMPROVEMENT && getRevealedImprovementType(eTeam) == eFort) ||
+		(eCitadel != NO_IMPROVEMENT && getRevealedImprovementType(eTeam) == eCitadel);
 }
 
 //	--------------------------------------------------------------------------------
@@ -3853,7 +3845,7 @@ bool CvPlot::IsChokePoint() const
 	else if (iPassableNoDeadEnd==2)
 	{
 		//check they are not adjacent
-		return aPassableNeighborsNoDeadEnd[0]->isAdjacent(aPassableNeighborsNoDeadEnd[1]) == false;
+		return !aPassableNeighborsNoDeadEnd[0]->isAdjacent(aPassableNeighborsNoDeadEnd[1]);
 	}
 	else if (iPassableNoDeadEnd==3)
 	{
@@ -5897,12 +5889,7 @@ bool CvPlot::hasCoastAtSECorner() const
 	}
 
 	pAdjacentPlot = plotDirection(getX(), getY(), DIRECTION_SOUTHEAST);
-	if(pAdjacentPlot != NULL && pAdjacentPlot->isWater())
-	{
-		return true;
-	}
-
-	return false;
+	return pAdjacentPlot != NULL && pAdjacentPlot->isWater();
 }
 
 
@@ -6838,17 +6825,10 @@ void CvPlot::setTerrainType(TerrainTypes eNewValue, bool bRecalculate, bool bReb
 
 	if(getTerrainType() != eNewValue)
 	{
-		if((getTerrainType() != NO_TERRAIN) &&
+		bUpdateSight = (getTerrainType() != NO_TERRAIN) &&
 		        (eNewValue != NO_TERRAIN) &&
 		        ((GC.getTerrainInfo(getTerrainType())->getSeeFromLevel() != GC.getTerrainInfo(eNewValue)->getSeeFromLevel()) ||
-		         (GC.getTerrainInfo(getTerrainType())->getSeeThroughLevel() != GC.getTerrainInfo(eNewValue)->getSeeThroughLevel())))
-		{
-			bUpdateSight = true;
-		}
-		else
-		{
-			bUpdateSight = false;
-		}
+		         (GC.getTerrainInfo(getTerrainType())->getSeeThroughLevel() != GC.getTerrainInfo(eNewValue)->getSeeThroughLevel()));
 
 		if(bUpdateSight)
 		{
@@ -6909,16 +6889,9 @@ void CvPlot::setFeatureType(FeatureTypes eNewValue)
 
 	if(eOldFeature != eNewValue)
 	{
-		if((eOldFeature == NO_FEATURE) ||
+		bUpdateSight = (eOldFeature == NO_FEATURE) ||
 		        (eNewValue == NO_FEATURE) ||
-		        (GC.getFeatureInfo(eOldFeature)->getSeeThroughChange() != GC.getFeatureInfo(eNewValue)->getSeeThroughChange()))
-		{
-			bUpdateSight = true;
-		}
-		else
-		{
-			bUpdateSight = false;
-		}
+		        (GC.getFeatureInfo(eOldFeature)->getSeeThroughChange() != GC.getFeatureInfo(eNewValue)->getSeeThroughChange());
 
 		if(bUpdateSight)
 		{
@@ -7875,7 +7848,7 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 					if (getResourceType() == NO_RESOURCE)
 					{
 						// first roll: can we get a resource on this plot?
-						if (GC.getGame().getSmallFakeRandNum(100, GET_PLAYER(getOwner()).GetPseudoRandomSeed() + GC.getGame().getNumCities() + m_iPlotIndex) < iResourceChance)
+						if (GC.getGame().randRangeInclusive(1, 100, GET_PLAYER(getOwner()).GetPseudoRandomSeed().mix(GC.getGame().getNumCities()).mix(GetPseudoRandomSeed())) <= iResourceChance)
 						{
 							// get list of valid resources for the plot
 							vector<ResourceTypes> vPossibleResources;
@@ -7893,13 +7866,12 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 								}
 							}
 
-							// second roll: which resource do we get on this plot?
-							int iChoice = GC.getGame().getSmallFakeRandNum(vPossibleResources.size(), GET_PLAYER(getOwner()).GetPseudoRandomSeed() + GC.getGame().getNumCities() + m_iPlotIndex);
-							ResourceTypes eSelectedResource = vPossibleResources.empty() ? NO_RESOURCE : vPossibleResources[iChoice];
-
 							// now let's add a resource.
-							if (eSelectedResource != NO_RESOURCE)
+							if (!vPossibleResources.empty())
 							{
+								// second roll: which resource do we get on this plot?
+								uint uChoice = GC.getGame().urandLimitExclusive(vPossibleResources.size(), GET_PLAYER(getOwner()).GetPseudoRandomSeed().mix(GC.getGame().getNumCities()).mix(GetPseudoRandomSeed()));
+								ResourceTypes eSelectedResource = vPossibleResources[uChoice];
 								int iResourceQuantity = GC.getMap().getRandomResourceQuantity(eSelectedResource);
 								setResourceType(eSelectedResource, iResourceQuantity); // note we do not need to check resource linking, as it is done in this very function later on
 								// notification stuff
@@ -9434,10 +9406,11 @@ int CvPlot::calculateNatureYield(YieldTypes eYield, PlayerTypes ePlayer, const C
 	if(eTeam != NO_TEAM)
 	{
 		ResourceTypes eResource = getResourceType(eTeam);
+		CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
 
-		if(eResource != NO_RESOURCE)
+		if(eResource != NO_RESOURCE && pkResourceInfo)
 		{
-			iYield += GC.getResourceInfo(eResource)->getYieldChange(eYield);
+			iYield += pkResourceInfo->getYieldChange(eYield);
 		}
 	}
 
@@ -9498,6 +9471,9 @@ int CvPlot::calculateNatureYield(YieldTypes eYield, PlayerTypes ePlayer, const C
 				iYield += (pOwningCity->getPopulation() + kYield.getPopulationChangeOffset()) / kYield.getPopulationChangeDivisor();
 			}
 		}
+
+		// GetYieldFromXMilitaryUnits (France UA)
+		iYield += GET_PLAYER(ePlayer).GetYieldFromMilitaryUnits(eYield);
 
 		// Mod for Player; used for Policies and such
 		iYield += GET_PLAYER(ePlayer).GetPlayerTraits()->GetCityYieldChanges(eYield);
@@ -9902,7 +9878,7 @@ int CvPlot::calculateReligionImprovementYield(YieldTypes eYield, PlayerTypes ePl
 	}
 	if (MOD_BALANCE_CORE_BELIEFS_RESOURCE && bRequiresResource)
 	{
-		if (bRequiresResource && (getResourceType(kPlayer.getTeam()) != NO_RESOURCE && pImprovement->IsImprovementResourceMakesValid(getResourceType(kPlayer.getTeam()))))
+		if ( (getResourceType(kPlayer.getTeam()) != NO_RESOURCE && pImprovement->IsImprovementResourceMakesValid(getResourceType(kPlayer.getTeam()))))
 		{
 			iReligionChange += pSecondaryPantheon->GetImprovementYieldChange(eImprovement, eYield);
 		}
@@ -10501,7 +10477,7 @@ int CvPlot::calculatePlayerYield(YieldTypes eYield, int iCurrentYield, PlayerTyp
 
 				if (MOD_BALANCE_CORE_RESOURCE_MONOPOLIES && kPlayer.HasGlobalMonopoly(eResource))
 				{
-					int iTemp = GC.getResourceInfo(eResource)->getYieldChangeFromMonopoly(eYield);
+					int iTemp = pkResourceInfo->getYieldChangeFromMonopoly(eYield);
 					if (iTemp > 0)
 					{
 						iTemp += GET_PLAYER(ePlayer).GetMonopolyModFlat();
@@ -10572,9 +10548,12 @@ int CvPlot::calculatePlayerYield(YieldTypes eYield, int iCurrentYield, PlayerTyp
 	return iYield;
 }
 
-int CvPlot::calculateYield(YieldTypes eYield, bool bDisplay)
+int CvPlot::calculateYield(YieldTypes eYield, bool bDisplay, const CvCity* pOwningCity)
 {
-	const CvCity* pOwningCity = getEffectiveOwningCity();
+	if (!pOwningCity)
+	{
+		pOwningCity = getEffectiveOwningCity();
+	}
 	if(pOwningCity)
 	{
 		ReligionTypes eMajority = pOwningCity->GetCityReligions()->GetReligiousMajority();
@@ -10658,6 +10637,12 @@ int CvPlot::calculateYieldFast(YieldTypes eYield, bool bDisplay, const CvCity* p
 		ePlayer = getOwner();
 		eImprovement = getImprovementType();
 		eRoute = getRouteType();
+
+		// For tile picker
+		if (ePlayer == NO_PLAYER && pOwningCity)
+		{
+			ePlayer = pOwningCity->getOwner();
+		}
 	}
 
 	int iYield = calculateNatureYield(eYield, ePlayer, pOwningCity, false, bDisplay);
@@ -10946,7 +10931,7 @@ PlotVisibilityChangeResult CvPlot::changeVisibilityCount(TeamTypes eTeam, int iC
 
 	// We couldn't see the Plot before but we can now
 	// note: the isVisible check works even when MOD_CORE_DELAYED_VISIBILITY is active
-	if (bOldVisibility == false && isVisible(eTeam))
+	if (!bOldVisibility && isVisible(eTeam))
 	{
 		eResult = VISIBILITY_CHANGE_TO_VISIBLE;
 
@@ -11021,6 +11006,9 @@ PlotVisibilityChangeResult CvPlot::changeVisibilityCount(TeamTypes eTeam, int iC
 			{
 				GET_TEAM(eTeam).meet(getTeam(), false);	// If there's a City here, we can assume its owner is the same as the plot owner
 			}
+
+			GC.getGame().GetGameTrade()->InvalidateTradePathTeamCache(getTeam());
+			GC.getGame().GetGameTrade()->InvalidateTradePathTeamCache(eTeam);
 		}
 
 		if (eTeam == GC.getGame().getActiveTeam())
@@ -12442,11 +12430,7 @@ void CvPlot::ChangeUnitPlotGAExperience(int iExperience)
 }
 bool CvPlot::IsUnitPlotExperience() const
 {
-	if (GetUnitPlotExperience() > 0 || GetUnitPlotGAExperience() > 0)
-	{
-		return true;
-	}
-	return false;
+	return GetUnitPlotExperience() > 0 || GetUnitPlotGAExperience() > 0;
 }
 int CvPlot::GetPlotMovesChange() const
 {
@@ -12690,7 +12674,8 @@ void CvPlot::showPopupText(PlayerTypes ePlayer, const char* szMessage)
 void CvPlot::processArea(CvArea* pArea, int iChange)
 {
 	CvCity* pCity = NULL;
-	int iI = 0, iJ = 0;
+	int iI = 0;
+	int iJ = 0;
 
 	pArea->changeNumTiles(iChange);
 
@@ -12996,7 +12981,7 @@ void CvPlot::write(FDataStream& kStream) const
 //	--------------------------------------------------------------------------------
 void CvPlot::setLayoutDirty(bool bDirty)
 {
-	if(bDirty == true)
+	if(bDirty)
 	{
 		GC.GetEngineUserInterface()->setDirty(PlotData_DIRTY_BIT,true);
 	}
@@ -13585,7 +13570,7 @@ int CvPlot::countNumAirUnits(TeamTypes eTeam, bool bNoSuicide) const
 }
 
 //	--------------------------------------------------------------------------------
-int CvPlot::GetPlotIndex() const
+inline int CvPlot::GetPlotIndex() const
 {
 	return m_iPlotIndex;
 }
@@ -13720,12 +13705,7 @@ int CvPlot::Validate(CvMap& kParentMap)
 /// Some reason we don't need to pay maintenance here?
 bool CvPlot::MustPayMaintenanceHere(PlayerTypes ePlayer) const
 {
-	if(isHills() && GET_PLAYER(ePlayer).GetPlayerTraits()->IsNoHillsImprovementMaintenance())
-	{
-		return false;
-	}
-
-	return true;
+	return !static_cast<bool>(isHills() && GET_PLAYER(ePlayer).GetPlayerTraits()->IsNoHillsImprovementMaintenance());
 }
 
 //	---------------------------------------------------------------------------
@@ -15335,4 +15315,9 @@ FDataStream& operator>>(FDataStream& loadFrom, SPlotWithTwoScoresL2& writeTo)
 	CvStreamLoadVisitor serialVisitor(loadFrom);
 	SPlotWithTwoScoresL2::Serialize(writeTo, serialVisitor);
 	return loadFrom;
+}
+
+CvSeeder CvPlot::GetPseudoRandomSeed() const
+{
+	return CvSeeder(static_cast<uint>(getX()) * 17 + static_cast<uint>(getY()) * 23);
 }

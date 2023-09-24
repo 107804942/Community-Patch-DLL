@@ -112,7 +112,7 @@ public:
 	// Personality Values
 	// ************************************
 
-	int GetRandomPersonalityWeight(int iOriginalValue, int& iSeed);
+	int GetRandomPersonalityWeight(int iOriginalValue, const CvSeeder& seed);
 	void DoInitializePersonality(bool bFirstInit);
 	void SelectDefaultVictoryPursuits();
 
@@ -946,6 +946,10 @@ public:
 	bool UpdatedWarProgressThisTurn() const;
 	void SetUpdatedWarProgressThisTurn(bool bValue);
 
+	int GetNumReevaluations() const;
+	void SetNumReevaluations(int iValue);
+	void ChangeNumReevaluations(int iChange);
+
 	bool IsWaitingForDigChoice() const;
 	void SetWaitingForDigChoice(bool bValue);
 
@@ -1383,7 +1387,7 @@ public:
 	void DoThirdPartyWarTrade(PlayerTypes ePlayer, DiploStatementTypes& eStatement, CvDeal* pDeal);
 	void DoThirdPartyPeaceTrade(PlayerTypes ePlayer, DiploStatementTypes& eStatement, CvDeal* pDeal);
 	void DoVoteTrade(PlayerTypes ePlayer, DiploStatementTypes& eStatement, CvDeal* pDeal);
-	std::vector<CvDeal*> DoRenewExpiredDeal(PlayerTypes ePlayer, DiploStatementTypes& eStatement);
+	CvDeal* DoRenewExpiredDeal(PlayerTypes ePlayer, DiploStatementTypes& eStatement);
 
 	void DoRequest(PlayerTypes ePlayer, DiploStatementTypes& eStatement, CvDeal* pDeal);
 	void DoGift(PlayerTypes ePlayer, DiploStatementTypes& eStatement, CvDeal* pDeal);
@@ -1748,8 +1752,8 @@ public:
 	// Miscellaneous
 	/////////////////////////////////////////////////////////
 
-	bool IsTryingToLiberate(CvCity* pCity, PlayerTypes ePlayerToLiberate);
-	bool DoPossibleMajorLiberation(CvCity* pCity, PlayerTypes ePlayerToLiberate);
+	bool IsTryingToLiberate(CvCity* pCity);
+	bool DoPossibleMajorLiberation(CvCity* pCity);
 
 	bool IsPlayerBadTheftTarget(PlayerTypes ePlayer, TheftTypes eTheftType, const CvPlot* pPlot = NULL);
 
@@ -1766,8 +1770,8 @@ public:
 	void LogMinorCivQuestCancelled(PlayerTypes eMinor, int iOldFriendshipTimes100, int iNewFriendshipTimes100, MinorCivQuestTypes eType);
 	void LogMinorCivBuyout(PlayerTypes eMinor, int iGoldPaid, bool bSaving);
 
-	std::vector<CvDeal*> GetDealsToRenew(PlayerTypes eOtherPlayer = NO_PLAYER);
-	void CancelRenewDeal(PlayerTypes eOtherPlayer = NO_PLAYER, RenewalReason eReason = NO_REASON, bool bJustLogging = false, CvDeal* pPassDeal = NULL);
+	std::vector<CvDeal*> GetDealsToRenew(PlayerTypes eOtherPlayer = NO_PLAYER, bool bOnlyCheckedDeals = false);
+	void CancelRenewDeal(PlayerTypes eOtherPlayer = NO_PLAYER, RenewalReason eReason = NO_REASON, bool bJustLogging = false, CvDeal* pPassDeal = NULL, bool bOnlyCheckedDeals = false);
 
 	// Methods for injecting tests
 	void TestUIDiploStatement(PlayerTypes eToPlayer, DiploStatementTypes eStatement, int iArg1);
@@ -1894,6 +1898,7 @@ private:
 	bool m_bWasHumanLastTurn;
 	bool m_bEndedFriendshipThisTurn;
 	bool m_bUpdatedWarProgressThisTurn;
+	int m_iNumReevaluations; // Used for RNG
 	bool m_bWaitingForDigChoice;
 	bool m_bBackstabber;
 	bool m_bCompetingForVictory;

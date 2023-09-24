@@ -143,7 +143,8 @@ public:
 	void ReviveActivePlayer();
 
 	int getNumHumanPlayers();
-	int GetNumMinorCivsEver(bool bOnlyStart = false);
+	int GetNumMajorCivsEver(bool bOnlyStart = false) const;
+	int GetNumMinorCivsEver(bool bOnlyStart = false) const;
 	int GetNumMinorCivsAlive();
 	int getNumHumansInHumanWars(PlayerTypes ignorePlayer = NO_PLAYER);
 	int getNumSequentialHumans(PlayerTypes ignorePlayer = NO_PLAYER);
@@ -504,12 +505,84 @@ public:
 	int getJonRandNumVA(int iNum, const char* pszLog, ...);
 	int getAsyncRandNum(int iNum, const char* pszLog);
 
-#if defined(MOD_CORE_REDUCE_RANDOMNESS)
-	//get random number from gamestate without a seed in the generator
-	int	getSmallFakeRandNum(int iNum, const CvPlot& input) const;
-	int	getSmallFakeRandNum(int iNum, int iExtraSeed) const;
-	int	getSmallFakeRandNum(int iNum, int iExtraSeed, const CvPlot& input) const;
-#endif
+	/// Generates a pseudo-random 32-bit number using the game's current state and an extra seed.
+	///
+	/// The number returned by this function is derived from the following parameters and consistent for any unique set:
+	/// - The game's map seed.
+	/// - The game's current turn.
+	/// - The provided extra seed.
+	///
+	/// Given that the returned number is consistent for any unique set of the above parameters, the user should make an effort to
+	/// ensure that the provided extra seed is different for any number of consecutive calls that occur on a single turn.
+	/// Failure to do so will lead to the same number being returned for each consecutive call on any given turn.
+	///
+	/// If this function is used to generate a number that is subsequently used to change the game state in manner that all peers
+	/// of a multiplayer session must replicate to retain synchronization, then the extra seed must be guaranteed to be identical 
+	/// for all peers of that multiplayer session. If this requirement is not met, then the multiplayer session will desynchronize.
+	uint randCore(const CvSeeder& extraSeed) const;
+
+	/// Generates a pseudo-random number using `randCore` and remaps the output into an exclusive range within `0` and `limit`.
+	/// Specifically, if `x` is the returned unsigned integer, then `x` is guaranteed to satisfy the following:
+	/// - `x >= 0`
+	/// - `x < limit`
+	///
+	/// The following invariants must be satisfied for function to operate correctly:
+	/// - `limit != 0`
+	///
+	/// All advisories documented on `randCore` apply to this function.
+	uint urandLimitExclusive(uint limit, const CvSeeder& extraSeed) const;
+
+	/// Generates a pseudo-random number using `randCore` and remaps the output into an inclusive range within `0` and `limit`.
+	/// Specifically, if `x` is the returned unsigned integer, then `x` is guaranteed to satisfy the following:
+	/// - `x >= 0`
+	/// - `x <= limit`
+	///
+	/// All advisories documented on `randCore` apply to this function.
+	uint urandLimitInclusive(uint limit, const CvSeeder& extraSeed) const;
+
+	/// Generates a pseudo-random number using `randCore` and remaps the output into an exclusive range within `min` and `max`.
+	/// Specifically, if `x` is the returned unsigned integer, then `x` is guaranteed to satisfy the following:
+	/// - `x >= min`
+	/// - `x < max`
+	///
+	/// The following invariants must be satisfied for the function to operate correctly:
+	/// - `min < max`
+	///
+	/// All advisories documented on `randCore` apply to this function.
+	uint urandRangeExclusive(uint min, uint max, const CvSeeder& extraSeed) const;
+
+	/// Generates a pseudo-random number using `randCore` and remaps the output into an inclusive range within `min` and `max`.
+	/// Specifically, if `x` is the returned unsigned integer, then `x` is guaranteed to satisfy the following:
+	/// - `x >= min`
+	/// - `x <= max`
+	///
+	/// The following invariants must be satisfied for the function to operate correctly:
+	/// - `min <= max`
+	///
+	/// All advisories documented on `randCore` apply to this function.
+	uint urandRangeInclusive(uint min, uint max, const CvSeeder& extraSeed) const;
+
+	/// Generates a pseudo-random number using `randCore` and remaps the output into an exclusive range within `min` and `max`.
+	/// Specifically, if `x` is the returned signed integer, then `x` is guaranteed to satisfy the following:
+	/// - `x >= min`
+	/// - `x < max`
+	///
+	/// The following invariants must be satisfied for the function to operate correctly:
+	/// - `min < max`
+	///
+	/// All advisories documented on `randCore` apply to this function.
+	int randRangeExclusive(int min, int max, const CvSeeder& extraSeed) const;
+
+	/// Generates a pseudo-random number using `randCore` and remaps the output into an inclusive range within `min` and `max`.
+	/// Specifically, if `x` is the returned signed integer, then `x` is guaranteed to satisfy the following:
+	/// - `x >= min`
+	/// - `x <= max`
+	///
+	/// The following invariants must be satisfied for the function to operate correctly:
+	/// - `min <= max`
+	/// 
+	/// All advisories documented on `randCore` apply to this function.
+	int randRangeInclusive(int min, int max, const CvSeeder& extraSeed) const;
 
 	int calculateSyncChecksum();
 	int calculateOptionsChecksum();
@@ -552,6 +625,8 @@ public:
 	int GetScienceMedian() const;
 	int GetCultureMedian() const;
 
+	void initSpyThreshold();
+	int GetSpyThreshold() const;
 #if defined(MOD_BALANCE_CORE_SPIES)
 	void SetHighestSpyPotential();
 #endif
@@ -602,7 +677,8 @@ public:
 	void SetBarbarianReleaseTurn(int iValue);
 
 	UnitTypes GetRandomSpawnUnitType(PlayerTypes ePlayer, bool bIncludeUUs, bool bIncludeRanged);
-	UnitTypes GetCompetitiveSpawnUnitType(PlayerTypes ePlayer, bool bIncludeUUs, bool bIncludeRanged, bool bIncludeShips, bool bNoResource = false, bool bIncludeOwnUUsOnly = false);
+	UnitTypes GetCompetitiveSpawnUnitType(PlayerTypes ePlayer, bool bIncludeUUs, bool bIncludeRanged, bool bIncludeShips, bool bNoResource = false, bool bIncludeOwnUUsOnly = false, bool bRandom = true);
+	UnitTypes GetCompetitiveSpawnUnitType(PlayerTypes ePlayer, bool bIncludeUUs, bool bIncludeRanged, bool bIncludeShips, bool bNoResource, bool bIncludeOwnUUsOnly, bool bRandom, CvSeeder seed);
 	UnitTypes GetCsGiftSpawnUnitType(PlayerTypes ePlayer, bool bIncludeShips);
 
 	UnitTypes GetRandomUniqueUnitType(bool bIncludeCivsInGame, bool bIncludeStartEra, bool bIncludeOldEras, bool bIncludeRanged, bool bCoastal, int iPlotX, int iPlotY);
@@ -753,7 +829,7 @@ public:
 
 	PlayerTypes GetPotentialFreeCityPlayer(CvCity* pCity = NULL);
 	TeamTypes GetPotentialFreeCityTeam(CvCity* pCity = NULL);
-	bool CreateFreeCityPlayer(CvCity* pCity, bool bJustChecking = false);
+	bool CreateFreeCityPlayer(CvCity* pCity, bool bJustChecking, bool bMajorFoundingCityState);
 	MinorCivTypes GetAvailableMinorCivType();
 
 	//------------------------------------------------------------
@@ -800,6 +876,8 @@ protected:
 	int m_iNumVictoryVotesExpected;
 	int m_iVotesNeededForDiploVictory;
 	int m_iMapScoreMod;
+	int m_iNumMajorCivsAliveAtGameStart;
+	int m_iNumMinorCivsAliveAtGameStart;
 
 	unsigned int m_uiInitialTime;
 
@@ -857,6 +935,7 @@ protected:
 	int m_iGoldMedian;
 	int m_iScienceMedian;
 	int m_iCultureMedian;
+	int m_iSpyThreshold;
 
 	int m_iLastTurnCSSurrendered;
 	CvEnumMap<ResourceTypes, PlayerTypes> m_aiGreatestMonopolyPlayer;

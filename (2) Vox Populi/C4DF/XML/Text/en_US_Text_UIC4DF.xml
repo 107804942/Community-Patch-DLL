@@ -2,9 +2,6 @@
 <!-- Created by ModBuddy on 4/25/2013 11:35:27 PM -->
 <GameData>
 	<Language_en_US>
-		<Row Tag="TXT_KEY_DIPLO_DISCUSS_MESSAGE_SHARE_OPINION">
-			<Text>What do you think of...</Text>
-		</Row>
 		<Row Tag="TXT_KEY_DIPLO_TRADE_MAP">
 			<Text>WORLD MAP</Text>
 		</Row>
@@ -698,14 +695,14 @@
 		</Row>
 
 		<Row Tag="TXT_KEY_GAME_OPTION_DISABLE_VICTORY_COMPETITION">
-			<Text>Disable Victory Competition</Text>
+			<Text>Disable AI Victory Competition</Text>
 		</Row>
 		<Row Tag="TXT_KEY_GAME_OPTION_DISABLE_VICTORY_COMPETITION_HELP">
 			<Text>AI leaders will not resent other players for their progress towards Victory Conditions. This makes the game significantly easier.</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_GAME_OPTION_DISABLE_ENDGAME_AGGRESSION">
-			<Text>Disable Endgame Aggression</Text>
+			<Text>Disable AI Endgame Aggression</Text>
 		</Row>
 		<Row Tag="TXT_KEY_GAME_OPTION_DISABLE_ENDGAME_AGGRESSION_HELP">
 			<Text>AI leaders will not receive an aggression boost towards players who are getting close to winning the game. NOTE: This option does nothing if 'Disable Victory Competition' is enabled.</Text>

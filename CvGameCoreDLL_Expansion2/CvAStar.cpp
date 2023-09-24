@@ -519,7 +519,8 @@ CvAStarNode* CvAStar::GetBest()
 void CvAStar::PrecalcNeighbors(CvAStarNode* node)
 {
 	int range = 6;
-	int x = 0, y = 0;
+	int x = 0;
+	int y = 0;
 	static int s_CvAStarChildHexX[6] = { 0, 1,  1,  0, -1, -1, };
 	static int s_CvAStarChildHexY[6] = { 1, 0, -1, -1,  0,  1, };
 
@@ -2243,7 +2244,7 @@ int BuildRouteCost(const CvAStarNode* /*parent*/, const CvAStarNode* node, const
 	CvPlayer* pPlayer = &GET_PLAYER(data.ePlayer);
 	CvBuilderTaskingAI* eBuilderTaskingAi = pPlayer->GetBuilderTaskingAI();
 	RouteTypes eRouteType = (RouteTypes)data.iTypeParameter;
-	int iCost;
+	int iCost = 0;
 
 	if(pPlot->isCity() || eBuilderTaskingAi->GetRouteTypeWantedAtPlot(pPlot) >= eRouteType || eBuilderTaskingAi->GetRouteTypeNeededAtPlot(pPlot) >= eRouteType || eBuilderTaskingAi->GetSameRouteBenefitFromTrait(pPlot, eRouteType))
 	{
@@ -2939,10 +2940,6 @@ map<int,SPath> CvPathFinder::GetMultiplePaths(const CvPlot* pStartPlot, vector<C
 	}
 
 	//sort for fast search
-	struct PrSortByPlotIndex
-	{
-		bool operator()(const CvPlot* lhs, const CvPlot* rhs) const { return lhs->GetPlotIndex() < rhs->GetPlotIndex(); }
-	};
 	std::stable_sort( vDestPlots.begin(), vDestPlots.end(), PrSortByPlotIndex() );
 
 	//there is no destination! the return value will always be false

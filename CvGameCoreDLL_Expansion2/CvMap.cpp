@@ -244,6 +244,14 @@ int CvLandmass::getTotalPopulation() const
 
 	return iResult;
 }
+int CvLandmass::getNumResources(ResourceTypes eResource) const
+{
+	int iResult = 0;
+	for (vector<int>::const_iterator it = m_vAreas.begin(); it != m_vAreas.end(); ++it)
+		iResult += GC.getMap().getAreaById(*it)->getNumResources(eResource);
+
+	return iResult;
+}
 
 //	--------------------------------------------------------------------------------
 template<typename Landmass, typename Visitor>
@@ -501,7 +509,10 @@ void CvMap::PrecalcNeighbors()
 	if (!pNeighbors)
 		return;
 
-	int iNX = 0, iNY = 0, iHX = 0, iHY = 0;
+	int iNX = 0;
+	int iNY = 0;
+	int iHX = 0;
+	int iHY = 0;
 
 	for(int iY = 0; iY < iH; iY++)
 	{
@@ -540,11 +551,11 @@ CvPlot** CvMap::getNeighborsShuffled(const CvPlot* pPlot)
 		{ 3, 0, 4, 1, 2, 5 },
 		{ 1, 2, 4, 5, 0, 3 } };
 
-	int iShuffleType = GC.getGame().getSmallFakeRandNum(3, *pPlot);
+	uint uShuffleType = GC.getGame().urandLimitExclusive(3, pPlot->GetPseudoRandomSeed());
 	int iBaseIndex = plotNum(pPlot->getX(), pPlot->getY())*(NUM_DIRECTION_TYPES + 2);
 
 	for (int i = 0; i < NUM_DIRECTION_TYPES; i++)
-		m_apShuffledNeighbors[i] = m_pPlotNeighbors[iBaseIndex + aiShuffle[iShuffleType][i]];
+		m_apShuffledNeighbors[i] = m_pPlotNeighbors[iBaseIndex + aiShuffle[uShuffleType][i]];
 
 	return m_apShuffledNeighbors;
 }
@@ -851,7 +862,8 @@ CvPlot* CvMap::syncRandPlot(int iFlags, int iArea, int iMinUnitDistance, int iTi
 	CvPlot* pLoopPlot = NULL;
 	bool bValid = false;
 	int iCount = 0;
-	int iDX = 0, iDY = 0;
+	int iDX = 0;
+	int iDY = 0;
 
 	pPlot = NULL;
 
@@ -1157,7 +1169,8 @@ int CvMap::getMapFractalFlags()
 bool CvMap::findWater(CvPlot* pPlot, int iRange, bool bFreshWater)
 {
 	CvPlot* pLoopPlot = NULL;
-	int iDX = 0, iDY = 0;
+	int iDX = 0;
+	int iDY = 0;
 	int iPlotX = pPlot->getX();
 	int iPlotY = pPlot->getY();
 
