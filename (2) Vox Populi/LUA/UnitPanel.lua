@@ -1686,11 +1686,10 @@ function TipHandler( control )
 		
 		local buildProgress = pPlot:GetBuildProgress( iBuildID )
 		local nominalWorkRate = unit:WorkRate( true )
-		-- take into account unit.cpp "wipe out all build progress also" game bug
-		local buildTime = pPlot:GetBuildTime( iBuildID, Game.GetActivePlayer() ) - nominalWorkRate
+		local buildTime = pPlot:GetBuildTime( iBuildID, Game.GetActivePlayer() )
 		local iBuildTurns
 		if buildProgress == 0 then
-			iBuildTurns = pPlot:GetBuildTurnsLeft( iBuildID, Game.GetActivePlayer(), nominalWorkRate - unit:WorkRate() )
+			iBuildTurns = pPlot:GetBuildTurnsTotal( iBuildID, Game.GetActivePlayer() )
 		else
 			buildProgress = buildProgress - nominalWorkRate
 			iBuildTurns = pPlot:GetBuildTurnsLeft( iBuildID, Game.GetActivePlayer(), -unit:WorkRate() )
@@ -1766,7 +1765,7 @@ function TipHandler( control )
 		if (pImprovement) then 
 			local iResourceID = pPlot:GetResourceType(iActiveTeam);
 			if (iResourceID ~= -1) then
-				if (pPlot:IsResourceConnectedByImprovement(iImprovement)) then
+				if (pPlot:IsResourceConnectedByImprovement(iImprovement) and pPlot:GetOwner() == unit:GetOwner()) then
 					if (Game.GetResourceUsageType(iResourceID) ~= ResourceUsageTypes.RESOURCEUSAGE_BONUS) then
 						local pResource = GameInfo.Resources[pPlot:GetResourceType(iActiveTeam)];
 						local strResourceString = pResource.Description;

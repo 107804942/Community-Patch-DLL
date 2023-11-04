@@ -190,13 +190,14 @@ public:
 	// Finding best cities to target
 	bool HavePossibleAttackTarget(PlayerTypes eEnemy) const;
 	bool HavePreferredAttackTarget(PlayerTypes eEnemy) const;
-	bool IsPossibleAttackTarget(CvCity* pCity) const;
-	bool IsPreferredAttackTarget(CvCity* pCity) const;
-	bool IsExposedToEnemy(CvCity* pCity, PlayerTypes eOtherPlayer) const;
+	bool IsPossibleAttackTarget(const CvCity* pCity) const;
+	bool IsPreferredAttackTarget(const CvCity* pCity) const;
+	bool IsExposedToEnemy(const CvCity* pCity, PlayerTypes eOtherPlayer) const;
 
 	bool IsPlayerValid(PlayerTypes eOtherPlayer) const;
 
 	size_t UpdateAttackTargets();
+	map<int, SPath> GetArmyPathsFromCity(CvCity* pMusterCity, bool bWater);
 	int ScoreAttackTarget(const CvAttackTarget& target);
 
 	// Accessors to provide military data to other AI subsystems
@@ -426,7 +427,7 @@ MultiunitFormationTypes GetCurrentBestFormationTypeForPureNavalAttack();
 CvPlot* GetCoastalWaterNearPlot(CvPlot *pTarget, bool bCheckTeam = false);
 bool NeedShipInArea(PlayerTypes ePlayer, CvLandmass* pWaterBody);
 
-bool ArmyPathIsGood(const SPath& path, PlayerTypes eAttacker, PlayerTypes eIntendedEnemy);
+bool ArmyPathIsGood(const SPath& path, PlayerTypes eAttacker, PlayerTypes eIntendedEnemy, int iThresholdForDiscard);
 int EvaluateTargetApproach(const CvAttackTarget& target, PlayerTypes ePlayer, ArmyType eArmyType);
 void SetBestTargetApproach(CvAttackTarget& target, PlayerTypes ePlayer);
 }

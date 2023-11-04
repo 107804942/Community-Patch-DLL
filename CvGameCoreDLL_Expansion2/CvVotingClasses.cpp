@@ -1493,27 +1493,40 @@ void CvActiveResolution::DoEffects(PlayerTypes ePlayer)
 
 		if (eTeam != NO_TEAM && GET_TEAM(eTeam).GetNumVassals() > 0 && !pPlayer->IsVassalsNoRebel())
 		{
-			for (int iTeamLoop = 0; iTeamLoop < MAX_TEAMS; iTeamLoop++)
+			bool bImmunity = false;
+			for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 			{
-				TeamTypes eLoopTeam = (TeamTypes) iTeamLoop;
-
-				if (GET_TEAM(eLoopTeam).isAlive() && GET_TEAM(eLoopTeam).IsVassal(eTeam))
+				PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
+				if (eLoopPlayer != ePlayer && GET_PLAYER(eLoopPlayer).isAlive() && GET_PLAYER(eLoopPlayer).getTeam() == eTeam && GET_PLAYER(eLoopPlayer).IsVassalsNoRebel())
 				{
-					bool bWasVoluntary = GET_TEAM(eLoopTeam).IsVoluntaryVassal(eTeam);
-					GET_TEAM(eLoopTeam).DoEndVassal(eTeam, true, true);
+					bImmunity = true;
+					break;
+				}
+			}
+			if (!bImmunity)
+			{
+				for (int iTeamLoop = 0; iTeamLoop < MAX_TEAMS; iTeamLoop++)
+				{
+					TeamTypes eLoopTeam = (TeamTypes) iTeamLoop;
 
-					if (eOriginalProposer != NO_PLAYER && eProposerTeam != NO_TEAM)
+					if (GET_TEAM(eLoopTeam).isAlive() && GET_TEAM(eLoopTeam).IsVassal(eTeam))
 					{
-						for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
-						{
-							PlayerTypes eLoopPlayer = (PlayerTypes) iPlayerLoop;
+						bool bWasVoluntary = GET_TEAM(eLoopTeam).IsVoluntaryVassal(eTeam);
+						GET_TEAM(eLoopTeam).DoEndVassal(eTeam, true, true);
 
-							if (GET_PLAYER(eLoopPlayer).isAlive() && GET_PLAYER(eLoopPlayer).getTeam() == eLoopTeam)
+						if (eOriginalProposer != NO_PLAYER && eProposerTeam != NO_TEAM)
+						{
+							for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 							{
-								if (!bWasVoluntary)
-									GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->DoLiberatedFromVassalage(eProposerTeam, true);
-								else if (GET_PLAYER(eOriginalProposer).isAlive())
-									GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->ChangeRecentAssistValue(eOriginalProposer, 300);
+								PlayerTypes eLoopPlayer = (PlayerTypes) iPlayerLoop;
+
+								if (GET_PLAYER(eLoopPlayer).isAlive() && GET_PLAYER(eLoopPlayer).getTeam() == eLoopTeam)
+								{
+									if (!bWasVoluntary)
+										GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->DoLiberatedFromVassalage(eProposerTeam, true);
+									else if (GET_PLAYER(eOriginalProposer).isAlive())
+										GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->ChangeRecentAssistValue(eOriginalProposer, 300);
+								}
 							}
 						}
 					}
@@ -8154,8 +8167,7 @@ void CvLeague::FinishSession()
 		if (!GET_PLAYER(eLoopPlayer).isAlive() || !GET_PLAYER(eLoopPlayer).isMajorCiv())
 			continue;
 
-		vector<PlayerTypes> v = GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->GetAllValidMajorCivs();
-		GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->DoReevaluatePlayers(v);
+		GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->DoReevaluateEveryone(false, false);
 	}
 }
 
@@ -10816,8 +10828,6 @@ CvLeagueAI::AlignmentLevels CvLeagueAI::EvaluateAlignment(PlayerTypes ePlayer, b
 	{
 		switch (pDiplo->GetDoFType(ePlayer))
 		{
-		case NO_DOF_TYPE:
-			UNREACHABLE();
 		case DOF_TYPE_UNTRUSTWORTHY:
 		case DOF_TYPE_NEW:
 			break;
@@ -12281,7 +12291,7 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 					{
 						iTradeDealValue += GC.getGame().GetGameTrade()->CountNumPlayerConnectionsToPlayer(GetPlayer()->GetID(), eLoopPlayer, true) * 100;
 					}
-					iTradeDealValue += min(400, GC.getGame().GetGameDeals().GetDealValueWithPlayer(GetPlayer()->GetID(), eLoopPlayer, false) / 10);
+					iTradeDealValue += min(400, GC.getGame().GetGameDeals().GetDealValueWithPlayer(GetPlayer()->GetID(), eLoopPlayer, true) / 10);
 
 					if (GetPlayer()->GetDiplomacyAI()->GetCivOpinion(eLoopPlayer) > CIV_OPINION_NEUTRAL)
 					{
@@ -12318,7 +12328,7 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 				{
 					iTradeDealValue += GC.getGame().GetGameTrade()->CountNumPlayerConnectionsToPlayer(GetPlayer()->GetID(), eTargetPlayer, true) * 75;
 				}
-				iTradeDealValue += min(500,GC.getGame().GetGameDeals().GetDealValueWithPlayer(GetPlayer()->GetID(), eTargetPlayer, false) / 5);
+				iTradeDealValue += min(500,GC.getGame().GetGameDeals().GetDealValueWithPlayer(GetPlayer()->GetID(), eTargetPlayer, true) / 5);
 
 				iExtra -= iTradeDealValue;
 			}
@@ -12493,10 +12503,25 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 		TeamTypes eTeam = GetPlayer()->getTeam();
 		if (eTeam != NO_TEAM)
 		{
-			if (GET_TEAM(eTeam).GetNumVassals() > 0 && !GetPlayer()->IsVassalsNoRebel())
+			if (GET_TEAM(eTeam).GetNumVassals() > 0)
 			{
+				bool bImmunity = GetPlayer()->IsVassalsNoRebel();
+				if (!bImmunity)
+				{
+					for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
+					{
+						PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
+						if (GET_PLAYER(eLoopPlayer).isAlive() && GET_PLAYER(eLoopPlayer).getTeam() == eTeam && GET_PLAYER(eLoopPlayer).IsVassalsNoRebel())
+						{
+							bImmunity = true;
+							break;
+						}
+					}
+				}
+
 				//We have vassals? Eek!
-				iExtra = (-1000 * GET_TEAM(eTeam).GetNumVassals());
+				if (!bImmunity)
+					iExtra = -1000 * GET_TEAM(eTeam).GetNumVassals();
 			}
 			else if (GetPlayer()->IsVassalOfSomeone())
 			{

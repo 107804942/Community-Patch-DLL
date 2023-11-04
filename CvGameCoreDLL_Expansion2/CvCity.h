@@ -399,8 +399,8 @@ public:
 	int getProduction() const;
 	int getProductionTimes100() const;
 	int getProductionNeeded() const;
-	int getProductionNeeded(UnitTypes eUnit) const;
-	int getProductionNeeded(BuildingTypes eBuilding) const;
+	int getProductionNeeded(UnitTypes eUnit, bool bIgnoreInvestment = false) const;
+	int getProductionNeeded(BuildingTypes eBuilding, bool bIgnoreInvestment = false) const;
 	int getProductionNeeded(ProjectTypes eProject) const;
 	int getProductionNeeded(SpecialistTypes eSpecialist) const;
 	int getProductionTurnsLeft() const;
@@ -414,11 +414,13 @@ public:
 #endif
 #if defined(MOD_BALANCE_CORE)
 	void SetBuildingInvestment(BuildingClassTypes eBuildingClass, bool bValue);
+	int GetBuildingCostInvestmentReduction(BuildingClassTypes eBuildingClass) const;
 	bool IsBuildingInvestment(BuildingClassTypes eBuildingClass) const;
 
 	bool IsProcessInternationalProject(ProcessTypes eProcess) const;
 
 	void SetUnitInvestment(UnitClassTypes eUnitClass, bool bValue);
+	int GetUnitCostInvestmentReduction(UnitClassTypes eUnitClass) const;
 	bool IsUnitInvestment(UnitClassTypes eUnitClass) const;
 
 	void SetBuildingConstructed(BuildingClassTypes eBuildingClass, bool bValue);
@@ -591,6 +593,7 @@ public:
 	bool HasAccessToLandmass(int iLandmassID) const;
 	bool HasSharedLandmassWith(const CvCity* pOther, bool bAllowLand, bool bAllowWater) const;
 
+	bool NeedsGarrison() const;
 	void SetGarrison(CvUnit* pUnit);
 	bool HasGarrison() const;
 	CvUnit* GetGarrisonedUnit() const;
@@ -1535,6 +1538,7 @@ public:
 	void popOrder(int iNum, bool bFinish = false, bool bChoose = false);
 	void swapOrder(int iNum);
 	bool hasOrder(OrderTypes eOrder, int iData1, int iData2) const;
+	bool hasOrder(OrderTypes eOrder, int iData1) const;
 	void startHeadOrder();
 	void stopHeadOrder();
 	int getOrderQueueLength() const;
@@ -1921,7 +1925,6 @@ protected:
 	int m_iCachedEmpireSizeModifier;
 	int m_iYieldMediansCachedTurn;
 	std::vector<int> m_aiNumProjects;
-	std::vector<int> m_aiLongestPotentialTradeRoute;
 	std::vector<int> m_aiNumTimesAttackedThisTurn;
 	std::vector<int> m_aiYieldFromKnownPantheons;
 	std::vector<int> m_aiYieldFromVictory;
@@ -2149,7 +2152,9 @@ protected:
 #if defined(MOD_BALANCE_CORE)
 	std::vector<bool> m_abOwedChosenBuilding;
 	std::vector<bool> m_abBuildingInvestment;
+	std::vector<int> m_aiBuildingCostInvestmentReduction;
 	std::vector<bool> m_abUnitInvestment;
+	std::vector<int> m_aiUnitCostInvestmentReduction;
 	std::vector<bool> m_abBuildingConstructed;
 	std::vector<int> m_aiBonusSightEspionage;
 #endif
@@ -2311,7 +2316,6 @@ SYNC_ARCHIVE_VAR(int, m_iCachedTechNeedModifier)
 SYNC_ARCHIVE_VAR(int, m_iCachedEmpireSizeModifier)
 SYNC_ARCHIVE_VAR(int, m_iYieldMediansCachedTurn)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiNumProjects)
-SYNC_ARCHIVE_VAR(std::vector<int>, m_aiLongestPotentialTradeRoute)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiNumTimesAttackedThisTurn)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromKnownPantheons)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromVictory)
@@ -2491,7 +2495,9 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldRank)
 SYNC_ARCHIVE_VAR(std::vector<bool>, m_abYieldRankValid)
 SYNC_ARCHIVE_VAR(std::vector<bool>, m_abOwedChosenBuilding)
 SYNC_ARCHIVE_VAR(std::vector<bool>, m_abBuildingInvestment)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_aiBuildingCostInvestmentReduction)
 SYNC_ARCHIVE_VAR(std::vector<bool>, m_abUnitInvestment)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_aiUnitCostInvestmentReduction)
 SYNC_ARCHIVE_VAR(std::vector<bool>, m_abBuildingConstructed)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiBonusSightEspionage)
 SYNC_ARCHIVE_END()

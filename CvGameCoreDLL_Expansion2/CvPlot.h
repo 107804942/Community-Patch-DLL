@@ -474,7 +474,7 @@ public:
 	int getNumResource() const;
 	void setNumResource(int iNum);
 	void changeNumResource(int iChange);
-	int getNumResourceForPlayer(PlayerTypes ePlayer) const;
+	int getNumResourceForPlayer(PlayerTypes ePlayer, bool bExtraResources) const;
 	void removeMinorResources();
 
 	void setIsCity(bool bValue, int iCityID, int iWorkRange);
@@ -831,7 +831,7 @@ public:
 #if defined(MOD_BALANCE_CORE)
 	bool IsEnemyCityAdjacent(TeamTypes eMyTeam, const CvCity* pSpecifyCity) const;
 	bool IsEnemyUnitAdjacent(TeamTypes eMyTeam) const;
-	int GetNumEnemyUnitsAdjacent(TeamTypes eMyTeam, DomainTypes eDomain, const CvUnit* pUnitToExclude = NULL, bool bConsiderFlanking = false) const;
+	int GetNumEnemyUnitsAdjacent(TeamTypes eMyTeam, DomainTypes eDomain, const CvUnit* pUnitToExclude = NULL, bool bConsiderFlanking = false, TeamTypes eSpecificTeam = NO_TEAM, bool bIncludeEmbarked = false) const;
 	vector<CvUnit*> GetAdjacentEnemyUnits(TeamTypes eMyTeam, DomainTypes eDomain) const;
 	pair<int, int> GetLocalUnitPower(PlayerTypes ePlayer, int iRange, bool bSameDomain) const;
 

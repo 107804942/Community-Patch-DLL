@@ -42,6 +42,12 @@ UPDATE Traits
 SET AngerFreeIntrusionOfCityStates = 1
 WHERE Type = 'TRAIT_CITY_STATE_FRIENDSHIP';
 
+-- Block Kabul from appearing if Persia is ingame, as Kabul is on Persia's city list
+INSERT INTO MajorBlocksMinor
+	(MajorCiv, MinorCiv)
+VALUES
+	('CIVILIZATION_PERSIA', 'MINOR_CIV_KABUL');
+
 -- TR fix for religion spread
 UPDATE Gamespeeds
 SET ReligiousPressureAdjacentCity = 25 WHERE Type = 'GAMESPEED_MARATHON';
@@ -71,7 +77,7 @@ SET Scale = 0.8
 WHERE ImprovementType = 'ART_DEF_IMPROVEMENT_CITADEL';
 
 -- Bad goodies are never triggered even in BNW, so we can remove this ability to reduce clutter
-UPDATE Units SET NoBadGoodies = '0';
+UPDATE Units SET NoBadGoodies = 0;
 
 -- Set Forbidden Palace to 2 votes for CP (we'll reset in CBP)
 UPDATE Buildings
@@ -116,6 +122,15 @@ WHERE Type = 'RESOURCE_IRON';
 UPDATE Resources
 SET AITradeModifier = 20
 WHERE Type = 'RESOURCE_HORSES';
+
+-- Build times (to compensate for build turn fix)
+UPDATE Builds
+SET Time = Time - 100
+WHERE Time > 0;
+
+UPDATE BuildFeatures
+SET Time = Time - 100
+WHERE Time > 0;
 
 -- Technologies
 UPDATE Technology_Flavors
@@ -503,7 +518,6 @@ WHERE AIEconomicStrategyType = 'ECONOMICAISTRATEGY_OFFSHORE_EXPANSION_MAP' AND F
 UPDATE AIEconomicStrategies
 SET MinimumNumTurnsExecuted = 10
 WHERE Type = 'ECONOMICAISTRATEGY_TOO_MANY_UNITS';
-
 UPDATE AIEconomicStrategies
 SET CheckTriggerTurnCount = 7
 WHERE Type = 'ECONOMICAISTRATEGY_TOO_MANY_UNITS';
@@ -511,10 +525,18 @@ WHERE Type = 'ECONOMICAISTRATEGY_TOO_MANY_UNITS';
 UPDATE AIEconomicStrategies
 SET MinimumNumTurnsExecuted = 10
 WHERE Type = 'ECONOMICAISTRATEGY_FOUND_CITY';
-
 UPDATE AIEconomicStrategies
 SET CheckTriggerTurnCount = 3
 WHERE Type = 'ECONOMICAISTRATEGY_FOUND_CITY';
+
+-- check this every turn!
+UPDATE AIEconomicStrategies
+SET CheckTriggerTurnCount = 1
+WHERE Type = 'ECONOMICAISTRATEGY_EARLY_EXPANSION';
+UPDATE AIEconomicStrategies
+SET MinimumNumTurnsExecuted = 1
+WHERE Type = 'ECONOMICAISTRATEGY_EARLY_EXPANSION';
+
 
 -- Economic City Strategy Flavors
 
@@ -717,13 +739,13 @@ WHEN (Loyalty <= 3 OR WonderCompetitiveness <= 3) THEN 'PERSONALITY_EXPANSIONIST
 ELSE Personality END
 WHERE Type = NEW.Type;
 
-UPDATE Leaders SET Chattiness = '4' WHERE Type = NEW.Type;
+UPDATE Leaders SET Chattiness = 4 WHERE Type = NEW.Type;
 
 END;
 -- End override section
 
 -- Set Chattiness to 4 across the board
-UPDATE Leaders SET Chattiness = '4';
+UPDATE Leaders SET Chattiness = 4;
 
 -- Sets default victory pursuits for all the default Civ V leaders.
 UPDATE Leaders SET PrimaryVictoryPursuit = 'VICTORY_PURSUIT_DIPLOMACY' WHERE Type = 'LEADER_AHMAD_ALMANSUR'; -- Morocco

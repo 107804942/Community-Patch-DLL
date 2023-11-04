@@ -1,3 +1,25 @@
+-- Blocks a specified City-State from appearing ingame if the associated Civilization is present at game start.
+CREATE TABLE IF NOT EXISTS MajorBlocksMinor(
+	MajorCiv text NOT NULL,
+	MinorCiv text NOT NULL,
+	FOREIGN KEY (MajorCiv) REFERENCES Civilizations(Type),
+	FOREIGN KEY (MinorCiv) REFERENCES MinorCivilizations(Type)
+);
+
+-- Allows modders to specify a fixed personality type for a City-State. This overrides the MOD_BALANCE_CITY_STATE_PERSONALITIES CustomModOption.
+CREATE TABLE IF NOT EXISTS MinorCivPersonalityTypes(
+	ID INTEGER PRIMARY KEY AUTOINCREMENT,
+	Type text NOT NULL UNIQUE
+);
+
+INSERT INTO MinorCivPersonalityTypes(ID, Type) VALUES (0, 'MINOR_CIV_PERSONALITY_FRIENDLY');
+INSERT INTO MinorCivPersonalityTypes(Type) VALUES
+('MINOR_CIV_PERSONALITY_NEUTRAL'), -- 1
+('MINOR_CIV_PERSONALITY_HOSTILE'), -- 2
+('MINOR_CIV_PERSONALITY_IRRATIONAL'); -- 3
+
+ALTER TABLE MinorCivilizations ADD COLUMN FixedPersonality text DEFAULT NULL REFERENCES MinorCivPersonalityTypes(Type);
+
 -- HistoricEventTypes table: Defines the different types of historic events. The order used here matches with the enum used in the DLL. Do not change without changing the DLL as well!
 -- Not all of these historic events actually generate a bonus in the VP mod - some are only used for the Difficulty Bonus. These are prefixed with DIFFICULTY_BONUS.
 CREATE TABLE IF NOT EXISTS HistoricEventTypes(
@@ -5,7 +27,7 @@ CREATE TABLE IF NOT EXISTS HistoricEventTypes(
 	Type text NOT NULL UNIQUE
 );
 
-INSERT INTO HistoricEventTypes(ID, Type) VALUES ('0','HISTORIC_EVENT_ERA_CHANGE');
+INSERT INTO HistoricEventTypes(ID, Type) VALUES (0,'HISTORIC_EVENT_ERA_CHANGE');
 INSERT INTO HistoricEventTypes(Type) VALUES 
 ('HISTORIC_EVENT_WORLD_WONDER'), -- 1
 ('HISTORIC_EVENT_GREAT_PERSON'), -- 2
@@ -407,9 +429,6 @@ ALTER TABLE Improvements ADD COLUMN 'MovesChange' INTEGER DEFAULT 0;
 
 -- Improvement requires fresh water, coast, or river adjacency to make valid.
 ALTER TABLE Improvements ADD COLUMN 'WaterAdjacencyMakesValid' BOOLEAN DEFAULT 0;
-
--- Table for Lua elements that we don't want shown in Civ selection screen or in Civilopedia
-ALTER TABLE Improvements ADD 'ShowInPedia' BOOLEAN DEFAULT 1;
 
 -- Table for Civilopedia Game Concepts to add more in boxes...
 ALTER TABLE Concepts ADD COLUMN 'Extended' TEXT DEFAULT NULL;
@@ -1449,8 +1468,8 @@ ALTER TABLE Policies ADD COLUMN 'AdditionalNumFranchises' INTEGER DEFAULT 0;
 ALTER TABLE Policies ADD COLUMN 'NoForeignCorpsInCities' BOOLEAN DEFAULT 0;
 ALTER TABLE Policies ADD COLUMN 'NoFranchisesInForeignCities' BOOLEAN DEFAULT 0;
 
-
 -- 20 = 20% additional, NOT 1/5 of existing value. this stacks, so 120%, 140%, 160%, etc...
+UPDATE Policies SET StrategicResourceMod = 100 WHERE StrategicResourceMod == 200;
 
 -- Minor Civs
 ALTER TABLE MinorCivilizations ADD COLUMN 'BullyUnitClass' TEXT DEFAULT NULL;
@@ -1820,6 +1839,19 @@ UPDATE Eras SET EraSplashImage = 'ERA_Modern.dds'     		WHERE Type = 'ERA_MODERN
 UPDATE Eras SET EraSplashImage = 'ERA_Atomic.dds'     		WHERE Type = 'ERA_POSTMODERN';
 UPDATE Eras SET EraSplashImage = 'ERA_Future.dds'     		WHERE Type = 'ERA_FUTURE';
 
+-- New column to separate improveable from tradeable for resources
+ALTER TABLE Resources ADD TechImproveable TEXT;
+UPDATE Resources SET TechImproveable = TechCityTrade;
+
+-- Add columns to UnitPromotions to handle grouping of ranked promotions
+ALTER TABLE UnitPromotions ADD RankList TEXT;
+ALTER TABLE UnitPromotions ADD RankNumber INTEGER DEFAULT 0;
+-- Column to hold visibility preference for each promotion
+ALTER TABLE UnitPromotions ADD FlagPromoOrder INTEGER DEFAULT 0;
+ALTER TABLE UnitPromotions ADD SimpleHelpText BOOLEAN;
+ALTER TABLE UnitPromotions ADD ShowInUnitPanel BOOLEAN DEFAULT 1;
+ALTER TABLE UnitPromotions ADD IsVisibleAboveFlag BOOLEAN DEFAULT 1;
+
 -- Add useful properties to UnitCombatInfos for easy SQL reference
 -- Please don't use this to determine properties of individual unit classes/units
 ALTER TABLE UnitCombatInfos ADD IsMilitary BOOLEAN DEFAULT 0;
@@ -1852,3 +1884,115 @@ WHERE Type IN (
 	'UNITCOMBAT_FIGHTER',
 	'UNITCOMBAT_BOMBER'
 );
+
+-- Support column for SQL queries (they do nothing in the DLL, used mostly by modmods)
+ALTER TABLE Resources ADD COLUMN 'LandResource' BOOLEAN DEFAULT 0;
+ALTER TABLE Resources ADD COLUMN 'SeaResource' BOOLEAN DEFAULT 0;
+ALTER TABLE Resources ADD COLUMN 'AnimalResource' BOOLEAN DEFAULT 0;
+ALTER TABLE Resources ADD COLUMN 'PlantResource' BOOLEAN DEFAULT 0;
+ALTER TABLE Resources ADD COLUMN 'RockResource' BOOLEAN DEFAULT 0;
+
+-- Land resources:
+UPDATE Resources SET LandResource = 1
+WHERE Type IN (
+	'RESOURCE_ALUMINUM',
+	'RESOURCE_BANANA',
+	'RESOURCE_BISON',
+	'RESOURCE_CITRUS',
+	'RESOURCE_CLOVES',
+	'RESOURCE_COAL',
+	'RESOURCE_COCOA',
+	'RESOURCE_COPPER',
+	'RESOURCE_COTTON',
+	'RESOURCE_COW',
+	'RESOURCE_DEER',
+	'RESOURCE_DYE',
+	'RESOURCE_FUR',
+	'RESOURCE_GEMS',
+	'RESOURCE_GOLD',
+	'RESOURCE_HORSE',
+	'RESOURCE_INCENSE',
+	'RESOURCE_IRON',
+	'RESOURCE_IVORY',
+	'RESOURCE_MARBLE',
+	'RESOURCE_NUTMEG',
+	'RESOURCE_OIL', -- both land and sea
+	'RESOURCE_PEPPER',
+	'RESOURCE_SALT',
+	'RESOURCE_SHEEP',
+	'RESOURCE_SILK',
+	'RESOURCE_SILVER',
+	'RESOURCE_SPICES',
+	'RESOURCE_STONE',
+	'RESOURCE_SUGAR',
+	'RESOURCE_TRUFFLES',
+	'RESOURCE_URANIUM',
+	'RESOURCE_WHEAT',
+	'RESOURCE_WINE'
+);
+
+-- Sea resources:
+UPDATE Resources SET SeaResource = 1
+WHERE Type IN (
+	'RESOURCE_CRAB',
+	'RESOURCE_FISH',
+	'RESOURCE_OIL', -- both sea and land
+	'RESOURCE_PEARLS',
+	'RESOURCE_WHALE'
+);
+
+-- Animal resources:
+UPDATE Resources SET AnimalResource = 1
+WHERE Type IN (
+	'RESOURCE_BISON',
+	'RESOURCE_COW',
+	'RESOURCE_CRAB',
+	'RESOURCE_DEER',
+	'RESOURCE_FISH',
+	'RESOURCE_FUR',
+	'RESOURCE_HORSE',
+	'RESOURCE_IVORY',
+	'RESOURCE_PEARLS',
+	'RESOURCE_SHEEP',
+	'RESOURCE_SILK',
+	'RESOURCE_WHALE'
+);
+
+-- Plant resources:
+UPDATE Resources SET PlantResource = 1
+WHERE Type IN (
+	'RESOURCE_BANANA',
+	'RESOURCE_CITRUS',
+	'RESOURCE_CLOVES',
+	'RESOURCE_COCOA',
+	'RESOURCE_COTTON',
+	'RESOURCE_DYE',
+	'RESOURCE_INCENSE',
+	'RESOURCE_NUTMEG',
+	'RESOURCE_PEPPER',
+	'RESOURCE_SPICES',
+	'RESOURCE_SUGAR',
+	'RESOURCE_TRUFFLES',
+	'RESOURCE_WHEAT',
+	'RESOURCE_WINE'
+);
+
+-- Rock resources:
+UPDATE Resources SET RockResource = 1
+WHERE Type IN (
+	'RESOURCE_ALUMINUM',
+	'RESOURCE_COAL',
+	'RESOURCE_COPPER',
+	'RESOURCE_GEMS',
+	'RESOURCE_GOLD',
+	'RESOURCE_IRON',
+	'RESOURCE_MARBLE',
+	'RESOURCE_SALT',
+	'RESOURCE_SILVER',
+	'RESOURCE_STONE',
+	'RESOURCE_URANIUM'
+);
+
+-- Unassigned:
+-- RESOURCE_JEWELRY, RESOURCE_PORCELAIN
+-- In VP, RESOURCE_GLASS and RESOURCE_PAPER are also unassigned

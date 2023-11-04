@@ -419,11 +419,10 @@ end
 local function getUnitBuildProgressData( plot, buildID, unit )
 	local buildProgress = plot:GetBuildProgress( buildID )
 	local nominalWorkRate = unit:WorkRate( true )
-	-- take into account unit.cpp "wipe out all build progress also" game bug
-	local buildTime = plot:GetBuildTime( buildID, g_activePlayerID ) - nominalWorkRate
+	local buildTime = plot:GetBuildTime( buildID, g_activePlayerID )
 	local buildTurnsLeft
 	if buildProgress == 0 then
-		buildTurnsLeft = plot:GetBuildTurnsLeft( buildID, g_activePlayerID, nominalWorkRate - unit:WorkRate() )
+		buildTurnsLeft = plot:GetBuildTurnsTotal( buildID, g_activePlayerID )
 	else
 		buildProgress = buildProgress - nominalWorkRate
 		buildTurnsLeft = plot:GetBuildTurnsLeft( buildID, g_activePlayerID, -unit:WorkRate() )
@@ -2032,7 +2031,7 @@ function ActionToolTipHandler( control )
 		end
 
 		-- Resource connection
-		if improvement then
+		if (improvement and plot:GetOwner() == unit:GetOwner) then
 			local resourceID = plot:GetResourceType(g_activeTeamID)
 			if resourceID ~= -1
 				and plot:IsResourceConnectedByImprovement(improvementID)

@@ -250,6 +250,7 @@ public:
 	void SetCachedSurfaceApproach(PlayerTypes ePlayer, CivApproachTypes eApproach);
 
 	CivApproachTypes GetSurfaceApproach(PlayerTypes ePlayer) const;
+	int GetSurfaceApproachDealModifier(PlayerTypes ePlayer, bool bFromMe) const;
 	CivApproachTypes GetVisibleApproachTowardsUs(PlayerTypes ePlayer) const; // Our guess as to another player's approach towards us
 
 	bool IsWantsSneakAttack(PlayerTypes ePlayer) const; // Do we want to launch a Sneak Attack Operation against ePlayer?
@@ -622,7 +623,7 @@ public:
 	int GetPlayerMilitaryPromiseTurn(PlayerTypes ePlayer) const;
 	void SetPlayerMilitaryPromiseTurn(PlayerTypes ePlayer, int iTurn);
 	bool IsPlayerMadeMilitaryPromise(PlayerTypes ePlayer) const;
-	int GetPlayerMadeMilitaryPromise(PlayerTypes ePlayer) const;
+	int GetNumTurnsMilitaryPromise(PlayerTypes ePlayer) const;
 	bool IsPlayerIgnoredMilitaryPromise(PlayerTypes ePlayer) const;
 	bool IsPlayerBrokenMilitaryPromise(PlayerTypes ePlayer) const;
 
@@ -635,7 +636,7 @@ public:
 	vector<PlayerTypes> GetPlayersWithNoSettlePolicy() const;
 	int GetPlayerExpansionPromiseTurn(PlayerTypes ePlayer) const;
 	void SetPlayerExpansionPromiseTurn(PlayerTypes ePlayer, int iTurn);
-	int GetPlayerMadeExpansionPromise(PlayerTypes ePlayer) const;
+	int GetNumTurnsExpansionPromise(PlayerTypes ePlayer) const;
 	bool IsDontSettleMessageTooSoon(PlayerTypes ePlayer) const;
 	bool IsAngryAboutExpansion(PlayerTypes ePlayer) const;
 	void SetAngryAboutExpansion(PlayerTypes ePlayer, bool bValue);
@@ -650,7 +651,7 @@ public:
 	bool IsPlayerBrokenBorderPromise(PlayerTypes ePlayer) const;
 	int GetPlayerBorderPromiseTurn(PlayerTypes ePlayer) const;
 	void SetPlayerBorderPromiseTurn(PlayerTypes ePlayer, int iTurn);
-	int GetPlayerMadeBorderPromise(PlayerTypes ePlayer) const;
+	int GetNumTurnsBorderPromise(PlayerTypes ePlayer) const;
 	AggressivePostureTypes GetPlayerBorderPromisePosture(PlayerTypes ePlayer) const;
 	void SetPlayerBorderPromisePosture(PlayerTypes ePlayer, AggressivePostureTypes ePosture);
 	bool EverMadeBorderPromise(PlayerTypes ePlayer) const;
@@ -1082,6 +1083,7 @@ public:
 	bool IsEndgameAggressive() const;
 
 	void DoUpdateCurrentVictoryPursuit();
+	bool IsSeriousAboutVictory() const;
 	void DoUpdateRecklessExpanders();
 	void DoUpdateWonderSpammers();
 	void DoUpdateVictoryDisputeLevels();
@@ -1173,7 +1175,9 @@ public:
 	// ------------------------------------
 
 	void DoUpdateGlobalPolitics();
-	void DoReevaluatePlayers(vector<PlayerTypes>& vTargetPlayers, bool bFromWar = false, bool bCancelExchanges = true, bool bFromResurrection = false);
+	void DoReevaluatePlayer(PlayerTypes ePlayer, bool bMajorEvent = false, bool bCancelExchanges = true, bool bFromResurrection = false);
+	void DoReevaluateEveryone(bool bMajorEvent = false, bool bCancelExchanges = true, bool bFromResurrection = false);
+	void DoReevaluatePlayers(vector<PlayerTypes>& vTargetPlayers, bool bMajorEvent = false, bool bCancelExchanges = true, bool bFromResurrection = false);
 	void DoUpdateMajorCompetitors();
 	void DoUpdateMajorCivApproaches(vector<PlayerTypes>& vPlayersToReevaluate, bool bStrategic);
 

@@ -762,10 +762,6 @@ bool CvDeal::IsPossibleToTradeItem(PlayerTypes ePlayer, PlayerTypes eToPlayer, T
 			if (pFromTeam->IsVassalOfSomeone() || pToTeam->IsVassalOfSomeone())
 				return false;
 
-			// Mutual embassies are required
-			if (!pFromTeam->HasEmbassyAtTeam(eToTeam) || !pToTeam->HasEmbassyAtTeam(eFromTeam))
-				return false;
-
 			// Not valid if vassalage is in the trade
 			if (ContainsItemType(TRADE_ITEM_VASSALAGE))
 				return false;
@@ -3515,6 +3511,19 @@ bool CvDeal::ChangeGoldPerTurnTrade(PlayerTypes eFrom, int iNewAmount, int iDura
 	return false;
 }
 
+bool CvDeal::IsGoldOnlyTrade()
+{
+	TradedItemList::iterator it;
+	for (it = m_TradedItems.begin(); it != m_TradedItems.end(); ++it)
+	{
+		if (it->m_eItemType != TRADE_ITEM_GOLD && it->m_eItemType != TRADE_ITEM_GOLD_PER_TURN)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 bool CvDeal::IsResourceTrade(PlayerTypes eFrom, ResourceTypes eResource)
 {
 	TradedItemList::iterator it;
@@ -4768,8 +4777,7 @@ void CvGameDeals::ActivateDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, C
 					else
 					{
 						GET_PLAYER(ePlayer).GetDiplomacyAI()->ChangeRecentAssistValue(eReceivingPlayer, -300);
-						vector<PlayerTypes> v(1, eReceivingPlayer);
-						GET_PLAYER(ePlayer).GetDiplomacyAI()->DoReevaluatePlayers(v, false, false);
+						GET_PLAYER(ePlayer).GetDiplomacyAI()->DoReevaluatePlayer(eReceivingPlayer, false, false);
 					}
 				}
 				// Notify all other civs
@@ -5233,8 +5241,7 @@ void CvGameDeals::ActivateDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, C
 				{
 					if (!GET_PLAYER(*iter).isHuman())
 					{
-						vector<PlayerTypes> v(1, eReceivingPlayer);
-						GET_PLAYER(*iter).GetDiplomacyAI()->DoReevaluatePlayers(v);
+						GET_PLAYER(*iter).GetDiplomacyAI()->DoReevaluatePlayer(eReceivingPlayer);
 					}
 				}
 			}
@@ -6061,7 +6068,7 @@ void CvGameDeals::LogDealComplete(CvDeal* pDeal)
 			CvString playerName = GET_PLAYER(pDeal->GetFromPlayer()).getCivilizationShortDescription();
 		}
 
-		int iTotalValue = GET_PLAYER(pDeal->GetFromPlayer()).GetDealAI()->GetDealValue(pDeal, true);
+		int iTotalValue = GET_PLAYER(pDeal->GetFromPlayer()).GetDealAI()->GetDealValue(pDeal);
 #endif
 		CvString otherPlayerName;
 
@@ -6737,7 +6744,7 @@ bool CvGameDeals::IsReceivingItemsFromPlayer(PlayerTypes ePlayer, PlayerTypes eO
 	return false;
 }
 
-int CvGameDeals::GetDealValueWithPlayer(PlayerTypes ePlayer, PlayerTypes eOtherPlayer, bool bConsiderDuration)
+int CvGameDeals::GetDealValueWithPlayer(PlayerTypes ePlayer, PlayerTypes eOtherPlayer, bool bEmbargoEvaluation)
 {
 	DealList::iterator iter;
 	DealList::iterator end = m_CurrentDeals.end();
@@ -6753,7 +6760,7 @@ int CvGameDeals::GetDealValueWithPlayer(PlayerTypes ePlayer, PlayerTypes eOtherP
 			if (iEndTurn <= GC.getGame().getGameTurn())
 				continue;
 
-			if (bConsiderDuration)
+			if (!bEmbargoEvaluation)
 			{
 				iVal += iter->GetGoldPerTurnTrade(eOtherPlayer) * (iter->GetEndTurn() - GC.getGame().getGameTurn());
 			}
@@ -6771,7 +6778,7 @@ int CvGameDeals::GetDealValueWithPlayer(PlayerTypes ePlayer, PlayerTypes eOtherP
 				if (pkResourceInfo == NULL || pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_BONUS)
 					continue;
 
-				if (bConsiderDuration)
+				if (!bEmbargoEvaluation)
 				{
 					iVal += iter->GetNumResourcesInDeal(eOtherPlayer, eResource) * 5 * (iter->GetEndTurn() - GC.getGame().getGameTurn());
 				}
@@ -6781,10 +6788,27 @@ int CvGameDeals::GetDealValueWithPlayer(PlayerTypes ePlayer, PlayerTypes eOtherP
 				}
 			}
 
-			iVal += iter->IsOpenBordersTrade(eOtherPlayer) ? 10 * iAvgDealDuration : 0;
-			iVal += iter->IsOpenBordersTrade(ePlayer) ? 5 * iAvgDealDuration : 0;
-			iVal += iter->IsDefensivePactTrade(eOtherPlayer) ? 50 * iAvgDealDuration : 0;
+			if (!bEmbargoEvaluation)
+			{
+				iVal += iter->IsOpenBordersTrade(eOtherPlayer) ? 5 * iAvgDealDuration : 0;
+				iVal += iter->IsOpenBordersTrade(ePlayer) ? 5 * iAvgDealDuration : 0;
+				iVal += iter->IsDefensivePactTrade(eOtherPlayer) ? 15 * iAvgDealDuration : 0;
+			}
+			else
+			{
+				iVal += iter->IsOpenBordersTrade(eOtherPlayer) ? 10 * iAvgDealDuration : 0;
+				iVal += iter->IsOpenBordersTrade(ePlayer) ? 5 * iAvgDealDuration : 0;
+				iVal += iter->IsDefensivePactTrade(eOtherPlayer) ? 50 * iAvgDealDuration : 0;
+			}
 		}
+	}
+
+	// Modify by game speed for roughly consistent valuation across all game speeds
+	CvGameSpeedInfo *pkStdSpeedInfo = GC.getGameSpeedInfo((GameSpeedTypes)GD_INT_GET(STANDARD_GAMESPEED));
+	if (pkStdSpeedInfo)
+	{
+		iVal *= pkStdSpeedInfo->GetDealDuration();
+		iVal /= GC.getGame().GetDealDuration();
 	}
 
 	return iVal;

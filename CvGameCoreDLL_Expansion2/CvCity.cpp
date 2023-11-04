@@ -400,7 +400,6 @@ CvCity::CvCity() :
 	, m_aiYieldFromPillage()
 	, m_aiYieldFromPillageGlobal()
 	, m_aiNumTimesAttackedThisTurn()
-	, m_aiLongestPotentialTradeRoute()
 	, m_aiNumProjects()
 	, m_aiYieldFromKnownPantheons()
 	, m_aiGoldenAgeYieldMod()
@@ -470,7 +469,9 @@ CvCity::CvCity() :
 #if defined(MOD_BALANCE_CORE)
 	, m_abOwedChosenBuilding()
 	, m_abBuildingInvestment()
+	, m_aiBuildingCostInvestmentReduction()
 	, m_abUnitInvestment()
+	, m_aiUnitCostInvestmentReduction()
 	, m_abBuildingConstructed()
 	, m_iBorderObstacleCity()
 	, m_iBorderObstacleWater()
@@ -904,9 +905,9 @@ void CvCity::init(int iID, PlayerTypes eOwner, int iX, int iY, bool bBumpUnits, 
 	// Add Resource Quantity to total
 	if (plot()->getResourceType(getTeam()) != NO_RESOURCE)
 	{
-		if (GET_TEAM(getTeam()).IsResourceCityTradeable(plot()->getResourceType()))
+		if (GET_TEAM(getTeam()).IsResourceImproveable(plot()->getResourceType()))
 		{
-			owningPlayer.changeNumResourceTotal(plot()->getResourceType(), plot()->getNumResourceForPlayer(getOwner()));
+			owningPlayer.connectResourcesOnPlot(plot(), true);
 		}
 	}
 
@@ -1432,7 +1433,6 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	m_iBaseTourism = 0;
 	m_iBaseTourismBeforeModifiers = 0;
 	m_aiNumTimesAttackedThisTurn.resize(REALLY_MAX_PLAYERS);
-	m_aiLongestPotentialTradeRoute.resize(NUM_DOMAIN_TYPES);
 	m_aiNumProjects.resize(GC.getNumProjectInfos());
 	m_aiSpecialistRateModifier.resize(GC.getNumSpecialistInfos());
 	m_aiYieldFromVictory.resize(NUM_YIELD_TYPES);
@@ -1484,10 +1484,6 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	for (iI = 0; iI < REALLY_MAX_PLAYERS; iI++)
 	{
 		m_aiNumTimesAttackedThisTurn[iI] = 0;
-	}
-	for (iI = 0; iI < NUM_DOMAIN_TYPES; iI++)
-	{
-		m_aiLongestPotentialTradeRoute[iI] = 0;
 	}
 #endif
 	m_miInstantYieldsTotal.clear();
@@ -1704,17 +1700,21 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 #if defined(MOD_BALANCE_CORE)
 	m_abOwedChosenBuilding.resize(GC.getNumBuildingClassInfos());
 	m_abBuildingInvestment.resize(GC.getNumBuildingClassInfos());
+	m_aiBuildingCostInvestmentReduction.resize(GC.getNumBuildingClassInfos());
 	m_abUnitInvestment.resize(GC.getNumUnitClassInfos());
+	m_aiUnitCostInvestmentReduction.resize(GC.getNumUnitClassInfos());
 	m_abBuildingConstructed.resize(GC.getNumBuildingClassInfos());
 	for (int iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
 	{
 		m_abOwedChosenBuilding[iI] = false;
 		m_abBuildingInvestment[iI] = false;
+		m_aiBuildingCostInvestmentReduction[iI] = 0;
 		m_abBuildingConstructed[iI] = false;
 	}
 	for (int iI = 0; iI < GC.getNumUnitClassInfos(); iI++)
 	{
 		m_abUnitInvestment[iI] = false;
+		m_aiUnitCostInvestmentReduction[iI] = 0;
 	}
 #endif
 #if defined(MOD_BALANCE_CORE_JFD)
@@ -2970,7 +2970,7 @@ int CvCity::GetTradeRouteLandDistanceModifier() const
 //	--------------------------------------------------------------------------------
 int CvCity::GetLongestPotentialTradeRoute(DomainTypes eDomain) const
 {
-	return m_aiLongestPotentialTradeRoute[eDomain];
+	return GC.getGame().GetGameTrade()->GetLongestPotentialTradeRoute(GetID(), eDomain);
 }
 //	--------------------------------------------------------------------------------
 void CvCity::SetLongestPotentialTradeRoute(int iValue, DomainTypes eDomain)
@@ -2978,7 +2978,7 @@ void CvCity::SetLongestPotentialTradeRoute(int iValue, DomainTypes eDomain)
 	VALIDATE_OBJECT
 	CvAssertMsg(eDomain >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
 	CvAssertMsg(eDomain < NUM_DOMAIN_TYPES, "eIndex1 is expected to be within maximum bounds (invalid Index)");
-	m_aiLongestPotentialTradeRoute[eDomain] = iValue;
+	GC.getGame().GetGameTrade()->SetLongestPotentialTradeRoute(iValue, GetID(), eDomain);
 }
 
 bool CvCity::AreOurBordersTouching(PlayerTypes ePlayer)
@@ -6874,17 +6874,18 @@ void CvCity::DoEventChoice(CityEventChoiceTypes eEventChoice, CityEventTypes eCi
 				std::vector<int> GWIDs = GET_PLAYER(eSpyOwner).GetEspionage()->BuildGWList(this);
 				if (GWIDs.size() > 0)
 				{
-					uint uMinLoop = min(static_cast<uint>(pkEventChoiceInfo->getForgeGW()), GWIDs.size());
-					while (uMinLoop > 0)
+					int iNumStolen = 0;
+					int iNumToSteal = pkEventChoiceInfo->getForgeGW();
+					while (iNumStolen < iNumToSteal && GWIDs.size() > 0)
 					{
-						uint uGrab = GC.getGame().urandLimitExclusive(uMinLoop - 1, GET_PLAYER(eSpyOwner).GetPseudoRandomSeed().mix(GWIDs[0]).mix(GET_PLAYER(getOwner()).GetTreasury()->CalculateGrossGold()));
-						if (GET_PLAYER(eSpyOwner).GetEspionage()->DoStealGW(this, GWIDs[uGrab]))
+						int iGrab = GC.getGame().randRangeInclusive(0, GWIDs.size(), CvSeeder::fromRaw(0xd3270c47).mix(GET_PLAYER(eSpyOwner).GetID()).mix(GetID()).mix(GET_PLAYER(eSpyOwner).GetEspionage()->m_aiNumSpyActionsDone[getOwner()]));
+						if (GET_PLAYER(eSpyOwner).GetEspionage()->DoStealGW(this, GWIDs[iGrab]))
 						{
 							GET_PLAYER(eSpyOwner).GetEspionage()->m_aiNumSpyActionsDone[getOwner()]++;
-
 							GET_PLAYER(eSpyOwner).doInstantYield(INSTANT_YIELD_TYPE_SPY_ATTACK, false, NO_GREATPERSON, NO_BUILDING, 1);
 						}
-						uMinLoop--;
+						GWIDs.erase(GWIDs.begin() + iGrab);
+						iNumStolen++;
 					}
 				}
 				else
@@ -9865,7 +9866,7 @@ void CvCity::ChangeImprovementExtraYield(ImprovementTypes eImprovement, YieldTyp
 		updateYield();
 }
 
-/// Extra yield for a building this city is lacking resources for?
+/// Extra maintenance for a building this city is lacking resources for?
 int CvCity::GetExtraBuildingMaintenance() const
 {
 	VALIDATE_OBJECT
@@ -11773,7 +11774,7 @@ int CvCity::getProductionNeeded() const
 }
 
 //	--------------------------------------------------------------------------------
-int CvCity::getProductionNeeded(UnitTypes eUnit) const
+int CvCity::getProductionNeeded(UnitTypes eUnit, bool bIgnoreInvestment) const
 {
 	VALIDATE_OBJECT
 	int iNumProductionNeeded = GET_PLAYER(getOwner()).getProductionNeeded(eUnit, false);
@@ -11781,54 +11782,52 @@ int CvCity::getProductionNeeded(UnitTypes eUnit) const
 	if (eUnit != NO_UNIT)
 	{
 		CvUnitEntry* pGameUnit = GC.getUnitInfo(eUnit);
+		UnitClassTypes eUnitClass = (UnitClassTypes)pGameUnit->GetUnitClassType();
 
-#if defined(MOD_RESOURCES_PRODUCTION_COST_MODIFIERS)
-		int iCostMod = 0;
-
-		UnitCombatTypes eUnitCombat = (UnitCombatTypes)pGameUnit->GetUnitCombatType();
-		EraTypes eUnitEra = (EraTypes)pGameUnit->GetEra();
-
-		if (eUnitEra == NO_ERA)
+		if (MOD_RESOURCES_PRODUCTION_COST_MODIFIERS)
 		{
-			eUnitEra = GET_PLAYER(getOwner()).GetCurrentEra();
-		}
+			int iCostMod = 0;
 
-		if (MOD_RESOURCES_PRODUCTION_COST_MODIFIERS && eUnitCombat != NO_UNITCOMBAT && eUnitEra != NO_ERA)
-		{
-			for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
+			UnitCombatTypes eUnitCombat = (UnitCombatTypes)pGameUnit->GetUnitCombatType();
+			EraTypes eUnitEra = (EraTypes)pGameUnit->GetEra();
+
+			if (eUnitEra == NO_ERA)
 			{
-				const ResourceTypes eResource = static_cast<ResourceTypes>(iResourceLoop);
-				CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
-				if (pkResource && pkResource->isHasUnitCombatProductionCostModifiersLocal() && IsHasResourceLocal(eResource, false))
+				eUnitEra = GET_PLAYER(getOwner()).GetCurrentEra();
+			}
+
+			if (eUnitCombat != NO_UNITCOMBAT && eUnitEra != NO_ERA)
+			{
+				for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 				{
-					iCostMod += pkResource->getUnitCombatProductionCostModifiersLocal(eUnitCombat, eUnitEra);
+					const ResourceTypes eResource = static_cast<ResourceTypes>(iResourceLoop);
+					CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
+					if (pkResource && pkResource->isHasUnitCombatProductionCostModifiersLocal() && IsHasResourceLocal(eResource, false))
+					{
+						iCostMod += pkResource->getUnitCombatProductionCostModifiersLocal(eUnitCombat, eUnitEra);
+					}
 				}
 			}
+
+			// Cost modifiers must be applied before the investment code
+			iNumProductionNeeded *= (iCostMod + 100);
+			iNumProductionNeeded /= 100;
 		}
 
-		// Cost modifiers must be applied before the investment code
-		iNumProductionNeeded *= (iCostMod + 100);
-		iNumProductionNeeded /= 100;
-#endif
-#if defined(MOD_BALANCE_CORE_UNIT_INVESTMENTS)
 		if (MOD_BALANCE_CORE_UNIT_INVESTMENTS || (MOD_BALANCE_CORE && pGameUnit->GetSpaceshipProject() != NO_PROJECT))
 		{
-			const UnitClassTypes eUnitClass = (UnitClassTypes)(pGameUnit->GetUnitClassType());
-			if (IsUnitInvestment(eUnitClass))
+			if (IsUnitInvestment(eUnitClass) && !bIgnoreInvestment)
 			{
-				int iTotalDiscount = (/*-50*/ GD_INT_GET(BALANCE_UNIT_INVESTMENT_BASELINE) + GET_PLAYER(getOwner()).GetPlayerTraits()->GetInvestmentModifier() + GET_PLAYER(getOwner()).GetInvestmentModifier());
-				iNumProductionNeeded *= (iTotalDiscount + 100);
-				iNumProductionNeeded /= 100;
+				iNumProductionNeeded -= GetUnitCostInvestmentReduction(eUnitClass);
 			}
 		}
-#endif
 	}
 
 	return max(1, iNumProductionNeeded);
 }
 
 //	--------------------------------------------------------------------------------
-int CvCity::getProductionNeeded(BuildingTypes eBuilding) const
+int CvCity::getProductionNeeded(BuildingTypes eBuilding, bool bIgnoreInvestment) const
 {
 	VALIDATE_OBJECT
 	int iNumProductionNeeded = GET_PLAYER(getOwner()).getProductionNeeded(eBuilding);
@@ -11840,65 +11839,47 @@ int CvCity::getProductionNeeded(BuildingTypes eBuilding) const
 		{
 			const BuildingClassTypes eBuildingClass = (BuildingClassTypes)(pGameBuilding->GetBuildingClassType());
 
-#if defined(MOD_RESOURCES_PRODUCTION_COST_MODIFIERS)
-			int iCostMod = 0;
-			EraTypes eBuildingEra = (EraTypes)pGameBuilding->GetEra();
-
-			bool bWonder = false;
-			if (eBuildingClass != NO_BUILDINGCLASS)
+			if (MOD_RESOURCES_PRODUCTION_COST_MODIFIERS)
 			{
-				const CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(eBuildingClass);
-				if (pkBuildingClassInfo)
+				int iCostMod = 0;
+				EraTypes eBuildingEra = (EraTypes)pGameBuilding->GetEra();
+
+				bool bWonder = false;
+				if (eBuildingClass != NO_BUILDINGCLASS)
 				{
-					bWonder = isWorldWonderClass(*pkBuildingClassInfo) || isTeamWonderClass(*pkBuildingClassInfo) || isNationalWonderClass(*pkBuildingClassInfo);
-				}
-			}
-
-			if (eBuildingEra == NO_ERA)
-			{
-				eBuildingEra = GET_PLAYER(getOwner()).GetCurrentEra();
-			}
-
-			if (MOD_RESOURCES_PRODUCTION_COST_MODIFIERS && !bWonder && eBuildingEra != NO_ERA)
-			{
-				for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
-				{
-					const ResourceTypes eResource = static_cast<ResourceTypes>(iResourceLoop);
-					CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
-					if (pkResource && pkResource->isHasBuildingProductionCostModifiersLocal() && IsHasResourceLocal(eResource, false))
+					const CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(eBuildingClass);
+					if (pkBuildingClassInfo)
 					{
-						iCostMod += pkResource->getBuildingProductionCostModifiersLocal(eBuildingEra);
+						bWonder = isWorldWonderClass(*pkBuildingClassInfo) || isTeamWonderClass(*pkBuildingClassInfo) || isNationalWonderClass(*pkBuildingClassInfo);
 					}
 				}
-			}
 
-			// Cost modifiers must be applied before the investment code
-			iNumProductionNeeded *= (iCostMod + 100);
-			iNumProductionNeeded /= 100;
-#endif
-#if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
-			if (MOD_BALANCE_CORE_BUILDING_INVESTMENTS && eBuildingClass != NO_BUILDINGCLASS && IsBuildingInvestment(eBuildingClass))
-			{
-				int iTotalDiscount = (/*-50*/ GD_INT_GET(BALANCE_BUILDING_INVESTMENT_BASELINE) + GET_PLAYER(getOwner()).GetPlayerTraits()->GetInvestmentModifier() + GET_PLAYER(getOwner()).GetInvestmentModifier());
-				const CvBuildingClassInfo& kBuildingClassInfo = pGameBuilding->GetBuildingClassInfo();
-				if (::isWorldWonderClass(kBuildingClassInfo))
-
+				if (eBuildingEra == NO_ERA)
 				{
-					iTotalDiscount /= 2;
+					eBuildingEra = GET_PLAYER(getOwner()).GetCurrentEra();
 				}
-				iNumProductionNeeded *= (iTotalDiscount + 100);
+
+				if (!bWonder && eBuildingEra != NO_ERA)
+				{
+					for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
+					{
+						const ResourceTypes eResource = static_cast<ResourceTypes>(iResourceLoop);
+						CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
+						if (pkResource && pkResource->isHasBuildingProductionCostModifiersLocal() && IsHasResourceLocal(eResource, false))
+						{
+							iCostMod += pkResource->getBuildingProductionCostModifiersLocal(eBuildingEra);
+						}
+					}
+				}
+
+				// Cost modifiers must be applied before the investment code
+				iNumProductionNeeded *= (iCostMod + 100);
 				iNumProductionNeeded /= 100;
-
-				// Investment checks when AmountComplete >= 50 moved here
-				int AmountComplete = GetCityBuildings()->GetBuildingProduction(eBuilding);
-				int AmountNeeded = max(1, iNumProductionNeeded);
-				if (AmountComplete >= AmountNeeded)
-				{
-					int iProductionDifference = getProductionDifference(iNumProductionNeeded, AmountComplete, getProductionModifier(), false, false);
-					return max(AmountNeeded, AmountComplete - iProductionDifference); //allow one turn of overflow
-				}
 			}
-#endif
+			if (MOD_BALANCE_CORE_BUILDING_INVESTMENTS && !bIgnoreInvestment && eBuildingClass != NO_BUILDINGCLASS && IsBuildingInvestment(eBuildingClass))
+			{
+				iNumProductionNeeded -= GetBuildingCostInvestmentReduction(eBuildingClass);
+			}
 		}
 	}
 
@@ -12102,6 +12083,53 @@ void CvCity::SetBuildingInvestment(BuildingClassTypes eBuildingClass, bool bNewV
 	}
 
 	m_abBuildingInvestment[eBuildingClass] = bNewValue;
+
+	if (bNewValue)
+	{
+		// calculate reduction of building production cost
+		BuildingTypes eBuilding = NO_BUILDING;
+
+		if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
+		{
+			eBuilding = GetCityBuildings()->GetBuildingTypeFromClass(eBuildingClass);
+		}
+		else
+		{
+			eBuilding = (BuildingTypes)GC.getCivilizationInfo(getCivilizationType())->getCivilizationBuildings(eBuildingClass);
+		}
+
+		int iNumProductionNeeded = getProductionNeeded(eBuilding);
+		int AmountNeededAfterInvestment = max(1, iNumProductionNeeded);
+
+		int iTotalDiscount = (/*-50*/ GD_INT_GET(BALANCE_BUILDING_INVESTMENT_BASELINE) + GET_PLAYER(getOwner()).GetPlayerTraits()->GetInvestmentModifier() + GET_PLAYER(getOwner()).GetInvestmentModifier());
+		if (::isWorldWonderClass(*GC.getBuildingClassInfo(eBuildingClass)))
+		{
+			iTotalDiscount /= 2;
+		}
+		AmountNeededAfterInvestment *= (iTotalDiscount + 100);
+		AmountNeededAfterInvestment /= 100;
+
+		// Investment checks when AmountComplete >= 50 moved here
+		int AmountComplete = GetCityBuildings()->GetBuildingProduction(eBuilding);
+		if (AmountComplete >= AmountNeededAfterInvestment)
+		{
+			int iProductionDifference = getProductionDifference(AmountNeededAfterInvestment, AmountComplete, getProductionModifier(), false, false);
+			AmountNeededAfterInvestment = max(AmountNeededAfterInvestment, AmountComplete - iProductionDifference); //allow one turn of overflow
+		}
+		m_aiBuildingCostInvestmentReduction[eBuildingClass] = iNumProductionNeeded - AmountNeededAfterInvestment;
+	}
+	else
+	{
+		m_aiBuildingCostInvestmentReduction[eBuildingClass] = 0;
+	}
+}
+// ---------------------------------------------------------------------------------
+int CvCity::GetBuildingCostInvestmentReduction(BuildingClassTypes eBuildingClass) const
+{
+	FAssert(eBuildingClass >= 0);
+	FAssert(eBuildingClass < GC.getNumBuildingClassInfos());
+
+	return m_aiBuildingCostInvestmentReduction[eBuildingClass];
 }
 //	--------------------------------------------------------------------------------
 bool CvCity::IsProcessInternationalProject(ProcessTypes eProcess) const
@@ -12136,8 +12164,41 @@ void CvCity::SetUnitInvestment(UnitClassTypes eUnitClass, bool bNewValue)
 	}
 
 	m_abUnitInvestment[eUnitClass] = bNewValue;
-}
+	if (bNewValue)
+	{
+		// calculate reduction of unit production cost
+		UnitTypes eUnit = GET_PLAYER(getOwner()).GetSpecificUnitType(eUnitClass);
 
+		int iNumProductionNeeded = getProductionNeeded(eUnit);
+		int AmountNeededAfterInvestment = max(1, iNumProductionNeeded);
+
+		int iTotalDiscount = (/*-50*/ GD_INT_GET(BALANCE_UNIT_INVESTMENT_BASELINE) + GET_PLAYER(getOwner()).GetPlayerTraits()->GetInvestmentModifier() + GET_PLAYER(getOwner()).GetInvestmentModifier());
+
+		AmountNeededAfterInvestment *= (iTotalDiscount + 100);
+		AmountNeededAfterInvestment /= 100;
+
+		// Investment checks when AmountComplete >= 50 moved here
+		int AmountComplete = getUnitProduction(eUnit);
+		if (AmountComplete >= AmountNeededAfterInvestment)
+		{
+			int iProductionDifference = getProductionDifference(AmountNeededAfterInvestment, AmountComplete, getProductionModifier(), false, false);
+			AmountNeededAfterInvestment = max(AmountNeededAfterInvestment, AmountComplete - iProductionDifference); //allow one turn of overflow
+		}
+		m_aiUnitCostInvestmentReduction[eUnitClass] = iNumProductionNeeded - AmountNeededAfterInvestment;
+	}
+	else
+	{
+		m_aiUnitCostInvestmentReduction[eUnitClass] = 0;
+	}
+}
+// ---------------------------------------------------------------------------------
+int CvCity::GetUnitCostInvestmentReduction(UnitClassTypes eUnitClass) const
+{
+	FAssert(eUnitClass >= 0);
+	FAssert(eUnitClass < GC.getNumUnitClassInfos());
+
+	return m_aiUnitCostInvestmentReduction[eUnitClass];
+}
 //	--------------------------------------------------------------------------------
 bool CvCity::IsBuildingConstructed(BuildingClassTypes eBuildingClass) const
 {
@@ -13188,7 +13249,7 @@ void CvCity::changeProductionTimes100(int iChange)
 											if ((YieldTypes)iI > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
 												break;
 
-											int iYield = (getBasicYieldRateTimes100(YIELD_PRODUCTION) / 100) * getProductionToYieldModifier((YieldTypes)iI) / 100;
+											int iYield = ((getBasicYieldRateTimes100(YIELD_PRODUCTION) + GET_PLAYER(m_eOwner).GetTrade()->GetTradeValuesAtCityTimes100(this, YIELD_PRODUCTION)) / 100) * getProductionToYieldModifier((YieldTypes)iI) / 100;
 
 											pOtherPlayer->doInstantYield(INSTANT_YIELD_TYPE_TR_PRODUCTION_SIPHON, false, NO_GREATPERSON, NO_BUILDING, iYield, false, NO_PLAYER, NULL, false, pOriginCity, false, true, false, (YieldTypes)iI);
 										}
@@ -15855,7 +15916,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			int iNumResource = pBuildingInfo->GetResourceQuantity(iResourceLoop) * iChange;
 			if (iNumResource != 0)
 			{
-				owningPlayer.changeNumResourceTotal(eResource, iNumResource);
+				owningPlayer.changeNumResourceTotal(eResource, iNumResource, true);
 			}
 
 #if defined(MOD_BALANCE_CORE)
@@ -15980,34 +16041,9 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 		{
 			CvPlot* pLoopPlot = NULL;
 
-			// Subtract off old luxury counts
-
-			for (int iJ = 0; iJ < GetNumWorkablePlots(); iJ++)
-			{
-				pLoopPlot = iterateRingPlots(getX(), getY(), iJ);
-
-				if (pLoopPlot != NULL && pLoopPlot->getOwner() == getOwner())
-				{
-					ResourceTypes eLoopResource = pLoopPlot->getResourceType();
-					if (eLoopResource != NO_RESOURCE && GC.getResourceInfo(eLoopResource)->getResourceUsage() == RESOURCEUSAGE_LUXURY)
-					{
-						if (owningTeam.IsResourceCityTradeable(eLoopResource))
-						{
-							if (pLoopPlot == plot() || (pLoopPlot->getImprovementType() != NO_IMPROVEMENT && GC.getImprovementInfo(pLoopPlot->getImprovementType())->IsConnectsResource(eLoopResource)))
-							{
-								if (!pLoopPlot->IsImprovementPillaged())
-								{
-									owningPlayer.changeNumResourceTotal(pLoopPlot->getResourceType(), -pLoopPlot->getNumResourceForPlayer(getOwner()), /*bIgnoreResourceWarning*/ true);
-								}
-							}
-						}
-					}
-				}
-			}
-
 			ChangeExtraLuxuryResources(iChange);
 
-			// Add in new luxury counts
+			// Add extra luxury counts
 
 			for (int iJ = 0; iJ < GetNumWorkablePlots(); iJ++)
 			{
@@ -16018,14 +16054,15 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 					ResourceTypes eLoopResource = pLoopPlot->getResourceType();
 					if (eLoopResource != NO_RESOURCE && GC.getResourceInfo(eLoopResource)->getResourceUsage() == RESOURCEUSAGE_LUXURY)
 					{
-						if (owningTeam.IsResourceCityTradeable(eLoopResource))
+						if (owningTeam.IsResourceImproveable(eLoopResource))
 						{
-							if (pLoopPlot == plot() || (pLoopPlot->getImprovementType() != NO_IMPROVEMENT && GC.getImprovementInfo(pLoopPlot->getImprovementType())->IsConnectsResource(eLoopResource)))
+							if (pLoopPlot == plot() || (pLoopPlot->getImprovementType() != NO_IMPROVEMENT && GC.getImprovementInfo(pLoopPlot->getImprovementType())->IsConnectsResource(eLoopResource) && !pLoopPlot->IsImprovementPillaged()))
 							{
-								if (!pLoopPlot->IsImprovementPillaged())
-								{
-									owningPlayer.changeNumResourceTotal(pLoopPlot->getResourceType(), pLoopPlot->getNumResourceForPlayer(getOwner()));
-								}
+								owningPlayer.connectResourcesOnPlot(pLoopPlot, iChange > 0, true);
+							}
+							else
+							{
+								owningPlayer.changeNumResourceUnimprovedPlot(pLoopPlot, iChange > 0, true);
 							}
 						}
 					}
@@ -17567,7 +17604,7 @@ int CvCity::foodDifferenceTimes100(bool bJustCheckingStarve, CvString* toolTipSi
 	}
 
 	//can starve if at size 1 and nothing stored
-	if (getPopulation() == 1 && getFood() == 0)
+	if (getPopulation() == 1 && getFoodTimes100() == 0)
 	{
 		iDifference = std::max(0, iDifference);
 	}
@@ -17797,12 +17834,6 @@ int CvCity::getGrowthMods() const
 		iTotalMod += iCityGrowthMod;
 	}
 
-	int iCorpMod = GetTradeRouteCityMod(YIELD_FOOD);
-	if (iCorpMod > 0)
-	{
-		iTotalMod += iCorpMod;
-	}
-
 	if (GET_PLAYER(getOwner()).isGoldenAge() && (GetGoldenAgeYieldMod(YIELD_FOOD) != 0))
 	{
 		int iBuildingMod = GetGoldenAgeYieldMod(YIELD_FOOD);
@@ -17828,6 +17859,9 @@ int CvCity::getGrowthMods() const
 
 	if (MOD_BALANCE_CORE)
 	{
+		int iGrowthEvents = GetGrowthFromEvent();
+		iTotalMod += iGrowthEvents;
+
 		int iGrowthTourism = GetGrowthFromTourism();
 		iTotalMod += iGrowthTourism;
 	}
@@ -17882,18 +17916,6 @@ int CvCity::getGrowthMods() const
 					iTotalMod += GC.GetGameBeliefs()->GetEntry(ePantheonBelief)->GetCityGrowthModifier();
 				}
 			}
-		}
-	}
-
-	if (MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
-	{
-		// Do we get increased yields from a resource monopoly?
-		int iTempMod = GET_PLAYER(getOwner()).getCityYieldModFromMonopoly(YIELD_FOOD);
-		if (iTempMod != 0)
-		{
-			iTempMod += GET_PLAYER(getOwner()).GetMonopolyModPercent();
-			// this one is applied to the base yield, so showing a tooltip here is very confusing!
-			//GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_FOODMOD_MONOPOLY_RESOURCE", iTempMod);
 		}
 	}
 
@@ -18501,6 +18523,20 @@ void CvCity::SetGarrison(CvUnit* pUnit)
 	updateNetHappiness();
 }
 
+bool CvCity::NeedsGarrison() const
+{
+	if (isUnderSiege())
+		return true;
+
+	CvPlayer& kPlayer = GET_PLAYER(getOwner());
+
+	//this allows the player to use the garrison for settler escorts
+	if (kPlayer.IsEarlyExpansionPhase())
+		return false;
+
+	return kPlayer.GetMilitaryAI()->IsExposedToEnemy(this, NO_PLAYER);
+}
+
 bool CvCity::HasGarrison() const
 {
 	if (m_hGarrison > -1 && GetGarrisonedUnit() == NULL)
@@ -18739,9 +18775,14 @@ void CvCity::setPopulation(int iNewValue, bool bReassignPop /* = true */, bool b
 		}
 #endif
 
-		GET_PLAYER(getOwner()).changeTotalPopulation(getPopulation() - iOldPopulation);
-		GET_TEAM(getTeam()).changeTotalPopulation(getPopulation() - iOldPopulation);
-		GC.getGame().changeTotalPopulation(getPopulation() - iOldPopulation);
+		int iGlobalPopChange = getPopulation() - iOldPopulation;
+		GET_PLAYER(getOwner()).changeTotalPopulation(iGlobalPopChange);
+		GET_TEAM(getTeam()).changeTotalPopulation(iGlobalPopChange);
+		GC.getGame().changeTotalPopulation(iGlobalPopChange);
+
+		int iNewTotal = GET_PLAYER(getOwner()).getTotalPopulation();
+		if (iNewTotal > GET_PLAYER(getOwner()).getHighestPopulation())
+			GET_PLAYER(getOwner()).setHighestPopulation(iNewTotal);
 
 		plot()->updateYield();
 
@@ -19343,7 +19384,10 @@ int CvCity::getJONSCulturePerTurn(bool bStatic) const
 
 	// Process production into culture
 	if (getProductionToYieldModifier(YIELD_CULTURE) > 0)
-		iCulture += (getBasicYieldRateTimes100(YIELD_PRODUCTION) * getProductionToYieldModifier(YIELD_CULTURE)) / 10000;
+	{
+		int iTradeRouteBonus = GET_PLAYER(m_eOwner).GetTrade()->GetTradeValuesAtCityTimes100(this, YIELD_PRODUCTION);
+		iCulture += ((getBasicYieldRateTimes100(YIELD_PRODUCTION) + iTradeRouteBonus) * getProductionToYieldModifier(YIELD_CULTURE)) / 10000;
+	}
 
 	return iCulture;
 }
@@ -19737,7 +19781,10 @@ int CvCity::GetFaithPerTurn() const
 
 	// Process production into faith
 	if (getProductionToYieldModifier(YIELD_FAITH) > 0)
-		iFaith += (getBasicYieldRateTimes100(YIELD_PRODUCTION) * getProductionToYieldModifier(YIELD_FAITH)) / 10000;
+	{
+		int iTradeRouteBonus = GET_PLAYER(m_eOwner).GetTrade()->GetTradeValuesAtCityTimes100(this, YIELD_PRODUCTION);
+		iFaith += ((getBasicYieldRateTimes100(YIELD_PRODUCTION) + iTradeRouteBonus) * getProductionToYieldModifier(YIELD_FAITH)) / 10000;
+	}
 
 	// Faith from having trade routes
 	iFaith += GET_PLAYER(m_eOwner).GetTrade()->GetTradeValuesAtCityTimes100(this, YIELD_FAITH) / 100;
@@ -25305,7 +25352,8 @@ int CvCity::getYieldRateTimes100(YieldTypes eIndex, bool bIgnoreTrade, bool bSta
 	if (getProductionToYieldModifier(eIndex) != 0)
 	{
 		// We want to process production to production and call it stockpiling!
-		iPostModifierYield = (getBasicYieldRateTimes100(YIELD_PRODUCTION) * getProductionToYieldModifier(eIndex)) / 100;
+		int iTradeRouteBonus = bIgnoreTrade ? 0 : GET_PLAYER(m_eOwner).GetTrade()->GetTradeValuesAtCityTimes100(this, YIELD_PRODUCTION);
+		iPostModifierYield = ((getBasicYieldRateTimes100(YIELD_PRODUCTION) + iTradeRouteBonus) * getProductionToYieldModifier(eIndex)) / 100;
 	}
 
 	if (!bIgnoreTrade)
@@ -25635,7 +25683,8 @@ int CvCity::GetBaseYieldRateFromProcess(YieldTypes eIndex) const
 	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
 
 	// Process production into specific yield
-	return (getBasicYieldRateTimes100(YIELD_PRODUCTION) * getProductionToYieldModifier(eIndex)) / 10000;
+	int iTradeRouteBonus = GET_PLAYER(m_eOwner).GetTrade()->GetTradeValuesAtCityTimes100(this, YIELD_PRODUCTION);
+	return ((getBasicYieldRateTimes100(YIELD_PRODUCTION) + iTradeRouteBonus) * getProductionToYieldModifier(eIndex)) / 10000;
 }
 
 // Base yield rate from League
@@ -30349,6 +30398,23 @@ bool CvCity::hasOrder(OrderTypes eOrder, int iData1, int iData2) const
 	return false;
 }
 
+bool CvCity::hasOrder(OrderTypes eOrder, int iData1) const
+{
+	for (int iI = 0; iI < getOrderQueueLength(); iI++)
+	{
+		const OrderData* pOrder = getOrderFromQueue(iI);
+		if (pOrder != NULL)
+		{
+			if (pOrder->eOrderType == eOrder && pOrder->iData1 == iData1)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 
 //	--------------------------------------------------------------------------------
 void CvCity::startHeadOrder()
@@ -31434,7 +31500,8 @@ bool CvCity::IsCanPurchase(const std::vector<int>& vPreExistingBuildings, bool b
 		// Unit
 		if (eUnitType != NO_UNIT)
 		{
-			if (!canTrain(eUnitType, false, !bTestTrainable, false /*bIgnoreCost*/, true /*bWillPurchase*/))
+			bool bAlreadyUnderConstruction = getFirstUnitOrder(eUnitType) != -1;
+			if (!canTrain(eUnitType, bAlreadyUnderConstruction, !bTestTrainable, false /*bIgnoreCost*/, true /*bWillPurchase*/))
 				return false;
 
 			iGoldCost = GetPurchaseCost(eUnitType);
@@ -31887,9 +31954,10 @@ void CvCity::Purchase(UnitTypes eUnitType, BuildingTypes eBuildingType, ProjectT
 							clearOrderQueue();
 						}
 
-						if (!hasOrder(ORDER_TRAIN, eUnitType, -1))
+						if (!hasOrder(ORDER_TRAIN, eUnitType))
 						{
-							pushOrder(ORDER_TRAIN, eUnitType, -1, false, false, true, false);
+							//we purchased it so let's assume it's urgent and put it at the head of the list
+							pushOrder(ORDER_TRAIN, eUnitType, -1, false, false, false);
 						}
 					}
 				}
@@ -32396,7 +32464,7 @@ void CvCity::doGrowth()
 		}
 	}
 	//starving
-	else if (getFood() == 0 && iFoodPerTurn100 < 0 && getPopulation()>1)
+	else if (getFoodTimes100() == 0 && iFoodPerTurn100 < 0 && getPopulation()>1)
 	{
 		changePopulation(-1);
 	}
@@ -33071,7 +33139,6 @@ void CvCity::Serialize(City& city, Visitor& visitor)
 	visitor(city.m_iCachedEmpireSizeModifier);
 	visitor(city.m_iYieldMediansCachedTurn);
 	visitor(city.m_aiNumProjects);
-	visitor(city.m_aiLongestPotentialTradeRoute);
 	visitor(city.m_aiNumTimesAttackedThisTurn);
 	visitor(city.m_aiYieldFromKnownPantheons);
 	visitor(city.m_aiYieldFromVictory);
@@ -33251,7 +33318,9 @@ void CvCity::Serialize(City& city, Visitor& visitor)
 	visitor(city.m_abYieldRankValid);
 	visitor(city.m_abOwedChosenBuilding);
 	visitor(city.m_abBuildingInvestment);
+	visitor(city.m_aiBuildingCostInvestmentReduction);
 	visitor(city.m_abUnitInvestment);
+	visitor(city.m_aiUnitCostInvestmentReduction);
 	visitor(city.m_abBuildingConstructed);
 	visitor(city.m_aiBonusSightEspionage);
 
@@ -33726,10 +33795,6 @@ bool CvCity::canRangeStrike() const
 	if (getDamage() == GetMaxHitPoints())
 		return false;
 
-	// Apparently it's possible for someone to fire during another player's turn
-	if (!GET_PLAYER(getOwner()).isTurnActive())
-		return false;
-
 	return true;
 }
 
@@ -33867,9 +33932,11 @@ CityTaskResult CvCity::rangeStrike(int iX, int iY)
 
 	CvPlot* pPlot = GC.getMap().plot(iX, iY);
 	if (NULL == pPlot)
-	{
 		return eResult;
-	}
+
+	// Apparently it's possible for someone to fire during another player's turn
+	if (!GET_PLAYER(getOwner()).isTurnActive())
+		return eResult;
 
 #if defined(MOD_BALANCE_CORE_MILITARY)
 	if (!canRangeStrikeAt(iX, iY) || rangedStrikeTarget(pPlot) == NULL || isMadeAttack())
@@ -35594,8 +35661,8 @@ bool CvCity::isInDangerOfFalling(bool bExtraCareful) const
 
 bool CvCity::isUnderSiege() const
 {
-	//lots of possible conditions, many overlapping ... let's make sure we cover all angles
-	return m_iDamageTakenLastTurn > 0 || plot()->GetNumEnemyUnitsAdjacent(getTeam(), NO_DOMAIN) > 0 || (IsBlockadedWaterAndLand() && getDamage() >= GetMaxHitPoints()/4) || isInDangerOfFalling();
+	//damage taken decays exponentially so check for >0
+	return m_iDamageTakenLastTurn > 5 || GetCityCitizens()->AnyPlotBlockaded();
 }
 
 int CvCity::getDamageTakenLastTurn() const

@@ -517,7 +517,7 @@ int CvCityCitizens::GetPlotValue(CvPlot* pPlot, SPrecomputedExpensiveNumbers& ca
 			{
 				if (cache.iExcessFoodTimes100>0)
 					// if we have growth penalties, pretend the yield is lower
-					iYield100 += min(0, (iYield100*m_pCity->getGrowthMods()) / 100);
+					iYield100 += min(0, (iYield100 * (m_pCity->getYieldRateModifier(YIELD_FOOD) + m_pCity->getGrowthMods())) / 100);
 
 				// even if we don't want to grow we care a little, extra food can help against unhappiness from distress!
 				if (!bEmphasizeFood && bAvoidGrowth)
@@ -910,7 +910,7 @@ int CvCityCitizens::GetSpecialistValue(SpecialistTypes eSpecialist, const SPreco
 			iYield100 = m_pCity->GetCultureFromSpecialist(eSpecialist) * 100;
 
 		if ((eSpecialist != (SpecialistTypes)GD_INT_GET(DEFAULT_SPECIALIST)) && (eYield == YIELD_FOOD))
-			iYield100 += (m_pCity->foodConsumptionSpecialistTimes100() - m_pCity->foodConsumptionNonSpecialistTimes100());
+			iYield100 -= (m_pCity->foodConsumptionSpecialistTimes100() - m_pCity->foodConsumptionNonSpecialistTimes100());
 
 		if (iYield100 > 0)
 		{
@@ -933,13 +933,16 @@ int CvCityCitizens::GetSpecialistValue(SpecialistTypes eSpecialist, const SPreco
 			}
 		}
 
-		int iYieldMod = GetYieldModForFocus(eYield, eFocus, bEmphasizeFood, bEmphasizeProduction, cache);
+		if (iYield100 != 0)
+		{
+			int iYieldMod = GetYieldModForFocus(eYield, eFocus, bEmphasizeFood, bEmphasizeProduction, cache);
 
-		//prefer to even out yields
-		if (m_pCity->GetCityStrategyAI()->GetMostDeficientYield() == eYield)
-			iYieldMod += 3;
+			//prefer to even out yields
+			if (m_pCity->GetCityStrategyAI()->GetMostDeficientYield() == eYield)
+				iYieldMod += 3;
 
-		iValue += iYield100 * max(1, iYieldMod);
+			iValue += iYield100 * max(1, iYieldMod);
+		}
 	}
 
 	//nothing else for laborers ...
@@ -1252,15 +1255,18 @@ bool CvCityCitizens::DoAddBestCitizenFromUnassigned(CvCity::eUpdateMode updateMo
 	CvPlot* pBestPlot = GetBestCityPlotWithValue(iBestPlotValue, eBEST_UNWORKED_NO_OVERRIDE, bLogging);
 
 	int iNetFood100 = m_pCity->getYieldRateTimes100(YIELD_FOOD, false) - m_pCity->foodConsumptionTimes100();
-	bool bCanAffordSpecialist = false;
-	if (m_pCity->foodConsumptionSpecialistTimes100() <= m_pCity->foodConsumptionNonSpecialistTimes100())
-	{
-		bCanAffordSpecialist = pBestPlot ? (pBestPlot->getYield(YIELD_FOOD) == 0) : true;
-	}
-	else
-	{
-		bCanAffordSpecialist = iNetFood100 >= m_pCity->foodConsumptionSpecialistTimes100() - m_pCity->foodConsumptionNonSpecialistTimes100() + GetExcessFoodThreshold100();
-	}
+	int iNetFoodIfSpecialistWorked = iNetFood100 - m_pCity->foodConsumptionSpecialistTimes100() + m_pCity->foodConsumptionNonSpecialistTimes100();
+	int iAdditionalFoodFromBestTile = pBestPlot ? pBestPlot->getYield(YIELD_FOOD) * 100 : 0;
+	iAdditionalFoodFromBestTile *= (100 + m_pCity->getYieldRateModifier(YIELD_FOOD)); // Food mod
+	iAdditionalFoodFromBestTile /= 100;
+	int iNetFoodIfBestTileWorked = iNetFood100 + iAdditionalFoodFromBestTile;
+
+	iNetFoodIfSpecialistWorked *= (100 + m_pCity->getGrowthMods()); // Growth mod
+	iNetFoodIfSpecialistWorked /= 100;
+	iNetFoodIfBestTileWorked *= (100 + m_pCity->getGrowthMods());
+	iNetFoodIfBestTileWorked /= 100;
+	// we can afford working a specialist if it wouldn't bring us below the minimum excess food threshold or if working a specialist would consume less food than working the best unworked plot
+	bool bCanAffordSpecialist = iNetFoodIfSpecialistWorked >= min(GetExcessFoodThreshold100(), iNetFoodIfBestTileWorked);
 	bool bSpecialistForbidden = GET_PLAYER(GetOwner()).isHuman() && ( IsNoAutoAssignSpecialists() || NoSpecialists );
 	FILogFile* pLog = bLogging && GC.getLogging() ? LOGFILEMGR.GetLog("CityTileScorer.csv", FILogFile::kDontTimeStamp) : NULL;
 
@@ -1528,13 +1534,16 @@ int CvCityCitizens::GetExcessFoodThreshold100() const
 	}
 	else
 	{
+		int iPop = m_pCity->getPopulation();
+		int iFoodNeededForGrowth = GET_PLAYER(m_pCity->getOwner()).getGrowthThreshold(m_pCity->getPopulation());
 		CityAIFocusTypes eFocus = GetFocusType();
 		if (eFocus == NO_CITY_AI_FOCUS_TYPE)
-			return max(200, m_pCity->getPopulation() * max(25, 50 - m_pCity->getPopulation()/2));
+			// we want to get a new citizen at least every 10 turns, slower growth rate if we have a higher population
+			return max(200, 100 * iFoodNeededForGrowth / (max(10, iPop)+2*max(0,iPop-25)));
 		else if (eFocus == CITY_AI_FOCUS_TYPE_PROD_GROWTH || eFocus == CITY_AI_FOCUS_TYPE_GOLD_GROWTH)
-			return max(200, m_pCity->getPopulation() * 50);
+			return max(200, 100 * iFoodNeededForGrowth / 10);
 		else if (eFocus == CITY_AI_FOCUS_TYPE_FOOD)
-			return m_pCity->getPopulation() * 150;
+			return max(200, 100 * iFoodNeededForGrowth / 5);
 
 		//default (other specializations)
 		return 200;
@@ -1615,15 +1624,20 @@ void CvCityCitizens::OptimizeWorkedPlots(bool bLogging)
 		BuildingTypes eBestSpecialistBuilding = NO_BUILDING;
 
 		int iNetFood100 = m_pCity->getYieldRateTimes100(YIELD_FOOD, false) - m_pCity->foodConsumptionTimes100();
-		bool bCanAffordSpecialist = false;
-		if (m_pCity->foodConsumptionSpecialistTimes100() <= m_pCity->foodConsumptionNonSpecialistTimes100())
-		{
-			bCanAffordSpecialist = pBestFreePlot ? (pBestFreePlot->getYield(YIELD_FOOD) == 0) : true;
-		}
-		else
-		{
-			bCanAffordSpecialist = iNetFood100 >= m_pCity->foodConsumptionSpecialistTimes100() - m_pCity->foodConsumptionNonSpecialistTimes100() + GetExcessFoodThreshold100();
-		}
+
+		int iNetFoodIfSpecialistWorked = iNetFood100 - m_pCity->foodConsumptionSpecialistTimes100() + m_pCity->foodConsumptionNonSpecialistTimes100();
+		int iAdditionalFoodFromBestTile = pBestFreePlot ? pBestFreePlot->getYield(YIELD_FOOD) * 100 : 0;
+		iAdditionalFoodFromBestTile *= (100 + m_pCity->getYieldRateModifier(YIELD_FOOD)); // Food mod
+		iAdditionalFoodFromBestTile /= 100;
+		int iNetFoodIfBestTileWorked = iNetFood100 + iAdditionalFoodFromBestTile;
+
+		iNetFoodIfSpecialistWorked *= (100 + m_pCity->getGrowthMods()); // Growth mod
+		iNetFoodIfSpecialistWorked /= 100;
+		iNetFoodIfBestTileWorked *= (100 + m_pCity->getGrowthMods());
+		iNetFoodIfBestTileWorked /= 100;
+		// we can afford working a specialist if it wouldn't bring us below the minimum excess food threshold or if working a specialist would consume less food than working the best unworked plot
+		bool bCanAffordSpecialist = iNetFoodIfSpecialistWorked >= min(GetExcessFoodThreshold100(), iNetFoodIfBestTileWorked);
+
 		if (bCanAffordSpecialist && !bSpecialistForbidden)
 			eBestSpecialistBuilding = GetAIBestSpecialistBuilding(iBestSpecialistValue);
 

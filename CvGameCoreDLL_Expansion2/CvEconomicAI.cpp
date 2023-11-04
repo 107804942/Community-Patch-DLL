@@ -3312,6 +3312,7 @@ bool EconomicAIHelpers::IsTestStrategy_TechLeader(CvPlayer* pPlayer)
 }
 
 /// "Early Expansion" Player Strategy: An early Strategy simply designed to get player up to 3 Cities quickly.
+/// This should be run every turn because it is used in garrison logic and we need to react quickly
 bool EconomicAIHelpers::IsTestStrategy_EarlyExpansion(EconomicAIStrategyTypes eStrategy, CvPlayer* pPlayer)
 {
 	if (CannotMinorCiv(pPlayer, eStrategy))
@@ -3323,12 +3324,26 @@ bool EconomicAIHelpers::IsTestStrategy_EarlyExpansion(EconomicAIStrategyTypes eS
 	if(pPlayer->IsEmpireUnhappy())
 		return false;
 
-	//we do not want to lose time building our settlers even if we haven't explored yet
-	if (pPlayer->GetNumCitiesFounded() < 3 && GC.getGame().getElapsedGameTurns()<54)
+	//we do not want to lose time for building our settlers even if we haven't explored yet
+	if (pPlayer->GetNumCitiesFounded() < 3)
 		return true;
 
-	//some rate limiting - don't need to check this every turn in the lategame
-	if (GC.getGame().getElapsedGameTurns() > 150 && GC.getGame().getGameTurn() % 3 == 0)
+	//midgame depends on the map sitation ...
+	PlayerProximityTypes closestNeighborProximity = NO_PLAYER_PROXIMITY;
+	for (int i = 0; i < MAX_MAJOR_CIVS; i++)
+	{
+		CvPlayer& other = GET_PLAYER((PlayerTypes)i);
+		if (pPlayer->getTeam() == other.getTeam())
+			continue;
+		PlayerProximityTypes p = pPlayer->GetProximityToPlayer(other.GetID());
+		if (p > closestNeighborProximity)
+			closestNeighborProximity = p;
+	}
+	if (closestNeighborProximity >= PLAYER_PROXIMITY_NEIGHBORS)
+		return false;
+
+	//never in late game
+	if (GC.getGame().getElapsedGameTurns() > 169)
 		return false;
 
 	//do this check as late as possible, it can be expensive

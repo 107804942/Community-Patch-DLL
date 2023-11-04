@@ -1365,13 +1365,6 @@ if civ5_mode then
 					.. L( "TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_3", L("TXT_KEY_CO_VICTORY_INFLUENTIAL_OF", numInfluential, numToBeInfluential) )
 			end
 
-			--CBP
-			local iTourismPenalty = g_activePlayer:GetTourismPenalty();
-
-			tipText = tipText .. "[NEWLINE][NEWLINE]"
-					.. L( "TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_CONQUEST_WARNING", iTourismPenalty )
-			--END
-
 			return setTextToolTip( tipText )
 		end
 		Controls.TourismString:SetHide(false)
@@ -2251,7 +2244,7 @@ local function ResourcesToolTip( control )
 					tips:insert( "[ICON_BULLET]" .. Colorize(numResourceCSAlly) .. resource.IconString .. " " .. L"TXT_KEY_EO_CS_ALLY_RESOURCES" )
 				end
 				if stratResMod > 0 and Game.GetResourceUsageType(resource.ID) == ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC then
-					local change = math_floor(((totalBeforeMod * stratResMod) / 100) - totalBeforeMod)
+					local change = math_floor(((totalBeforeMod * (100 + stratResMod)) / 100) - totalBeforeMod)
 					totalBeforeMod = totalBeforeMod + change
 					tips:insert( "[ICON_BULLET]" .. ColorizeSigned(stratResMod, "%") .. " (" .. Colorize(change) .. ") " .. resource.IconString .. " " .. L"TXT_KEY_EO_STRAT_MOD_RESOURCES" )
 				end

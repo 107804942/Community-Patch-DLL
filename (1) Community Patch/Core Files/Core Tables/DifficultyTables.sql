@@ -1,13 +1,15 @@
 DELETE FROM HandicapInfos;
 
-CREATE TABLE IDRemapper ( id INTEGER PRIMARY KEY AUTOINCREMENT, Type TEXT );
+-- This code is necessary to avoid a UI glitch, do not remove it
+CREATE TABLE IDRemapper (id INTEGER PRIMARY KEY AUTOINCREMENT, Type TEXT);
 INSERT INTO IDRemapper (Type) SELECT Type FROM HandicapInfos ORDER BY ID;
-UPDATE HandicapInfos SET ID = ( SELECT IDRemapper.id-1 FROM IDRemapper WHERE HandicapInfos.Type = IDRemapper.Type);
+UPDATE HandicapInfos SET ID = (SELECT IDRemapper.id-1 FROM IDRemapper WHERE HandicapInfos.Type = IDRemapper.Type);
 DROP TABLE IDRemapper;
 
 UPDATE sqlite_sequence
 SET seq = (SELECT COUNT(ID) FROM HandicapInfos)-1
 WHERE name = 'HandicapInfos';
+-- End UI glitch fix
 
 -- Player Bonuses
 ALTER TABLE HandicapInfos ADD COLUMN 'MapPlacementPriority' INTEGER DEFAULT 1;
@@ -143,8 +145,7 @@ ALTER TABLE HandicapInfos ADD COLUMN 'CityProductionChoiceCutoffThreshold' INTEG
 ALTER TABLE HandicapInfos ADD COLUMN 'TechChoiceCutoffThreshold' INTEGER DEFAULT 90;
 ALTER TABLE HandicapInfos ADD COLUMN 'PolicyChoiceCutoffThreshold' INTEGER DEFAULT 90;
 ALTER TABLE HandicapInfos ADD COLUMN 'BeliefChoiceCutoffThreshold' INTEGER DEFAULT 90;
--- Tactical AI
-ALTER TABLE HandicapInfos ADD COLUMN 'TacticalSimMaxCompletedPositions' INTEGER DEFAULT 640;
+ALTER TABLE HandicapInfos ADD COLUMN 'TacticalSimMaxCompletedPositions' INTEGER DEFAULT 512;
 ALTER TABLE HandicapInfos ADD COLUMN 'TacticalSimMaxBranches' INTEGER DEFAULT 4;
 ALTER TABLE HandicapInfos ADD COLUMN 'TacticalSimMaxChoicesPerUnit' INTEGER DEFAULT 4;
 -- Diplomacy AI
@@ -198,8 +199,9 @@ ALTER TABLE HandicapInfos ADD COLUMN 'AIFriendlyApproachChangePercent' INTEGER D
 
 -- Add support for new rewards from Ancient Ruins
 INSERT INTO GoodyHuts
-	(Type, Description, ChooseDescription, Sound, Production, GoldenAge, FreeTiles, Science)
+	(Type, Description, ChooseDescription, Production, GoldenAge, FreeTiles, Science)
 VALUES
-	('GOODY_PRODUCTION', 'TXT_KEY_GOODY_PRODUCTION', 'TXT_KEY_GOODY_CHOOSE_PRODUCTION', 'AS2D_GOODY_WARRIOR', 30, 0, 0, 0),
-	('GOODY_GOLDEN_AGE', 'TXT_KEY_GOODY_GOLDEN_AGE', 'TXT_KEY_GOODY_CHOOSE_GOLDEN_AGE', 'AS2D_GOODY_WARRIOR', 0, 200, 0, 0),
-	('GOODY_TILES', 'TXT_KEY_GOODY_TILES', 'TXT_KEY_GOODY_CHOOSE_FREE_TILES', 'AS2D_GOODY_WARRIOR', 0, 0, 4, 0);
+	('GOODY_PRODUCTION', 'TXT_KEY_GOODY_PRODUCTION', 'TXT_KEY_GOODY_CHOOSE_PRODUCTION', 30, 0, 0, 0),
+	('GOODY_GOLDEN_AGE', 'TXT_KEY_GOODY_GOLDEN_AGE', 'TXT_KEY_GOODY_CHOOSE_GOLDEN_AGE', 0, 200, 0, 0),
+	('GOODY_TILES', 'TXT_KEY_GOODY_TILES', 'TXT_KEY_GOODY_CHOOSE_FREE_TILES', 0, 0, 4, 0),
+	('GOODY_SCIENCE', 'TXT_KEY_GOODY_SCIENCE', 'TXT_KEY_GOODY_CHOOSE_SCIENCE', 0, 0, 0, 35);

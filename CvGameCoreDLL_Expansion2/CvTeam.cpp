@@ -1374,11 +1374,11 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 	}
 
 	//first cancel open borders and other diplomatic agreements
-	GET_TEAM(eTeam).SetAllowsOpenBordersToTeam(m_eID, false);
-	SetAllowsOpenBordersToTeam(eTeam, false);
 	GC.getGame().GetGameDeals().DoCancelDealsBetweenTeams(GetID(), eTeam);
 	CloseEmbassyAtTeam(eTeam);
 	GET_TEAM(eTeam).CloseEmbassyAtTeam(m_eID);
+	SetAllowsOpenBordersToTeam(eTeam, false);
+	GET_TEAM(eTeam).SetAllowsOpenBordersToTeam(m_eID, false);
 	CancelResearchAgreement(eTeam);
 	GET_TEAM(eTeam).CancelResearchAgreement(m_eID);
 	EvacuateDiplomatsAtTeam(eTeam);
@@ -1875,8 +1875,7 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 			// On the attacking team
 			if (eMajorTeam == GetID())
 			{
-				vector<PlayerTypes> v = GET_PLAYER(eMajor).GetDiplomacyAI()->GetAllValidMajorCivs();
-				GET_PLAYER(eMajor).GetDiplomacyAI()->DoReevaluatePlayers(v, true);
+				GET_PLAYER(eMajor).GetDiplomacyAI()->DoReevaluateEveryone(true);
 			}
 			// Has met the attacking team
 			else if (isHasMet(eMajorTeam))
@@ -4061,7 +4060,12 @@ bool CvTeam::SetHasFoundPlayersTerritory(PlayerTypes ePlayer, bool bValue)
 	CvAssertMsg(ePlayer >= 0, "ePlayer is expected to be non-negative (invalid Index)");
 	CvAssertMsg(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
 
-	return IsHasFoundPlayersTerritory(ePlayer) != bValue;
+	if (IsHasFoundPlayersTerritory(ePlayer) != bValue)
+	{
+		m_abHasFoundPlayersTerritory[ePlayer] = bValue;
+		return true;
+	}
+	return false;
 }
 
 //	--------------------------------------------------------------------------------
@@ -4351,12 +4355,7 @@ void CvTeam::CloseEmbassyAtTeam(TeamTypes eIndex)
 	CvAssertMsg(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	SetHasEmbassyAtTeam(eIndex, false);
-	SetAllowsOpenBordersToTeam(m_eID, false);
-	SetHasDefensivePact(m_eID, false);
-	GET_TEAM(eIndex).SetHasDefensivePact(m_eID, false);
-
-	//SetHasResearchAgreement(m_eID, false);
-	//GET_TEAM(eIndex).SetHasResearchAgreement(m_eID, false);
+	SetHasDefensivePact(eIndex, false);
 }
 
 //	--------------------------------------------------------------------------------
@@ -6107,7 +6106,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 						// Check if this tech unlocks city trade for any of a team's players, and check if the resource has already been unlocked
 						bool bUnlocksResource = false;
 						bool bResourceUnlocked = false;
-						TechTypes eDefaultTech = (TechTypes)pResourceInfo->getTechCityTrade();
+						TechTypes eTech = (TechTypes)pResourceInfo->getImproveTech();
 						for (std::vector<PlayerTypes>::const_iterator iI = m_members.begin(); iI != m_members.end(); ++iI)
 						{
 							const PlayerTypes ePlayer = (PlayerTypes)*iI;
@@ -6115,17 +6114,6 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 
 							if (pPlayer && pPlayer->isAlive())
 							{
-								TechTypes eTech = eDefaultTech;
-#if defined(MOD_BALANCE_CORE)
-								if (pPlayer->GetPlayerTraits()->IsAlternateResourceTechs())
-								{
-									TechTypes eAltTech = pPlayer->GetPlayerTraits()->GetAlternateResourceTechs(eResource).m_eTechCityTrade;
-									if (eAltTech != NO_TECH)
-									{
-										eTech = eAltTech;
-									}
-								}
-#endif
 								// Has this resource been unlocked by another tech?
 								if (eTech != eIndex && GetTeamTechs()->HasTech(eTech))
 								{
@@ -6142,39 +6130,58 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 
 						if(!bResourceUnlocked && bUnlocksResource)
 						{
+							bool bResourceImproved = false;
 							// Appropriate Improvement on this Plot?
 							if (pLoopPlot->isCity() || (pLoopPlot->getImprovementType() != NO_IMPROVEMENT && GC.getImprovementInfo(pLoopPlot->getImprovementType())->IsConnectsResource(eResource)))
 							{
-								for (int iI = 0; iI < MAX_PLAYERS; iI++)
+								if (!pLoopPlot->IsImprovementPillaged())
 								{
-									const PlayerTypes eLoopPlayer = static_cast<PlayerTypes>(iI);
-									CvPlayerAI& kLoopPlayer = GET_PLAYER(eLoopPlayer);
-									if (kLoopPlayer.isAlive() && kLoopPlayer.getTeam() == GetID() && pLoopPlot->getOwner() == eLoopPlayer)
+									bResourceImproved = true;
+								}
+							}
+							for (int iI = 0; iI < MAX_PLAYERS; iI++)
+							{
+								const PlayerTypes eLoopPlayer = static_cast<PlayerTypes>(iI);
+								CvPlayerAI& kLoopPlayer = GET_PLAYER(eLoopPlayer);
+								if (kLoopPlayer.isAlive() && kLoopPlayer.getTeam() == GetID() && pLoopPlot->getOwner() == eLoopPlayer)
+								{
+									// We now have a new Tech
+									if (bNewValue)
 									{
-										// We now have a new Tech
-										if (bNewValue)
+										// slewis - added in so resources wouldn't be double counted when the minor civ researches the technology
+										if (!(kLoopPlayer.isMinorCiv() && pLoopPlot->IsImprovedByGiftFromMajor()))
 										{
-											// slewis - added in so resources wouldn't be double counted when the minor civ researches the technology
-											if (!(kLoopPlayer.isMinorCiv() && pLoopPlot->IsImprovedByGiftFromMajor()))
+											if (bResourceImproved)
 											{
-												kLoopPlayer.changeNumResourceTotal(eResource, pLoopPlot->getNumResourceForPlayer(eLoopPlayer));
+												kLoopPlayer.connectResourcesOnPlot(pLoopPlot, true);
 											}
-
-											// Reconnect resource link
-											if (pLoopPlot->getEffectiveOwningCity() != NULL)
+											else
 											{
-												pLoopPlot->SetResourceLinkedCityActive(true);
+												kLoopPlayer.changeNumResourceUnimprovedPlot(pLoopPlot, true);
 											}
 										}
-										// Removing Tech
+
+										// Reconnect resource link
+										if (pLoopPlot->getEffectiveOwningCity() != NULL)
+										{
+											pLoopPlot->SetResourceLinkedCityActive(true);
+										}
+									}
+									// Removing Tech
+									else
+									{
+										if (bResourceImproved)
+										{
+											kLoopPlayer.connectResourcesOnPlot(pLoopPlot, false);
+										}
 										else
 										{
-											kLoopPlayer.changeNumResourceTotal(eResource, -pLoopPlot->getNumResourceForPlayer(eLoopPlayer));
-
-											// Disconnect resource link
-											if (pLoopPlot->getEffectiveOwningCity() != NULL)
-												pLoopPlot->SetResourceLinkedCityActive(false);
+											kLoopPlayer.changeNumResourceUnimprovedPlot(pLoopPlot, false);
 										}
+
+										// Disconnect resource link
+										if (pLoopPlot->getEffectiveOwningCity() != NULL)
+											pLoopPlot->SetResourceLinkedCityActive(false);
 									}
 								}
 							}
@@ -7054,6 +7061,11 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 	}
 }
 
+//  --------------------------------------------------------------------------------
+int CvTeam::GetTechProgressPercent() const
+{
+	return max(1, (GetTeamTechs()->GetNumTechsKnown() * 100) / GC.getNumTechInfos());
+}
 //	--------------------------------------------------------------------------------
 int CvTeam::getFeatureYieldChange(FeatureTypes eIndex1, YieldTypes eIndex2) const
 {
@@ -8179,6 +8191,24 @@ bool CvTeam::IsResourceObsolete(ResourceTypes eResource)
 	return true;
 }
 
+/// Does this player have the tech to improve (and thus own) eResource?
+bool CvTeam::IsResourceImproveable(ResourceTypes eResource) const
+{
+	CvResourceInfo* pResource = GC.getResourceInfo(eResource);
+
+	if (pResource)
+	{
+		TechTypes eTech = (TechTypes)pResource->getImproveTech();
+
+		if (eTech == NO_TECH || GetTeamTechs()->HasTech(eTech))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 //	--------------------------------------------------------------------------------
 /// Is this resource city tradeable for us?
 bool CvTeam::IsResourceCityTradeable(ResourceTypes eResource) const
@@ -9144,7 +9174,7 @@ bool CvTeam::canEndVassal(TeamTypes eTeam) const
 	if (GC.getGame().IsAIPassiveTowardsHumans() && GET_TEAM(eTeam).isHuman())
 		return false;
 
-	// We're the voluntary vassal of eTeam and it's not too early to end vassalage - we're not bound by the 50% rules
+	// We're the voluntary vassal of eTeam and it's not too early to end vassalage - we're not bound by the % rules
 	if (IsVoluntaryVassal(eTeam))
 	{
 		return true;
@@ -9214,9 +9244,11 @@ void CvTeam::DoEndVassal(TeamTypes eTeam, bool bPeaceful, bool bSuppressNotifica
 		}
 	}
 
-	//Break open borders
+	//Break embassy and open borders
+	CloseEmbassyAtTeam(eTeam);
+	GET_TEAM(eTeam).CloseEmbassyAtTeam(m_eID);
 	SetAllowsOpenBordersToTeam(eTeam, false);
-	GET_TEAM(eTeam).SetAllowsOpenBordersToTeam(GetID(), false);
+	GET_TEAM(eTeam).SetAllowsOpenBordersToTeam(m_eID, false);
 
 	setVassal(eTeam, false);
 
@@ -9227,7 +9259,14 @@ void CvTeam::DoEndVassal(TeamTypes eTeam, bool bPeaceful, bool bSuppressNotifica
 	for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 	{
 		PlayerTypes eLoopPlayer = (PlayerTypes) iPlayerLoop;
-		GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->DoUpdateConquestStats();
+		if (GET_PLAYER(eLoopPlayer).isAlive())
+		{
+			GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->DoUpdateConquestStats();
+
+			// Disable warmongering penalties for the upcoming DoW...declaring independence isn't warmongering
+			if (!bPeaceful)
+				GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->SetIgnoreWarmonger(true);
+		}
 	}
 
 	// Not peaceful end of vassalage? Declare war!
@@ -9246,10 +9285,17 @@ void CvTeam::DoEndVassal(TeamTypes eTeam, bool bPeaceful, bool bSuppressNotifica
 	for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 	{
 		PlayerTypes eLoopPlayer = (PlayerTypes) iPlayerLoop;
-		// Update Happiness for all players
-		if (GET_PLAYER(eLoopPlayer).isAlive() && GET_PLAYER(eLoopPlayer).getTeam() == GetID())
+		if (GET_PLAYER(eLoopPlayer).isAlive())
 		{
-			GET_PLAYER(eLoopPlayer).CalculateNetHappiness();
+			// Turn warmongering back on
+			if (!bPeaceful)
+				GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->SetIgnoreWarmonger(false);
+
+			// Update Happiness for all players
+			if (GET_PLAYER(eLoopPlayer).getTeam() == GetID() || GET_PLAYER(eLoopPlayer).getTeam() == eTeam)
+			{
+				GET_PLAYER(eLoopPlayer).CalculateNetHappiness();
+			}
 		}
 	}
 
@@ -9260,12 +9306,6 @@ void CvTeam::DoEndVassal(TeamTypes eTeam, bool bPeaceful, bool bSuppressNotifica
 		CvPlayerAI& kPlayer = GET_PLAYER(vOurTeam[i]);
 		if (!kPlayer.isMajorCiv())
 			continue;
-
-		if (kPlayer.isAlive())
-		{
-			vector<PlayerTypes> v = kPlayer.GetDiplomacyAI()->GetAllValidMajorCivs();
-			kPlayer.GetDiplomacyAI()->DoReevaluatePlayers(v, false, true, true);
-		}
 
 		// Clear resurrection mark to prevent a later backstabbing penalty
 		if (!bPeaceful)
@@ -9278,6 +9318,12 @@ void CvTeam::DoEndVassal(TeamTypes eTeam, bool bPeaceful, bool bSuppressNotifica
 				kPlayer.GetDiplomacyAI()->SetResurrectedBy(vTheirTeam[j], false);
 			}
 		}
+	}
+	for (size_t i=0; i<vOurTeam.size(); i++)
+	{
+		CvPlayerAI& kPlayer = GET_PLAYER(vOurTeam[i]);
+		if (kPlayer.isAlive() && kPlayer.isMajorCiv())
+			kPlayer.GetDiplomacyAI()->DoReevaluateEveryone(true, true, true);
 	}
 
 	// Send out notifications to everyone
@@ -9733,8 +9779,7 @@ void CvTeam::DoBecomeVassal(TeamTypes eTeam, bool bVoluntary, PlayerTypes eOrigi
 		}
 
 		// AI needs to reevaluate all players (reprioritizes friendships and prevents exceeding the Defensive Pact limit)
-		vector<PlayerTypes> v = GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->GetAllValidMajorCivs();
-		GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->DoReevaluatePlayers(v, !bVoluntary, true);
+		GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->DoReevaluateEveryone(!bVoluntary, true);
 	}
 
 	if(GC.getGame().isFinalInitialized())

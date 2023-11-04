@@ -138,6 +138,7 @@ CvPlayer::CvPlayer() :
 	, m_iStartingX()
 	, m_iStartingY()
 	, m_iTotalPopulation()
+	, m_iHighestPopulation()
 	, m_iTotalLand()
 	, m_iTotalLandScored()
 	, m_iJONSCulturePerTurnForFree()
@@ -399,8 +400,10 @@ CvPlayer::CvPlayer() :
 	, m_aOptions()
 	, m_strReligionKey()
 	, m_strScriptData()
+	, m_paiNumResourceUnimproved()
 	, m_paiNumResourceUsed()
-	, m_paiNumResourceTotal()
+	, m_paiNumResourceFromTiles()
+	, m_paiNumResourceFromBuildings()
 	, m_paiResourceGiftedToMinors()
 	, m_paiResourceExport()
 , m_paiResourceImportFromMajor()
@@ -1104,8 +1107,10 @@ void CvPlayer::uninit()
 	m_units.RemoveAll();
 	m_cities.RemoveAll();
 
+	m_paiNumResourceUnimproved.clear();
 	m_paiNumResourceUsed.clear();
-	m_paiNumResourceTotal.clear();
+	m_paiNumResourceFromTiles.clear();
+	m_paiNumResourceFromBuildings.clear();
 	m_paiResourceGiftedToMinors.clear();
 	m_paiResourceExport.clear();
 	m_paiResourceImportFromMajor.clear();
@@ -1247,6 +1252,7 @@ void CvPlayer::uninit()
 	m_iStartingX = INVALID_PLOT_COORD;
 	m_iStartingY = INVALID_PLOT_COORD;
 	m_iTotalPopulation = 0;
+	m_iHighestPopulation = 0;
 	m_iTotalLand = 0;
 	m_iTotalLandScored = 0;
 	m_iCityConnectionHappiness = 0;
@@ -1994,11 +2000,18 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 		m_AIOperations.clear();
 
 		CvAssertMsg(0 < GC.getNumResourceInfos(), "GC.getNumResourceInfos() is not greater than zero but it is used to allocate memory in CvPlayer::reset");
+
+		m_paiNumResourceUnimproved.clear();
+		m_paiNumResourceUnimproved.resize(GC.getNumResourceInfos(), 0);
+
 		m_paiNumResourceUsed.clear();
 		m_paiNumResourceUsed.resize(GC.getNumResourceInfos(), 0);
 
-		m_paiNumResourceTotal.clear();
-		m_paiNumResourceTotal.resize(GC.getNumResourceInfos(), 0);
+		m_paiNumResourceFromTiles.clear();
+		m_paiNumResourceFromTiles.resize(GC.getNumResourceInfos(), 0);
+
+		m_paiNumResourceFromBuildings.clear();
+		m_paiNumResourceFromBuildings.resize(GC.getNumResourceInfos(), 0);
 
 		m_paiResourceGiftedToMinors.clear();
 		m_paiResourceGiftedToMinors.resize(GC.getNumResourceInfos(), 0);
@@ -4844,9 +4857,8 @@ CvCity* CvPlayer::acquireCity(CvCity* pCity, bool bConquest, bool bGift)
 		if (!GET_PLAYER(eOwnerTeamMember).isAlive() || !GET_PLAYER(eOwnerTeamMember).isMajorCiv())
 			continue;
 
-		vector<PlayerTypes> v = GET_PLAYER(eOwnerTeamMember).GetDiplomacyAI()->GetAllValidMajorCivs();
 		GET_PLAYER(eOwnerTeamMember).GetDiplomacyAI()->DoUpdateConquestStats();
-		GET_PLAYER(eOwnerTeamMember).GetDiplomacyAI()->DoReevaluatePlayers(v, true, bMajorEliminated);
+		GET_PLAYER(eOwnerTeamMember).GetDiplomacyAI()->DoReevaluateEveryone(true);
 	}
 
 	// The rest of the world reevaluates the new owner's team in return - unless a player was eliminated, in which case everyone reevaluates everyone
@@ -4861,13 +4873,10 @@ CvCity* CvPlayer::acquireCity(CvCity* pCity, bool bConquest, bool bGift)
 
 			if (bReevaluate)
 			{
-				if (!bMajorEliminated)
-					GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->DoReevaluatePlayers(vNewOwnerTeam, true);
+				if (bMajorEliminated)
+					GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->DoReevaluateEveryone(true);
 				else
-				{
-					vector<PlayerTypes> vAllMajors = GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->GetAllValidMajorCivs();
-					GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->DoReevaluatePlayers(vAllMajors, true, true);
-				}
+					GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->DoReevaluatePlayers(vNewOwnerTeam, true);
 			}
 		}
 	}
@@ -9930,7 +9939,7 @@ void CvPlayer::DoLiberatePlayer(PlayerTypes ePlayer, int iOldCityID, bool bForce
 
 		if (MOD_BALANCE_VP)
 		{
-			UnitTypes eUnit = GC.getGame().GetCompetitiveSpawnUnitType(ePlayer, false, false, false, true, false, true, CvSeeder::fromRaw(0xb89fcc34).mix(GET_PLAYER(ePlayer).GetID()).mix(GetID()));
+			UnitTypes eUnit = GC.getGame().GetCompetitiveSpawnUnitType(ePlayer, false, false, false, true, false, true, false, CvSeeder::fromRaw(0xb89fcc34).mix(GET_PLAYER(ePlayer).GetID()).mix(GetID()));
 			if (eUnit != NO_UNIT)
 				GET_PLAYER(ePlayer).initUnit(eUnit, pNewCity->getX(), pNewCity->getY());
 		}
@@ -10038,7 +10047,7 @@ void CvPlayer::DoLiberatePlayer(PlayerTypes ePlayer, int iOldCityID, bool bForce
 		{
 			for (int i = 0; i < iNumUnit; i++) 
 			{
-				UnitTypes eUnit = GC.getGame().GetCompetitiveSpawnUnitType(ePlayer, false, false, false, true, true, true, CvSeeder::fromRaw(0x47def5e9).mix(GET_PLAYER(ePlayer).GetID()).mix(GetID()).mix(i));
+				UnitTypes eUnit = GC.getGame().GetCompetitiveSpawnUnitType(ePlayer, false, false, false, true, true, true, false, CvSeeder::fromRaw(0x47def5e9).mix(GET_PLAYER(ePlayer).GetID()).mix(GetID()).mix(i));
 				if (eUnit != NO_UNIT)
 					GET_PLAYER(ePlayer).initUnit(eUnit, pNewCity->getX(), pNewCity->getY());
 			}
@@ -10081,12 +10090,11 @@ void CvPlayer::DoLiberatePlayer(PlayerTypes ePlayer, int iOldCityID, bool bForce
 	}
 	else
 	{
-		vector<PlayerTypes> v = GET_PLAYER(ePlayer).GetDiplomacyAI()->GetAllValidMajorCivs();
-		pDiploAI->DoReevaluatePlayers(v, false, false, true);
+		pDiploAI->DoReevaluateEveryone(true, false, true);
 	}
 
 	vector<PlayerTypes> v = GET_TEAM(GET_PLAYER(ePlayer).getTeam()).getPlayers();
-	GetDiplomacyAI()->DoReevaluatePlayers(v, false, false);
+	GetDiplomacyAI()->DoReevaluatePlayers(v, false, !bAlive);
 
 	if (MOD_EVENTS_LIBERATION) 
 	{
@@ -10208,7 +10216,7 @@ CvUnit* CvPlayer::initUnit(UnitTypes eUnit, int iX, int iY, UnitAITypes eUnitAI,
 
 	if (isMajorCiv() && pkUnitDef->IsMilitarySupport() && GetNumUnitsOutOfSupply() > 4 && eReason!=REASON_UPGRADE && eReason!=REASON_GIFT)
 	{
-		OutputDebugString("Creating unit over supply limit\n");
+		CUSTOMLOG("Player %d creating unit over supply limit, type is %d, reason is %d", m_eID, eUnit, eReason);
 	}
 
 	CvUnit* pUnit = addUnit();
@@ -11355,85 +11363,8 @@ void CvPlayer::doTurn()
 	}
 	else
 	{
-#if defined(MOD_BALANCE_CORE)
-		UpdateCityThreatCriteria();
-#endif
 		doTurnPostDiplomacy();
 	}
-	if (isAlive() && isMajorCiv())
-	{
-		GetTrade()->DoTurn();
-	}
-#if defined(MOD_BALANCE_CORE)
-	if(MOD_BALANCE_CORE_JFD)
-	{
-		DoPiety();
-		DoReformCooldown();
-		DoGovernmentCooldown();
-	}
-#endif
-#if defined(MOD_BALANCE_CORE_EVENTS)
-	if(MOD_BALANCE_CORE_EVENTS)
-	{
-		if(GC.getGame().isOption(GAMEOPTION_EVENTS))
-		{
-			DoEvents();
-		}
-	}
-	if (MOD_BALANCE_CORE_SPIES_ADVANCED && GetEspionage() != NULL)
-		GetEspionage()->ProcessSpyFocus();
-
-	updateYieldPerTurnHistory();
-#endif
-#if defined(MOD_BALANCE_CORE)
-	for (int iInstantYield = 0; iInstantYield < NUM_INSTANT_YIELD_TYPES; iInstantYield++)
-	{
-		InstantYieldType eInstantYield = (InstantYieldType)iInstantYield;
-		if(getInstantYieldText(eInstantYield) != "" && getInstantYieldText(eInstantYield) != NULL)
-		{
-			// Instant yield
-			Localization::String strInstantYield = Localization::Lookup(getInstantYieldText(eInstantYield));
-			CvNotifications* pNotifications = GetNotifications();
-			if(pNotifications)
-			{
-				Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_INSTANT_YIELD_EMPIRE");
-				pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), strInstantYield.toUTF8(), strSummary.toUTF8(), -1, -1, GetID());
-			}
-			setInstantYieldText(eInstantYield, "");
-			// Instant great person progress
-			Localization::String strInstantGreatPersonProgress = Localization::Lookup(getInstantGreatPersonProgressText(eInstantYield));
-			/*if (pNotifications) // Can't get this to work correctly for some reason
-			{
-				Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_GREAT_PERSON_PROGRESS_EMPIRE");
-				pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), strInstantGreatPersonProgress.toUTF8(), strSummary.toUTF8(), -1, -1, GetID());
-			}*/
-			setInstantGreatPersonProgressText(eInstantYield, "");
-		}
-	}
-#endif
-
-	//note that this isn't actually the end of the turn - AI_unitUpdate is called later
-	AI_doTurnPost();
-
-	ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
-	if(pkScriptSystem)
-	{
-		CvLuaArgsHandle args;
-		args->Push(GetID());
-
-		bool bResult = false;
-		LuaSupport::CallHook(pkScriptSystem, "PlayerDoTurn", args.get(), bResult);
-	}
-
-	// Certain counters update now
-	DoUpdateWarPeaceTurnCounters();
-
-	if (isMajorCiv())
-	{
-		DoMilitaryRatingDecay();
-	}
-
-	m_kPlayerAchievements.StartTurn();
 }
 
 //	--------------------------------------------------------------------------------
@@ -11443,6 +11374,7 @@ void CvPlayer::doTurnPostDiplomacy()
 
 	if (isAlive())
 	{
+		UpdateCityThreatCriteria();
 		UpdatePlots();
 		UpdateAreaEffectUnits();
 		UpdateAreaEffectPlots();
@@ -11649,6 +11581,83 @@ void CvPlayer::doTurnPostDiplomacy()
 	const int iGameTurn = kGame.getGameTurn();
 
 	GatherPerTurnReplayStats(iGameTurn);
+
+
+	if (isAlive() && isMajorCiv())
+	{
+		GetTrade()->DoTurn();
+	}
+#if defined(MOD_BALANCE_CORE)
+	if (MOD_BALANCE_CORE_JFD)
+	{
+		DoPiety();
+		DoReformCooldown();
+		DoGovernmentCooldown();
+	}
+#endif
+#if defined(MOD_BALANCE_CORE_EVENTS)
+	if (MOD_BALANCE_CORE_EVENTS)
+	{
+		if (GC.getGame().isOption(GAMEOPTION_EVENTS))
+		{
+			DoEvents();
+		}
+	}
+	if (MOD_BALANCE_CORE_SPIES_ADVANCED && GetEspionage() != NULL)
+		GetEspionage()->ProcessSpyFocus();
+
+	updateYieldPerTurnHistory();
+#endif
+#if defined(MOD_BALANCE_CORE)
+	for (int iInstantYield = 0; iInstantYield < NUM_INSTANT_YIELD_TYPES; iInstantYield++)
+	{
+		InstantYieldType eInstantYield = (InstantYieldType)iInstantYield;
+		if (getInstantYieldText(eInstantYield) != "" && getInstantYieldText(eInstantYield) != NULL)
+		{
+			// Instant yield
+			Localization::String strInstantYield = Localization::Lookup(getInstantYieldText(eInstantYield));
+			CvNotifications* pNotifications = GetNotifications();
+			if (pNotifications)
+			{
+				Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_INSTANT_YIELD_EMPIRE");
+				pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), strInstantYield.toUTF8(), strSummary.toUTF8(), -1, -1, GetID());
+			}
+			setInstantYieldText(eInstantYield, "");
+			// Instant great person progress
+			Localization::String strInstantGreatPersonProgress = Localization::Lookup(getInstantGreatPersonProgressText(eInstantYield));
+			/*if (pNotifications) // Can't get this to work correctly for some reason
+			{
+				Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_GREAT_PERSON_PROGRESS_EMPIRE");
+				pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), strInstantGreatPersonProgress.toUTF8(), strSummary.toUTF8(), -1, -1, GetID());
+			}*/
+			setInstantGreatPersonProgressText(eInstantYield, "");
+		}
+	}
+#endif
+
+	//note that this isn't actually the end of the turn - AI_unitUpdate is called later
+	AI_doTurnPost();
+
+	ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+	if (pkScriptSystem)
+	{
+		CvLuaArgsHandle args;
+		args->Push(GetID());
+
+		bool bResult = false;
+		LuaSupport::CallHook(pkScriptSystem, "PlayerDoTurn", args.get(), bResult);
+	}
+
+	// Certain counters update now
+	DoUpdateWarPeaceTurnCounters();
+
+	if (isMajorCiv())
+	{
+		DoMilitaryRatingDecay();
+	}
+
+	m_kPlayerAchievements.StartTurn();
+	doTurnUnits();
 
 	GC.GetEngineUserInterface()->setDirty(CityInfo_DIRTY_BIT, true);
 }
@@ -18638,7 +18647,9 @@ void CvPlayer::ChangeCapitalYieldPerPopChangeEmpire(YieldTypes eYield, int iChan
 
 	if (iChange != 0)
 	{
-		m_aiCapitalYieldPerPopChangeEmpire[eYield] = m_aiCapitalYieldPerPopChangeEmpire[eYield] + iChange;
+		int iChangeTimes100 = 100 / iChange;
+		// (1/20 * 100 = 5)
+		m_aiCapitalYieldPerPopChangeEmpire[eYield] = m_aiCapitalYieldPerPopChangeEmpire[eYield] + iChangeTimes100;
 
 		updateYield();
 	}
@@ -18750,6 +18761,16 @@ long CvPlayer::getRealPopulation() const
 	}
 
 	return ((long)(iTotalPopulation));
+}
+
+//	--------------------------------------------------------------------------------
+int CvPlayer::getHighestPopulation() const
+{
+	return m_iHighestPopulation;
+}
+void CvPlayer::setHighestPopulation(int iValue)
+{
+	m_iHighestPopulation = max(iValue, 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -27765,7 +27786,7 @@ void CvPlayer::doInstantYield(InstantYieldType iType, bool bCityFaith, GreatPers
 
 					// Base Game Yield Generation, doesn't scale with era except with VP
 					int iChange = 0;
-					if (eYield == YIELD_GOLD)
+					if (pLoopCity->isCapital() && eYield == YIELD_GOLD)
 					{
 						iChange += GetGreatPersonExpendGold();
 					}
@@ -29020,24 +29041,19 @@ void CvPlayer::doInstantYield(InstantYieldType iType, bool bCityFaith, GreatPers
 			{
 				if (ePassBuilding != NO_BUILDING)
 				{
-					CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(ePassBuilding);
-					if(pkBuildingInfo)
+					if(getInstantYieldText(iType) == "" || getInstantYieldText(iType) == NULL)
 					{
-						if(getInstantYieldText(iType) == "" || getInstantYieldText(iType) == NULL)
-						{
-							localizedText = Localization::Lookup("TXT_KEY_INSTANT_YIELD_CONSTRUCTION");
-							localizedText << totalyieldString;
-							localizedText << pkBuildingInfo->GetDescriptionKey();
-							//We do this at the player level once per turn.
-							addInstantYieldText(iType, localizedText.toUTF8());
-						}
-						else
-						{
-							localizedText = Localization::Lookup("TXT_KEY_INSTANT_ADDENDUM");
-							localizedText << totalyieldString << pkBuildingInfo->GetDescriptionKey();
-							//We do this at the player level once per turn.
-							addInstantYieldText(iType, localizedText.toUTF8());
-						}
+						localizedText = Localization::Lookup("TXT_KEY_INSTANT_YIELD_CONSTRUCTION");
+						localizedText << totalyieldString;
+						//We do this at the player level once per turn.
+						addInstantYieldText(iType, localizedText.toUTF8());
+					}
+					else
+					{
+						localizedText = Localization::Lookup("TXT_KEY_INSTANT_ADDENDUM");
+						localizedText << totalyieldString;
+						//We do this at the player level once per turn.
+						addInstantYieldText(iType, localizedText.toUTF8());
 					}
 				}
 				return;
@@ -29857,23 +29873,19 @@ void CvPlayer::doInstantGreatPersonProgress(InstantYieldType iType, bool bSuppre
 			{
 				if (eBuilding != NO_BUILDING)
 				{
-					CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
-					if (pkBuildingInfo)
+					if (getInstantGreatPersonProgressText(iType) == "" || getInstantGreatPersonProgressText(iType) == NULL)
 					{
-						if (getInstantGreatPersonProgressText(iType) == "" || getInstantGreatPersonProgressText(iType) == NULL)
-						{
-							localizedText = Localization::Lookup("TXT_KEY_INSTANT_YIELD_CONSTRUCTION");
-							localizedText << totalgpString << pkBuildingInfo->GetDescriptionKey();
-							//We do this at the player level once per turn.
-							addInstantGreatPersonProgressText(iType, localizedText.toUTF8());
-						}
-						else
-						{
-							localizedText = Localization::Lookup("TXT_KEY_INSTANT_ADDENDUM");
-							localizedText << totalgpString << pkBuildingInfo->GetDescriptionKey();
-							//We do this at the player level once per turn.
-							addInstantGreatPersonProgressText(iType, localizedText.toUTF8());
-						}
+						localizedText = Localization::Lookup("TXT_KEY_INSTANT_YIELD_CONSTRUCTION");
+						localizedText << totalgpString;
+						//We do this at the player level once per turn.
+						addInstantGreatPersonProgressText(iType, localizedText.toUTF8());
+					}
+					else
+					{
+						localizedText = Localization::Lookup("TXT_KEY_INSTANT_ADDENDUM");
+						localizedText << totalgpString;
+						//We do this at the player level once per turn.
+						addInstantGreatPersonProgressText(iType, localizedText.toUTF8());
 					}
 				}
 				break;
@@ -30003,14 +30015,8 @@ void CvPlayer::DoGreatPersonExpended(UnitTypes eGreatPersonUnit)
 {
 	// Gold gained
 	int iExpendGold = GetGreatPersonExpendGold();
-	if(iExpendGold > 0)
+	if (iExpendGold > 0)
 	{
-#if defined(MOD_BALANCE_CORE)
-		iExpendGold *= GC.getGame().getGameSpeedInfo().getInstantYieldPercent();
-		iExpendGold /= 100;
-#endif
-		GetTreasury()->ChangeGold(iExpendGold);
-
 		if (MOD_API_ACHIEVEMENTS && isHuman() && !GC.getGame().isGameMultiPlayer() && GET_PLAYER(GC.getGame().getActivePlayer()).isLocalPlayer())
 		{
 			// Update Steam stat and check achievement
@@ -35001,8 +35007,10 @@ void CvPlayer::setAlive(bool bNewValue, bool bNotify)
 	// Update turns/slot status if the player is now alive
 	if (bNewValue)
 	{
-		if (isSimultaneousTurns() || (GC.getGame().getNumGameTurnActive() == 0) || (GC.getGame().isSimultaneousTeamTurns() && GET_TEAM(getTeam()).isTurnActive()))
-		{
+		if (
+			((isSimultaneousTurns() || (GC.getGame().isSimultaneousTeamTurns() && GET_TEAM(getTeam()).isTurnActive())) && isHuman())
+			|| GC.getGame().getNumGameTurnActive() == 0
+		) {
 			setTurnActive(true);
 		}
 
@@ -35044,9 +35052,13 @@ void CvPlayer::setAlive(bool bNewValue, bool bNotify)
 				TeamTypes eTheirTeam = (TeamTypes)i;
 				if (getTeam() != eTheirTeam)
 				{
-					// close both embassies (also cancels Defensive Pacts / Open Borders)
+					// close both embassies (also cancels Defensive Pacts)
 					GET_TEAM(getTeam()).CloseEmbassyAtTeam(eTheirTeam);
 					GET_TEAM(eTheirTeam).CloseEmbassyAtTeam(getTeam());
+
+					// cancel open borders
+					GET_TEAM(getTeam()).SetAllowsOpenBordersToTeam(eTheirTeam, false);
+					GET_TEAM(eTheirTeam).SetAllowsOpenBordersToTeam(getTeam(), false);
 
 					// cancel any research agreements
 					GET_TEAM(getTeam()).CancelResearchAgreement(eTheirTeam);
@@ -35337,7 +35349,6 @@ void CvPlayer::setTurnActive(bool bNewValue, bool bDoTurn) // R: bDoTurn default
 
 						//this is misleading - actual turn processing now happens in CvGame::updateMoves()
 						doTurn();
-						doTurnUnits();
 					}
 				}
 
@@ -39300,6 +39311,46 @@ void CvPlayer::setPlayable(bool bNewValue)
 }
 
 //	--------------------------------------------------------------------------------
+void CvPlayer::connectResourcesOnPlot(CvPlot* pPlot, bool bAdd, bool bOnlyExtraResources)
+{
+	int iMultiplier = bAdd ? 1 : -1;
+	if (!bOnlyExtraResources)
+	{
+		changeNumResourceTotal(pPlot->getResourceType(), iMultiplier * pPlot->getNumResourceForPlayer(GetID(), false), false);
+	}
+	changeNumResourceTotal(pPlot->getResourceType(), iMultiplier * pPlot->getNumResourceForPlayer(GetID(), true), true);
+}
+//	--------------------------------------------------------------------------------
+int CvPlayer::getNumResourceUnimproved(ResourceTypes eIndex) const
+{
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumResourceInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	return m_paiNumResourceUnimproved[eIndex];
+}
+//	--------------------------------------------------------------------------------
+void CvPlayer::changeNumResourceUnimproved(ResourceTypes eIndex, int iChange)
+{
+	CvAssert(eIndex >= 0);
+	CvAssert(eIndex < GC.getNumResourceInfos());
+
+	if (iChange != 0)
+	{
+		m_paiNumResourceUnimproved[eIndex] = m_paiNumResourceUnimproved[eIndex] + iChange;
+	}
+
+	CvAssert(m_paiNumResourceUnimproved[eIndex] >= 0);
+}
+//	--------------------------------------------------------------------------------
+void CvPlayer::changeNumResourceUnimprovedPlot(CvPlot* pPlot, bool bAdd, bool bOnlyExtraResources)
+{
+	int iMultiplier = bAdd ? 1 : -1;
+	if (!bOnlyExtraResources)
+	{
+		changeNumResourceUnimproved(pPlot->getResourceType(), iMultiplier * pPlot->getNumResourceForPlayer(GetID(), false));
+	}
+	changeNumResourceUnimproved(pPlot->getResourceType(), iMultiplier * pPlot->getNumResourceForPlayer(GetID(), true));
+}
+//	--------------------------------------------------------------------------------
 int CvPlayer::getNumResourceUsed(ResourceTypes eIndex) const
 {
 	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
@@ -39334,7 +39385,8 @@ int CvPlayer::getNumResourcesFromOther(ResourceTypes eIndex) const
 	// exists?
 	if (pkResource == NULL) { return 0;}
 
-	int iTotalNumResource = m_paiNumResourceTotal[eIndex];
+	int iTotalNumResource = m_paiNumResourceFromTiles[eIndex];
+	iTotalNumResource += m_paiNumResourceFromBuildings[eIndex];
 
 #if defined(MOD_BALANCE_CORE)
 	// Additional resources from Corporation
@@ -39397,20 +39449,31 @@ int CvPlayer::getNumResourcesFromOther(ResourceTypes eIndex) const
 #endif
 		if (GetStrategicResourceMod() != 0)
 		{
-			iTotalNumResource *= GetStrategicResourceMod();
+			iTotalNumResource *= 100 + GetStrategicResourceMod();
 			iTotalNumResource /= 100;
 		}
 	}
 
-#if defined(MOD_BALANCE_CORE)
-	iTotalNumResource *= 100 + getResourceModFromReligion(eIndex);
-	iTotalNumResource /= 100;
-#endif
+	if (MOD_BALANCE_CORE)
+	{
+		iTotalNumResource *= 100 + getResourceModFromReligion(eIndex);
+		iTotalNumResource /= 100;
+	}
 
 	//And remove the starter. Added in beginning to factor in multiplicative modifiers.
-	iTotalNumResource -= m_paiNumResourceTotal[eIndex];
+	iTotalNumResource -= m_paiNumResourceFromTiles[eIndex];
+	iTotalNumResource -= m_paiNumResourceFromBuildings[eIndex];
 
 	return iTotalNumResource;
+}
+
+//	--------------------------------------------------------------------------------
+int CvPlayer::getNumResourceFromBuildings(ResourceTypes eIndex) const
+{
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumResourceInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+
+	return m_paiNumResourceFromBuildings[eIndex];
 }
 
 //	--------------------------------------------------------------------------------
@@ -39424,7 +39487,8 @@ int CvPlayer::getNumResourceTotal(ResourceTypes eIndex, bool bIncludeImport) con
 	// exists?
 	if (pkResource == NULL) { return 0;}
 
-	int iTotalNumResource = m_paiNumResourceTotal[eIndex];
+	int iTotalNumResource = m_paiNumResourceFromTiles[eIndex];
+	iTotalNumResource += m_paiNumResourceFromBuildings[eIndex];
 
 	//add resources from other sources, ex Corporations, Policies, Religion
 	iTotalNumResource += getNumResourcesFromOther(eIndex);
@@ -39441,21 +39505,28 @@ int CvPlayer::getNumResourceTotal(ResourceTypes eIndex, bool bIncludeImport) con
 	return iTotalNumResource;
 }
 //	--------------------------------------------------------------------------------
-void CvPlayer::changeNumResourceTotal(ResourceTypes eIndex, int iChange, bool /*bIgnoreResourceWarning*/)
+void CvPlayer::changeNumResourceTotal(ResourceTypes eIndex, int iChange, bool bFromBuilding, bool /*bIgnoreResourceWarning*/)
 {
 	CvAssert(eIndex >= 0);
 	CvAssert(eIndex < GC.getNumResourceInfos());
 
 	if(iChange != 0)
 	{
-		m_paiNumResourceTotal[eIndex] = m_paiNumResourceTotal[eIndex] + iChange;
+		if (!bFromBuilding)
+		{
+			m_paiNumResourceFromTiles[eIndex] = m_paiNumResourceFromTiles[eIndex] + iChange;
+			CvAssert(m_paiNumResourceFromTiles[eIndex] >= 0);
+		}
+		else
+		{
+			m_paiNumResourceFromBuildings[eIndex] = m_paiNumResourceFromBuildings[eIndex] + iChange;
+			CvAssert(m_paiNumResourceFromBuildings[eIndex] >= 0);
+		}
 
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 		if(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 		{
 			CheckForMonopoly(eIndex);
 		}
-#endif
 
 		// Minors with an Ally give their Resources to their friend (awww)
 		if(isMinorCiv())
@@ -39527,8 +39598,6 @@ void CvPlayer::changeNumResourceTotal(ResourceTypes eIndex, int iChange, bool /*
 	}
 
 	GC.GetEngineUserInterface()->setDirty(GameData_DIRTY_BIT, true);
-
-	CvAssert(m_paiNumResourceTotal[eIndex] >= 0);
 }
 
 #if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
@@ -39954,12 +40023,12 @@ void CvPlayer::CheckForMonopoly(ResourceTypes eResource)
 					bool bValid = false;
 					if (GC.getGame().GetGreatestPlayerResourceMonopoly(eResource) == GetID())
 					{
-						if (((iOwnedNumResource * 100) / iTotalNumResource) >= iThreshold && ((iOwnedNumResource * 100) / iTotalNumResource) > GD_INT_GET(GLOBAL_RESOURCE_MONOPOLY_THRESHOLD))
+						if ((iOwnedNumResource * 100 >= iTotalNumResource * iThreshold) && (iOwnedNumResource * 100 > iTotalNumResource * GD_INT_GET(GLOBAL_RESOURCE_MONOPOLY_THRESHOLD)))
 							bValid = true;
 					}
 					else
 					{
-						if (((iOwnedNumResource * 100) / iTotalNumResource) > iThreshold)
+						if (iOwnedNumResource * 100 > iTotalNumResource * iThreshold)
 							bValid = true;
 					}
 					if (bValid)
@@ -39984,7 +40053,7 @@ void CvPlayer::CheckForMonopoly(ResourceTypes eResource)
 				else if(pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_STRATEGIC)
 				{
 					//Do we have >25% of this resource under our control?
-					if(((iOwnedNumResource * 100) / iTotalNumResource) > GD_INT_GET(STRATEGIC_RESOURCE_MONOPOLY_THRESHOLD))
+					if(iOwnedNumResource * 100 > iTotalNumResource * GD_INT_GET(STRATEGIC_RESOURCE_MONOPOLY_THRESHOLD))
 					{
 						if(m_pabHasStrategicMonopoly[eResource] == false)
 						{
@@ -40008,12 +40077,12 @@ void CvPlayer::CheckForMonopoly(ResourceTypes eResource)
 					bool bValid = false;
 					if (GC.getGame().GetGreatestPlayerResourceMonopoly(eResource) == GetID())
 					{
-						if (((iOwnedNumResource * 100) / iTotalNumResource) >= iThreshold && ((iOwnedNumResource * 100) / iTotalNumResource) > GD_INT_GET(GLOBAL_RESOURCE_MONOPOLY_THRESHOLD))
+						if ((iOwnedNumResource * 100 >= iTotalNumResource * iThreshold) && (iOwnedNumResource * 100 > iTotalNumResource * GD_INT_GET(GLOBAL_RESOURCE_MONOPOLY_THRESHOLD)))
 							bValid = true;
 					}
 					else
 					{
-						if (((iOwnedNumResource * 100) / iTotalNumResource) > iThreshold)
+						if (iOwnedNumResource * 100 > iTotalNumResource * iThreshold)
 							bValid = true;
 					}
 
@@ -47575,6 +47644,7 @@ void CvPlayer::Serialize(Player& player, Visitor& visitor)
 	visitor(player.m_iStartingX);
 	visitor(player.m_iStartingY);
 	visitor(player.m_iTotalPopulation);
+	visitor(player.m_iHighestPopulation);
 	visitor(player.m_iTotalLand);
 	visitor(player.m_iTotalLandScored);
 	visitor(player.m_iJONSCulturePerTurnForFree);
@@ -48078,8 +48148,10 @@ void CvPlayer::Serialize(Player& player, Visitor& visitor)
 	visitor(player.m_aOptions);
 	visitor(player.m_strReligionKey);
 	visitor(player.m_strScriptData);
+	visitor(player.m_paiNumResourceUnimproved);
 	visitor(player.m_paiNumResourceUsed);
-	visitor(player.m_paiNumResourceTotal);
+	visitor(player.m_paiNumResourceFromTiles);
+	visitor(player.m_paiNumResourceFromBuildings);
 	visitor(player.m_paiResourceGiftedToMinors);
 	visitor(player.m_paiResourceExport);
 	visitor(player.m_paiResourceImportFromMajor);
