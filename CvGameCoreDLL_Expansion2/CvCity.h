@@ -348,6 +348,15 @@ public:
 
 	bool IsBuildingLocalResourceValid(BuildingTypes eBuilding, bool bTestVisible, CvString* toolTipSink = NULL) const;
 	bool IsBuildingResourceMonopolyValid(BuildingTypes eBuilding, CvString* toolTipSink = NULL) const;
+
+	void GetPlotsBoostedByBuilding(std::vector<int>& aiPlotList, BuildingTypes eBuilding);
+	int GetNumHiddenBuildings() const;
+	bool IsBuildingHidden(BuildingTypes eBuilding) const;
+
+	void SetBuildingHidden(BuildingTypes eBuilding);
+	void ClearHiddenBuildings();
+
+
 #if defined(MOD_BALANCE_CORE)
 	bool IsBuildingFeatureValid(BuildingTypes eBuilding, CvString* toolTipSink = NULL) const;
 #endif
@@ -549,7 +558,7 @@ public:
 	int foodDifferenceTimes100(bool bJustCheckingStarve = false, CvString* toolTipSink = NULL) const;
 	int growthThreshold() const;
 
-	int getGrowthMods() const;
+	int getGrowthMods(CvString* toolTipSink = NULL) const;
 #if defined(MOD_BALANCE_CORE)
 	int GetNumFreeSpecialists();
 	int GetUnhappinessFromCitySpecialists();
@@ -734,6 +743,9 @@ public:
 	int getCapturePlunderModifier() const;
 	void changeCapturePlunderModifier(int iChange);
 
+	int GetDiplomatInfluenceBoost() const;
+	void ChangeDiplomatInfluenceBoost(int iChange);
+
 	int GetBorderGrowthRateIncreaseTotal();
 
 	int GetBorderGrowthRateIncrease() const;
@@ -872,7 +884,7 @@ public:
 	int GetHappinessFromBuildingClasses() const;
 
 	int GetLocalHappiness(int iPopMod = 0, bool bExcludeEmpireContributions = false) const;
-#if defined(MOD_BALANCE_CORE_HAPPINESS)
+
 	int updateNetHappiness();
 	int getHappinessDelta() const;
 	int GetAllNeedsModifier(bool bForceRecalc) const;
@@ -927,7 +939,7 @@ public:
 	void SetGrowthFromTourism(int iValue);
 	void ChangeGrowthFromTourism(int iValue);
 	void UpdateGrowthFromTourism();
-#endif
+
 	int GetHappinessFromBuildings() const;
 	int GetBaseHappinessFromBuildings() const;
 	void ChangeBaseHappinessFromBuildings(int iChange);
@@ -1824,6 +1836,7 @@ protected:
 	int m_iNumNationalWonders;
 	int m_iWonderProductionModifier;
 	int m_iCapturePlunderModifier;
+	int m_iDiplomatInfluenceBoost;
 	int m_iBorderGrowthRateIncrease;
 	int m_iPlotCultureCostModifier;
 	int m_iPlotBuyCostModifier;
@@ -2142,6 +2155,9 @@ protected:
 	CvCityEspionage* m_pCityEspionage;
 	CvCityCulture* m_pCityCulture;
 
+	int m_inumHiddenBuildings;
+	std::vector<bool> m_abIsBuildingHidden;
+
 	// CACHE: cache frequently used values
 	int m_iPopulationRank;
 	bool m_bPopulationRankValid;
@@ -2230,6 +2246,7 @@ SYNC_ARCHIVE_VAR(int, m_iNumTeamWonders)
 SYNC_ARCHIVE_VAR(int, m_iNumNationalWonders)
 SYNC_ARCHIVE_VAR(int, m_iWonderProductionModifier)
 SYNC_ARCHIVE_VAR(int, m_iCapturePlunderModifier)
+SYNC_ARCHIVE_VAR(int, m_iDiplomatInfluenceBoost)
 SYNC_ARCHIVE_VAR(int, m_iBorderGrowthRateIncrease)
 SYNC_ARCHIVE_VAR(int, m_iPlotCultureCostModifier)
 SYNC_ARCHIVE_VAR(int, m_iPlotBuyCostModifier)

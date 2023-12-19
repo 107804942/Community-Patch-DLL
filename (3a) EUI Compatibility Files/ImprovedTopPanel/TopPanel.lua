@@ -31,6 +31,7 @@ local HideCivilopediaButton = false -- set true to hide
 ------------------------------
 
 local NavalSupplyID = GameInfoTypes.RESOURCE_SAILORS -- Support for Separate Naval Supply mod
+local LuxuryResourcesMem = 0 -- This condenses down the list to 1 of 4 pages.
 
 local IsDX11 = not UI.IsDX9()
 if IsDX11 then
@@ -665,7 +666,12 @@ local function UpdateTopPanelNow()
 					turnsRemaining = math_ceil((faithNeeded - faithProgress) / faithPerTurn )
 				end
 				Controls.FaithBox:SetHide(false)
-				Controls.FaithString:SetText( S("+%i[ICON_PEACE]", faithPerTurn ) )
+				
+				if not (g_activePlayer:HasCreatedPantheon() and g_activePlayer:HasCreatedReligion()) then
+					Controls.FaithString:SetText( S("+%i[ICON_PEACE]", faithPerTurn ) )
+				else
+					Controls.FaithString:SetText( S("+%i[ICON_PEACE]%i", faithPerTurn, faithProgress ) )
+				end
 			else
 				Controls.FaithBox:SetHide(true)
 				if PerTurnOnLeft then
@@ -2123,7 +2129,9 @@ if civ5_mode and gk_mode then
 					tip = tip .. " " .. ColorizeAbs( quantity ) .. resource.IconString
 				end
 			end
-			tips:insert( L"TXT_KEY_EO_LOCAL_RESOURCES_CBP" .. (#tip > 0 and tip or (" : "..L"TXT_KEY_TP_NO_RESOURCES_DISCOVERED")) )
+			if (LuxuryResourcesMem == 0 or LuxuryResourcesMem == 4) then
+				tips:insert( "[COLOR_POSITIVE_TEXT]" .. L"TXT_KEY_EO_LOCAL_RESOURCES_CBP" .. "[ENDCOLOR]" .. (#tip > 0 and tip or (" : "..L"TXT_KEY_TP_NO_RESOURCES_DISCOVERED")) )
+			end
 
 			-- Resources from city terrain
 			for city in g_activePlayer:Cities() do
@@ -2152,7 +2160,7 @@ if civ5_mode and gk_mode then
 						tip = tip .. " " .. ColorizeAbs( -numUnconnectedResource[resourceID] ) .. resource.IconString
 					end
 				end
-				if #tip > 0 then
+				if #tip > 0 and (LuxuryResourcesMem == 0 or LuxuryResourcesMem == 4) then
 					tips:insert( "[ICON_BULLET]" .. city:GetName() .. tip )
 				end
 			end
@@ -2167,8 +2175,8 @@ if civ5_mode and gk_mode then
 					GPtip = GPtip .. "[NEWLINE][ICON_BULLET]" .. ColorizeAbs( numResourceGP ) .. resource.IconString
 				end
 			end
-			if #GPtip > 0 then
-				tips:insert( "[NEWLINE]" .. L"TXT_KEY_EO_GP_RESOURCES" .. GPtip)
+			if #GPtip > 0 and (LuxuryResourcesMem == 0 or LuxuryResourcesMem == 4) then
+				tips:insert( "[NEWLINE][COLOR_POSITIVE_TEXT]" .. L"TXT_KEY_EO_GP_RESOURCES" .. "[ENDCOLOR]".. GPtip)
 			end
 
 			----------------------------
@@ -2224,9 +2232,9 @@ if civ5_mode and gk_mode then
 					tip = tip .. " " .. ColorizeAbs( quantity ) .. resource.IconString
 				end
 			end
-			if #tip > 0 then
-				tips:insert( "" )
-				tips:insert( L"TXT_KEY_RESOURCES_IMPORTED" .. tip )
+			if #tip > 0 and (LuxuryResourcesMem == 1 or LuxuryResourcesMem == 4) then
+				--tips:insert( "" )
+				tips:insert( "[COLOR_POSITIVE_TEXT]" .. L"TXT_KEY_RESOURCES_IMPORTED" .. "[ENDCOLOR]" .. tip )
 				for playerID, array in pairs( Imports ) do
 					local tip = ""
 					for resourceID, row in pairs( array ) do
@@ -2268,9 +2276,9 @@ if civ5_mode and gk_mode then
 					tip = tip .. " " .. ColorizeAbs( quantity ) .. resource.IconString
 				end
 			end
-			if #tip > 0 then
-				tips:insert( "" )
-				tips:insert( L"TXT_KEY_RESOURCES_EXPORTED" .. tip )
+			if #tip > 0 and (LuxuryResourcesMem == 2 or LuxuryResourcesMem == 4) then
+				--tips:insert( "" )
+				tips:insert( "[COLOR_POSITIVE_TEXT]" .. L"TXT_KEY_RESOURCES_EXPORTED" .. "[ENDCOLOR]" .. tip )
 				for playerID, array in pairs( Exports ) do
 					local tip = ""
 					for resourceID, row in pairs( array ) do
@@ -2314,24 +2322,26 @@ if civ5_mode and gk_mode then
 							or ( g_deal:IsPossibleToTradeItem(playerID, g_activePlayerID, TradeableItems.TRADE_ITEM_RESOURCES, resourceID, 1) and player:GetNumResourceAvailable(resourceID, false) )
 							or 0
 						if numResource > 0 then
-							resources:insert( player:GetCivilizationShortDescription() .. " " .. numResource .. resource.IconString )
+							resources:insert( player:GetCivilizationShortDescription() .. " (" .. numResource ..")" )
 						end
 					end
 				end
 				if #resources > 0 then
-					availableTip = availableTip .. "[NEWLINE][ICON_BULLET]" .. L(resource.Description) .. ": " .. resources:concat(", ")
+					availableTip = availableTip .. "[NEWLINE][ICON_BULLET] " .. resource.IconString .. L(resource.Description) .. ": " .. resources:concat(", ")
 				end
 			end
 
-			if #availableTip > 0 then
-				tips:insert( "" )
-				tips:insert( L"TXT_KEY_EO_RESOURCES_AVAILBLE" .. availableTip)
+			if #availableTip > 0 and LuxuryResourcesMem >= 3 then
+				--tips:insert( "" )
+				tips:insert( "[COLOR_POSITIVE_TEXT]" .. L"TXT_KEY_EO_RESOURCES_AVAILBLE" .. "[ENDCOLOR]" .. availableTip)
 			end
+			
+			tips:insert( "" )
+			tips:insert("([COLOR_POSITIVE_TEXT]" .. L"TXT_KEY_LEGAL_CONTINUE" .. "[ENDCOLOR])") --(Click to Continue)
 
 	return setTextToolTip( tips:concat( "[NEWLINE]" ) )
 
 	end
-
 --[[
 	if ReplaceIcons then
 		g_toolTipHandler.LuxuryImage = g_toolTipHandler.LuxuryResources
@@ -2354,17 +2364,19 @@ if civ5_mode and gk_mode then
 		local iUnitsSupplied = pPlayer:GetNumUnitsSupplied();
 		local iUnitsTotal = pPlayer:GetNumUnitsToSupply();
 		local iUnitsTotalMilitary = pPlayer:GetNumMilitaryUnits();
+		local iSupplyFromGreatPeople = pPlayer:GetUnitSupplyFromExpendedGreatPeople();
 		local iPercentPerPop = pPlayer:GetNumUnitsSuppliedByPopulation();
 		local iPerCity = pPlayer:GetNumUnitsSuppliedByCities();
 		local iPerHandicap = pPlayer:GetNumUnitsSuppliedByHandicap();
-		local iWarWearinessReduction = pPlayer:GetWarWeariness();
 		local iUnitsOver = pPlayer:GetNumUnitsOutOfSupply();
-		local iWarWearinessActualReduction = pPlayer:GetWarWearinessSupplyReduction();
 		local iTechReduction = pPlayer:GetTechSupplyReduction();
-		local iSupplyFromGreatPeople = pPlayer:GetUnitSupplyFromExpendedGreatPeople();
+		local iWarWearinessPercentReduction = pPlayer:GetSupplyReductionPercentFromWarWeariness();
+		local iWarWearinessReduction = pPlayer:GetSupplyReductionFromWarWeariness();
+		local iWarWearinessCostIncrease = pPlayer:GetUnitCostIncreaseFromWarWeariness();
+		local iHighestWarWearyPlayer = pPlayer:GetHighestWarWearinessPlayer();
 
 		-- Bonuses from unlisted sources are added to the handicap value
-		local iExtra = iUnitsSupplied - (iPerHandicap + iPerCity + iPercentPerPop + iSupplyFromGreatPeople - iTechReduction - iWarWearinessActualReduction);
+		local iExtra = iUnitsSupplied - (iPerHandicap + iPerCity + iPercentPerPop + iSupplyFromGreatPeople - iTechReduction - iWarWearinessReduction);
 		iPerHandicap = iPerHandicap + iExtra;
 
 		local strUnitSupplyToolTip = "";
@@ -2374,7 +2386,13 @@ if civ5_mode and gk_mode then
 			strUnitSupplyToolTip = strUnitSupplyToolTip .. "[ENDCOLOR]";
 		end
 
-		local strUnitSupplyToolUnderTip = Locale.ConvertTextKey("TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP", iUnitsSupplied, iUnitsTotal, iPercentPerPop, iPerCity, iPerHandicap, (iWarWearinessReduction / 2), iWarWearinessActualReduction, iTechReduction, iWarWearinessReduction, iSupplyFromGreatPeople, iUnitsTotalMilitary);
+		local strUnitSupplyToolUnderTip = "";
+		if (iHighestWarWearyPlayer == -1) then
+			strUnitSupplyToolUnderTip = Locale.ConvertTextKey("TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP_NOT_WEARY", iUnitsSupplied, iUnitsTotal, iPercentPerPop, iPerCity, iPerHandicap, iWarWearinessPercentReduction, iWarWearinessReduction, iTechReduction, iWarWearinessCostIncrease, iSupplyFromGreatPeople, iUnitsTotalMilitary);
+		else
+			local iWarWearyTargetPercent = pPlayer:GetWarWearinessPercent(iHighestWarWearyPlayer);
+			strUnitSupplyToolUnderTip = Locale.ConvertTextKey("TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP", iUnitsSupplied, iUnitsTotal, iPercentPerPop, iPerCity, iPerHandicap, iWarWearinessPercentReduction, iWarWearinessReduction, iTechReduction, iWarWearinessCostIncrease, iSupplyFromGreatPeople, iUnitsTotalMilitary, Players[iHighestWarWearyPlayer]:GetCivilizationShortDescription(), iWarWearyTargetPercent);
+		end
 		if (strUnitSupplyToolTip ~= "") then
 			strUnitSupplyToolTip = strUnitSupplyToolTip .. "[NEWLINE][NEWLINE]" .. strUnitSupplyToolUnderTip;
 		else
@@ -2940,22 +2958,35 @@ local function OnResourceRClick( resourceID )
 	return GamePedia( GameInfo.Resources[ resourceID ].Description )
 end
 
+local tStrategicResources = {}
+
 for resource in GameInfo.Resources() do
 	local resourceID = resource.ID
+	
 	if Game.GetResourceUsageType( resourceID ) == ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC then
-		local instance = {}
-		ContextPtr:BuildInstanceForControlAtIndex( "ResourceInstance", instance, Controls.TopPanelDiploStack, 8 )
-		g_resourceString[ resourceID ] = instance
-		IconHookup( resource.PortraitIndex, 45, resource.IconAtlas, instance.Image )
-		instance.Image:SetTextureSizeVal( 45, 45 ) --lower numbers look bigger
-		instance.Image:NormalizeTexture()
-
-		instance.Count:SetVoid1( resourceID )
-		instance.Count:SetToolTipCallback( ResourcesTipHandler )
-		instance.Count:RegisterCallback( Mouse.eLClick, OnResourceLClick )
-		instance.Count:RegisterCallback( Mouse.eRClick, OnResourceRClick )
+		table.insert(tStrategicResources, resource.StrategicPriority, resource)
 	end
+end
 
+for i, resource in ipairs(tStrategicResources) do
+	local resourceID = resource.ID
+	
+	local instance = {}
+	ContextPtr:BuildInstanceForControlAtIndex( "ResourceInstance", instance, Controls.TopPanelDiploStack, 8 )
+	g_resourceString[ resourceID ] = instance
+	IconHookup( resource.PortraitIndex, 45, resource.IconAtlas, instance.Image )
+	instance.Image:SetTextureSizeVal( 45, 45 ) --lower numbers look bigger
+	instance.Image:NormalizeTexture()
+
+	instance.Count:SetVoid1( resourceID )
+	instance.Count:SetToolTipCallback( ResourcesTipHandler )
+	instance.Count:RegisterCallback( Mouse.eLClick, OnResourceLClick )
+	instance.Count:RegisterCallback( Mouse.eRClick, OnResourceRClick )
+end
+
+for resource in GameInfo.Resources() do
+	local resourceID = resource.ID
+	
 	if resourceID == NavalSupplyID then
 		Controls.NavalSupplyString:SetVoid1( NavalSupplyID )
 		Controls.NavalSupplyIcon:SetVoid1( NavalSupplyID )

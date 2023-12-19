@@ -781,13 +781,10 @@ void CvGame::setInitialItems(CvGameInitialItemsOverrides& kInitialItemOverrides)
 		else if (iPlusMinus == 0)
 			m_iEarliestBarbarianReleaseTurn = iBarbReleaseTurn;
 		else
-		{
-			int iRand = GC.getGame().getJonRandNum((iPlusMinus*2)+1, "barb release");
-			m_iEarliestBarbarianReleaseTurn = std::max(0, iBarbReleaseTurn + iRand - iPlusMinus);
-		}
+			m_iEarliestBarbarianReleaseTurn = max(0, GC.getGame().randRangeInclusive(iBarbReleaseTurn - iPlusMinus, iBarbReleaseTurn + iPlusMinus, CvSeeder::fromRaw(0x07f63322)));
 	}
 	else
-		m_iEarliestBarbarianReleaseTurn = std::max(0, getHandicapInfo().getEarliestBarbarianReleaseTurn() + GC.getGame().getJonRandNum(/*15*/ GD_INT_GET(AI_TACTICAL_BARBARIAN_RELEASE_VARIATION), "barb release"));
+		m_iEarliestBarbarianReleaseTurn = max(0, getHandicapInfo().getEarliestBarbarianReleaseTurn() + GC.getGame().randRangeExclusive(0, /*15*/ max(1, GD_INT_GET(AI_TACTICAL_BARBARIAN_RELEASE_VARIATION)), CvSeeder::fromRaw(0x4602dd5b)));
 
 	UpdateGameEra();
 	// What route type forms an industrial connection
@@ -829,9 +826,6 @@ void CvGame::setInitialItems(CvGameInitialItemsOverrides& kInitialItemOverrides)
 
 			// Set Policy Costs before game starts, or else it'll be 0 on the first turn and Players can get something with any amount!
 			GET_PLAYER(ePlayer).DoUpdateNextPolicyCost();
-
-			// To have an orientation of which plots are relatively good or bad
-			GET_PLAYER(ePlayer).computeFoundValueThreshold();
 		}
 	}
 
@@ -1108,6 +1102,8 @@ void CvGame::uninit()
 	m_iNumVictoryVotesExpected = 0;
 	m_iVotesNeededForDiploVictory = 0;
 	m_iMapScoreMod = 0;
+	m_iCityFoundValueReference = 0;
+	m_iNumReferenceCities = 0;
 	m_iNumMajorCivsAliveAtGameStart = 0;
 	m_iNumMinorCivsAliveAtGameStart = 0;
 
@@ -1828,6 +1824,19 @@ void CvGame::updateScore(bool bForce)
 		setTeamScore(eBestTeam, iBestScore);
 	}
 }
+
+int CvGame::GetCityQualityReference() const
+{
+	//the capitals tend to be quite good so put the threshold somewhat lower
+	return (54*m_iCityFoundValueReference) / (max(1,m_iNumReferenceCities)*100);
+}
+
+void CvGame::NewCapitalFounded(int iFoundValue)
+{
+	m_iCityFoundValueReference += iFoundValue;
+	m_iNumReferenceCities++;
+}
+
 
 //	--------------------------------------------------------------------------------
 /// How does the size of the map affect how some of the score components are weighted?
@@ -11535,6 +11544,8 @@ void CvGame::Serialize(Game& game, Visitor& visitor)
 	visitor(game.m_iNumVictoryVotesExpected);
 	visitor(game.m_iVotesNeededForDiploVictory);
 	visitor(game.m_iMapScoreMod);
+	visitor(game.m_iCityFoundValueReference);
+	visitor(game.m_iNumReferenceCities);
 	visitor(game.m_iNumMajorCivsAliveAtGameStart);
 	visitor(game.m_iNumMinorCivsAliveAtGameStart);
 
@@ -13017,11 +13028,167 @@ void CvGame::BuildCannotPerformActionHelpText(CvString* toolTipSink, const char*
 	}
 }
 
+void CvGame::LogMapState() const
+{
+	// Only need to save the terrain once
+	if (GC.getGame().getElapsedGameTurns() < 1)
+	{
+		CvString strMapName;
+		strMapName = strMapName.format("Maps\\Civ5MapmapState_Turn%03d.Civ5Map", GC.getGame().getElapsedGameTurns());
+
+		const char* sz_strMapName = strMapName.c_str();
+		std::vector<wchar_t> vec;
+		size_t len = strlen(sz_strMapName);
+		vec.resize(len + 1);
+		mbstowcs(&vec[0], sz_strMapName, len);
+		const wchar_t* wsz = &vec[0];
+
+		CvWorldBuilderMapLoader::Save(wsz, NULL);
+	}
+	/*
+	 * The end goal of this data dump is for use with a map image generating tool (https://github.com/samuelyuan/Civ5MapImage)
+	 * to create visual representations of each turn of a game. The problem is, this tool expects a scenario file and not a
+	 * savefile, which requires two workarounds: the first is in CvWorldBuilderMapLoader::Save, which restores the scenario
+	 * metadata, and the second is the rest of this function, which fills in the remaining scenario data required:
+	 * civs, improvements, units, etc.
+	 * 
+	 * This is a bit ugly but what I deemed to be the approach that requires the least amount of effort is to simply manually
+	 * construct a json string with this info that will be merged with the map json representation in a script later
+	 */
+	CvString strLogName;
+	strLogName = strLogName.format("mapStateLog_Turn%03d.json", GC.getGame().getElapsedGameTurns());
+	FILogFile* pLog = LOGFILEMGR.GetLog(strLogName, FILogFile::kDontTimeStamp);
+	CvString outputJson = "{\"MapData\": {";
+	CvString strTemp;
+
+	// MapTileImprovements Section - cities and owners
+	outputJson += "\"MapTileImprovements\":[\n";
+	for (int i = 0; i < GC.getMap().numPlots(); i++)
+	{
+		CvPlot* pPlot = GC.getMap().plotByIndexUnchecked(i);
+
+		int cityId = -1;
+		CvString cityName = "";
+		int owner = 255;
+		int routeType = 255;
+
+		if (pPlot->isCity())
+		{
+			cityId = pPlot->getPlotCity()->GetID();
+			cityName = pPlot->getPlotCity()->getName();
+			owner = pPlot->getPlotCity()->getOwner();
+		}
+		else if (pPlot->getOwner() != NO_PLAYER)
+		{
+			owner = pPlot->getOwner();
+		}
+
+		switch (pPlot->getRouteType())
+		{
+		case ROUTE_ROAD:
+			routeType = 0;
+			break;
+		case ROUTE_RAILROAD:
+			routeType = 1;
+			break;
+		default:
+			routeType = 255;
+		}
+
+		strTemp.Format("{\"X\":%d,\"Y\":%d,\"CityId\":%d,\"CityName\":\"%s\",\"Owner\":%d,\"RouteType\":%d}",
+			pPlot->getX(),
+			pPlot->getY(),
+			cityId,
+			cityName.GetCString(),
+			owner,
+			routeType
+		);
+		outputJson += strTemp;
+
+		if (i != GC.getMap().numPlots() - 1)
+		{
+			outputJson += ",\n";
+		}
+	}
+	// Close MapTileImprovements Block
+	outputJson += "],";
+
+
+	// Civ5PlayerData Section
+	outputJson += "\"Civ5PlayerData\":[\n";
+
+	for (int iL = 0; iL < MAX_CIV_PLAYERS; iL++)
+	{
+		PlayerColorTypes pc = GET_PLAYER((PlayerTypes)iL).getPlayerColor();
+
+		if (pc <= 0)
+		{
+			continue;
+		}
+
+		const CvCivilizationInfo& thisCivilization = GET_PLAYER((PlayerTypes)iL).getCivilizationInfo();
+		strTemp.Format("{\"Index\":%d,\"CivType\":\"%s\",\"TeamColor\":\"%d\"}",
+			iL,
+			thisCivilization.GetType(),
+			pc
+		);
+		outputJson += strTemp;
+
+		if (iL != MAX_CIV_PLAYERS - 1)
+		{
+			outputJson += ",\n";
+		}
+	}
+
+	// Close Civ5PlayerData Block
+	outputJson += "],";
+
+	std::map<int, int> CityOwnerIndexMap;
+	// CivColorOverrides Section
+	outputJson += "\"CivColorOverrides\":[\n";
+
+
+	for (int iL = 0; iL < MAX_CIV_PLAYERS; iL++)
+	{
+		PlayerColorTypes pc = GET_PLAYER((PlayerTypes)iL).getPlayerColor();
+
+		if (pc <= 0)
+		{
+			continue;
+		}
+		CityOwnerIndexMap[iL] = pc;
+
+		// This still requires post-processing but getting this text is a pain
+		strTemp.Format("{\"CivKey\":\"%d\",\"OuterColor\":{\"Model\":\"constant\",\"ColorConstant\":\"\"},\"InnerColor\":{\"Model\":\"constant\",\"ColorConstant\":\"\"}}",
+			pc
+		);
+		outputJson += strTemp;
+
+
+		if (iL != MAX_CIV_PLAYERS - 1)
+		{
+			outputJson += ",\n";
+		}
+	}
+
+	// Close CivColorOverrides Block
+	outputJson += "],";
+
+	// File format seems to want this weird CityOwnerIndexMap thing so ok
+	outputJson += "\"CityOwnerIndexMap\":{}}}";
+	pLog->Msg(outputJson);
+}
+
 //	--------------------------------------------------------------------------------
 void CvGame::LogGameState(bool bLogHeaders) const
 {
 	if(GC.getLogging() && GC.getAILogging())
 	{
+		if (MOD_LOG_MAP_STATE)
+		{
+			LogMapState();
+		}
+
 		CvString strOutput;
 
 		CvString playerName;
@@ -14743,4 +14910,36 @@ bool CvGame::CreateFreeCityPlayer(CvCity* pStartingCity, bool bJustChecking, boo
 bool CvGame::isFirstActivationOfPlayersAfterLoad() const
 {
 	return m_firstActivationOfPlayersAfterLoad;
+}
+
+//	--------------------------------------------------------------------------------
+// exe things
+
+void CvGame::SetExeBinType(CvBinType eBinType)
+{
+	m_eExeBinType = eBinType;
+}
+CvBinType CvGame::GetExeBinType() const
+{
+	return m_eExeBinType;
+}
+bool CvGame::IsExeWantForceResyncAvailable() 
+{
+	return MOD_EXE_HACKING && m_eExeBinType == BIN_DX11 && isNetworkMultiPlayer() && gDLL->IsHost();
+}
+void CvGame::SetExeWantForceResyncValue(int value) 
+{
+	if (IsExeWantForceResyncAvailable())
+	{
+		*(int*)(s_iExeWantForceResync) = value;
+		if (value == 1)
+		{
+			CvString strWarningText = GetLocalizedText("TXT_KEY_VP_MP_WARNING_RESYNC_SCHEDULED");
+			GC.getDLLIFace()->sendChat(strWarningText, CHATTARGET_ALL, NO_PLAYER);
+		}
+	}
+}
+void CvGame::SetExeWantForceResyncPointer(int* pointer)
+{
+	s_iExeWantForceResync = pointer;
 }

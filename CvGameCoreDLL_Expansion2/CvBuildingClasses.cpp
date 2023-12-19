@@ -206,6 +206,8 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_iIlliteracyFlatReductionGlobal(0),
 	m_iBoredomFlatReductionGlobal(0),
 	m_iReligiousUnrestFlatReductionGlobal(0),
+	m_iInstantReligionPressure(0),
+	m_iBasePressureModGlobal(0),
 	m_iPreferredDisplayPosition(0),
 	m_iPortraitIndex(-1),
 	m_bTeamShare(false),
@@ -414,7 +416,6 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piInstantYield(NULL),
 	m_paiBuildingClassLocalHappiness(NULL),
 	m_paiSpecificGreatPersonRateModifier(NULL),
-	m_iInstantReligionPressure(0),
 #endif
 #if defined(MOD_BALANCE_CORE)
 	m_piiGreatPersonProgressFromConstruction(),
@@ -693,6 +694,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iCityConnectionTradeRouteModifier = kResults.GetInt("CityConnectionTradeRouteModifier");
 	m_iCapturePlunderModifier = kResults.GetInt("CapturePlunderModifier");
 	m_iPolicyCostModifier = kResults.GetInt("PolicyCostModifier");
+	m_iDiplomatInfluenceBoost = kResults.GetInt("DiplomatInfluenceBoost");
 	m_iBorderGrowthRateIncrease = kResults.GetInt("BorderGrowthRateIncrease");
 	m_iBorderGrowthRateIncreaseGlobal = kResults.GetInt("BorderGrowthRateIncreaseGlobal");
 	m_iPlotCultureCostModifier = kResults.GetInt("PlotCultureCostModifier");
@@ -914,6 +916,9 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iBoredomFlatReductionGlobal = kResults.GetInt("BoredomFlatReductionGlobal");
 	m_iReligiousUnrestFlatReductionGlobal = kResults.GetInt("ReligiousUnrestFlatReductionGlobal");
 
+	m_iInstantReligionPressure = kResults.GetInt("InstantReligiousPressure");
+	m_iBasePressureModGlobal = kResults.GetInt("BasePressureModifierGlobal");
+
 	//Arrays
 	const char* szBuildingType = GetType();
 
@@ -964,7 +969,6 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.SetYields(m_piTechEnhancedYieldChange, "Building_TechEnhancedYieldChanges", "BuildingType", szBuildingType);
 #if defined(MOD_BALANCE_CORE_BUILDING_INSTANT_YIELD)
 	kUtility.SetYields(m_piInstantYield, "Building_InstantYield", "BuildingType", szBuildingType);
-	m_iInstantReligionPressure = kResults.GetInt("InstantReligiousPressure");
 #endif
 
 	kUtility.PopulateArrayByValue(m_piResourceQuantityRequirements, "Resources", "Building_ResourceQuantityRequirements", "ResourceType", "BuildingType", szBuildingType, "Cost");
@@ -2072,6 +2076,12 @@ int CvBuildingEntry::GetPolicyCostModifier() const
 	return m_iPolicyCostModifier;
 }
 
+/// +X Influence from Diplomatic Missions for units that originate from this city
+int CvBuildingEntry::GetDiplomatInfluenceBoost() const
+{
+	return m_iDiplomatInfluenceBoost;
+}
+
 /// Increase to rate of border growth in city
 int CvBuildingEntry::GetBorderGrowthRateIncrease() const
 {
@@ -2493,7 +2503,7 @@ int CvBuildingEntry::GetExtraLeagueVotes() const
 	return m_iExtraLeagueVotes;
 }
 
-int CvBuildingEntry::GetSingleVotes() const
+int CvBuildingEntry::GetSingleLeagueVotes() const
 {
 	return m_iSingleLeagueVotes;
 }
@@ -3024,6 +3034,17 @@ int CvBuildingEntry::GetBoredomFlatReductionGlobal() const
 int CvBuildingEntry::GetReligiousUnrestFlatReductionGlobal() const
 {
 	return m_iReligiousUnrestFlatReductionGlobal;
+}
+
+/// Instant Boost of religious pressure in the city when built
+int CvBuildingEntry::GetInstantReligionPressure() const
+{
+	return m_iInstantReligionPressure;
+}
+
+int CvBuildingEntry::GetBasePressureModGlobal() const
+{
+	return m_iBasePressureModGlobal;
 }
 
 // ARRAYS
@@ -4332,12 +4353,6 @@ int CvBuildingEntry::GetInstantYield(int i) const
 int* CvBuildingEntry::GetInstantYieldArray() const
 {
 	return m_piInstantYield;
-}
-
-/// Instant Boost of religious pressure in the city when built
-int CvBuildingEntry::GetInstantReligionPressure() const
-{
-	return m_iInstantReligionPressure;
 }
 #endif
 

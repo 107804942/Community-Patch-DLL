@@ -754,6 +754,7 @@ public:
 	int GetTurnsBetweenMinorCivElections();
 	int GetTurnsUntilMinorCivElection();
 
+	void LogMapState() const;
 	void LogGameState(bool bLogHeaders = false) const;
 	void unitIsMoving() const;
 
@@ -841,7 +842,22 @@ public:
 
 	bool isFirstActivationOfPlayersAfterLoad() const;
 
+	void NewCapitalFounded(int iPlotFoundValue);
+	int GetCityQualityReference() const;
+	
+	// exe things
+	void SetExeBinType(CvBinType eBinType);
+	CvBinType GetExeBinType() const;
+
+	bool IsExeWantForceResyncAvailable();
+	void SetExeWantForceResyncValue(int value);
+	void SetExeWantForceResyncPointer(int* pointer);
+
 protected:
+
+	// exe things
+	CvBinType m_eExeBinType;
+	int* s_iExeWantForceResync;
 
 	bool m_firstActivationOfPlayersAfterLoad;
 
@@ -878,6 +894,8 @@ protected:
 	int m_iNumVictoryVotesExpected;
 	int m_iVotesNeededForDiploVictory;
 	int m_iMapScoreMod;
+	int m_iCityFoundValueReference;
+	int m_iNumReferenceCities;
 	int m_iNumMajorCivsAliveAtGameStart;
 	int m_iNumMinorCivsAliveAtGameStart;
 

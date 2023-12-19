@@ -181,7 +181,7 @@ DROP TABLE BuildingClass_ResourceYieldChanges;
 
 -- Strategics
 UPDATE Resources
-SET TechReveal = 'TECH_STEAM_POWER'
+SET TechReveal = 'TECH_CHEMISTRY'
 WHERE Type = 'RESOURCE_COAL';
 
 UPDATE Resources
@@ -622,6 +622,7 @@ VALUES
 	('RESOURCE_RICE', 'FEATURE_MARSH'),
 	('RESOURCE_MAIZE', 'FEATURE_FLOOD_PLAINS'),
 	('RESOURCE_DEER', 'FEATURE_JUNGLE'),
+	('RESOURCE_COAL', 'FEATURE_FOREST'),
 	('RESOURCE_NUTMEG', 'FEATURE_JUNGLE'),
 	('RESOURCE_NUTMEG', 'FEATURE_FOREST'),
 	('RESOURCE_NUTMEG', 'FEATURE_FLOOD_PLAINS'),
@@ -637,7 +638,9 @@ INSERT INTO Resource_FeatureTerrainBooleans
 	(ResourceType, TerrainType)
 VALUES
 	('RESOURCE_RICE', 'TERRAIN_GRASS'),
-	('RESOURCE_MAIZE', 'TERRAIN_DESERT');
+	('RESOURCE_MAIZE', 'TERRAIN_DESERT'),
+	('RESOURCE_COAL', 'TERRAIN_GRASS'),
+	('RESOURCE_COAL', 'TERRAIN_PLAINS');
 
 INSERT INTO ResourceHelper
 VALUES
@@ -672,3 +675,12 @@ WHERE Type IN (
 UPDATE Resources
 SET CivilizationType = 'CIVILIZATION_BRAZIL'
 WHERE Type = 'RESOURCE_BRAZILWOOD';
+
+-- Sets the order of Strategic Resources in TopPanel.lua
+UPDATE Resources SET StrategicPriority = 1 WHERE Type = 'RESOURCE_HORSE';
+UPDATE Resources SET StrategicPriority = 2 WHERE Type = 'RESOURCE_IRON';
+UPDATE Resources SET StrategicPriority = 3 WHERE Type = 'RESOURCE_COAL';
+UPDATE Resources SET StrategicPriority = 4 WHERE Type = 'RESOURCE_OIL';
+UPDATE Resources SET StrategicPriority = 5 WHERE Type = 'RESOURCE_ALUMINUM';
+UPDATE Resources SET StrategicPriority = 6 WHERE Type = 'RESOURCE_URANIUM';
+UPDATE Resources SET StrategicPriority = 7 WHERE Type = 'RESOURCE_PAPER';
