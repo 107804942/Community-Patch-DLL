@@ -220,7 +220,7 @@ public:
 
 	std::string getHotKeyDescription() const;
 	const char* getHotKeyString() const;
-	void setHotKeyDescription(const char* swzHotKeyDescKey, const char* szHotKeyAltDescKey, const char* szHotKeyString);
+	void setHotKeyDescription(const char* szHotKeyDescKey, const char* szHotKeyAltDescKey, const char* szHotKeyString);
 
 	static CvString CreateHotKeyFromDescription(const char* pszHotKey, bool bShift, bool bAlt, bool bCtrl);
 	static CvString CreateKeyStringFromKBCode(const char* pszHotKey);
@@ -880,6 +880,7 @@ public:
 	int GetTourism() const;
 	int GetGeneralPoints() const;
 	int GetAdmiralPoints() const;
+	int GetJuggernauts() const;
 	int GetRandom() const;
 #endif
 
@@ -910,6 +911,7 @@ protected:
 	int m_iHappiness;
 	int m_iGeneralPoints;
 	int m_iAdmiralPoints;
+	int m_iJuggernauts;
 	int m_iTourism;
 	int m_iRand;
 #endif
@@ -1012,6 +1014,7 @@ public:
 	int getCombatBonus() const;
 	int getResistanceCap() const;
 	int getVisionBonus() const;
+	int getSpySecurityModifier() const;
 	// VP Difficulty Bonus
 	int getDifficultyBonusTurnInterval() const;
 	int getYieldAmountForDifficultyBonus(int iEra, int iHistoricEvent, int iYield) const;
@@ -1074,6 +1077,7 @@ public:
 	int getAICombatBonus() const;
 	int getAIResistanceCap() const;
 	int getAIVisionBonus() const;
+	int getAISpySecurityModifier() const;
 	// VP Difficulty Bonus
 	int getAIDifficultyBonusTurnInterval() const;
 	int getYieldAmountForAIDifficultyBonus(int iEra, int iHistoricEvent, int iYield) const;
@@ -1240,6 +1244,7 @@ protected:
 	int m_iCombatBonus;
 	int m_iResistanceCap;
 	int m_iVisionBonus;
+	int m_iSpySecurityModifier;
 	// VP Difficulty Bonus
 	int m_iDifficultyBonusTurnInterval;
 
@@ -1301,6 +1306,7 @@ protected:
 	int m_iAICombatBonus;
 	int m_iAIResistanceCap;
 	int m_iAIVisionBonus;
+	int m_iAISpySecurityModifier;
 	// VP Difficulty Bonus
 	int m_iAIDifficultyBonusTurnInterval;
 
@@ -1558,7 +1564,7 @@ public:
 
 	template<typename TurnTimerInfo, typename Visitor>
 	static void Serialize(TurnTimerInfo& turnTimerInfo, Visitor& visitor);
-	virtual void readFrom(FDataStream& readFrom);
+	virtual void readFrom(FDataStream& loadFrom);
 	virtual void writeTo(FDataStream& saveTo) const;
 
 protected:
@@ -1588,7 +1594,7 @@ public:
 
 	template<typename DiploModifierInfo, typename Visitor>
 	static void Serialize(DiploModifierInfo& diploModifierInfo, Visitor& visitor);
-	virtual void readFrom(FDataStream& readFrom);
+	virtual void readFrom(FDataStream& loadFrom);
 	virtual void writeTo(FDataStream& saveTo) const;
 
 protected:
@@ -2932,7 +2938,7 @@ public:
 	int GetColorTypeSecondary() const;
 	int GetColorTypeText() const;
 
-	virtual bool CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtilty);
+	virtual bool CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility);
 
 private:
 	int m_iColorTypePrimary;
@@ -3243,7 +3249,6 @@ public:
 	virtual ~CvModEventChoiceInfo();
 
 	bool isParentEvent(EventTypes eEvent) const;
-	int getAdvancedActionID() const;
 	int getEventPolicy() const;
 	int getEventBuilding() const;
 	int getEventDuration() const;
@@ -3267,6 +3272,7 @@ public:
 	int getNumFreeSpecificUnits(int i) const;
 	int getNumFreeUnits(int i) const;
 	int getFreeScaledUnits() const;
+	int getSpecialistsGreatPersonPointsPerTurn() const;
 	int getEventConvertReligion(int i) const;
 	int getEventConvertReligionPercent(int i) const;
 	int getCityYield(int i) const;
@@ -3352,6 +3358,7 @@ protected:
 	int* m_piConvertReligionPercent;
 	int* m_piCityYield;
 	int m_iFreeScaledUnits;
+	int m_iSpecialistsGreatPersonPointsPerTurn;
 	CvString m_strEventChoiceSoundEffect;
 	int m_iNumFreePolicies;
 	int m_iNumFreeTechs;
@@ -3705,13 +3712,21 @@ public:
 	int getBuildingDestructionChance(int i) const;
 	int getCityWideDestructionChance() const;
 	int getCityStrategicResourcePillage() const;
+	int getPillageResourceTilesChance() const;
+	int getPillageRoadsChance() const;
+	int getPillageFortificationsChance() const;
+	int getMutuallyExclusiveGroup() const;
+	int getRemoveTurnsOfProductionProgress() const;
 	int getFlavorValue(int i) const;
 	int getWLTKD() const;
 	int getGrowthMod() const;
 	int getResistanceTurns() const;
 	int getRandomBarbs() const;
+	int getRandomBarbsPerEra() const;
 	int getFreeScaledUnits() const;
+	int getSpecialistsGreatPersonPointsPerTurn() const;
 	int getCityHappiness() const;
+	int getReligiousPressureModifier() const;
 	int getBasicNeedsMedianModifier() const;
 	int getGoldMedianModifier() const;
 	int getScienceMedianModifier() const;
@@ -3725,6 +3740,7 @@ public:
 	int getCityYield(int i) const;
 	int getCityYieldModifier(int i) const;
 	int getYieldSiphon(int i) const;
+	int getYieldOnSpyCaught(int i) const;
 	int getBuildingClassYield(int i, int j) const;
 	int getBuildingClassYieldModifier(int i, int j) const;
 	int getTerrainYield(int i, int j) const;
@@ -3734,35 +3750,34 @@ public:
 	int getEventResourceChange(ResourceTypes eResource) const;
 	int getCitySpecialistYieldChange(int i, int j) const;
 	const char* getDisabledTooltip() const;
+	const char* getSpyMissionEffect() const;
 	int getEventPromotion() const;
 	int ConvertsCityToPlayerReligion() const;
 	int ConvertsCityToPlayerMajorityReligion() const;
-	int getCityDefenseModifier() const;
-	int getSpyVisionRange() const;
-	int getSpyVisionDuration() const;
-	bool isNoLevelUp() const;
 
 	
 	//espionage
-	bool IsEspionageEffect() const;
-	bool IsApplyEffectToSpyOwner() const;
-	int GetIdentificationModifier() const;
-	int GetDeathModifier() const;
+	int GetNetworkPointsNeededScaled() const;
+	int GetSpyIdentificationChance() const;
+	int GetSpyCaptureChance() const;
 	int GetSpyLevelRequired() const;
-	int getEspionageMissionDuration() const;
-	int getEspionageExperience() const;
-	int getDamageCity() const;
-	int getDamageGarrison() const;
 	int getStealTech() const;
-	int getForgeGW() const;
+	int getStealGW() const;
 	int getSapCityTurns() const;
-	bool isSurveillance() const;
-	bool isRequiresCounterSpy() const;
-	bool isExpiresOnCounterSpyExit() const;
-	bool isSpyMissionSetup() const;
-	bool IsIgnoreLocalSpies() const;
+	int getNoTourismTurns() const;
+	int getStealFromTreasuryPercent() const;
+	bool isEspionageMission() const;
 	bool isEnemyUnhappy() const;
 	bool isEnemySuperUnhappy() const;
+	// Counterspies
+	bool isCounterspyMission() const;
+	int getCounterspyNPRateReduction() const;
+	bool isCounterspyBlockSapCity() const;
+	int getCityDefenseModifierBase() const;
+	int getCityDefenseModifier() const;
+	bool isAlwaysIDSpies() const;
+	bool isKillCaughtSpies() const;
+	bool isSecretMission() const;
 	EventChoiceTypes GetTriggerPlayerEventChoice() const;
 
 	//Filters
@@ -3794,7 +3809,6 @@ public:
 	int getLocalResourceRequired() const;
 	bool isResistance() const;
 	bool isWLTKD() const;
-	int getWonderUnderConstructionSpeedMod() const;
 	bool isOccupied() const;
 	bool isRazing() const;
 	bool hasAnyReligion() const;
@@ -3843,7 +3857,9 @@ protected:
 	int m_iGrowthMod;
 	int m_iResistanceTurns;
 	int m_iRandomBarbs;
+	int m_iRandomBarbsPerEra;
 	int m_iFreeScaledUnits;
+	int m_iSpecialistsGreatPersonPointsPerTurn;
 	int* m_piBuildingDestructionChance;
 	int* m_piNumFreeUnits;
 	int* m_piNumFreeSpecificUnits;
@@ -3863,7 +3879,13 @@ protected:
 	bool* m_pbParentEventIDs;
 	int m_iCityWideDestructionChance;
 	int m_iCityStrategicResourcePillage;
+	int m_iPillageResourceTilesChance;
+	int m_iPillageRoadsChance;
+	int m_iPillageFortificationsChance;
+	int m_iMutuallyExclusiveGroup;
+	int m_iRemoveTurnsOfProductionProgress;
 	int m_iCityHappiness;
+	int m_iReligiousPressureModifier;
 	int m_iBasicNeedsMedianModifier;
 	int m_iGoldMedianModifier;
 	int m_iScienceMedianModifier;
@@ -3871,33 +3893,33 @@ protected:
 	int m_iReligiousUnrestModifier;
 	int* m_piResourceChange;
 	int* m_piYieldSiphon;
+	int* m_piYieldOnSpyCaught;
 	CvString m_strDisabledTooltip;
+	CvString m_strSpyMissionEffect;
 	int m_iConvertsCityToPlayerReligion;
 	int m_iConvertsCityToPlayerMajorityReligion;
-	int m_iCityDefenseModifier;
 	int m_iTriggerPlayerEventChoice;
-	int m_iSpyVisionRange;
-	int m_iSpyVisionDuration;
-	bool m_iIsNoLevelUp;
 
-	//espionage
-	bool m_bEspionageEffect;
-	bool m_bApplyEffectToSpyOwner;
-	bool m_bIgnoreLocalSpies;
-	int m_iIdentificationModifier;
-	int m_iDeathModifier;
+	// Espionage
+	int m_iNetworkPointsNeeded;
+	int m_iSpyIdentificationChance;
+	int m_iSpyCaptureChance;
 	int m_iSpyLevelRequired;
-	int m_iEspDuration;
-	int m_iSpyExperience;
-	bool m_bIsMissionSetup;
-	bool m_bIsSurveillance;
-	bool m_bRequiresCounterSpy;
-	bool m_bExpiresOnCounterSpyExit;
-	int m_iDamageCity;
-	int m_iDamageGarrison;
+	bool m_bIsEspionageMission;
 	int m_iStealTech;
-	int m_iForgeGW;
+	int m_iStealGW;
 	int m_iSapCityTurns;
+	int m_iNoTourismTurns;
+	int m_iStealFromTreasuryPercent;
+	// Counterspies
+	bool m_bIsCounterspyMission;
+	int m_iCounterspyNPRateReduction;
+	bool m_bCounterspyBlockSapCity;
+	int m_iCityDefenseModifierBase;
+	int m_iCityDefenseModifier;
+	bool m_bIsAlwaysIDSpies;
+	bool m_bIsKillCaughtSpies;
+	bool m_bIsSecretMission;
 
 	//Filters
 	int m_iPrereqTech;
@@ -3929,7 +3951,6 @@ protected:
 	bool m_bEnemySuperUnhappy;
 	bool m_bIsResistance;
 	bool m_bIsWLTKD;
-	int m_iWonderConstructionMod;
 	bool m_bIsOccupied;
 	bool m_bIsRazing;
 	bool m_bHasAnyReligion;

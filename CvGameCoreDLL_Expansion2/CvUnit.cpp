@@ -3344,6 +3344,7 @@ void CvUnit::doTurn()
 			if (iTurnsElapsed > getPromotionDuration(ePromotion))
 			{
 				setHasPromotion(ePromotion, false);
+				restoreFullMoves();
 				continue;
 			}
 		}
@@ -4768,6 +4769,10 @@ bool CvUnit::canEnterTerritory(TeamTypes eTeam, bool bEndTurn) const
 		return true;
 
 	if(isRivalTerritory() || isTrade())
+		return true;
+
+	//if this option is active, we need open borders only if we want to end the turn in foreign territory
+	if (MOD_CORE_RELAXED_BORDER_CHECK && !bEndTurn)
 		return true;
 
 	// Minors can't intrude into one another's territory
@@ -6781,6 +6786,10 @@ int CvUnit::GetCaptureChance(CvUnit *pEnemy)
 	if(pEnemy->GetCannotBeCaptured())
 		return 0;
 
+	// Can't capture units in cities
+	if (pEnemy->plot()->isCity())
+		return 0;
+
 	// This unit has a fixed capture chance? Use it!
 	int iFixedCaptureChance = GetCaptureDefeatedEnemyChance();
 	if (iFixedCaptureChance > 0)
@@ -7353,10 +7362,7 @@ bool CvUnit::canUseForAIOperation() const
 	}
 
 	//don't pull units out of important citadels
-	if (TacticalAIHelpers::IsPlayerCitadel(plot(), getOwner()) && TacticalAIHelpers::IsCloseToContestedBorder(&kPlayer, plot()))
-		return false;
-
-	return true;
+	return !(TacticalAIHelpers::IsPlayerCitadel(plot(), getOwner()) && TacticalAIHelpers::IsCloseToContestedBorder(&kPlayer, plot()));
 }
 
 //	--------------------------------------------------------------------------------
@@ -11023,6 +11029,16 @@ bool CvUnit::DoFoundReligion()
 		if(CanFoundReligion(pkPlot))
 		{
 			CvPlayerAI& kOwner = GET_PLAYER(getOwner());
+			bool bIndiaException = false;
+			if (kOwner.GetPlayerTraits()->IsProphetFervor())
+			{
+				GetReligionDataMutable()->IncrementSpreadsUsed();
+				if (GetReligionData()->GetSpreadsLeft(this) > 0)
+					bIndiaException = true;
+
+				finishMoves();
+			}
+
 			if(kOwner.isHuman())
 			{
 				CvAssertMsg(pkCity != NULL, "No City??");
@@ -11035,12 +11051,16 @@ bool CvUnit::DoFoundReligion()
 					pNotifications->Add(NOTIFICATION_FOUND_RELIGION, strBuffer, strSummary, pkPlot->getX(), pkPlot->getY(), -1, pkCity->GetID());
 				}
 				kOwner.GetReligions()->SetFoundingReligion(true);
+
+				if (!bIndiaException)
+				{
 #if defined(MOD_EVENTS_GREAT_PEOPLE)
-				kOwner.DoGreatPersonExpended(getUnitType(), this);
+					kOwner.DoGreatPersonExpended(getUnitType(), this);
 #else
-				kOwner.DoGreatPersonExpended(getUnitType());
+					kOwner.DoGreatPersonExpended(getUnitType());
 #endif
-				kill(true);
+					kill(true);
+				}
 			}
 			else
 			{
@@ -11099,12 +11119,16 @@ bool CvUnit::DoFoundReligion()
 #endif
 
 					pReligions->FoundReligion(getOwner(), eReligion, NULL, eBeliefs[0], eBeliefs[1], eBeliefs[2], eBeliefs[3], pkCity);
+
+					if (!bIndiaException)
+					{
 #if defined(MOD_EVENTS_GREAT_PEOPLE)
-					kOwner.DoGreatPersonExpended(getUnitType(), this);
+						kOwner.DoGreatPersonExpended(getUnitType(), this);
 #else
-					kOwner.DoGreatPersonExpended(getUnitType());
+						kOwner.DoGreatPersonExpended(getUnitType());
 #endif
-					kill(true);
+						kill(true);
+					}
 				}
 				else
 				{
@@ -11191,6 +11215,16 @@ bool CvUnit::DoEnhanceReligion()
 		if(CanEnhanceReligion(pkPlot))
 		{
 			CvPlayerAI& kOwner = GET_PLAYER(getOwner());
+			bool bIndiaException = false;
+			if (kOwner.GetPlayerTraits()->IsProphetFervor())
+			{
+				GetReligionDataMutable()->IncrementSpreadsUsed();
+				if (GetReligionData()->GetSpreadsLeft(this) > 0)
+					bIndiaException = true;
+
+				finishMoves();
+			}
+
 			if(kOwner.isHuman())
 			{
 				CvAssertMsg(pkCity != NULL, "No City??");
@@ -11202,12 +11236,16 @@ bool CvUnit::DoEnhanceReligion()
 					CvString strSummary = GetLocalizedText("TXT_KEY_NOTIFICATION_SUMMARY_ENHANCE_RELIGION");
 					pNotifications->Add(NOTIFICATION_ENHANCE_RELIGION, strBuffer, strSummary, pkPlot->getX(), pkPlot->getY(), -1, pkCity->GetID());
 				}
+
+				if (!bIndiaException)
+				{
 #if defined(MOD_EVENTS_GREAT_PEOPLE)
-				kOwner.DoGreatPersonExpended(getUnitType(), this);
+					kOwner.DoGreatPersonExpended(getUnitType(), this);
 #else
-				kOwner.DoGreatPersonExpended(getUnitType());
+					kOwner.DoGreatPersonExpended(getUnitType());
 #endif
-				kill(true);
+					kill(true);
+				}
 			}
 			else
 			{
@@ -11225,12 +11263,15 @@ bool CvUnit::DoEnhanceReligion()
 
 					pReligions->EnhanceReligion(getOwner(), eReligion, eBelief1, eBelief2);
 
+					if (!bIndiaException)
+					{
 #if defined(MOD_EVENTS_GREAT_PEOPLE)
-					kOwner.DoGreatPersonExpended(getUnitType(), this);
+						kOwner.DoGreatPersonExpended(getUnitType(), this);
 #else
-					kOwner.DoGreatPersonExpended(getUnitType());
+						kOwner.DoGreatPersonExpended(getUnitType());
 #endif
-					kill(true);
+						kill(true);
+					}
 				}
 				else
 				{
@@ -13638,7 +13679,7 @@ bool CvUnit::canBuild(const CvPlot* pPlot, BuildTypes eBuild, bool bTestVisible,
 		return false;
 	}
 
-	// If prophet has  started spreading religion, can't do other functions
+	// If prophet has started spreading religion, can't do other functions
 	if (m_pUnitInfo->IsSpreadReligion())
 	{
 		if (GetReligionData()->GetReligion() != NO_RELIGION && GetReligionData()->GetSpreadsUsed() > 0)
@@ -14005,48 +14046,52 @@ bool CvUnit::build(BuildTypes eBuild)
 					gDLL->GameplayUnitActivate(pDllUnit.get());
 				}
 
-				if(IsGreatPerson())
+				bool bIndiaException = false;
+				ImprovementTypes eHolySite = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_HOLY_SITE");
+				if (eImprovement == eHolySite && GET_PLAYER(getOwner()).GetPlayerTraits()->IsProphetFervor())
 				{
-#if defined(MOD_EVENTS_GREAT_PEOPLE)
-#if defined(MOD_CIV6_WORKER)
-					if (MOD_CIV6_WORKER && getBuilderStrength() > 0)
+					GetReligionDataMutable()->IncrementSpreadsUsed();
+					if (GetReligionData()->GetSpreadsLeft(this) > 0)
+						bIndiaException = true;
+				}
+
+				if (!bIndiaException)
+				{
+					if (IsGreatPerson())
 					{
-						int iBuildCost = pkBuildInfo->getBuilderCost();
-						setBuilderStrength(getBuilderStrength() - iBuildCost);
-						if (getBuilderStrength() <= 0)
+#if defined(MOD_EVENTS_GREAT_PEOPLE)
+						if (MOD_CIV6_WORKER && getBuilderStrength() > 0)
 						{
+							int iBuildCost = pkBuildInfo->getBuilderCost();
+							setBuilderStrength(getBuilderStrength() - iBuildCost);
+							if (getBuilderStrength() <= 0)
+							{
+								kPlayer.DoGreatPersonExpended(getUnitType(), this);
+								kill(true);
+							}
+						}
+						else
 							kPlayer.DoGreatPersonExpended(getUnitType(), this);
+#else
+						kPlayer.DoGreatPersonExpended(getUnitType());
+#endif
+					}
+
+					if (MOD_CIV6_WORKER)
+					{
+						if ((!pkBuildInfo->isKillOnlyCivilian() && !IsGreatPerson()) || (pkBuildInfo->isKillOnlyCivilian() && IsCivilianUnit() && !IsGreatPerson()))
+						{
 							kill(true);
 						}
 					}
-					else
-#endif
-					kPlayer.DoGreatPersonExpended(getUnitType(), this);
-#else
-					kPlayer.DoGreatPersonExpended(getUnitType());
-#endif
-				}
-#if defined(MOD_BALANCE_CORE)
-#if defined(MOD_CIV6_WORKER)
-				if (MOD_CIV6_WORKER)
-				{
-					if ((!pkBuildInfo->isKillOnlyCivilian() && !IsGreatPerson()) || (pkBuildInfo->isKillOnlyCivilian() && IsCivilianUnit() && !IsGreatPerson()))
+					else if (!MOD_CIV6_WORKER)
 					{
-						kill(true);
+						if (!pkBuildInfo->isKillOnlyCivilian() || (pkBuildInfo->isKillOnlyCivilian() && IsCivilianUnit()))
+						{
+							kill(true);
+						}
 					}
 				}
-				else if (!MOD_CIV6_WORKER)
-				{
-#endif
-					if (!pkBuildInfo->isKillOnlyCivilian() || (pkBuildInfo->isKillOnlyCivilian() && IsCivilianUnit()))
-					{
-#endif
-
-						kill(true);
-#if defined(MOD_BALANCE_CORE)
-					}
-				}
-#endif
 			}
 
 #if defined(MOD_CIV6_WORKER)
@@ -20279,7 +20324,7 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 			}
 		}
 
-		if(IsCombatUnit())
+		if(IsCombatUnit() && !isDelayedDeath())
 		{
 			oldUnitList.clear();
 
@@ -30361,7 +30406,7 @@ bool CvUnit::CanDoInterfaceMode(InterfaceModeTypes eInterfaceMode, bool bTestVis
 	case INTERFACEMODE_ATTACK:
 		if(IsCanAttackWithMove() && !isOutOfAttacks())
 		{
-			if(GetPlotsWithEnemyInMovementRange(false, IsCityAttackSupport()).size()>0 || bTestVisibility)
+			if(!GetPlotsWithEnemyInMovementRange(false, IsCityAttackSupport()).empty() || bTestVisibility)
 			{
 				return true;
 			}

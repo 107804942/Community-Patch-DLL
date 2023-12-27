@@ -62,9 +62,10 @@ WHERE Type = 'POLICY_VOLUNTEER_ARMY';
 -- Covert Action
 UPDATE Policies
 SET
-	-- RiggingElectionModifier = 100,
+	RiggingElectionModifier = 0,
 	FreeSpy = 1,
-	EspionageTurnsModifierFriendly = -2
+	RigElectionInfluenceModifier = 50,
+	EspionageNetworkPoints = 10
 WHERE Type = 'POLICY_COVERT_ACTION';
 
 -- Economic Union

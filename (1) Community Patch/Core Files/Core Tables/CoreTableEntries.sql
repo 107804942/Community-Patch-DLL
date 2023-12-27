@@ -162,6 +162,7 @@ ALTER TABLE SmallAwards ADD 'Happiness' INTEGER DEFAULT 0;
 ALTER TABLE SmallAwards ADD 'Tourism' INTEGER DEFAULT 0;
 ALTER TABLE SmallAwards ADD 'GeneralPoints' INTEGER DEFAULT 0;
 ALTER TABLE SmallAwards ADD 'AdmiralPoints' INTEGER DEFAULT 0;
+ALTER TABLE SmallAwards ADD 'Juggernauts' INTEGER DEFAULT 0;
 ALTER TABLE SmallAwards ADD 'RandomMod' INTEGER DEFAULT 0;
 
 -- Bombard Ranges for cities increase/decrease over default
@@ -186,10 +187,13 @@ ALTER TABLE Buildings ADD COLUMN 'CapitalOnly' BOOLEAN DEFAULT 0;
 -- Requirement that allows you to bypass prereq techs to get something.
 ALTER TABLE Buildings ADD COLUMN 'NumPoliciesNeeded' INTEGER DEFAULT 0;
 
--- Reduce specialist unhappiness from urbanization (CBO)
+-- Reduce specialist unhappiness from urbanization (VP)
 ALTER TABLE Buildings ADD COLUMN 'NoUnhappfromXSpecialists' INTEGER DEFAULT 0;
--- Reduce specialist unhappiness from urbanization (CBO)
+-- Reduce specialist unhappiness from urbanization (VP)
 ALTER TABLE Buildings ADD COLUMN 'NoUnhappfromXSpecialistsGlobal' INTEGER DEFAULT 0;
+
+-- +x% Food for each follower of the city's majority religion
+ALTER TABLE Buildings ADD COLUMN 'FoodBonusPerCityMajorityFollower' INTEGER DEFAULT 0;
 
 -- BUILDING: PlayerBorderGainlessPillage & CityGainlessPillage
 -- If such a building's effect applies, other teams get neither gold nor heal from pillaging the appropriate tiles.
@@ -539,12 +543,11 @@ ALTER TABLE Buildings ADD COLUMN 'CityConnectionGoldModifier' INTEGER DEFAULT 0;
 -- Adds abiility for units to upgrade in allied CS or vassal lands.
 ALTER TABLE Policies ADD COLUMN 'UpgradeCSVassalTerritory' BOOLEAN DEFAULT 0;
 
--- Adds ability for spies to steal GW/tech through Spy Actions
-ALTER TABLE Policies ADD COLUMN 'EnablesTechSteal' BOOLEAN DEFAULT 0;
-ALTER TABLE Policies ADD COLUMN 'EnablesGWSteal' BOOLEAN DEFAULT 0;
-ALTER TABLE Buildings ADD COLUMN 'EnablesTechSteal' BOOLEAN DEFAULT 0;
-ALTER TABLE Buildings ADD COLUMN 'EnablesGWSteal' BOOLEAN DEFAULT 0;
+-- Spies gain additional Network Points per Turn
+ALTER TABLE Policies ADD COLUMN 'EspionageNetworkPoints' INTEGER DEFAULT 0;
 
+-- Modifies influence gained/lost when rigging elections
+ALTER TABLE Policies ADD COLUMN 'RigElectionInfluenceModifier' INTEGER DEFAULT 0;
 
 -- Adds event tourism from digging up sites.
 ALTER TABLE Policies ADD COLUMN 'ArchaeologicalDigTourism' INTEGER DEFAULT 0;
@@ -720,8 +723,13 @@ ALTER TABLE Beliefs ADD COLUMN 'CivilizationType' TEXT DEFAULT NULL;
 ALTER TABLE Traits ADD COLUMN 'FreeGreatWorkOnConquest' BOOLEAN DEFAULT 0;
 
 -- New Traits - Religious Pressure modified based on population
-
 ALTER TABLE Traits ADD COLUMN 'PopulationBoostReligion' BOOLEAN DEFAULT 0;
+
+-- New Traits - Starts with a Pantheon
+ALTER TABLE Traits ADD COLUMN 'StartsWithPantheon' BOOLEAN DEFAULT 0;
+
+-- New Traits - May spend first Great Prophet spread action (Found/Enhance/Build Holy Site) without consuming it
+ALTER TABLE Traits ADD COLUMN 'ProphetFervor' BOOLEAN DEFAULT 0;
 
 -- New Traits - % of capital culture converted to tourism during a GA
 ALTER TABLE Traits ADD COLUMN 'TourismGABonus' INTEGER DEFAULT 0;
@@ -1088,8 +1096,8 @@ ALTER TABLE GoodyHuts ADD COLUMN 'Food' INTEGER DEFAULT 0;
 ALTER TABLE GoodyHuts ADD COLUMN 'BorderGrowth' INTEGER DEFAULT 0;
 
 -- Tech Additions
-ALTER TABLE Technologies ADD COLUMN 'CityLessEmbarkCost' BOOLEAN;
-ALTER TABLE Technologies ADD COLUMN 'CityNoEmbarkCost' BOOLEAN;
+ALTER TABLE Technologies ADD COLUMN 'CityLessEmbarkCost' boolean;
+ALTER TABLE Technologies ADD COLUMN 'CityNoEmbarkCost' boolean;
 
 -- Tech adds raw happiness to capital
 ALTER TABLE Technologies ADD COLUMN 'Happiness' INTEGER DEFAULT 0;
@@ -1354,8 +1362,8 @@ ALTER TABLE Traits ADD COLUMN 'CultureBonusModifierConquest' INTEGER DEFAULT 0;
 -- % production bonus in all cities from conquering cities
 ALTER TABLE Traits ADD COLUMN 'ProductionBonusModifierConquest' INTEGER DEFAULT 0;
 
--- Global Espionage Modifier
-ALTER TABLE Traits ADD COLUMN 'EspionageRateModifier' INTEGER DEFAULT 0;
+-- Global City Security Modifier
+ALTER TABLE Traits ADD COLUMN 'SpySecurityModifier' INTEGER DEFAULT 0;
 
 -- Increase Spy Rank power without changing rank enum value
 ALTER TABLE Traits ADD COLUMN 'SpyExtraRankBonus' INTEGER DEFAULT 0;
@@ -1388,12 +1396,13 @@ ALTER TABLE Policies ADD COLUMN 'CityStateCombatModifier' INTEGER DEFAULT 0;
 ALTER TABLE Policies ADD COLUMN 'TradeRouteLandDistanceModifier' INTEGER DEFAULT 0;
 ALTER TABLE Policies ADD COLUMN 'TradeRouteSeaDistanceModifier' INTEGER DEFAULT 0;
 
---Espionage Modifier for Policies - should be negative for player benefit!
-ALTER TABLE Policies ADD COLUMN 'EspionageModifier' INTEGER DEFAULT 0;
 
---Espionage Modifier for Policies - changes durations of spy missions by a fixed amount of turns for friendly/enemy spies
-ALTER TABLE Policies ADD COLUMN 'EspionageTurnsModifierFriendly' INTEGER DEFAULT 0;
-ALTER TABLE Policies ADD COLUMN 'EspionageTurnsModifierEnemy' INTEGER DEFAULT 0;
+-- City Security against Spies
+ALTER TABLE Buildings ADD COLUMN 'SpySecurityModifier' INTEGER DEFAULT 0;
+-- City Security against Spies per Population
+ALTER TABLE Buildings ADD COLUMN 'SpySecurityModifierPerPop' INTEGER DEFAULT 0;
+-- City Security against Spies in all Cities
+ALTER TABLE Buildings ADD COLUMN 'GlobalSpySecurityModifier' INTEGER DEFAULT 0;
 
 -- C4DF Function
 
@@ -1462,7 +1471,7 @@ ALTER TABLE Policies ADD COLUMN 'NonSpecialistFoodChange' INTEGER DEFAULT 0;
 ALTER TABLE Policies ADD COLUMN 'ExtraCultureandScienceTradeRoutes' INTEGER DEFAULT 0;
 
 -- CORPORATIONS
-ALTER TABLE Technologies ADD COLUMN 'CorporationsEnabled' BOOLEAN;
+ALTER TABLE Technologies ADD COLUMN 'CorporationsEnabled' boolean;
 
 ALTER TABLE Buildings ADD COLUMN 'IsCorporation' BOOLEAN DEFAULT 0;
 ALTER TABLE Buildings ADD COLUMN 'GPRateModifierPerXFranchises' INTEGER DEFAULT 0;
@@ -1627,11 +1636,6 @@ ALTER TABLE Traits ADD COLUMN 'TradeRouteMinorInfluenceAP' BOOLEAN DEFAULT 0;
 -- Can this building be built next to any body of water?
 ALTER TABLE Buildings ADD COLUMN 'AnyWater' BOOLEAN DEFAULT 0;
 
---Espionage Modifier for Policies - changes durations of spy missions by a fixed amount of turns for friendly/enemy spies
-ALTER TABLE Buildings ADD COLUMN 'EspionageTurnsModifierFriendly' INTEGER DEFAULT 0;
-ALTER TABLE Buildings ADD COLUMN 'EspionageTurnsModifierEnemyCity' INTEGER DEFAULT 0;
-ALTER TABLE Buildings ADD COLUMN 'EspionageTurnsModifierEnemyGlobal' INTEGER DEFAULT 0;
-
 -- Promotion grants additional combat strength if on a pillaged improvement
 ALTER TABLE UnitPromotions ADD COLUMN 'PillageBonusStrength' INTEGER DEFAULT 0;
 
@@ -1680,7 +1684,7 @@ ALTER TABLE Buildings ADD 'GlobalGreatWorksTourismModifier' INTEGER DEFAULT 0;
 ALTER TABLE Buildings ADD 'NukeInterceptionChance' INTEGER DEFAULT 0;
 
 -- Table for Lua elements that we don't want shown in Civ selection screen or in Civilopedia
-ALTER TABLE Buildings ADD 'ShowInPedia' BOOLEAN DEFAULT 1;
+ALTER TABLE Buildings ADD 'ShowInPedia' boolean DEFAULT 1;
 
 -- Gives a boost of pressure in the city when built (based on what the religion is in your capital)
 ALTER TABLE Buildings ADD 'InstantReligiousPressure' INTEGER DEFAULT 0;

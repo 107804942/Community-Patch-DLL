@@ -290,7 +290,7 @@ WHERE Tag = 'TXT_KEY_BUILDING_ARSENAL_STRATEGY';
 
 -- Military Base
 UPDATE Language_en_US
-SET Text = '+25% [ICON_PRODUCTION] Production of Air Units, +15 [ICON_STRENGTH] Damage to Air Units during Air Strikes on City. Improves City [ICON_SPY] Spy Resistance by 50%. Increases the City''s [ICON_RANGE_STRENGTH] Ranged Strike Damage by 10%. [ICON_SILVER_FIST] Military Units Supplied by this City''s population increased by 20%, and garrisoned Units receive an additional 20 Health when healing in this City.[NEWLINE][NEWLINE]-1 [ICON_HAPPINESS_3] Unhappiness from [ICON_FOOD] and [ICON_PRODUCTION] Distress. [ICON_CITY_STATE] Empire Size Modifier is reduced by 5% in this City.'
+SET Text = '+25% [ICON_PRODUCTION] Production of Air Units, +15 [ICON_STRENGTH] Damage to Air Units during Air Strikes on City. Increases the City''s [ICON_RANGE_STRENGTH] Ranged Strike Damage by 10%. [ICON_SILVER_FIST] Military Units Supplied by this City''s population increased by 20%, and garrisoned Units receive an additional 20 Health when healing in this City.[NEWLINE][NEWLINE]-1 [ICON_HAPPINESS_3] Unhappiness from [ICON_FOOD] and [ICON_PRODUCTION] Distress. [ICON_CITY_STATE] Empire Size Modifier is reduced by 5% in this City.'
 WHERE Tag = 'TXT_KEY_BUILDING_MILITARY_BASE_HELP';
 
 UPDATE Language_en_US
@@ -383,12 +383,12 @@ WHERE Tag = 'TXT_KEY_BUILDING_STADIUM_STRATEGY';
 
 -- Police Station
 UPDATE Language_en_US
-SET Text = 'Improves City [ICON_SPY] Spy Resistance by 50%. Increases mission duration by 1 turn in the City for Foreign Spies. When you successfully counter a foreign [ICON_SPY] Espionage action in this City, gain 25 [ICON_CULTURE] Culture and [ICON_GOLD] Gold, scaling with Era and the Level of the foreign [ICON_SPY] Spy.[NEWLINE][NEWLINE]-1 [ICON_HAPPINESS_3] Unhappiness from [ICON_FOOD] and [ICON_PRODUCTION] Distress, [ICON_GOLD] Poverty, [ICON_RESEARCH] Illiteracy, and [ICON_CULTURE] Boredom.'
+SET Text = 'Improves City [ICON_SPY] City Security by 10, plus 1 for every Citizen in the City. When you capture or kill a foreign [ICON_SPY] Spy in this City, gain 100 [ICON_RESEARCH] Science and [ICON_CULTURE] Culture, scaling with Era.[NEWLINE][NEWLINE]-1 [ICON_HAPPINESS_3] Unhappiness from [ICON_FOOD] and [ICON_PRODUCTION] Distress, [ICON_GOLD] Poverty, [ICON_RESEARCH] Illiteracy, and [ICON_CULTURE] Boredom.'
 WHERE Tag = 'TXT_KEY_BUILDING_POLICE_STATION_HELP';
 
 -- Constabulary
 UPDATE Language_en_US
-SET Text = 'Improves City [ICON_SPY] Spy Resistance by 50%. Increases mission duration by 1 turn in the City for Foreign Spies.[NEWLINE][NEWLINE]-1 [ICON_HAPPINESS_3] Unhappiness from [ICON_FOOD] and [ICON_PRODUCTION] Distress. '
+SET Text = 'Improves [ICON_SPY] City Security by 15. When you identify a foreign Spy in this City, gain 25 [ICON_RESEARCH] Science and [ICON_CULTURE] Culture,  scaling with Era.[NEWLINE][NEWLINE]-1 [ICON_HAPPINESS_3] Unhappiness from [ICON_FOOD] and [ICON_PRODUCTION] Distress.'
 WHERE Tag = 'TXT_KEY_BUILDING_CONSTABLE_HELP';
 
 -- Musicians' Guild
@@ -501,11 +501,11 @@ WHERE Tag = 'TXT_KEY_BUILDING_OXFORD_UNIVERSITY_STRATEGY';
 
 -- National Intelligence Agency
 UPDATE Language_en_US
-SET Text = 'Improves City [ICON_SPY] Spy Resistance by 15%, provides 100 [ICON_VP_SPY_POINTS] Spy Points, and levels up all existing [ICON_SPY] Spies. Spy mission duration decreased by 1 turn for your Spies and increased by 2 turns for enemy Spies in the City. -1 [ICON_HAPPINESS_3] Unhappiness from [ICON_FOOD] and [ICON_PRODUCTION] Distress in all Cities.[NEWLINE][NEWLINE]+100 [ICON_RESEARCH] Science and [ICON_GOLD] Gold when you successfully complete a [ICON_SPY] Spy Mission in a foreign City, scaling with Era.[NEWLINE][NEWLINE]The [ICON_PRODUCTION] Production Cost and [ICON_CITIZEN] Population Requirements increase based on the number of Cities you own.'
+SET Text = 'Improves City [ICON_SPY] City Security by 10 and provides 100 [ICON_VP_SPY_POINTS] Spy Points. -1 [ICON_HAPPINESS_3] Unhappiness from [ICON_FOOD] and [ICON_PRODUCTION] Distress in all Cities.[NEWLINE][NEWLINE]+100 [ICON_RESEARCH] Science and [ICON_GOLD] Gold when you identify, capture, or kill a foreign [ICON_SPY] Spy, or when you complete a [ICON_SPY] Spy Mission in a foreign City, scaling with Era. +25 [ICON_RESEARCH] Science and [ICON_GOLD] Gold when you successfully rig an election in a [ICON_CITY_STATE] City-State, scaling with Era.[NEWLINE][NEWLINE]The [ICON_PRODUCTION] Production Cost and [ICON_CITIZEN] Population Requirements increase based on the number of Cities you own.'
 WHERE Tag = 'TXT_KEY_BUILDING_INTELLIGENCE_AGENCY_HELP';
 
 UPDATE Language_en_US
-SET Text = 'An important defensive National Wonder for a technology-driven civilization. Reduces [ICON_HAPPINESS_3] Distress in all Cities. The National Intelligence Agency provides 100 [ICON_VP_SPY_POINTS] Spy Points, levels up all your existing Spies, and improves City Spy Resistance by 15%. It also decreases mission duration by 1 turn for your Spies and increases mission duration by 2 turns for enemy Spies in the City. Empires with a lot of offensive spies will benefit greatly from this building. The City must have a Police Station before it can construct the National Intelligence Agency.'
+SET Text = 'An important defensive National Wonder for a technology-driven civilization. Reduces [ICON_HAPPINESS_3] Distress in all Cities. The National Intelligence Agency provides 100 [ICON_VP_SPY_POINTS] Spy Points and improves City Security by 10. It also provides instant yields when performing Spy Missions or when defending against them. Empires with a lot of offensive spies will benefit greatly from this building. The City must have a Police Station before it can construct the National Intelligence Agency.'
 WHERE Tag = 'TXT_KEY_BUILDING_INTELLIGENCE_AGENCY_STRATEGY';
 
 -- Grand Temple
@@ -749,7 +749,7 @@ WHERE Tag = 'TXT_KEY_WONDER_SYDNEY_OPERA_HOUSE_HELP';
 
 -- Great Firewall
 UPDATE Language_en_US
-SET Text = 'All Research Labs gain +10 [ICON_RESEARCH] Science. +100% [ICON_SPY] Spy Resistance in this City, and +25% in all other Cities. Negates the [ICON_TOURISM] Tourism bonus from the Technologies of other players.'
+SET Text = 'All Research Labs gain +10 [ICON_RESEARCH] Science. +50 [ICON_SPY] City Security. Negates the [ICON_TOURISM] Tourism bonus from the Technologies of other players.'
 WHERE Tag = 'TXT_KEY_BUILDING_GREAT_FIREWALL_HELP';
 
 -- Cathedral
@@ -766,3 +766,47 @@ WHERE Tag = 'TXT_KEY_BUILDING_MOSQUE_STRATEGY';
 UPDATE Language_en_US
 SET Text = 'Can only be built in cities following a religion with the Pagodas belief. Construct this building by purchasing it with [ICON_PEACE] Faith. Reduces [ICON_HAPPINESS_3] Boredom and [ICON_HAPPINESS_3] Religious Unrest, and generates yields based on the number of Religions present in the City.'
 WHERE Tag = 'TXT_KEY_BUILDING_PAGODA_STRATEGY';
+
+-- Corporation franchises
+-- Modmodders can copy this code if they're adding more resources toward a corporation!
+UPDATE Language_en_US
+SET Text = '+1 [ICON_GOLD] Gold on all Trader Sid''s Monopoly Resources ('
+	|| (SELECT GROUP_CONCAT(r.IconString) FROM Corporation_ResourceYieldChanges c, Resources r WHERE c.CorporationType = 'CORPORATION_TRADER_SIDS' AND c.ResourceType = r.Type)
+	|| ') near the City. {TXT_KEY_CORPORATION_TRADE_ROUTE_BONUS_TRADER_SIDS}'
+WHERE Tag = 'TXT_KEY_BUILDING_TRADER_SIDS_FRANCHISE_HELP';
+
+UPDATE Language_en_US
+SET Text = '+1 [ICON_PRODUCTION] Production on all Centaurus Extractors'' Monopoly Resources ('
+	|| (SELECT GROUP_CONCAT(r.IconString) FROM Corporation_ResourceYieldChanges c, Resources r WHERE c.CorporationType = 'CORPORATION_LANDSEA_EXTRACTORS' AND c.ResourceType = r.Type)
+	|| ') near the City. {TXT_KEY_CORPORATION_TRADE_ROUTE_BONUS_LANDSEA_EXTRACTORS}'
+WHERE Tag = 'TXT_KEY_BUILDING_LANDSEA_EXTRACTORS_FRANCHISE_HELP';
+
+UPDATE Language_en_US
+SET Text = '+1 [ICON_PRODUCTION] Production on Hexxon Refineries Monopoly Resources ('
+	|| (SELECT GROUP_CONCAT(r.IconString) FROM Corporation_ResourceYieldChanges c, Resources r WHERE c.CorporationType = 'CORPORATION_HEXXON_REFINERY' AND c.ResourceType = r.Type)
+	|| ') near the City. {TXT_KEY_CORPORATION_TRADE_ROUTE_BONUS_HEXXON_REFINERY}'
+WHERE Tag = 'TXT_KEY_BUILDING_HEXXON_REFINERY_FRANCHISE_HELP';
+
+UPDATE Language_en_US
+SET Text = '+1 [ICON_CULTURE] Culture on all Giorgio Armeier''s Monopoly Resources ('
+	|| (SELECT GROUP_CONCAT(r.IconString) FROM Corporation_ResourceYieldChanges c, Resources r WHERE c.CorporationType = 'CORPORATION_GIORGIO_ARMEIER' AND c.ResourceType = r.Type)
+	|| ') near the City. {TXT_KEY_CORPORATION_TRADE_ROUTE_BONUS_GIORGIO_ARMEIER}'
+WHERE Tag = 'TXT_KEY_BUILDING_GIORGIO_ARMEIER_FRANCHISE_HELP';
+
+UPDATE Language_en_US
+SET Text = '+1 [ICON_RESEARCH] Science on all Firaxite Materials'' Monopoly Resources ('
+	|| (SELECT GROUP_CONCAT(r.IconString) FROM Corporation_ResourceYieldChanges c, Resources r WHERE c.CorporationType = 'CORPORATION_FIRAXITE_MATERIALS' AND c.ResourceType = r.Type)
+	|| ') near the City. {TXT_KEY_CORPORATION_TRADE_ROUTE_BONUS_FIRAXITE_MATERIALS}'
+WHERE Tag = 'TXT_KEY_BUILDING_FIRAXITE_MATERIALS_FRANCHISE_HELP';
+
+UPDATE Language_en_US
+SET Text = '+1 [ICON_FOOD] Food on all TwoKay Foods'' Monopoly Resources ('
+	|| (SELECT GROUP_CONCAT(r.IconString) FROM Corporation_ResourceYieldChanges c, Resources r WHERE c.CorporationType = 'CORPORATION_TWOKAY_FOODS' AND c.ResourceType = r.Type)
+	|| ') near the City. {TXT_KEY_CORPORATION_TRADE_ROUTE_BONUS_TWOKAY_FOODS}'
+WHERE Tag = 'TXT_KEY_BUILDING_TWOKAY_FOODS_FRANCHISE_HELP';
+
+UPDATE Language_en_US
+SET Text = '+1 [ICON_GOLDEN_AGE] Golden Age Points on all Civilized Jewelers'' Monopoly Resources ('
+	|| (SELECT GROUP_CONCAT(r.IconString) FROM Corporation_ResourceYieldChanges c, Resources r WHERE c.CorporationType = 'CORPORATION_CIVILIZED_JEWELERS' AND c.ResourceType = r.Type)
+	|| ') near the City. {TXT_KEY_CORPORATION_TRADE_ROUTE_BONUS_CIVILIZED_JEWELERS}'
+WHERE Tag = 'TXT_KEY_BUILDING_CIVILIZED_JEWELERS_FRANCHISE_HELP';

@@ -150,14 +150,14 @@ public:
 #if defined(MOD_BALANCE_CORE_EVENTS)
 	void DoEvents(bool bEspionageOnly = false);
 	bool IsCityEventValid(CityEventTypes eEvent);
-	bool IsCityEventChoiceValid(CityEventChoiceTypes eEventChoice, CityEventTypes eParentEvent, bool bIgnoreActive = false, bool bIgnorePlayer = false);
-	bool IsCityEventChoiceValidEspionage(CityEventChoiceTypes eEventChoice, CityEventTypes eEvent, int uiSpyIndex, PlayerTypes eSpyOwner, bool bStartMission = true);
-	bool IsCityEventChoiceValidEspionageTest(CityEventChoiceTypes eEventChoice, CityEventTypes eEvent, int iAssumedLevel, PlayerTypes eSpyOwner);
-	void DoCancelEventChoice(CityEventChoiceTypes eEventChoice);
-	void DoStartEvent(CityEventTypes eEvent, bool bSendMsg);
-	void DoEventChoice(CityEventChoiceTypes eEventChoice, CityEventTypes eCityEvent = NO_EVENT_CITY, bool bSendMsg = true, int iEspionageValue = -1, PlayerTypes eSpyOwner = NO_PLAYER);
+	bool IsCityEventChoiceValid(CityEventChoiceTypes eChosenEventChoice, CityEventTypes eParentEvent, bool bIgnoreActive = false, bool bIgnorePlayer = false);
+	bool IsCityEventChoiceValidEspionage(CityEventChoiceTypes eEventChoice, CityEventTypes eEvent, int uiSpyIndex, PlayerTypes eSpyOwner, bool bIgnoreActive = false, bool bIgnoreNetworkPoints = false);
+	void DoCancelEventChoice(CityEventChoiceTypes eChosenEventChoice);
+	CvString GetScaledSpyEffectText(CityEventChoiceTypes eEventChoice, bool bSpyMissionEnd, TechTypes eTech = NO_TECH, int iGWID = -1, int iAmountStolen = -1);
+	void DoStartEvent(CityEventTypes eChosenEvent, bool bSendMsg);
+	void DoEventChoice(CityEventChoiceTypes eEventChoice, CityEventTypes eCityEvent = NO_EVENT_CITY, bool bSendMsg = true, int iSpyID = -1, PlayerTypes eSpyOwner = NO_PLAYER);
 	CvString GetScaledHelpText(CityEventChoiceTypes eEventChoice, bool bYieldsOnly, int iSpyIndex = -1, PlayerTypes eSpyOwner = NO_PLAYER, bool bSpyMissionEnd = false);
-	CvString GetDisabledTooltip(CityEventChoiceTypes eEventChoice, int iSpyIndex = -1, PlayerTypes eSpyOwner = NO_PLAYER);
+	CvString GetDisabledTooltip(CityEventChoiceTypes eChosenEventChoice, int iSpyIndex = -1, PlayerTypes eSpyOwner = NO_PLAYER);
 
 	void SetEventActive(CityEventTypes eEvent, bool bValue);
 	bool IsEventActive(CityEventTypes eEvent) const;
@@ -185,25 +185,25 @@ public:
 	void ChangeEventCityYieldModifier(YieldTypes eYield, int iValue);
 	int GetEventCityYieldModifier(YieldTypes eYield) const;
 
-	void ChangeEventBuildingClassYield(BuildingClassTypes eBuildingClass, YieldTypes eYield, int iValue);
-	int GetEventBuildingClassCityYield(BuildingClassTypes eBuildingClass, YieldTypes eYield) const;
+	void ChangeEventBuildingClassYield(BuildingClassTypes eIndex1, YieldTypes eIndex2, int iChange);
+	int GetEventBuildingClassCityYield(BuildingClassTypes eIndex1, YieldTypes eIndex2) const;
 
-	void ChangeEventBuildingClassYieldModifier(BuildingClassTypes eBuildingClass, YieldTypes eYield, int iValue);
-	int GetEventBuildingClassCityYieldModifier(BuildingClassTypes eBuildingClass, YieldTypes eYield) const;
+	void ChangeEventBuildingClassYieldModifier(BuildingClassTypes eIndex1, YieldTypes eIndex2, int iChange);
+	int GetEventBuildingClassCityYieldModifier(BuildingClassTypes eIndex1, YieldTypes eIndex2) const;
 
-	void ChangeEventImprovementYield(ImprovementTypes eImprovement, YieldTypes eYield, int iValue);
-	int GetEventImprovementYield(ImprovementTypes eImprovement, YieldTypes eYield) const;
+	void ChangeEventImprovementYield(ImprovementTypes eImprovement, YieldTypes eIndex2, int iChange);
+	int GetEventImprovementYield(ImprovementTypes eImprovement, YieldTypes eIndex2) const;
 
-	void ChangeEventResourceYield(ResourceTypes eResource, YieldTypes eYield, int iValue);
-	int GetEventResourceYield(ResourceTypes eResource, YieldTypes eYield) const;
+	void ChangeEventResourceYield(ResourceTypes eResource, YieldTypes eIndex2, int iChange);
+	int GetEventResourceYield(ResourceTypes eResource, YieldTypes eIndex2) const;
 
-	void ChangeEventSpecialistYield(SpecialistTypes eSpecialist, YieldTypes eYield, int iValue);
-	int GetEventSpecialistYield(SpecialistTypes eSpecialist, YieldTypes eYield) const;
+	void ChangeEventSpecialistYield(SpecialistTypes eSpecialist, YieldTypes eIndex2, int iChange);
+	int GetEventSpecialistYield(SpecialistTypes eSpecialist, YieldTypes eIndex2) const;
 
-	void ChangeEventTerrainYield(TerrainTypes eTerrain, YieldTypes eYield, int iValue);
-	int GetEventTerrainYield(TerrainTypes eTerrain, YieldTypes eYield) const;
-	void ChangeEventFeatureYield(FeatureTypes eFeature, YieldTypes eYield, int iValue);
-	int GetEventFeatureYield(FeatureTypes eFeature, YieldTypes eYield) const;
+	void ChangeEventTerrainYield(TerrainTypes eTerrain, YieldTypes eIndex2, int iChange);
+	int GetEventTerrainYield(TerrainTypes eTerrain, YieldTypes eIndex2) const;
+	void ChangeEventFeatureYield(FeatureTypes eFeature, YieldTypes eIndex2, int iChange);
+	int GetEventFeatureYield(FeatureTypes eFeature, YieldTypes eIndex2) const;
 
 	bool IsEventChoiceFired(CityEventChoiceTypes eEventChoice) const;
 	void SetEventChoiceFired(CityEventChoiceTypes eEventChoice, bool bValue);
@@ -222,7 +222,7 @@ public:
 	bool IsIndustrialRouteToCapitalConnected() const;
 	void SetIndustrialRouteToCapitalConnected(bool bValue);
 
-	void SetRouteToCapitalConnected(bool bValue, bool bSuppressReligionYieldUpdate = false);
+	void SetRouteToCapitalConnected(bool bValue, bool bSuppressReligionUpdate = false);
 	bool IsRouteToCapitalConnected(void) const;
 
 #if defined(MOD_GLOBAL_TRULY_FREE_GP)
@@ -422,17 +422,17 @@ public:
 	int getProductionTurnsLeft(ProcessTypes eProcess, int iNum) const;
 #endif
 #if defined(MOD_BALANCE_CORE)
-	void SetBuildingInvestment(BuildingClassTypes eBuildingClass, bool bValue);
+	void SetBuildingInvestment(BuildingClassTypes eBuildingClass, bool bNewValue);
 	int GetBuildingCostInvestmentReduction(BuildingClassTypes eBuildingClass) const;
 	bool IsBuildingInvestment(BuildingClassTypes eBuildingClass) const;
 
 	bool IsProcessInternationalProject(ProcessTypes eProcess) const;
 
-	void SetUnitInvestment(UnitClassTypes eUnitClass, bool bValue);
+	void SetUnitInvestment(UnitClassTypes eUnitClass, bool bNewValue);
 	int GetUnitCostInvestmentReduction(UnitClassTypes eUnitClass) const;
 	bool IsUnitInvestment(UnitClassTypes eUnitClass) const;
 
-	void SetBuildingConstructed(BuildingClassTypes eBuildingClass, bool bValue);
+	void SetBuildingConstructed(BuildingClassTypes eBuildingClass, bool bNewValue);
 	bool IsBuildingConstructed(BuildingClassTypes eBuildingClass) const;
 #endif
 	int GetPurchaseCost(UnitTypes eUnit);
@@ -764,15 +764,17 @@ public:
 	int GetCityAutomatonWorkersChange() const;
 	void changeCityAutomatonWorkersChange(int iChange);
 #endif
-	bool IsVassalLevyEra() const;
 	int getHealRate() const;
 	void changeHealRate(int iChange);
 
 	int GetEspionageModifier() const;
 	void ChangeEspionageModifier(int iChange);
 
-	int GetEspionageTurnsModifierEnemy() const;
-	void ChangeEspionageTurnsModifierEnemy(int iChange);
+	int GetSpySecurityModifier() const;
+	void ChangeSpySecurityModifier(int iChange);
+
+	int GetSpySecurityModifierPerPop() const;
+	void ChangeSpySecurityModifierPerPop(int iChange);
 
 #if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	int GetConversionModifier() const;
@@ -782,6 +784,9 @@ public:
 	bool IsNoOccupiedUnhappiness() const;
 	int GetNoOccupiedUnhappinessCount() const;
 	void ChangeNoOccupiedUnhappinessCount(int iChange);
+
+	int GetFoodBonusPerCityMajorityFollower() const;
+	void ChangeFoodBonusPerCityMajorityFollower(int iChange);
 
 #if defined(HH_MOD_BUILDINGS_FRUITLESS_PILLAGE)
 	bool IsLocalGainlessPillage() const;
@@ -935,6 +940,9 @@ public:
 	int GetGrowthFromEvent() const;
 	void ChangeGrowthFromEvent(int iValue);
 
+	int GetEventGPPFromSpecialists() const;
+	void ChangeEventGPPFromSpecialists(int iValue);
+
 	int GetGrowthFromTourism() const;
 	void SetGrowthFromTourism(int iValue);
 	void ChangeGrowthFromTourism(int iValue);
@@ -972,18 +980,18 @@ public:
 	void SetOwedFoodBuilding(bool bNewValue);
 
 #if defined(MOD_BALANCE_CORE)
-	void ChangeBorderObstacleCity(int iNewValue);
+	void ChangeBorderObstacleCity(int iChange);
 	int GetBorderObstacleLand() const;
 	void SetBorderObstacleCity(int iValue);
 
-	void ChangeBorderObstacleWater(int iNewValue);
+	void ChangeBorderObstacleWater(int iChange);
 	int GetBorderObstacleWater() const;
 	void SetBorderObstacleWater(int iValue);
 
-	void ChangeDeepWaterTileDamage(int iNewValue);
+	void ChangeDeepWaterTileDamage(int iChange);
 	int GetDeepWaterTileDamage() const;
 
-	void ChangeNearbyMountains(int iNewValue);
+	void ChangeNearbyMountains(int iChange);
 	int GetNearbyMountains() const;
 	void SetNearbyMountains(int iValue);
 #endif
@@ -1055,7 +1063,7 @@ public:
 	int GetYieldPerTurnFromReligion(YieldTypes eYield) const;
 	void UpdateSpecialReligionYields(YieldTypes eYield);
 	int GetSpecialReligionYields(YieldTypes eIndex) const;
-	void SetSpecialReligionYields(YieldTypes eIndex, int iValue);
+	void SetSpecialReligionYields(YieldTypes eIndex, int iChange);
 
 	int getBaseYieldRateModifier(YieldTypes eIndex, int iExtra = 0, CvString* toolTipSink = NULL) const;
 
@@ -1066,8 +1074,8 @@ public:
 
 #if defined(MOD_BALANCE_CORE)
 	void updateEconomicValue();
-	int getEconomicValue(PlayerTypes ePossibleNewOwner);
-	void setEconomicValue(PlayerTypes ePossibleNewOwner, int iValue);
+	int getEconomicValue(PlayerTypes ePossibleOwner);
+	void setEconomicValue(PlayerTypes ePossibleOwner, int iValue);
 
 	// Instant Yield History
 	void ChangeInstantYieldTotal(YieldTypes eYield, int iValue);
@@ -1077,20 +1085,6 @@ public:
 
 	int GetContestedPlotScore(PlayerTypes eOtherPlayer) const;
 
-#if defined(MOD_BALANCE_CORE_SPIES_ADVANCED)
-	int GetEspionageRanking() const;
-	CvString GetSpyMissionOutcome(CityEventChoiceTypes eEventChoice, uint iSpyIndex, PlayerTypes ePlayer, bool bOwnSpy = 1, bool bShowPopup = 1);
-	int GetSpyTurnsToCompleteMission(PlayerTypes ePlayer, CityEventChoiceTypes eEventChoice, uint iSpyIndex, int iProgress = 0) const;
-	CvString GetMissionDurationText(PlayerTypes ePlayer, CityEventChoiceTypes eEventChoice, uint iSpyIndex, int iProgress = 0) const;
-	void ChangeEspionageRanking(int iRank, bool bNotify);
-	void ResetEspionageRanking();
-	void InitEspionageRanking();
-	void SetEspionageRanking(int iValue);
-
-	void SetTurnsSinceLastRankMessage(int iTurns);
-	void ChangeTurnsSinceLastRankMessage(int iTurns);
-	int GetTurnsSinceLastRankMessage() const;
-#endif
 	// Base Yield
 	int getBaseYieldRate(YieldTypes eIndex) const;
 #if defined(MOD_BALANCE_CORE)
@@ -1165,6 +1159,15 @@ public:
 	int GetYieldFromSpyDefense(YieldTypes eIndex) const;
 	void ChangeYieldFromSpyDefense(YieldTypes eIndex, int iChange);
 
+	int GetYieldFromSpyIdentify(YieldTypes eIndex) const;
+	void ChangeYieldFromSpyIdentify(YieldTypes eIndex, int iChange);
+
+	int GetYieldFromSpyDefenseOrID(YieldTypes eIndex) const;
+	void ChangeYieldFromSpyDefenseOrID(YieldTypes eIndex, int iChange);
+
+	int GetYieldFromSpyRigElection(YieldTypes eIndex) const;
+	void ChangeYieldFromSpyRigElection(YieldTypes eIndex, int iChange);
+
 	int GetYieldFromConstruction(YieldTypes eIndex) const;
 	void ChangeYieldFromConstruction(YieldTypes eIndex, int iChange);
 
@@ -1192,13 +1195,13 @@ public:
 	void ChangeYieldFromCombatExperience(YieldTypes eIndex, int iChange);
 
 	int GetYieldPerAlly(YieldTypes eIndex) const;
-	void ChangeYieldPerAlly(YieldTypes eYield, int iChange);
+	void ChangeYieldPerAlly(YieldTypes eIndex, int iChange);
 
 	int GetYieldPerFriend(YieldTypes eIndex) const;
-	void ChangeYieldPerFriend(YieldTypes eYield, int iChange);
+	void ChangeYieldPerFriend(YieldTypes eIndex, int iChange);
 
 	int GetBuildingYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2) const;
-	void ChangeBuildingYieldFromYield(YieldTypes eIndex, YieldTypes eIndex2, int iChange);
+	void ChangeBuildingYieldFromYield(YieldTypes eIndex, YieldTypes eIndex2, int iValue);
 
 	int GetYieldFromInternalTREnd(YieldTypes eIndex1) const;
 	void ChangeYieldFromInternalTREnd(YieldTypes eIndex, int iChange);
@@ -1210,7 +1213,7 @@ public:
 	void ChangeYieldFromProcessModifier(YieldTypes eIndex, int iChange);
 
 	int GetRealYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2) const;
-	void SetRealYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2, int iChange);
+	void SetRealYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2, int iValue);
 
 	void ChangeSpecialistRateModifier(SpecialistTypes eSpecialist, int iChange);
 	int GetSpecialistRateModifier(SpecialistTypes eSpecialist) const;
@@ -1293,7 +1296,7 @@ public:
 
 	int GetYieldChangeFromCorporationFranchises(YieldTypes eIndex) const;
 	void UpdateYieldFromCorporationFranchises(YieldTypes eIndex);
-	void SetYieldChangeFromCorporationFranchises(YieldTypes eIndex, int iValue);
+	void SetYieldChangeFromCorporationFranchises(YieldTypes eIndex, int iTotal);
 
 	int GetResourceQuantityPerXFranchises(ResourceTypes eResource) const;
 	void ChangeResourceQuantityPerXFranchises(ResourceTypes eResource, int iChange);
@@ -1305,18 +1308,23 @@ public:
 
 	int GetLandTourismBonus() const;
 	void ChangeLandTourismBonus(int iChange);
-	void SetLandTourismBonus(int iValue);
+	void SetLandTourismBonus(int iChange);
 
 	int GetSeaTourismBonus() const;
 	void ChangeSeaTourismBonus(int iChange);
-	void SetSeaTourismBonus(int iValue);
+	void SetSeaTourismBonus(int iChange);
 
 	int GetSeaTourismFromEvent();
 	int GetLandTourismFromEvent();
 
+	void ChangeNumPreviousSpyMissions(int iChange);
+	int GetNumPreviousSpyMissions() const;
+
+	int CalculateCitySecurity(CvString* toolTipSink = NULL) const;
+
 	int GetAlwaysHeal() const;
 	void ChangeAlwaysHeal(int iChange);
-	void SetAlwaysHeal(int iValue);
+	void SetAlwaysHeal(int iChange);
 
 	void ChangeResourceDiversityModifier(int iChange);
 	int GetResourceDiversityModifier() const;
@@ -1330,7 +1338,7 @@ public:
 	void DoBarbIncursion();
 #endif
 
-	void changeNukeInterceptionChance(int iValue);
+	void changeNukeInterceptionChance(int iNewValue);
 	int getNukeInterceptionChance() const;
 #if defined(MOD_BALANCE_CORE)
 	void SetPurchased(BuildingClassTypes eBuildingClass, bool bValue);
@@ -1356,14 +1364,14 @@ public:
 	void changeYieldRateModifier(YieldTypes eIndex, int iChange);
 
 #if defined(MOD_BALANCE_CORE_POLICIES)
-	int getReligionBuildingYieldRateModifier(BuildingClassTypes eIndex1, YieldTypes eIndex2)	const;
-	void changeReligionBuildingYieldRateModifier(BuildingClassTypes eIndex1, YieldTypes eIndex2, int iChange);
+	int getReligionBuildingYieldRateModifier(BuildingClassTypes eBuilding, YieldTypes eYield)	const;
+	void changeReligionBuildingYieldRateModifier(BuildingClassTypes eBuilding, YieldTypes eYield, int iChange);
 
-	int getLocalBuildingClassYield(BuildingClassTypes eIndex1, YieldTypes eIndex2)	const;
-	void changeLocalBuildingClassYield(BuildingClassTypes eIndex1, YieldTypes eIndex2, int iChange);
+	int getLocalBuildingClassYield(BuildingClassTypes eBuilding, YieldTypes eYield)	const;
+	void changeLocalBuildingClassYield(BuildingClassTypes eBuilding, YieldTypes eYield, int iChange);
 
-	void ChangeGreatWorkYieldChange(YieldTypes eYield, int iValue);
-	int GetGreatWorkYieldChange(YieldTypes eYield) const;
+	void ChangeGreatWorkYieldChange(YieldTypes eIndex, int iChange);
+	int GetGreatWorkYieldChange(YieldTypes eIndex) const;
 #endif
 
 	int getPowerYieldRateModifier(YieldTypes eIndex) const;
@@ -1463,14 +1471,14 @@ public:
 	void changeFreePromotionCount(PromotionTypes eIndex, int iChange);
 
 #if defined(MOD_BALANCE_CORE)
-	void SetRetroactivePromotion(PromotionTypes ePromotion);
+	void SetRetroactivePromotion(PromotionTypes eIndex);
 #endif
 
 	int getSpecialistFreeExperience() const;
 	void changeSpecialistFreeExperience(int iChange);
 
 	void updateStrengthValue();
-	int getStrengthValue(bool bForRangeStrike = false, bool bIgnoreBuildingDefense = false, const CvUnit* pDefender = NULL) const;
+	int getStrengthValue(bool bForRangeStrike = false, bool bIgnoreBuildings = false, const CvUnit* pDefender = NULL) const;
 	int GetPower() const;
 
 	int getDamage() const;
@@ -1540,7 +1548,7 @@ public:
 
 	// End plot acquisition
 
-	bool isValidBuildingLocation(BuildingTypes eIndex) const;
+	bool isValidBuildingLocation(BuildingTypes eBuilding) const;
 
 	void setThreatValue(int iThreatValue);
 	int getThreatValue() const;
@@ -1569,7 +1577,7 @@ public:
 	void produce(SpecialistTypes eSpecialist, bool bCanOverflow = true);
 
 	CvUnit* CreateUnit(UnitTypes eUnitType, UnitAITypes eAIType = NO_UNITAI, UnitCreationReason eReason = REASON_DEFAULT, bool bUseToSatisfyOperation = true, bool bIsPurchase = false);
-	bool CreateBuilding(BuildingTypes eBuildType);
+	bool CreateBuilding(BuildingTypes eBuildingType);
 	bool CreateProject(ProjectTypes eProjectType);
 
 	void changeProjectCount(ProjectTypes eProject, int iValue);
@@ -1631,7 +1639,7 @@ public:
 	// Combat related
 	const CvUnit* getCombatUnit() const;
 	CvUnit* getCombatUnit();
-	void			setCombatUnit(CvUnit* pUnit, bool bAttacking = false);
+	void			setCombatUnit(CvUnit* pCombatUnit, bool bAttacking = false);
 	void			clearCombat();
 	bool			isFighting() const;
 
@@ -1688,7 +1696,7 @@ public:
 	bool IsOnTerrain(TerrainTypes iTerrainType) const;
 	bool IsAdjacentToTerrain(TerrainTypes iTerrainType) const;
 	bool IsWithinDistanceOfTerrain(TerrainTypes iTerrainType, int iDistance) const;
-	int CountNumWorkedFeature(FeatureTypes eFeature);
+	int CountNumWorkedFeature(FeatureTypes iFeatureType);
 	int CountNumWorkedImprovement(ImprovementTypes eImprovement, bool IgnorePillaged = true);
 	int CountNumWorkedResource(ResourceTypes eResource);
 	int CountNumImprovement(ImprovementTypes eImprovement);
@@ -1751,6 +1759,10 @@ public:
 	void SetSappedTurns(int iValue);
 	void ChangeSappedTurns(int iValue);
 
+	int GetNoTourismTurns() const;
+	void SetNoTourismTurns(int iValue);
+	void ChangeNoTourismTurns(int iValue);
+
 	int GetPlagueType() const;
 	void SetPlagueType(int iValue);
 	bool HasPlague();
@@ -1765,10 +1777,6 @@ public:
 
 	int GetLoyaltyState() const;
 	void SetLoyaltyState(int iLoyalty);
-
-	int GetBonusEspionageSightTurns(PlayerTypes ePlayer) const;
-	void UpdateBonusEspionageSightTurns(PlayerTypes ePlayer, int iValue);
-	void SetBonusEspionageSightTurns(PlayerTypes ePlayer, int iValue);
 
 	void SetYieldModifierFromHappiness(YieldTypes eYield, int iValue);
 	int GetYieldModifierFromHappiness(YieldTypes eYield) const;
@@ -1855,6 +1863,7 @@ protected:
 	int m_iMaintenance;
 	int m_iHealRate;
 	int m_iNoOccupiedUnhappinessCount;
+	int m_iFoodBonusPerCityMajorityFollower;
 #if defined(HH_MOD_BUILDINGS_FRUITLESS_PILLAGE)
 	int m_iLocalGainlessPillageCount;
 #endif
@@ -1892,7 +1901,9 @@ protected:
 	int m_iCountExtraLuxuries;
 	int m_iCheapestPlotInfluenceDistance;
 	int m_iEspionageModifier;
-	int m_iEspionageTurnsModifierEnemy;
+	int m_iSpySecurityModifier;
+	int m_iSpySecurityModifierPerPop;
+	int m_iNumPreviousSpyMissions;
 #if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	int m_iConversionModifier;
 #endif
@@ -1966,6 +1977,9 @@ protected:
 	std::vector<int> m_aiThemingYieldBonus;
 	std::vector<int> m_aiYieldFromSpyAttack;
 	std::vector<int> m_aiYieldFromSpyDefense;
+	std::vector<int> m_aiYieldFromSpyIdentify;
+	std::vector<int> m_aiYieldFromSpyDefenseOrID;
+	std::vector<int> m_aiYieldFromSpyRigElection;
 	std::vector<int> m_aiNumTimesOwned;
 	std::vector<int> m_aiStaticCityYield;
 	int m_iTradePriorityLand;
@@ -1988,8 +2002,6 @@ protected:
 	int m_iNumNearbyMountains;
 	int m_iLocalUnhappinessMod;
 	bool m_bNoWarmonger;
-	int m_iCitySpyRank;
-	int m_iTurnsSinceRankAnnouncement;
 	int m_iEmpireSizeModifierReduction;
 	int m_iDistressFlatReduction;
 	int m_iPovertyFlatReduction;
@@ -2082,6 +2094,7 @@ protected:
 	int m_iHappinessDelta;
 	int m_iPillagedPlots;
 	int m_iGrowthEvent;
+	int m_iEventGPPFromSpecialists;
 	int m_iGrowthFromTourism;
 	int m_iBuildingClassHappiness;
 	int m_iReligionHappiness;
@@ -2131,6 +2144,7 @@ protected:
 	int m_iPlagueTurns;
 	int m_iPlagueType;
 	int m_iSappedTurns;
+	int m_iNoTourismTurns;
 	int m_iLoyaltyCounter;
 	int m_iDisloyaltyCounter;
 	int m_iLoyaltyStateType;
@@ -2172,7 +2186,6 @@ protected:
 	std::vector<bool> m_abUnitInvestment;
 	std::vector<int> m_aiUnitCostInvestmentReduction;
 	std::vector<bool> m_abBuildingConstructed;
-	std::vector<int> m_aiBonusSightEspionage;
 #endif
 
 	//cache for great work yields, they are need often during citizen re-assignment but they don't change
@@ -2261,6 +2274,7 @@ SYNC_ARCHIVE_VAR(int, m_iCityAutomatonWorkersChange)
 SYNC_ARCHIVE_VAR(int, m_iMaintenance)
 SYNC_ARCHIVE_VAR(int, m_iHealRate)
 SYNC_ARCHIVE_VAR(int, m_iNoOccupiedUnhappinessCount)
+SYNC_ARCHIVE_VAR(int, m_iFoodBonusPerCityMajorityFollower)
 SYNC_ARCHIVE_VAR(int, m_iLocalGainlessPillageCount)
 SYNC_ARCHIVE_VAR(int, m_iFood)
 SYNC_ARCHIVE_VAR(int, m_iMaxFoodKeptPercent)
@@ -2295,7 +2309,9 @@ SYNC_ARCHIVE_VAR(int, m_iLowestRazingPop)
 SYNC_ARCHIVE_VAR(int, m_iCountExtraLuxuries)
 SYNC_ARCHIVE_VAR(int, m_iCheapestPlotInfluenceDistance)
 SYNC_ARCHIVE_VAR(int, m_iEspionageModifier)
-SYNC_ARCHIVE_VAR(int, m_iEspionageTurnsModifierEnemy)
+SYNC_ARCHIVE_VAR(int, m_iSpySecurityModifier)
+SYNC_ARCHIVE_VAR(int, m_iSpySecurityModifierPerPop)
+SYNC_ARCHIVE_VAR(int, m_iNumPreviousSpyMissions)
 SYNC_ARCHIVE_VAR(int, m_iConversionModifier)
 SYNC_ARCHIVE_VAR(bool, m_bNeverLost)
 SYNC_ARCHIVE_VAR(bool, m_bDrafted)
@@ -2361,6 +2377,9 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_aiSpecialistRateModifier)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiThemingYieldBonus)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromSpyAttack)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromSpyDefense)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromSpyIdentify)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromSpyDefenseOrID)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromSpyRigElection)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiNumTimesOwned)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiStaticCityYield)
 SYNC_ARCHIVE_VAR(int, m_iTradePriorityLand)
@@ -2383,8 +2402,6 @@ SYNC_ARCHIVE_VAR(int, m_iDeepWaterTileDamage)
 SYNC_ARCHIVE_VAR(int, m_iNumNearbyMountains)
 SYNC_ARCHIVE_VAR(int, m_iLocalUnhappinessMod)
 SYNC_ARCHIVE_VAR(bool, m_bNoWarmonger)
-SYNC_ARCHIVE_VAR(int, m_iCitySpyRank)
-SYNC_ARCHIVE_VAR(int, m_iTurnsSinceRankAnnouncement)
 SYNC_ARCHIVE_VAR(int, m_iEmpireSizeModifierReduction)
 SYNC_ARCHIVE_VAR(int, m_iDistressFlatReduction)
 SYNC_ARCHIVE_VAR(int, m_iPovertyFlatReduction)
@@ -2460,6 +2477,7 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_paiHurryModifier)
 SYNC_ARCHIVE_VAR(int, m_iHappinessDelta)
 SYNC_ARCHIVE_VAR(int, m_iPillagedPlots)
 SYNC_ARCHIVE_VAR(int, m_iGrowthEvent)
+SYNC_ARCHIVE_VAR(int, m_iEventGPPFromSpecialists)
 SYNC_ARCHIVE_VAR(int, m_iGrowthFromTourism)
 SYNC_ARCHIVE_VAR(int, m_iBuildingClassHappiness)
 SYNC_ARCHIVE_VAR(int, m_iReligionHappiness)
@@ -2516,7 +2534,6 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_aiBuildingCostInvestmentReduction)
 SYNC_ARCHIVE_VAR(std::vector<bool>, m_abUnitInvestment)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiUnitCostInvestmentReduction)
 SYNC_ARCHIVE_VAR(std::vector<bool>, m_abBuildingConstructed)
-SYNC_ARCHIVE_VAR(std::vector<int>, m_aiBonusSightEspionage)
 SYNC_ARCHIVE_END()
 
 //just a guard class so we never forget to unset the garrison override

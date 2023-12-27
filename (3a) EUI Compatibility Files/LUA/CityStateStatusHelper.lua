@@ -614,16 +614,61 @@ function GetContenderInfo(majorPlayerID, minorPlayerID)
 	if not pMinor then return "error" end
 	
 	local iContInfluence = 0
+	local iContender = -1
 	local eAllyID = pMinor:GetAlly()
 	
 	for ePlayer = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
 		if ePlayer ~= eAllyID then
 			local iInfluence = pMinor:GetMinorCivFriendshipWithMajor(ePlayer)
-			if iInfluence > iContInfluence then iContInfluence = iInfluence end
+			if iInfluence > iContInfluence then iContInfluence = iInfluence; iContender = ePlayer end
+		end
+	end
+	--How convenient the AI knows you are gathering influence but you don't? Let's add this.
+	if iContender > -1 and iContender ~= majorPlayerID then
+		if Teams[Players[majorPlayerID]:GetTeam()]:IsHasMet(Players[iContender]:GetTeam()) then 
+			return tostring(iContInfluence).."[ICON_INFLUENCE] "..Players[iContender]:GetCivilizationShortDescription();
+		else
+			return tostring(iContInfluence).."[ICON_INFLUENCE] " .. L("TXT_KEY_POP_VOTE_RESULTS_UNMET_PLAYER");
+		end
+	end
+	return tostring(iContInfluence).."[ICON_INFLUENCE]"
+end
+
+function GetContenderInfoTT(majorPlayerID, minorPlayerID)
+	local pMinor = Players[ minorPlayerID ]
+	if not pMinor then return "error" end
+	
+	local sAnchorInfluence = ""
+	local iHighestInfluence = 0
+	local influencetips = {}
+	
+	for ePlayer = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
+		if Players[ePlayer]:IsEverAlive() then
+			local iInfluence = pMinor:GetMinorCivFriendshipAnchorWithMajor(ePlayer)
+			if iInfluence ~= 0 then
+				influencetips["PlayerID" .. ePlayer] = iInfluence
+			end
+		else
+			influencetips["PlayerID" .. ePlayer] = 0
 		end
 	end
 	
-	return tostring(iContInfluence).."[ICON_INFLUENCE]"
+	local sortedinfluencetips = {}
+	for k, v in pairs(influencetips) do table.insert(sortedinfluencetips,{k,v}) end
+	table.sort(sortedinfluencetips, function(a,b) return a[2] < b[2] end)
+	
+	for _, v in ipairs(sortedinfluencetips) do
+		if Teams[Players[majorPlayerID]:GetTeam()]:IsHasMet(Players[tonumber(v[1].sub(v[1], 9))]:GetTeam()) then
+			if Players[tonumber(v[1].sub(v[1], 9))]:IsAlive() then
+				sAnchorInfluence = "[NEWLINE][ICON_BULLET]" .. Players[tonumber(v[1].sub(v[1], 9))]:GetCivilizationShortDescription() .. ": " .. v[2] .. " " .. L("TXT_KEY_VP_RESTING_INFLUENCE") .. sAnchorInfluence
+			else
+				sAnchorInfluence = "[NEWLINE][ICON_BULLET][COLOR_GREY]" .. Players[tonumber(v[1].sub(v[1], 9))]:GetCivilizationShortDescription() .. ": " .. v[2] .. " " .. L("TXT_KEY_VP_RESTING_INFLUENCE") .. sAnchorInfluence
+			end
+		end
+	end
+	
+	if sAnchorInfluence == "" then return L("TXT_KEY_POP_CSTATE_LABEL_CONTENDER_TT_HEADER2", pMinor:GetName()) end
+	return L("TXT_KEY_POP_CSTATE_LABEL_CONTENDER_TT_HEADER", pMinor:GetName()) .. sAnchorInfluence
 end
 
 
@@ -681,7 +726,7 @@ if gk_mode then
 			if bnw_mode and minorPlayer:IsProxyWarActiveForMajor(majorPlayerID) then
 				sIconTextOther = sIconTextOther .. "[ICON_RESISTANCE]"
 			end
-			
+		
 			-- CBP
 			-- Denied Quest Influence
 			if minorPlayer:IsQuestInfluenceDisabled(majorPlayerID) then
@@ -691,11 +736,6 @@ if gk_mode then
 			-- Married
 			if bnw_mode and minorPlayer:IsMarried(majorPlayerID) then
 				sIconTextOther = sIconTextOther .. "[ICON_RES_MARRIAGE]"
-			end
-			
-			-- Coup
-			if (bnw_mode and minorPlayer:GetCoupCooldown() > 0) then
-				sIconTextOther = sIconTextOther .. "[ICON_TEAM_2]"
 			end
 			-- END
 		else
@@ -930,11 +970,6 @@ if gk_mode then
 			-- Married
 			if minorPlayer:IsMarried(majorPlayerID) then
 				table_insert(tTooltipOther,"[ICON_RES_MARRIAGE] " .. L("TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_MARRIED_TT"))
-			end
-
-			-- Coup
-			if (bnw_mode and minorPlayer:GetCoupCooldown() > 0) then
-				table_insert(tTooltipOther,"[ICON_TEAM_2] " .. L("TXT_KEY_CITY_STATE_QUEST_COUP_COOLDOWN_TT", minorPlayer:GetCoupCooldown()))
 			end
 			-- END
 		else

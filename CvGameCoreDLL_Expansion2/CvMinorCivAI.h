@@ -145,6 +145,7 @@ public:
 	int GetGeneralPoints() const;
 	int GetAdmiralPoints() const;
 	int GetExperience() const;
+	int GetJuggernauts() const;
 
 	void SetInfluence(int iValue);
 	void SetDisabledInfluence(int iValue);
@@ -162,12 +163,14 @@ public:
 	void SetGeneralPoints(int iValue);
 	void SetAdmiralPoints(int iValue);
 	void SetExperience(int iValue);
+	void SetJuggernauts(int iValue);
 
 	bool IsPartialQuest() const;
 	void SetPartialQuest(bool bValue);
 
 	// Handle rewards
 	void CalculateRewards(PlayerTypes ePlayer, bool bRecalc = false);
+	int CalculateJuggernautBonusXP(PlayerTypes ePlayer) const;
 	void DoRewards(PlayerTypes ePlayer, bool bHeavyTribute = false);
 	CvString GetRewardString(PlayerTypes ePlayer, bool bFinish) const;
 
@@ -218,6 +221,7 @@ public:
 	int m_iGeneralPoints;
 	int m_iAdmiralPoints;
 	int m_iExperience;
+	int m_iJuggernauts;
 	bool m_bPartialQuest;
 	bool m_bHandled;
 };
@@ -438,7 +442,7 @@ public:
 	void DoTestQuestsOnFirstContact(PlayerTypes eMajor);
 
 	void DoTestActiveQuests(bool bTestComplete, bool bTestObsolete);
-	void DoTestActiveQuestsForPlayer(PlayerTypes ePlayer, bool bTestComplete, bool bTestObsolete, MinorCivQuestTypes eSpecifyQuestType = NO_MINOR_CIV_QUEST_TYPE);
+	void DoTestActiveQuestsForPlayer(PlayerTypes ePlayer, bool bTestComplete, bool bTestObsolete, MinorCivQuestTypes eQuest = NO_MINOR_CIV_QUEST_TYPE);
 	void DoCompletedQuests();
 	WeightedCivsList CalculateFriendshipFromQuests();
 	void DoCompletedQuestsForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes eSpecifyQuestType = NO_MINOR_CIV_QUEST_TYPE);
@@ -578,7 +582,7 @@ public:
 	void SetFriendshipWithMajor(PlayerTypes ePlayer, int iNum, bool bFromQuest = false, bool bFromWar = false);
 	void ChangeFriendshipWithMajor(PlayerTypes ePlayer, int iChange, bool bFromQuest = false);
 
-	int GetFriendshipAnchorWithMajor(PlayerTypes ePlayer);
+	int GetFriendshipAnchorWithMajor(PlayerTypes eMajor);
 	
 	void ResetFriendshipWithMajor(PlayerTypes ePlayer);
 
@@ -706,7 +710,7 @@ public:
 	bool IsUnitSpawningAllowed(PlayerTypes ePlayer);
 	bool IsUnitSpawningDisabled(PlayerTypes ePlayer) const;
 	void SetUnitSpawningDisabled(PlayerTypes ePlayer, bool bValue);
-	CvUnit* DoSpawnUnit(PlayerTypes eMajor, bool bLocal = false, bool bExplore = false, bool bCityStateAnnexed = false);
+	CvUnit* DoSpawnUnit(PlayerTypes eMajor, bool bLocal = false, bool bExplore = false, bool bCityStateAnnexed = false, bool bJuggernaut = false);
 	void DoUnitSpawnTurn();
 	int GetSpawnBaseTurns(PlayerTypes ePlayer, bool bCityStateAnnexed = false);
 	int GetCurrentSpawnEstimate(PlayerTypes ePlayer);
@@ -825,16 +829,12 @@ public:
 	bool IsNoAlly() const;
 	void SetNoAlly(bool bValue);
 
-	int GetCoupCooldown() const;
-	void SetCoupCooldown(int iValue);
-	void ChangeCoupCooldown(int iValue);
-
 	bool IsSiphoned(PlayerTypes ePlayer) const;
 	void SetSiphoned(PlayerTypes ePlayer, bool bValue);
 #endif
-	int GetRiggingCoupChanceIncrease(PlayerTypes ePlayer) const;
-	void ChangeRiggingCoupChanceIncrease(PlayerTypes ePlayer, int iChange);
-	void ResetRiggingCoupChanceIncrease(PlayerTypes ePlayer);
+	int GetNumConsecutiveSuccessfulRiggings(PlayerTypes ePlayer) const;
+	void ChangeNumConsecutiveSuccessfulRiggings(PlayerTypes ePlayer, int iChange);
+	void ResetNumConsecutiveSuccessfulRiggings(PlayerTypes ePlayer);
 
 	int GetRestingPointChange(PlayerTypes ePlayer) const;
 	void ChangeRestingPointChange(PlayerTypes ePlayer, int iChange);
@@ -896,7 +896,6 @@ private:
 	bool m_abIsMarried[MAX_MAJOR_CIVS];
 	PlayerTypes m_ePermanentAlly;
 	bool m_bNoAlly;
-	int m_iCoup;
 	bool m_abSiphoned[MAX_MAJOR_CIVS];
 	bool m_abCoupAttempted[MAX_MAJOR_CIVS];
 	bool m_abSentUnitForQuest[MAX_MAJOR_CIVS];
@@ -925,7 +924,7 @@ private:
 	bool m_abPledgeToProtect[MAX_MAJOR_CIVS];
 	bool m_abPermanentWar[MAX_CIV_TEAMS];
 	bool m_abWaryOfTeam[MAX_CIV_TEAMS];
-	int m_aiRiggingCoupChanceIncrease[MAX_MAJOR_CIVS];
+	int m_aiNumConsecutiveSuccessfulRiggings[MAX_MAJOR_CIVS];
 	int m_aiRestingPointChange[MAX_MAJOR_CIVS];
 
 	bool m_bDisableNotifications;

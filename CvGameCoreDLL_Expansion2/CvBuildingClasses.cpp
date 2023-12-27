@@ -151,9 +151,9 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_iReligiousPressureModifier(0),
 	m_iEspionageModifier(0),
 	m_iGlobalEspionageModifier(0),
-	m_iEspionageTurnsModifierFriendly(0),
-	m_iEspionageTurnsModifierEnemyCity(0),
-	m_iEspionageTurnsModifierEnemyGlobal(0),
+	m_iSpySecurityModifier(0),
+	m_iSpySecurityModifierPerPop(0),
+	m_iGlobalSpySecurityModifier(0),
 	m_iExtraSpies(0),
 	m_iSpyRankChange(0),
 	m_iTradeRouteRecipientBonus(0),
@@ -269,6 +269,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_iNukeInterceptionChance(0),
 	m_bIsCorp(false),
 #endif
+	m_iFoodBonusPerCityMajorityFollower(0),
 #if defined(HH_MOD_BUILDINGS_FRUITLESS_PILLAGE)
 	m_bPlayerBorderGainlessPillage(false),
 	m_bCityGainlessPillage(false),
@@ -323,6 +324,9 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piThemingYieldBonus(NULL),
 	m_piYieldFromSpyAttack(NULL),
 	m_piYieldFromSpyDefense(NULL),
+	m_piYieldFromSpyIdentify(NULL),
+	m_piYieldFromSpyDefenseOrID(NULL),
+	m_piYieldFromSpyRigElection(NULL),
 	m_piYieldFromTech(NULL),
 	m_piYieldFromConstruction(NULL),
 	m_piYieldFromInternalTREnd(NULL),
@@ -456,6 +460,9 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piThemingYieldBonus);
 	SAFE_DELETE_ARRAY(m_piYieldFromSpyAttack);
 	SAFE_DELETE_ARRAY(m_piYieldFromSpyDefense);
+	SAFE_DELETE_ARRAY(m_piYieldFromSpyIdentify);
+	SAFE_DELETE_ARRAY(m_piYieldFromSpyDefenseOrID);
+	SAFE_DELETE_ARRAY(m_piYieldFromSpyRigElection);
 	SAFE_DELETE_ARRAY(m_piGreatWorkYieldChange);
 	SAFE_DELETE_ARRAY(m_piGreatWorkYieldChangeLocal);
 	SAFE_DELETE_ARRAY(m_piYieldFromTech);
@@ -615,6 +622,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_bIsCorp = kResults.GetBool("IsCorporation");
 	m_iNukeInterceptionChance = kResults.GetInt("NukeInterceptionChance");
 #endif
+	m_iFoodBonusPerCityMajorityFollower = kResults.GetInt("FoodBonusPerCityMajorityFollower");
 #if defined(HH_MOD_BUILDINGS_FRUITLESS_PILLAGE)
 	m_bPlayerBorderGainlessPillage = kResults.GetBool("PlayerBorderGainlessPillage");
 	m_bCityGainlessPillage = kResults.GetBool("CityGainlessPillage");
@@ -730,9 +738,9 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iReligiousPressureModifier = kResults.GetInt("ReligiousPressureModifier");
 	m_iEspionageModifier = kResults.GetInt("EspionageModifier");
 	m_iGlobalEspionageModifier = kResults.GetInt("GlobalEspionageModifier");
-	m_iEspionageTurnsModifierFriendly = kResults.GetInt("EspionageTurnsModifierFriendly");
-	m_iEspionageTurnsModifierEnemyCity = kResults.GetInt("EspionageTurnsModifierEnemyCity");
-	m_iEspionageTurnsModifierEnemyGlobal = kResults.GetInt("EspionageTurnsModifierEnemyGlobal");
+	m_iSpySecurityModifier = kResults.GetInt("SpySecurityModifier");
+	m_iSpySecurityModifierPerPop = kResults.GetInt("SpySecurityModifierPerPop");
+	m_iGlobalSpySecurityModifier = kResults.GetInt("GlobalSpySecurityModifier");
 	m_iExtraSpies = kResults.GetInt("ExtraSpies");
 	m_iSpyRankChange = kResults.GetInt("SpyRankChange");
 	m_iTradeRouteRecipientBonus = kResults.GetInt("TradeRouteRecipientBonus");
@@ -944,6 +952,9 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.SetYields(m_piThemingYieldBonus, "Building_ThemingYieldBonus", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromSpyAttack, "Building_YieldFromSpyAttack", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromSpyDefense, "Building_YieldFromSpyDefense", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piYieldFromSpyIdentify, "Building_YieldFromSpyIdentify", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piYieldFromSpyDefenseOrID, "Building_YieldFromSpyDefenseOrID", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piYieldFromSpyRigElection, "Building_YieldFromSpyRigElection", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piGreatWorkYieldChange, "Building_GreatWorkYieldChanges", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piGreatWorkYieldChangeLocal, "Building_GreatWorkYieldChangesLocal", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromTech, "Building_YieldFromTech", "BuildingType", szBuildingType);
@@ -2386,22 +2397,23 @@ int CvBuildingEntry::GetGlobalEspionageModifier() const
 	return m_iGlobalEspionageModifier;
 }
 
-/// Modifier to espionage mission durations for all friendly spies
-int CvBuildingEntry::GetEspionageTurnsModifierFriendly() const
+/// Modifier to Security against espionage in this city
+int CvBuildingEntry::GetSpySecurityModifier() const
 {
-	return m_iEspionageTurnsModifierFriendly;
-}
-/// Modifier to espionage mission durations for all enemy spies in this city
-int CvBuildingEntry::GetEspionageTurnsModifierEnemyCity() const
-{
-	return m_iEspionageTurnsModifierEnemyCity;
-}
-/// Modifier to espionage mission durations for all enemy spies in all cities
-int CvBuildingEntry::GetEspionageTurnsModifierEnemyGlobal() const
-{
-	return m_iEspionageTurnsModifierEnemyGlobal;
+	return m_iSpySecurityModifier;
 }
 
+/// Modifier to Security against espionage per population
+int CvBuildingEntry::GetSpySecurityModifierPerPop() const
+{
+	return m_iSpySecurityModifierPerPop;
+}
+
+/// Modifier to Security against espionage in all cities
+int CvBuildingEntry::GetGlobalSpySecurityModifier() const
+{
+	return m_iGlobalSpySecurityModifier;
+}
 
 /// Extra spies after this is built
 int CvBuildingEntry::GetExtraSpies() const
@@ -2777,6 +2789,11 @@ int CvBuildingEntry::GetNukeInterceptionChance() const
 	return m_iNukeInterceptionChance;
 }
 #endif
+/// +x% Food for each follower of the city's majority religion
+int CvBuildingEntry::GetFoodBonusPerCityMajorityFollower() const
+{
+	return m_iFoodBonusPerCityMajorityFollower;
+}
 #if defined(HH_MOD_BUILDINGS_FRUITLESS_PILLAGE)
 /// Is a border-wide nullification of the heal and gold benefits from pillaging
 bool CvBuildingEntry::IsPlayerBorderGainlessPillage() const
@@ -3413,6 +3430,45 @@ int CvBuildingEntry::GetYieldFromSpyDefense(int i) const
 int* CvBuildingEntry::GetYieldFromSpyDefenseArray() const
 {
 	return m_piYieldFromSpyDefense;
+}
+
+/// Array of yield changes
+int CvBuildingEntry::GetYieldFromSpyIdentify(int i) const
+{
+	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piYieldFromSpyIdentify ? m_piYieldFromSpyIdentify[i] : -1;
+}
+/// Array of yield changes
+int* CvBuildingEntry::GetYieldFromSpyIdentifyArray() const
+{
+	return m_piYieldFromSpyIdentify;
+}
+
+/// Array of yield changes
+int CvBuildingEntry::GetYieldFromSpyDefenseOrID(int i) const
+{
+	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piYieldFromSpyDefenseOrID ? m_piYieldFromSpyDefenseOrID[i] : -1;
+}
+/// Array of yield changes
+int* CvBuildingEntry::GetYieldFromSpyDefenseOrIDArray() const
+{
+	return m_piYieldFromSpyDefenseOrID;
+}
+
+/// Array of yield changes
+int CvBuildingEntry::GetYieldFromSpyRigElection(int i) const
+{
+	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piYieldFromSpyRigElection ? m_piYieldFromSpyRigElection[i] : -1;
+}
+/// Array of yield changes
+int* CvBuildingEntry::GetYieldFromSpyRigElectionArray() const
+{
+	return m_piYieldFromSpyRigElection;
 }
 
 

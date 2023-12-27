@@ -159,6 +159,8 @@ INSERT INTO Defines (Name, Value) SELECT 'MINOR_CIV_QUEST_ROUTE_MAXIMUM_DISTANCE
 INSERT INTO Defines (Name, Value) SELECT 'MINOR_CIV_QUEST_WONDER_COMPLETION_MAX_TURNS', 30;
 INSERT INTO Defines (Name, Value) SELECT 'MINOR_CIV_QUEST_FIND_CITY_MIN_DISTANCE', 16;
 INSERT INTO Defines (Name, Value) SELECT 'MINOR_CIV_QUEST_ARCHAEOLOGY_RANGE', 12;
+INSERT INTO Defines (Name, Value) SELECT 'MINOR_CIV_QUEST_ACQUIRE_CITY_MINIMUM_POP', 6;
+INSERT INTO Defines (Name, Value) SELECT 'MINOR_CIV_QUEST_ACQUIRE_CITY_MINIMUM_TURNS', 10;
 
 
 -- Settler Stuff
@@ -774,6 +776,9 @@ INSERT INTO Defines (Name, Value) SELECT 'MINOR_QUEST_REBELLION_BARBS_PER_ERA_BA
 INSERT INTO Defines (Name, Value) SELECT 'MINOR_QUEST_REBELLION_BARBS_PER_ERA_RAND', 200; -- Maximum random extra Barbs per era past Ancient. 100 = 1.
 INSERT INTO Defines (Name, Value) SELECT 'MINOR_QUEST_REBELLION_BARBS_MIN', 2; -- Minimum # of Barbs
 
+-- Acquire City Quest
+INSERT INTO Defines (Name, Value) SELECT 'MINOR_QUEST_ACQUIRE_CITY_BONUS_XP', 100; -- Amount of extra XP given to Juggernaut unit rewards
+
 -- Misc. Defines
 INSERT INTO Defines (Name, Value) SELECT 'RELIGION_MIN_FAITH_SECOND_PROPHET', 600;
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_MARRIAGE_GP_RATE', 15; -- Austria new UA (VP)
@@ -781,8 +786,8 @@ INSERT INTO Defines (Name, Value) SELECT 'BALANCE_MARRIAGE_RESTING_POINT_INCREAS
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_MARRIAGE_COST_BASE', 200; -- Austria new UA (VP)
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_MARRIAGE_COST_INCREASE_PER_PREVIOUS_MARRIAGE', 200; -- Austria new UA (VP)
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_FOLLOWER_GROWTH_BONUS', 0; -- India Growth (VP)
-INSERT INTO Defines (Name, Value) SELECT 'BALANCE_FOLLOWER_FOOD_BONUS', 1; -- India Food (VP)
-INSERT INTO Defines (Name, Value) SELECT 'RELIGION_FOUND_AUTO_SPREAD_PRESSURE', 1000; -- India Pressure on Found (VP)
+INSERT INTO Defines (Name, Value) SELECT 'BALANCE_FOLLOWER_FOOD_BONUS', 0; -- India Food (VP)
+INSERT INTO Defines (Name, Value) SELECT 'RELIGION_FOUND_AUTO_SPREAD_PRESSURE', 0; -- India Pressure on Found (VP)
 INSERT INTO Defines (Name, Value) SELECT 'GWAM_THRESHOLD_DECREASE', 0; -- Great People Rate Mod (Note, this is a subtraction, so positive = negative)
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_BUILDING_INVESTMENT_BASELINE', -50; -- Building Investments Base Rate
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_UNIT_INVESTMENT_BASELINE', -50; -- Unit Investments Base Rate
@@ -810,8 +815,7 @@ INSERT INTO Defines (Name, Value) SELECT 'BALANCE_CS_ALLIANCE_DEFENSE_BONUS', 25
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_MAX_CS_ALLY_STRENGTH', 5; -- Max number of CSs calc'd for bonus for Greek UA (VP)
 
 -- Spies
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SPY_RESISTANCE_MAXIMUM', 1000;
-INSERT INTO Defines (Name, Value) SELECT 'BALANCE_SPY_SABOTAGE_RATE', 30;
+INSERT INTO Defines (Name, Value) SELECT 'BALANCE_SPY_RESPAWN_TIMER', 5;
 -- Calculation of the number of spies per era, if MOD_BALANCE_CORE_SPIES is activated:
 -- Each era, gain 100 spy points. To get a spy, you need (iThreshold) Spy Points, with iThreshold = 100 * BALANCE_SPY_TO_PLAYER_RATIO / ((Num Minor Civs ever alive) + BALANCE_SPY_POINT_MAJOR_PLAYER_MULTIPLIER * (Num Major Civs ever alive))
 -- Excessive Spy Points are stored, so if for example iThreshold = 66, you get 3 spies every 2 eras
@@ -821,13 +825,39 @@ INSERT INTO Defines (Name, Value) SELECT 'BALANCE_SPY_POINT_MAJOR_PLAYER_MULTIPL
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_SPY_POINT_THRESHOLD_MIN', 33;  -- VP
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_SPY_POINT_THRESHOLD_MAX', 100;  -- VP
 	
-INSERT INTO Defines (Name, Value) SELECT 'BALANCE_SPY_RESPAWN_TIMER', 5;
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_GATHERING_INTEL_COST_DIVISOR', 250;
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_COUP_CHANCE_INCREASE_FOR_RIGGED_ELECTION_BASE', 0;  -- VP
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_COUP_CHANCE_INCREASE_FOR_RIGGED_ELECTION_PER_SPY_LEVEL', 0;  -- VP
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_KILL_CHANCE_DECREASE_PER_SPY_LEVEL', 0; -- VP
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_MODIFIER_SPY_LEVEL_AGENT', 0; -- VP
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_MODIFIER_SPY_LEVEL_SPECIAL_AGENT', 0; -- VP
+
+-- Calculation of Network Points (VP Espionage System)
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_BASE', 20;  -- Base Network Points generated per Turn
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_PER_SPY_RANK', 10;  -- Additional Network Points per Spy Level
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_CULTURAL_INFLUENCE', 10;  -- Additional Network Points for Cultural Influence
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_PER_TECHNOLOGY_BEHIND', 2;  -- Additional Network Points per Technology the Spy Owner does not have
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_MAX_NUM_TECH', 10;  -- Max Number of Techs taken into account (see previous line)
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_COUNTERSPY_NETWORK', -10;  -- Reduction of Network Points from Enemy Counterspy Network 
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_COUNTERSPY_PER_RANK', -10;  -- Reduction of Network Points from Enemy Counterspy Rank, if Counterspy Network established
+
+-- Security (VP Espionage System)
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_REDUCTION_PER_SECURITY_POINT', 160;  -- divided by 100: Percentage Reduction of Network Points per Security Point
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_MAX_NUM_SECURITY_POINTS', 50;  -- Max Number of Security Points
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_BASE', 10; -- Base Security
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_NOT_ALL_HAVE_SPIES', 1000; -- Security if not all players have a Spy
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_PREVIOUS_CITY_MISSIONS', 2; -- Security for each previous Spy Mission completed in the City
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_PER_POPULATION', -2; -- Security per Population in City
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_PER_TRADE_ROUTE', -1; -- Security per Trade Route to/from City
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_PER_EXCESS_UNHAPPINESS', -4; -- Security per Excess Unhappiness in City
+
+-- Spy XP (VP Espionage System)
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SPY_EXPERIENCE_DENOMINATOR', 100; -- XP needed to get to the next Level (scales with game speed)
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_PER_TURN_COUNTERSPY', 2; -- XP gained per Turn when active as Counterspy
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_PER_TURN_DIPLOMAT', 1; -- XP gained per Turn when active as Diplomat
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_PER_TURN_OFFENSIVE', 1; -- XP gained per Turn when active against another Major Civ
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_PER_TURN_CITYSTATE', 0; -- XP gained per Turn when active in a City-State
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_RIGGING_SUCCESS', 20; -- XP gained when successfully rigging an Election
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_UNCOVER_INTRIGUE', 15; -- XP gained when uncovering an Intrigue
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SPY_XP_MISSION_SUCCESS_DENOMINATOR', 50; -- When succesfully completing a Spy Mission, gain (NP Points needed for Mission) / ESPIONAGE_XP_MISSION_SUCESS_DENOMINATOR
+
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_COUNTERSPY_CHANGE_FOCUS_COOLDOWN', 5; -- Cooldown between switching Counterspy Missions
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_IMPRISONMENT_COOLDOWN', 5; -- Number of turns after which an imprisoned spy is released
+
 
 -- Ideology Unlock via Policies
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_MOD_POLICY_BRANCHES_NEEDED_IDEOLOGY', 3;
@@ -866,6 +896,7 @@ VALUES
 INSERT INTO Defines (Name, Value) VALUES ('MINOR_BULLY_GOLD_GROWTH_FACTOR', 400);
 
 -- Quest stuff
+INSERT INTO Defines (Name, Value) SELECT 'QUEST_DISABLED_KILL_CITY_STATE_FRIENDLY', 1; -- If enabled, Friendly CS can't give out Kill City-State quests
 INSERT INTO Defines (Name, Value) SELECT 'QUEST_DISABLED_FIND_CITY', 1;
 INSERT INTO Defines (Name, Value) SELECT 'QUEST_DISABLED_WAR', 1;
 INSERT INTO Defines (Name, Value) SELECT 'QUEST_DISABLED_CONSTRUCT_NATIONAL_WONDER', 1;
@@ -883,6 +914,7 @@ INSERT INTO Defines (Name, Value) SELECT 'QUEST_DISABLED_BUILD_X_BUILDINGS', 1;
 INSERT INTO Defines (Name, Value) SELECT 'QUEST_DISABLED_SPY_ON_MAJOR', 1;
 INSERT INTO Defines (Name, Value) SELECT 'QUEST_DISABLED_COUP', 1;
 INSERT INTO Defines (Name, Value) SELECT 'QUEST_DISABLED_ACQUIRE_CITY', 1;
+INSERT INTO Defines (Name, Value) SELECT 'QUEST_DISABLED_ACQUIRE_CITY_MILITARISTIC_ONLY', 1; -- If enabled, non-Militaristic CS can't give out Acquire City quests
 
 INSERT INTO Defines (Name, Value) SELECT 'MINOR_QUEST_REBELLION_TIMER', 20;
 INSERT INTO Defines (Name, Value) SELECT 'INFLUENCE_MINOR_QUEST_BOOST', 20;
@@ -1196,9 +1228,9 @@ INSERT INTO Defines (Name, Value) VALUES
 ('MINOR_CIV_QUEST_COUP_COPIES_HOSTILE', 0),
 ('MINOR_CIV_QUEST_COUP_COPIES_IRRATIONAL', 0),
 
-('MINOR_CIV_QUEST_ACQUIRE_CITY_COPIES_BASE', 10),
+('MINOR_CIV_QUEST_ACQUIRE_CITY_COPIES_BASE', 0), -- Non-Militaristic CS will not give out this quest at all
 ('MINOR_CIV_QUEST_ACQUIRE_CITY_COPIES_CULTURED', 0),
-('MINOR_CIV_QUEST_ACQUIRE_CITY_COPIES_MILITARISTIC', 20),
+('MINOR_CIV_QUEST_ACQUIRE_CITY_COPIES_MILITARISTIC', 30),
 ('MINOR_CIV_QUEST_ACQUIRE_CITY_COPIES_MARITIME', 0),
 ('MINOR_CIV_QUEST_ACQUIRE_CITY_COPIES_MERCANTILE', 0),
 ('MINOR_CIV_QUEST_ACQUIRE_CITY_COPIES_RELIGIOUS', 0),
@@ -1226,7 +1258,7 @@ INSERT INTO Defines (Name, Value) VALUES
 ('MINOR_CIV_QUEST_KILL_CITY_STATE_COPIES_MARITIME', 0),
 ('MINOR_CIV_QUEST_KILL_CITY_STATE_COPIES_MERCANTILE', 0),
 ('MINOR_CIV_QUEST_KILL_CITY_STATE_COPIES_RELIGIOUS', 0),
-('MINOR_CIV_QUEST_KILL_CITY_STATE_COPIES_FRIENDLY', 0), -- In Community Patch Only, friendly CS will not give this quest at all
+('MINOR_CIV_QUEST_KILL_CITY_STATE_COPIES_FRIENDLY', 0), -- In Community Patch Only, friendly CS will not give this quest out at all
 ('MINOR_CIV_QUEST_KILL_CITY_STATE_COPIES_NEUTRAL', -6),
 ('MINOR_CIV_QUEST_KILL_CITY_STATE_COPIES_HOSTILE', 10),
 ('MINOR_CIV_QUEST_KILL_CITY_STATE_COPIES_IRRATIONAL', 0),
@@ -1422,7 +1454,8 @@ INSERT INTO Defines (Name, Value) SELECT 'HELP_REQUEST_TURN_LIMIT_RAND', 10; -- 
 INSERT INTO Defines (Name, Value) SELECT 'TECH_COST_ERA_EXPONENT', 0.7; -- Additional cost per era.
 
 -- Vassalage
-INSERT INTO Defines (Name, Value) SELECT 'VASSAL_HAPPINESS_PERCENT', 20; -- What % of the vassal's Happiness does the master get? (NOTE: Halved in CBO)
+INSERT INTO Defines (Name, Value) SELECT 'VASSAL_HAPPINESS_PERCENT', 20; -- What % of the vassal's Happiness does the master get? (NOTE: Halved in VP)
+INSERT INTO Defines (Name, Value) SELECT 'VASSAL_PRESSURE_PERCENT', 100; -- What % of the master's majority pressure is applied to Vassal's cities?
 INSERT INTO Defines (Name, Value) SELECT 'VASSALAGE_FREE_YIELD_FROM_VASSAL_PERCENT', 20; -- What % of the vassal's Science/Culture/Faith does the master get?
 INSERT INTO Defines (Name, Value) SELECT 'VASSAL_TOURISM_MODIFIER', 33; -- What % bonus does the master get to Tourism against the vassal?
 INSERT INTO Defines (Name, Value) SELECT 'VASSAL_SCORE_PERCENT', 50; -- What % of the vassal's Land/Population score does the master get?

@@ -88,6 +88,9 @@ UPDATE Defines SET Value = 40 WHERE Name = 'SAPPED_CITY_ATTACK_MODIFIER';
 -- Unused
 UPDATE Defines SET Value = 2 WHERE Name = 'HEAVY_RESOURCE_THRESHOLD';
 
+-- Vassalage
+UPDATE Defines SET Value = 10 WHERE Name = 'VASSAL_HAPPINESS_PERCENT'; -- (NOTE: Halved in VP) comment in CoreDefines.sql of (1), updated because DLL hid that it was halving it.
+
 -------------------------------------------------------------------------------------------------------------------
 -- City stuff
 -------------------------------------------------------------------------------------------------------------------
@@ -300,7 +303,8 @@ WHERE Name IN (
 	'CSD_GOLD_GIFT_DISABLED',
 	'QUEST_DISABLED_INVEST',
 	'QUEST_DISABLED_GIVE_GOLD',
-	'QUEST_DISABLED_FIND_PLAYER'
+	'QUEST_DISABLED_FIND_PLAYER',
+	'QUEST_DISABLED_COUP'
 );
 
 -- Enabled quests
@@ -308,6 +312,7 @@ UPDATE Defines
 SET Value = 0
 WHERE Name IN (
 	'QUEST_DISABLED_KILL_CITY_STATE',
+	'QUEST_DISABLED_KILL_CITY_STATE_FRIENDLY', -- Remove the prohibition on Friendly CS giving this quest
 	'QUEST_DISABLED_FIND_CITY',
 	'QUEST_DISABLED_WAR',
 	'QUEST_DISABLED_CONSTRUCT_NATIONAL_WONDER',
@@ -374,7 +379,7 @@ UPDATE Defines SET Value = 2 WHERE Name = 'BASE_TOURISM_PER_GREAT_WORK';
 UPDATE Defines SET Value = 15 WHERE Name = 'TOURISM_MODIFIER_OPEN_BORDERS';
 UPDATE Defines SET Value = 10 WHERE Name = 'TOURISM_MODIFIER_TRADE_ROUTE';
 UPDATE Defines SET Value = -10 WHERE Name = 'TOURISM_MODIFIER_DIFFERENT_IDEOLOGIES';
-UPDATE Defines SET Value = 10 WHERE Name = 'TOURISM_MODIFIER_DIPLOMAT';
+UPDATE Defines SET Value = 20 WHERE Name = 'TOURISM_MODIFIER_DIPLOMAT';
 
 -------------------------------------------------------------------------------------------------------------------
 -- Religion
@@ -517,14 +522,9 @@ UPDATE Defines SET Value = 0 WHERE Name = 'INDUSTRIAL_ROUTE_PRODUCTION_MOD';
 -- Espionage
 -------------------------------------------------------------------------------------------------------------------
 UPDATE Defines SET Value = 10 WHERE Name = 'BALANCE_SPY_RESPAWN_TIMER';
-UPDATE Defines SET Value = 20 WHERE Name = 'ESPIONAGE_COUP_CHANCE_INCREASE_FOR_RIGGED_ELECTION_BASE';
-UPDATE Defines SET Value = 10 WHERE Name = 'ESPIONAGE_COUP_CHANCE_INCREASE_FOR_RIGGED_ELECTION_PER_SPY_LEVEL';
-UPDATE Defines SET Value = 10 WHERE Name = 'ESPIONAGE_KILL_CHANCE_DECREASE_PER_SPY_LEVEL';
-UPDATE Defines SET Value = 15 WHERE Name = 'ESPIONAGE_INFLUENCE_GAINED_FOR_RIGGED_ELECTION';
+UPDATE Defines SET Value = 30 WHERE Name = 'ESPIONAGE_INFLUENCE_GAINED_FOR_RIGGED_ELECTION';
 UPDATE Defines SET Value = 10 WHERE Name = 'ESPIONAGE_COUP_MULTIPLY_CONSTANT';
 UPDATE Defines SET Value = 1000 WHERE Name = 'ESPIONAGE_GATHERING_INTEL_COST_PERCENT';
-UPDATE Defines SET Value = -10 WHERE Name = 'ESPIONAGE_MODIFIER_SPY_LEVEL_AGENT';
-UPDATE Defines SET Value = -25 WHERE Name = 'ESPIONAGE_MODIFIER_SPY_LEVEL_SPECIAL_AGENT';
 
 -- Experience
 UPDATE Defines SET Value = 100 WHERE Name = 'ESPIONAGE_SPY_EXPERIENCE_DENOMINATOR';
@@ -569,6 +569,7 @@ UPDATE Defines SET Value = -2 WHERE Name = 'WAR_PROGRESS_PER_UNHAPPY';
 INSERT INTO PostDefines
 	(Name, "Key", "Table")
 VALUES
-	('EMBASSY_IMPROVEMENT', 'IMPROVEMENT_EMBASSY', 'Improvements');
+	('EMBASSY_IMPROVEMENT', 'IMPROVEMENT_EMBASSY', 'Improvements'),
+	('JUGGERNAUT_PROMOTION', 'PROMOTION_JUGGERNAUT', 'UnitPromotions');
 
 UPDATE PostDefines SET "Key" = 'ERA_MODERN' WHERE Name = 'IDEOLOGY_START_ERA';

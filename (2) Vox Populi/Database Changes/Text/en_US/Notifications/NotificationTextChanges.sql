@@ -1,4 +1,16 @@
 UPDATE Language_en_US
+SET Text = 'Your counterspy {1_SpyRank} {2_SpyName} killed {TXT_KEY_GRAMMAR_A_AN << {3_CivAdj}} spy in {4_CityName} after they completed a Spy Mission. {5_MissionText}'
+WHERE Tag = 'TXT_KEY_NOTIFICATION_KILLED_A_SPY';
+
+UPDATE Language_en_US
+SET Text = 'While conducting their mission, your spy {1_SpyRank} {2_SpyName} was killed by {TXT_KEY_GRAMMAR_A_AN << {3_CivAdj}} counterspy!'
+WHERE Tag = 'TXT_KEY_NOTIFICATION_SPY_WAS_KILLED';
+
+UPDATE Language_en_US
+SET Text = '{1_SpyRank} {2_SpyName} killed!'
+WHERE Tag = 'TXT_KEY_NOTIFICATION_SPY_WAS_KILLED_S';
+
+UPDATE Language_en_US
 SET Text = 'The people of {3_MinorCivName:textkey} look to worldly affairs for religious guidance. Whichever global religion can garner the most [ICON_PEACE] Followers in a period of {2_TurnsDuration} turns will gain [ICON_INFLUENCE] Influence with them. [COLOR_POSITIVE_TEXT]{1_TurnsRemaining} turns remaining.[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_NOTIFICATION_QUEST_CONTEST_FAITH';
 
@@ -122,3 +134,44 @@ WHERE Tag = 'TXT_KEY_MISC_LOST_WONDER_PROD_CONVERTED' AND EXISTS (SELECT 1 FROM 
 UPDATE Language_en_US
 SET Text = '{1_CityName} can no longer work on {2_BldgName}. The lost [ICON_PRODUCTION] is converted into {3_NumGold}[ICON_PEACE]!'
 WHERE Tag = 'TXT_KEY_MISC_LOST_WONDER_PROD_CONVERTED' AND EXISTS (SELECT 1 FROM Community WHERE Type = 'COMMUNITY_CORE_BALANCE_WONDER_CONSOLATION_TWEAK' AND Value = 5);
+
+-- Cultural influence level changes
+UPDATE Language_en_US
+SET Text = 'Our [ICON_CULTURE] Culture is [COLOR_NEGATIVE_TEXT]no longer[ENDCOLOR] [COLOR_MAGENTA]Exotic[ENDCOLOR] to {1_Num}. We will no longer get any bonuses from them.'
+WHERE Tag = 'TXT_KEY_INFLUENCE_US_1_BAD';
+
+UPDATE Language_en_US
+SET Text = 'Our [ICON_CULTURE] Culture is now [COLOR_MAGENTA]Exotic[ENDCOLOR] to {1_Num}! See Culture Overview for the bonuses!'
+WHERE Tag = 'TXT_KEY_INFLUENCE_US_1';
+
+UPDATE Language_en_US
+SET Text = 'Our [ICON_CULTURE] Culture is [COLOR_NEGATIVE_TEXT]no longer[ENDCOLOR] [COLOR_MAGENTA]Familiar[ENDCOLOR] to {1_Num}. Our bonuses have weakened from them.'
+WHERE Tag = 'TXT_KEY_INFLUENCE_US_2_BAD';
+
+UPDATE Language_en_US
+SET Text = 'Our [ICON_CULTURE] Culture is now [COLOR_MAGENTA]Familiar[ENDCOLOR] to {1_Num}!  See Culture Overview for the increased bonuses!'
+WHERE Tag = 'TXT_KEY_INFLUENCE_US_2';
+
+UPDATE Language_en_US
+SET Text = 'Our [ICON_CULTURE] Culture is [COLOR_NEGATIVE_TEXT]no longer[ENDCOLOR] [COLOR_MAGENTA]Popular[ENDCOLOR] to {1_Num}. Our bonuses have weakened from them.'
+WHERE Tag = 'TXT_KEY_INFLUENCE_US_3_BAD';
+
+UPDATE Language_en_US
+SET Text = 'Our [ICON_CULTURE] Culture is now [COLOR_MAGENTA]Popular[ENDCOLOR] to {1_Num}! See Culture Overview for the increased bonuses!'
+WHERE Tag = 'TXT_KEY_INFLUENCE_US_3';
+
+UPDATE Language_en_US
+SET Text = 'Our [ICON_CULTURE] Culture is [COLOR_NEGATIVE_TEXT]no longer[ENDCOLOR] [COLOR_MAGENTA]Influential[ENDCOLOR] to {1_Num}. Our bonuses have weakened from them.'
+WHERE Tag = 'TXT_KEY_INFLUENCE_US_4_BAD';
+
+UPDATE Language_en_US
+SET Text = 'Our [ICON_CULTURE] Culture is now [COLOR_MAGENTA]Influential[ENDCOLOR] to {1_Num}! See Culture Overview for the increased bonuses!'
+WHERE Tag = 'TXT_KEY_INFLUENCE_US_4';
+
+UPDATE Language_en_US
+SET Text = 'Our [ICON_CULTURE] Culture is [COLOR_NEGATIVE_TEXT]no longer[ENDCOLOR] [COLOR_MAGENTA]Dominant[ENDCOLOR] to {1_Num}. Our bonuses have weakened from them.'
+WHERE Tag = 'TXT_KEY_INFLUENCE_US_5_BAD';
+
+UPDATE Language_en_US
+SET Text = 'Our [ICON_CULTURE] Culture is now [COLOR_MAGENTA]Dominant[ENDCOLOR] to {1_Num}! See Culture Overview for the increased bonuses!'
+WHERE Tag = 'TXT_KEY_INFLUENCE_US_5';

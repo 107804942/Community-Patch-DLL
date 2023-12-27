@@ -1768,17 +1768,6 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 			yield[YIELD_GOLD] += PolicyInfo->GetTradeRouteSeaDistanceModifier() * 2;
 		}
 	}
-	if (PolicyInfo->GetEspionageModifier() != 0)
-	{
-		if (pPlayerTraits->IsDiplomat())
-		{
-			yield[YIELD_GOLD] += PolicyInfo->GetEspionageModifier() * -3;
-		}
-		else
-		{
-			yield[YIELD_GOLD] += PolicyInfo->GetEspionageModifier() * -2;
-		}
-	}
 	if (PolicyInfo->GetXCSAlliesLowersPolicyNeedWonders() != 0)
 	{
 		if (pPlayerTraits->IsDiplomat())
@@ -2264,6 +2253,17 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 		else
 		{
 			yield[YIELD_GOLD] += PolicyInfo->GetRiggingElectionModifier();
+		}
+	}
+	if (PolicyInfo->GetRigElectionInfluenceModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetRigElectionInfluenceModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetRigElectionInfluenceModifier();
 		}
 	}
 	if (PolicyInfo->GetMilitaryUnitGiftExtraInfluence() != 0)
@@ -3563,6 +3563,17 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 			else
 			{
 				yield[YIELD_CULTURE] += PolicyInfo->GetBuildingClassCultureChange(eBuildingClass) * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetBuildingClassSecurityChange(eBuildingClass) != 0)
+		{
+			if (pPlayerTraits->IsNerd())
+			{
+				yield[YIELD_SCIENCE] += 10 * PolicyInfo->GetBuildingClassSecurityChange(eBuildingClass);
+			}
+			else
+			{
+				yield[YIELD_SCIENCE] += 5 * PolicyInfo->GetBuildingClassSecurityChange(eBuildingClass);
 			}
 		}
 		if (PolicyInfo->GetBuildingClassHappiness(eBuildingClass))
