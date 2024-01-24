@@ -378,6 +378,7 @@ CvPlayer::CvPlayer() :
 	, m_bHasAdoptedStateReligion()
 	, m_eID()
 	, m_ePersonalityType()
+	, m_abInstantYieldNotificationsDisabled()
 	, m_aiCityYieldChange()
 	, m_aiCoastalCityYieldChange()
 	, m_aiCapitalYieldChange()
@@ -1772,6 +1773,9 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 
 	// lazy update scheme ...
 	m_iPlotFoundValuesUpdateTurn = -1;
+
+	m_abInstantYieldNotificationsDisabled.clear();
+	m_abInstantYieldNotificationsDisabled.resize(NUM_INSTANT_YIELD_TYPES, false);
 
 	m_aiCityYieldChange.clear();
 	m_aiCityYieldChange.resize(NUM_YIELD_TYPES, 0);
@@ -7615,8 +7619,11 @@ CvString CvPlayer::GetScaledHelpText(EventChoiceTypes eEventChoice, bool bYields
 	int iDuration = pkEventChoiceInfo->getEventDuration();
 	if(iDuration > 0)
 	{
-		iDuration *= GC.getGame().getGameSpeedInfo().getTrainPercent();
-		iDuration /= 100;
+		if (pkEventChoiceInfo->isEventDurationScaling())
+		{
+			iDuration *= GC.getGame().getGameSpeedInfo().getTrainPercent();
+			iDuration /= 100;
+		}
 		Localization::String localizedDurationText;
 		if(bYieldsOnly)
 		{
@@ -8833,8 +8840,11 @@ void CvPlayer::DoEventChoice(EventChoiceTypes eEventChoice, EventTypes eEvent, b
 
 				//Gamespeed.
 				int iEventDuration = pkEventChoiceInfo->getEventDuration();
-				iEventDuration *= GC.getGame().getGameSpeedInfo().getTrainPercent();
-				iEventDuration /= 100;
+				if (pkEventChoiceInfo->isEventDurationScaling())
+				{
+					iEventDuration *= GC.getGame().getGameSpeedInfo().getTrainPercent();
+					iEventDuration /= 100;
+				}
 				ChangeEventChoiceDuration(eEventChoice, iEventDuration);
 			}
 
@@ -28766,15 +28776,17 @@ void CvPlayer::doInstantYield(InstantYieldType iType, bool bCityFaith, GreatPers
 	CvNotifications* pNotifications = GetNotifications();
 	if(!bSuppress && GetID() == GC.getGame().getActivePlayer() && pNotifications && !totalyieldString.empty())
 	{
-		Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_INSTANT_YIELD");
-		if(pCity != NULL)
+		if (!MOD_NOTIFICATION_SETTINGS || !IsInstantYieldNotificationDisabled(iType))
 		{
-			strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_INSTANT_YIELD_IN_CITY");
-			strSummary << pCity->getNameKey();
-		}
-		Localization::String localizedText;
-		switch(iType)
-		{
+			Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_INSTANT_YIELD");
+			if(pCity != NULL)
+			{
+				strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_INSTANT_YIELD_IN_CITY");
+				strSummary << pCity->getNameKey();
+			}
+			Localization::String localizedText;
+			switch(iType)
+			{
 			case INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD:
 			{
 				if (getInstantYieldText(iType).empty() || getInstantYieldText(iType) == NULL)
@@ -29003,7 +29015,7 @@ void CvPlayer::doInstantYield(InstantYieldType iType, bool bCityFaith, GreatPers
 				}
 				return;
 			}
-			
+
 			case INSTANT_YIELD_TYPE_ERA_UNLOCK:
 			{
 				if(getInstantYieldText(iType).empty() || getInstantYieldText(iType) == NULL)
@@ -29282,7 +29294,7 @@ void CvPlayer::doInstantYield(InstantYieldType iType, bool bCityFaith, GreatPers
 				localizedText << totalyieldString;
 				break;
 			}
-			
+
 			case INSTANT_YIELD_TYPE_TR_MOVEMENT:
 			{
 				if(getInstantYieldText(iType).empty() || getInstantYieldText(iType) == NULL)
@@ -29332,7 +29344,7 @@ void CvPlayer::doInstantYield(InstantYieldType iType, bool bCityFaith, GreatPers
 						break;
 					}
 				}
-			}	
+			}
 			case INSTANT_YIELD_TYPE_CULTURE_BOMB:
 			{
 				if (getInstantYieldText(iType).empty() || getInstantYieldText(iType) == NULL)
@@ -29470,18 +29482,19 @@ void CvPlayer::doInstantYield(InstantYieldType iType, bool bCityFaith, GreatPers
 			{
 				return;
 			}
-		}
-		if(pCity == NULL)
-		{
-			CvCity* pCapitalCity = getCapitalCity();
-			if(pCapitalCity != NULL)
-			{
-				pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), pCapitalCity->getX(), pCapitalCity->getY(), pCapitalCity->GetID());
 			}
-		}
-		else
-		{
-			pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), pCity->getX(), pCity->getY(), pCity->GetID());
+			if(pCity == NULL)
+			{
+				CvCity* pCapitalCity = getCapitalCity();
+				if(pCapitalCity != NULL)
+				{
+					pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), pCapitalCity->getX(), pCapitalCity->getY(), pCapitalCity->GetID());
+				}
+			}
+			else
+			{
+				pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), pCity->getX(), pCity->getY(), pCity->GetID());
+			}
 		}
 	}
 }
@@ -38450,7 +38463,6 @@ void CvPlayer::DoUpdateWarDamageAndWeariness(bool bDamageOnly)
 		// At war and able to make peace - increase war weariness by 1% of current city + unit value (minimum 1).
 		int iWarWearinessReceived = max(iCurrentValue / 100, 1);
 		iWarWearinessReceived *= 100 + GET_PLAYER(eLoopPlayer).GetPlayerTraits()->GetEnemyWarWearinessModifier();
-		iWarWearinessReceived /= 100;
 		ChangeWarWeariness(eLoopPlayer, iWarWearinessReceived);
 	}
 
@@ -40071,6 +40083,17 @@ void CvPlayer::SetRefuseResearchAgreementTrade(bool refuseTrade)
 {
 	m_refuseResearchAgreementTrade = refuseTrade;
 }
+
+bool CvPlayer::IsInstantYieldNotificationDisabled(InstantYieldType eInstantYield)
+{
+	return m_abInstantYieldNotificationsDisabled[(int)eInstantYield];
+}
+
+void CvPlayer::SetInstantYieldNotificationDisabled(InstantYieldType eInstantYield, bool bNewValue)
+{
+	m_abInstantYieldNotificationsDisabled[(int)eInstantYield] = bNewValue;
+}
+
 
 //	--------------------------------------------------------------------------------
 int CvPlayer::getResourceModFromReligion(ResourceTypes eIndex) const
@@ -48363,6 +48386,7 @@ void CvPlayer::Serialize(Player& player, Visitor& visitor)
 	visitor(player.m_bLostHolyCity);
 	visitor(player.m_eHolyCityConqueror);
 	visitor(player.m_bHasAdoptedStateReligion);
+	visitor(player.m_abInstantYieldNotificationsDisabled);
 	visitor(player.m_aiCityYieldChange);
 	visitor(player.m_aiCoastalCityYieldChange);
 	visitor(player.m_aiCapitalYieldChange);

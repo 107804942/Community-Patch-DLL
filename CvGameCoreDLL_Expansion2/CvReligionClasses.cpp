@@ -6564,8 +6564,10 @@ CvCity *CvReligionAI::ChooseProphetConversionCity(CvUnit* pUnit, int* piTurns) c
 
 	int iDistanceBias = 7; //score drops linearly with distance from holy city
 	int iMinScore = 500;  //equivalent to converting 10 heretics at a distance of 13 plots to our holy city
+
+	//if we already used the prophet for something (india!) then spreading is the only option; accept basically any target
 	if (pUnit && !pUnit->GetReligionData()->IsFullStrength())
-		iMinScore = 200;
+		iMinScore = 10;
 
 	// Make sure we're spreading a religion and find holy city
 	ReligionTypes eReligion = GetReligionToSpread(false);
@@ -6590,10 +6592,12 @@ CvCity *CvReligionAI::ChooseProphetConversionCity(CvUnit* pUnit, int* piTurns) c
 	for(pLoopCity = m_pPlayer->firstCity(&iLoop); pLoopCity != NULL; pLoopCity = m_pPlayer->nextCity(&iLoop))
 	{
 		ReligionTypes eMajorityReligion = pLoopCity->GetCityReligions()->GetReligiousMajority();
-		int iHeretics = pLoopCity->GetCityReligions()->GetFollowersOtherReligions(eReligion);
+		int iHeretics = pLoopCity->GetCityReligions()->GetFollowersOtherReligions(eReligion,true) + pLoopCity->GetCityReligions()->GetNumFollowers(NO_RELIGION);
 		int iDistanceToHolyCity = plotDistance(pLoopCity->getX(), pLoopCity->getY(), pHolyCity->getX(), pHolyCity->getY());
 
-		if (eMajorityReligion != eReligion)
+		if (eMajorityReligion == eReligion)
+			continue;
+		else
 		{
 			bAnyOwnCityNotConverted = true;
 
@@ -6605,8 +6609,7 @@ CvCity *CvReligionAI::ChooseProphetConversionCity(CvUnit* pUnit, int* piTurns) c
 			}
 		}
 
-		CvTacticalDominanceZone* pZone = m_pPlayer->GetTacticalAI()->GetTacticalAnalysisMap()->GetZoneByCity(pLoopCity,false);
-		if (pZone && pZone->GetOverallEnemyStrength()>0)
+		if (pLoopCity->isUnderSiege())
 			continue;
 
 		if(pUnit && !pUnit->CanSpreadReligion(pLoopCity->plot()))
@@ -6669,7 +6672,7 @@ CvCity *CvReligionAI::ChooseProphetConversionCity(CvUnit* pUnit, int* piTurns) c
 				CvCityReligions* pCR = pLoopCity->GetCityReligions();
 				if (!pCR->IsDefendedAgainstSpread(eReligion))
 				{
-					int iHeretics = pCR->GetFollowersOtherReligions(eReligion);
+					int iHeretics = pCR->GetFollowersOtherReligions(eReligion, true);
 					if (iHeretics == 0)
 						continue;
 
@@ -6774,7 +6777,7 @@ CvCity *CvReligionAI::ChooseProphetConversionCity(CvUnit* pUnit, int* piTurns) c
 	}
 	else if (!vCandidates.empty())
 	{
-		if (pUnit->GeneratePath(vCandidates[0].pPlot, iFlags, INT_MAX) && pUnit->CachedPathIsSafeForCivilian())
+		if (pUnit->GeneratePath(vCandidates[0].pPlot, iFlags, INT_MAX, piTurns) && pUnit->CachedPathIsSafeForCivilian())
 			return vCandidates.front().pPlot->getPlotCity();
 	}
 

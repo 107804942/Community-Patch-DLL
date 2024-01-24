@@ -259,6 +259,9 @@ int GetPlotYield(CvPlot* pPlot, YieldTypes eYield)
 
 void CvBuilderTaskingAI::ConnectCitiesToCapital(CvCity* pPlayerCapital, CvCity* pTargetCity, BuildTypes eBuild, RouteTypes eRoute)
 {
+	if (pPlayerCapital->getOwner() != m_pPlayer->GetID())
+		return;
+
 	if(pTargetCity->IsRazing())
 	{
 		return;
@@ -1513,13 +1516,13 @@ void CvBuilderTaskingAI::AddRemoveRouteDirectives(vector<OptionWithScore<Builder
 	if (m_pPlayer->isMinorCiv())
 		return;
 
-	//humans don't get a route cache, so ignore them.
-	if (m_pPlayer->isHuman())
-		return;
-
 	//can we even remove routes?
 	CvUnitEntry& kUnitInfo = pUnit->getUnitInfo();
 	if (m_eRemoveRouteBuild==NO_BUILD || !kUnitInfo.GetBuilds(m_eRemoveRouteBuild))
+		return;
+
+	// If "Automated Workers Don't Replace Improvements" option is enabled, don't remove roads
+	if (m_pPlayer->isOption(PLAYEROPTION_SAFE_AUTOMATION) && m_pPlayer->isHuman())
 		return;
 
 	// if the player can't build a route, bail out!
@@ -2053,7 +2056,7 @@ bool CvBuilderTaskingAI::ShouldBuilderConsiderPlot(CvUnit* pUnit, CvPlot* pPlot)
 	}
 
 	//danger check is not enough - we don't want to be adjacent to enemy territory for example
-	if (m_pPlayer->GetTacticalAI()->IsVisibleToEnemy(pPlot))
+	if (pPlot->IsKnownVisibleToEnemy(m_pPlayer->GetID()))
 		return false;
 
 	if (!pUnit->canEndTurnAtPlot(pPlot))
@@ -2112,10 +2115,6 @@ int CvBuilderTaskingAI::GetBuildTimeWeight(CvUnit* pUnit, CvPlot* pPlot, BuildTy
 	int iBuildTimeNormal = pPlot->getBuildTime(eBuild, m_pPlayer->GetID());
 	int iBuildTurnsLeft = pPlot->getBuildTurnsLeft(eBuild, m_pPlayer->GetID(), pUnit->workRate(true), pUnit->workRate(true));
 	int iBuildTime = min(iBuildTimeNormal, iBuildTurnsLeft);
-	if(iBuildTime <= 0)
-	{
-		iBuildTime = 1;
-	}
 
 	if(bIgnoreFeatureTime)
 	{
@@ -2123,6 +2122,10 @@ int CvBuilderTaskingAI::GetBuildTimeWeight(CvUnit* pUnit, CvPlot* pPlot, BuildTy
 		{
 			iBuildTime -= GC.getBuildInfo(eBuild)->getFeatureTime(pPlot->getFeatureType());
 		}
+	}
+	if (iBuildTime <= 0)
+	{
+		iBuildTime = 1;
 	}
 
 	return 10000 / ((iBuildTime*100) + iAdditionalTime);
@@ -2757,7 +2760,7 @@ int CvBuilderTaskingAI::ScorePlotBuild(CvUnit* pUnit, CvPlot* pPlot, Improvement
 		if (pPlot->IsCityConnection(m_pPlayer->GetID()))
 		{
 			bool bHaveAndNeedRailroad = pPlot->IsRouteRailroad() && GetRouteTypeNeededAtPlot(pPlot) == ROUTE_RAILROAD;
-			bool bHaveAndNeedRoad = pPlot->IsRouteRoad() && GetRouteTypeNeededAtPlot(pPlot) == ROUTE_ROAD && !GetSameRouteBenefitFromTrait(pPlot, ROUTE_ROAD) == ROUTE_ROAD;
+			bool bHaveAndNeedRoad = (pPlot->IsRouteRoad() && GetRouteTypeNeededAtPlot(pPlot) == ROUTE_ROAD) || (m_pPlayer->GetPlayerTraits()->IsRiverTradeRoad() && pPlot->isRiver());
 
 			if (bHaveAndNeedRailroad)
 				iSecondaryScore += iRailroadScore;
