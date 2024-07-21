@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	� 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -81,8 +81,6 @@ public:
 	int GetAllFeatureProduction() const;
 	int GetImprovementCostModifier() const;
 	int GetImprovementUpgradeRateModifier() const;
-	int GetSpecialistProductionModifier() const;
-	int GetSpecialistUpgradeModifier() const;
 	int GetMilitaryProductionModifier() const;
 	int GetBaseFreeUnits() const;
 	int GetBaseFreeMilitaryUnits() const;
@@ -108,12 +106,15 @@ public:
 	int GetLandmarksTourismPercent() const;
 	int GetArchaeologicalDigTourism() const;
 	int GetGoldenAgeTourism() const;
+	bool IsInternalTRTourism() const;
 	int GetExtraCultureandScienceTradeRoutes() const;
 	int GetTradeRouteLandDistanceModifier() const;
 	int GetTradeRouteSeaDistanceModifier() const;
 	int GetEspionageNetworkPoints() const;
 	int GetRigElectionInfluenceModifier() const;
+	int GetPassiveEspionageBonusModifier() const;
 	int GetXCSAlliesLowersPolicyNeedWonders() const;
+	int GetHappinessPerCityOverStrengthThreshold() const;
 	int GetTRSpeedBoost() const;
 	int GetTRVisionBoost() const;
 	int GetHappinessPerXPolicies() const;
@@ -166,7 +167,6 @@ public:
 	int GetHappyPerMilitaryUnit() const;
 	int GetFreeSpecialist() const;
 	int GetTechPrereq() const;
-	int GetMaxConscript() const;
 	int GetExpModifier() const;
 	int GetExpInBorderModifier() const;
 	int GetMinorQuestFriendshipMod() const;
@@ -214,7 +214,6 @@ public:
 	bool IsMinorScienceAllies() const;
 	bool IsMinorResourceBonus() const;
 	int GetPolicyBranchType() const;
-	int GetNumExtraBranches() const;
 	int GetHappinessToCulture() const;
 	int GetHappinessToScience() const;
 	int GetNumCitiesFreeCultureBuilding() const;
@@ -259,7 +258,6 @@ public:
 	// Accessor Functions (Arrays)
 	int GetPrereqOrPolicies(int i) const;
 	int GetPrereqAndPolicies(int i) const;
-	int GetPolicyDisables(int i) const;
 	int GetYieldModifier(int i) const;
 	int* GetYieldModifierArray() const;
 	int GetCityYieldChange(int i) const;
@@ -278,7 +276,7 @@ public:
 	int* GetGreatWorkYieldChangeArray() const;
 	int GetSpecialistExtraYield(int i) const;
 	int* GetSpecialistExtraYieldArray() const;
-	int IsFreePromotion(int i) const;
+	bool IsFreePromotion(int i) const;
 	bool IsFreePromotionUnitCombat(const int promotionID, const int unitCombatID) const;
 #if defined(MOD_RELIGION_POLICY_BRANCH_FAITH_GP)
 	bool HasFaithPurchaseUnitClasses() const;
@@ -330,6 +328,8 @@ public:
 	int GetOccupiedProdMod() const;
 	int GetInternalTradeGold() const;
 	int GetFreeWCVotes() const;
+	int GetSpySecurityModifier() const;
+	int GetVotesPerFollowingCityTimes100() const;
 	int GetInfluenceGPExpend() const;
 	int GetFreeTradeRoute() const;
 	int GetFreeSpy() const;
@@ -428,6 +428,12 @@ public:
 	int GetYieldFromDelegateCount(int i) const;
 	int* GetYieldFromDelegateCountArray() const;
 
+	int GetYieldFromXMilitaryUnits(int i) const;
+	int* GetYieldFromXMilitaryUnitsArray() const;
+
+	int GetYieldPerCityOverStrengthThreshold(int i) const;
+	int* GetYieldPerCityOverStrengthThresholdArray() const;
+
 	int GetMissionInfluenceModifier() const;
 
 	bool IsCSResourcesForMonopolies() const;
@@ -478,12 +484,16 @@ public:
 	int GetHappfromXSpecialists() const;
 	int GetNoUnhappfromXSpecialistsCapital() const;
 	int GetSpecialistFoodChange() const;
-	int GetNonSpecialistFoodChange() const;
 
 	int GetWarWearinessModifier() const;
 	int GetWarScoreModifier() const;
 
 	int GetGreatGeneralExtraBonus() const;
+
+	set<int> GetPolicyDisables() const
+	{
+		return m_siPolicyDisables;
+	}
 
 private:
 	int m_iTechPrereq;
@@ -537,8 +547,6 @@ private:
 	int m_iAllFeatureProduction;
 	int m_iImprovementCostModifier;
 	int m_iImprovementUpgradeRateModifier;
-	int m_iSpecialistProductionModifier;
-	int m_iSpecialistUpgradeModifier;
 	int m_iMilitaryProductionModifier;
 	int m_iBaseFreeUnits;
 	int m_iBaseFreeMilitaryUnits;
@@ -645,9 +653,7 @@ private:
 	bool m_bMinorScienceAllies;
 	bool m_bMinorResourceBonus;
 	int m_iFreeSpecialist;
-	int m_iMaxConscript;
 	int m_iPolicyBranchType;
-	int m_iNumExtraBranches;
 	int m_iWoundedUnitDamageMod;
 	int m_iUnitUpgradeCostMod;
 	int m_iBarbarianCombatBonus;
@@ -710,7 +716,6 @@ private:
 	int m_iHappfromXSpecialists;
 	int m_iNoUnhappfromXSpecialistsCapital;
 	int m_iSpecialistFoodChange;
-	int m_iNonSpecialistFoodChange;
 	int m_iWarWearinessModifier;
 	int m_iWarScoreModifier;
 
@@ -731,7 +736,7 @@ private:
 #endif
 	int* m_piPrereqOrPolicies;
 	int* m_piPrereqAndPolicies;
-	int* m_piPolicyDisables;
+	set<int> m_siPolicyDisables;
 	int* m_piYieldModifier;
 	int* m_piCityYieldChange;
 	int* m_piCoastalCityYieldChange;
@@ -782,6 +787,8 @@ private:
 	int m_iCultureBombBoost;
 	int m_iInternalTradeGold;
 	int m_iFreeWCVotes;
+	int m_iSpySecurityModifier;
+	int m_iVotesPerFollowingCityTimes100;
 	int m_iInfluenceGPExpend;
 	int m_iFreeTradeRoute;
 	int m_iFreeSpy;
@@ -815,17 +822,20 @@ private:
 	int m_iLandmarksTourismPercent;
 	int m_iArchaeologicalDigTourism;
 	int m_iGoldenAgeTourism;
+	bool m_bInternalTRTourism;
 	int m_iExtraCultureandScienceTradeRoutes;
 	int m_iTradeRouteLandDistanceModifier;
 	int m_iTradeRouteSeaDistanceModifier;
 	int m_iEspionageNetworkPoints;
 	int m_iRigElectionInfluenceModifier;
+	int m_iPassiveEspionageBonusModifier;
 	int* m_piConquerorYield;
 	int* m_piFounderYield;
 	int* m_piReligionYieldMod;
 	int* m_piGoldenAgeYieldMod;
 	int** m_ppiReligionBuildingYieldMod;
 	int m_iXCSAlliesLowersPolicyNeedWonders;
+	int m_iHappinessPerCityOverStrengthThreshold;
 	int m_iTRSpeedBoost;
 	int m_iTRVisionBoost;
 	int m_iHappinessPerXPolicies;
@@ -846,7 +856,6 @@ private:
 #if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
 	int m_iInvestmentModifier;
 #endif
-//	bool* m_pabHurry;
 	bool* m_pabSpecialistValid;
 	int** m_ppiImprovementYieldChanges;
 	int** m_ppiPlotYieldChanges;
@@ -876,6 +885,8 @@ private:
 	int* m_piYieldModifierFromGreatWorks;
 	int* m_piYieldModifierFromActiveSpies;
 	int* m_piYieldFromDelegateCount;
+	int* m_piYieldFromXMilitaryUnits;
+	int* m_piYieldPerCityOverStrengthThreshold;
 	int m_iMissionInfluenceModifier;
 	int m_iHappinessPerActiveTradeRoute;
 	bool m_bCSResourcesForMonopolies;
@@ -1036,6 +1047,7 @@ enum CLOSED_ENUM PolicyModifierType
 	POLICYMOD_SHARED_IDEOLOGY_TRADE_CHANGE,
 	POLICYMOD_RIGGING_ELECTION_MODIFIER,
 	POLICYMOD_RIG_ELECTION_INFLUENCE_MODIFIER,
+	POLICYMOD_PASSIVE_ESPIONAGE_MODIFIER,
 	POLICYMOD_MILITARY_UNIT_GIFT_INFLUENCE,
 	POLICYMOD_PROTECTED_MINOR_INFLUENCE,
 	POLICYMOD_AFRAID_INFLUENCE,
@@ -1152,13 +1164,6 @@ public:
 	bool IsPolicyBranchFinished(PolicyBranchTypes eBranchType) const;
 	bool WillFinishBranchIfAdopted(PolicyTypes eType) const;
 
-	PolicyBranchTypes GetPolicyBranchChosen(int iID) const;
-	void SetPolicyBranchChosen(int iID, PolicyBranchTypes eBranchType);
-	int GetNumPolicyBranchesAllowed() const;
-
-	int GetNumExtraBranches() const;
-	void ChangeNumExtraBranches(int iChange);
-
 	// Below is used to determine the "title" for the player
 	void DoNewPolicyPickedForHistory(PolicyTypes ePolicy);
 	PolicyBranchTypes GetDominantPolicyBranchForTitle() const;
@@ -1213,13 +1218,10 @@ private:
 	bool* m_pabPolicyBranchFinished;
 	int* m_paiPolicyBranchBlockedCount;
 	int* m_paiPolicyBlockedCount;
-	PolicyBranchTypes* m_paePolicyBranchesChosen;
 	PolicyBranchTypes* m_paePolicyBlockedBranchCheck;
 	CvPolicyXMLEntries* m_pPolicies;
 	CvPolicyAI* m_pPolicyAI;
 	CvPlayer* m_pPlayer;
-
-	int m_iNumExtraBranches;
 
 	PolicyBranchTypes m_eBranchPicked1;
 	PolicyBranchTypes m_eBranchPicked2;

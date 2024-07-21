@@ -322,14 +322,7 @@ function AddBuildingButton( pCity, building )
 		end
 		
 		-- Name
-		local strBuildingName;
-		
-		-- Religious Buildings have special names
-		if (building.IsReligious) then
-			strBuildingName = Locale.ConvertTextKey("TXT_KEY_RELIGIOUS_BUILDING", building.Description, pPlayer:GetStateReligionKey());
-		else
-			strBuildingName = Locale.ConvertTextKey(building.Description);
-		end
+		local strBuildingName = Locale.ConvertTextKey(building.Description);
 
 		-- Building is free, add an asterisk to the name
 		if (bIsBuildingFree) then
@@ -1668,7 +1661,7 @@ function OnCityViewUpdate()
 	
 
 		local cityGrowth = pCity:GetFoodTurnsLeft();			
-		if (pCity:IsFoodProduction() or pCity:FoodDifferenceTimes100() == 0) then
+		if (pCity:FoodDifferenceTimes100() == 0) then
 			Controls.CityGrowthLabel:SetText(Locale.ConvertTextKey("TXT_KEY_CITYVIEW_STAGNATION_TEXT"));
 		elseif pCity:FoodDifference() < 0 then
 			Controls.CityGrowthLabel:SetText(Locale.ConvertTextKey("TXT_KEY_CITYVIEW_STARVATION_TEXT"));

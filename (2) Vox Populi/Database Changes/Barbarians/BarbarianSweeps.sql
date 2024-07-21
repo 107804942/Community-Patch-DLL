@@ -13,6 +13,10 @@ UPDATE Features
 SET SpawnLocationUnitFreePromotion = 'PROMOTION_WOODS_WALKER'
 WHERE Type = 'FEATURE_JUNGLE';
 
+UPDATE Features
+SET SpawnLocationUnitFreePromotion = 'PROMOTION_MARSH_WALKER'
+WHERE Type = 'FEATURE_MARSH';
+
 UPDATE Terrains
 SET SpawnLocationUnitFreePromotion = 'PROMOTION_DESERT_WALKER'
 WHERE Type = 'TERRAIN_DESERT';
@@ -40,8 +44,7 @@ WHERE Type IN (
 	'UNITCLASS_PIONEER',
 	'UNITCLASS_COLONIST',
 	'UNITCLASS_ARCHAEOLOGIST',
-	'UNITCLASS_MISSIONARY',
-	-- The civilian units below also cannot be captured from Barbarians (Capture = NULL)
+	-- The civilian units below also cannot be captured by Barbarians (Capture = NULL)
 	'UNITCLASS_WORKBOAT',
 	'UNITCLASS_CARAVAN',
 	'UNITCLASS_CARGO_SHIP',

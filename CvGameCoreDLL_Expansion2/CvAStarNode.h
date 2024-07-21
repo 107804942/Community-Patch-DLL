@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -136,31 +136,46 @@ public:
 //-------------------------------------------------------------------------------------------------
 struct SPathFinderUserData
 {
-	SPathFinderUserData() : ePathType(PT_GENERIC_SAME_AREA), iFlags(0), ePlayer(NO_PLAYER), eEnemy(NO_PLAYER), iUnitID(0), eBuildType(NO_BUILD), eRouteType(NO_ROUTE), bBenefitsVillages(false), iMaxTurns(INT_MAX), iMaxNormalizedDistance(INT_MAX), iMinMovesLeft(0), iStartMoves(60) {}
+	SPathFinderUserData()
+		: ePath(PT_GENERIC_SAME_AREA)
+		, eRoute(NO_ROUTE)
+		, eBuild(NO_BUILD)
+		, eRoutePurpose(NO_ROUTE_PURPOSE)
+		, bUseRivers(false)
+		, iFlags(0)
+		, ePlayer(NO_PLAYER)
+		, eEnemy(NO_PLAYER)
+		, iUnitID(0)
+		, iMaxTurns(INT_MAX)
+		, iMaxNormalizedDistance(INT_MAX)
+		, iMinMovesLeft(0)
+		, iStartMoves(60)
+	{}
 	SPathFinderUserData(const CvUnit* pUnit, int iFlags=0, int iMaxTurns=INT_MAX); // PT_AIR_REBASE (special case, set after construction)
 	SPathFinderUserData(PlayerTypes ePlayer, PathType ePathType); // PT_TRADE_WATER, PT_TRADE_LAND, PT_LANDMASS_CONNECTION, PT_CITY_CONNECTION_WATER
 	SPathFinderUserData(PlayerTypes ePlayer, PathType ePathType, int iMaxTurns); // PT_AREA_CONNECTION (iMaxTurns is simple vs complex check (0/1)), PT_CITY_INFLUENCE
 	SPathFinderUserData(PlayerTypes ePlayer, PathType ePathType, PlayerTypes eEnemy, int iMaxTurns); // PT_GENERIC_SAME_AREA, PT_GENERIC_SAME_AREA_WIDE, PT_ARMY_LAND, PT_ARMY_WATER, PT_ARMY_MIXED
-	SPathFinderUserData(PlayerTypes ePlayer, PathType ePathType, BuildTypes eBuildType, RouteTypes eRouteType, bool bBenefitsVillages); // PT_BUILD_ROUTE, PT_BUILD_ROUTE_MIXED, PT_CITY_CONNECTION_LAND, PT_CITY_CONNECTION_MIXED
+	SPathFinderUserData(PlayerTypes ePlayer, PathType ePathType, BuildTypes eBuildType, RouteTypes eRouteType, RoutePurpose eRoutePurpose, bool bUseRivers); // PT_BUILD_ROUTE, PT_BUILD_ROUTE_MIXED, PT_CITY_CONNECTION_LAND, PT_CITY_CONNECTION_MIXED
 
 	//do not compare max turns and max cost ...
 	bool operator==(const SPathFinderUserData& rhs) const 
-		{ return ePathType==rhs.ePathType && iFlags==rhs.iFlags && ePlayer==rhs.ePlayer && iUnitID==rhs.iUnitID && eRouteType==rhs.eRouteType; }
+		{ return ePath==rhs.ePath && iFlags==rhs.iFlags && ePlayer==rhs.ePlayer && iUnitID==rhs.iUnitID && eRoute==rhs.eRoute; }
 	bool operator!=(const SPathFinderUserData& rhs) const { return !(*this==rhs); }
 
-	PathType	ePathType;
-	RouteTypes  eRouteType;
-	BuildTypes  eBuildType;         //BuildType related to the RouteType
-	bool        bBenefitsVillages;
-	int			iFlags;				//see CvUnit::MOVEFLAG*
-	PlayerTypes ePlayer;			//optional
-	PlayerTypes eEnemy;
-	int			iUnitID;			//optional
-	int			iMaxTurns;
-	int			iMaxNormalizedDistance;
-	int			iMinMovesLeft;
-	int			iStartMoves;
-	PlotIndexContainer plotsToIgnoreForZOC;
+	PathType			ePath;
+	RouteTypes			eRoute;
+	BuildTypes			eBuild;             //BuildType related to the RouteType
+	RoutePurpose		eRoutePurpose;
+	bool                bUseRivers;
+	int					iFlags;				//see CvUnit::MOVEFLAG*
+	PlayerTypes			ePlayer;			//optional
+	PlayerTypes			eEnemy;
+	int					iUnitID;			//optional
+	int					iMaxTurns;
+	int					iMaxNormalizedDistance;
+	int					iMinMovesLeft;
+	int					iStartMoves;
+	PlotIndexContainer	plotsToIgnoreForZOC;
 };
 
 //-------------------------------------------------------------------------------------------------

@@ -36,6 +36,7 @@ local UIManager = UIManager
 
 local gk_mode = Game.GetReligionName ~= nil;--bc1
 local g_isSquadsModEnabled = Game.IsCustomModOption("SQUADS");
+local g_isRoutePlannerModEnabled = Game.IsCustomModOption("ROUTE_PLANNER");
 
 
 local turn1Color = Vector4( 0, 1, 0, 0.25 );
@@ -224,6 +225,12 @@ function KeyUpHandler( wParam )
 	end
 end
 Events.KeyUpEvent.Add( KeyUpHandler );
+
+if g_isRoutePlannerModEnabled then
+	InterfaceModeMessageHandler[GameInfo.InterfaceModes.INTERFACEMODE_ROUTE_PLANNER_DRAW.ID] = {}
+	InterfaceModeMessageHandler[GameInfo.InterfaceModes.INTERFACEMODE_ROUTE_PLANNER_DRAW.ID][MouseEvents.RButtonUp] = LuaEvents.ROUTE_PLANNER_RButtonUp
+	InterfaceModeMessageHandler[GameInfo.InterfaceModes.INTERFACEMODE_ROUTE_PLANNER_DRAW.ID][MouseEvents.RButtonDown] = LuaEvents.ROUTE_PLANNER_RButtonDown
+end
 
 if g_isSquadsModEnabled then
 	InterfaceModeMessageHandler[GameInfo.InterfaceModes.INTERFACEMODE_SQUAD_UNIT_MANAGEMENT.ID][MouseEvents.RButtonDown] = LuaEvents.SQUADS_MANAGE_UNITS_MODE_RIGHT_CLICK_DOWN;
@@ -746,7 +753,6 @@ function()
 	local plotX = plot:GetX();
 	local plotY = plot:GetY();
 	local pHeadSelectedUnit = UI.GetHeadSelectedUnit();
-	local pUnitClass = pHeadSelectedUnit:GetUnitClassType()
 
 	if pHeadSelectedUnit ~= nil and showAlternativeMoveHighlights(pHeadSelectedUnit, plot) then
 		return;
@@ -801,8 +807,6 @@ function MovementRButtonUp()
 	local plotX = plot:GetX();
 	local plotY = plot:GetY();
 	local pHeadSelectedUnit = UI.GetHeadSelectedUnit();
-	local pUnitClass = pHeadSelectedUnit:GetUnitClassType()
-	local pUnitID = pHeadSelectedUnit:GetID()
 	UpdatePathFromSelectedUnitToMouse();
 --	if bShift then
 --		UpdatePathFromWaypointToMouse();
@@ -811,6 +815,8 @@ function MovementRButtonUp()
 --	end
 
 	if pHeadSelectedUnit then
+		local pUnitClass = pHeadSelectedUnit:GetUnitClassType()
+		local pUnitID = pHeadSelectedUnit:GetID()
 		if UI.IsCameraMoving() and not Game.GetAllowRClickMovementWhileScrolling() then
 			print("Blocked by moving camera");
 			--Events.ClearHexHighlights();

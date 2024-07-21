@@ -43,9 +43,9 @@ protected:
 	static int lGetActivePath(lua_State* L);
 	static int lGeneratePathToNextWaypoint(lua_State* L);
 	static int lGetWaypointPath(lua_State* L);
+	static int lGetMeleeAttackFromPlot(lua_State* L);
 
 	static int lCanEnterTerritory(lua_State* L);
-	static int lCanEnterArea(lua_State* L);
 	static int lGetDeclareWarRangeStrike(lua_State* L);
 	static int lCanMoveOrAttackInto(lua_State* L);
 	static int lCanMoveThrough(lua_State* L);
@@ -112,17 +112,11 @@ protected:
 	static int lGetExoticGoodsGoldAmount(lua_State* L);
 	static int lGetExoticGoodsXPAmount(lua_State* L);
 
-	static int lCanAirBomb(lua_State* L);
-	static int lCanAirBombAt(lua_State* L);
-
-	static int lBombardTarget(lua_State* L);
-	static int lCanBombard(lua_State* L);
 	static int lCanPillage(lua_State* L);
 
 	static int lIsSelected(lua_State* L);
 
 	static int lCanFound(lua_State* L);
-	static int lCanSpread(lua_State* L);
 
 	static int lCanJoin(lua_State* L);
 	static int lCanConstruct(lua_State* L);
@@ -165,10 +159,7 @@ protected:
 	LUAAPIEXTN(CanUpgradeInTerritory, bool, bTestVisible);
 #endif
 	static int lGetNumResourceNeededToUpgrade(lua_State* L);
-
-#if defined(MOD_UNITS_RESOURCE_QUANTITY_TOTALS)
 	static int lGetNumResourceTotalNeededToUpgrade(lua_State* L);
-#endif
 
 	static int lGetHandicapType(lua_State* L);
 	static int lGetCivilizationType(lua_State* L);
@@ -285,8 +276,6 @@ protected:
 	LUAAPIEXTN(SetBaseRangedCombatStrength, void, int);
 	static int lGetDamageCombatModifier(lua_State* L);
 	static int lGetMaxRangedCombatStrength(lua_State* L);
-	static int lGetCombatLimit(lua_State* L);
-	static int lGetRangedCombatLimit(lua_State* L);
 	static int lCanAirAttack(lua_State* L);
 	static int lCanAirDefend(lua_State* L);
 	static int lGetAirCombatDamage(lua_State* L);
@@ -304,12 +293,7 @@ protected:
 	static int lIsEverFortifyable(lua_State* L);
 	static int lFortifyModifier(lua_State* L);
 	static int lExperienceNeeded(lua_State* L);
-	static int lAttackXPValue(lua_State* L);
-	static int lDefenseXPValue(lua_State* L);
 	static int lMaxXPValue(lua_State* L);
-	static int lFirstStrikes(lua_State* L);
-	static int lChanceFirstStrikes(lua_State* L);
-	static int lMaxFirstStrikes(lua_State* L);
 	static int lIsRanged(lua_State* L);
 	static int lIsMustSetUpToRangedAttack(lua_State* L);
 	static int lCanSetUpForRangedAttack(lua_State* L);
@@ -318,7 +302,6 @@ protected:
 	static int lIsCoastalAttackOnly(lua_State* L);
 	static int lIsCityAttackOnly(lua_State* L);
 
-	static int lImmuneToFirstStrikes(lua_State* L);
 	static int lNoDefensiveBonus(lua_State* L);
 	static int lIgnoreBuildingDefense(lua_State* L);
 	static int lCanMoveImpassable(lua_State* L);
@@ -489,8 +472,6 @@ protected:
 	static int lGetExtraRange(lua_State* L);
 	static int lGetExtraIntercept(lua_State* L);
 	static int lGetExtraEvasion(lua_State* L);
-	static int lGetExtraFirstStrikes(lua_State* L);
-	static int lGetExtraChanceFirstStrikes(lua_State* L);
 	static int lGetExtraWithdrawal(lua_State* L);
 	static int lGetExtraEnemyHeal(lua_State* L);
 	static int lGetExtraNeutralHeal(lua_State* L);
@@ -517,7 +498,6 @@ protected:
 	static int lGetPillageChange(lua_State* L);
 	static int lGetUpgradeDiscount(lua_State* L);
 	static int lGetExperiencePercent(lua_State* L);
-	static int lGetKamikazePercent(lua_State* L);
 
 	static int lIsOutOfAttacks(lua_State* L);
 	static int lSetMadeAttack(lua_State* L);
@@ -608,6 +588,8 @@ protected:
 	static int lGetConversionStrength(lua_State* L);
 	static int lGetSpreadsLeft(lua_State* L);
 	static int lGetChargesLeft(lua_State* L);
+	static int lGetNumFollowersAfterInquisitor(lua_State* L);
+	static int lGetMajorityReligionAfterInquisitor(lua_State* L);
 	static int lGetNumFollowersAfterSpread(lua_State* L);
 	static int lGetMajorityReligionAfterSpread(lua_State* L);
 	LUAAPIEXTN(SetReligion, void, iReligion);

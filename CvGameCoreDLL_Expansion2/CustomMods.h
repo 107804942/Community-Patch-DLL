@@ -22,8 +22,8 @@
  ****************************************************************************
  ****************************************************************************/
 #define MOD_DLL_GUID {0xbf9bf7f0, 0xe078, 0x4d4e, { 0x8a, 0x3e, 0x84, 0x71, 0x2f, 0x85, 0xaa, 0x2b }} //{BF9BF7F0-E078-4d4e-8A3E-84712F85AA2B}
-#define MOD_DLL_NAME "Community Patch v126 (PNM v51+)"
-#define MOD_DLL_VERSION_NUMBER ((uint) 126)
+#define MOD_DLL_NAME "Community Patch v136 (PNM v51+)"
+#define MOD_DLL_VERSION_NUMBER ((uint) 136)
 #define MOD_DLL_VERSION_STATUS ""			// a (alpha), b (beta) or blank (released)
 #define MOD_DLL_CUSTOM_BUILD_NAME ""
 
@@ -61,16 +61,16 @@
 #define MOD_BALANCE_RANGED_ATTACK_ONLY_IN_NATIVE_DOMAIN
 
 // for debugging only
-//#define MOD_UNIT_KILL_STATS
+#define MOD_UNIT_KILL_STATS gCustomMods.isUNIT_KILL_STATS()
 
 /// visible tiles stay visible until the end of the turn
-#define MOD_CORE_DELAYED_VISIBILITY
+#define MOD_CORE_DELAYED_VISIBILITY gCustomMods.isCORE_DELAYED_VISIBILITY()
 
 /// ignore ZOC for those units which are likely to be killed by the enemy (alternatively ignore ZOC for all owned units)
-//#define MOD_CORE_TWO_PASS_DANGER
+#define MOD_CORE_TWO_PASS_DANGER gCustomMods.isCORE_TWO_PASS_DANGER()
 
-/// define this if you need hovercraft support, but it costs performance
-//#define MOD_CORE_HOVERING_UNITS
+/// set this to true if you need hovercraft support, but it costs performance
+#define MOD_CORE_HOVERING_UNITS gCustomMods.isCORE_HOVERING_UNITS()
 
 /// unrevealed plots are impassable instead of passable by default
 #define MOD_CORE_UNREVEALED_IMPASSABLE
@@ -78,13 +78,10 @@
 /// for better multiplayer experience
 #define MOD_CORE_REDUCE_RANDOMNESS
 
-#define MOD_CORE_RESILIENT_PANTHEONS
+#define MOD_CORE_RESILIENT_PANTHEONS gCustomMods.isCORE_RESILIENT_PANTHEONS()
 
 // track how much damage a unit takes per turn in order to better predict whether it might die
 #define MOD_CORE_PER_TURN_DAMAGE
-
-// Comment out this line to include all the tutorials code
-#define NO_TUTORIALS
 
 // Comment out this line to switch off all custom mod logging
 #define CUSTOMLOGDEBUG "CustomMods.log"
@@ -125,6 +122,8 @@
 #define MOD_LOCAL_GENERALS_NEAREST_CITY             gCustomMods.isLOCAL_GENERALS_NEAREST_CITY()
 // Separates out the repair fleet and change port abilities of the Great Admiral (v61)
 #define MOD_GLOBAL_SEPARATE_GREAT_ADMIRAL           gCustomMods.isGLOBAL_SEPARATE_GREAT_ADMIRAL()
+// Lets all Civs get trade routes along rivers.
+#define MOD_RIVER_CITY_CONNECTIONS                      gCustomMods.isRIVER_CITY_CONNECTIONS()
 // Permits units to have promotion trees different from their assigned CombatClass
 #define MOD_GLOBAL_PROMOTION_CLASSES                gCustomMods.isGLOBAL_PROMOTION_CLASSES()
 // Permits ships to enter coastal forts/citadels in friendly lands
@@ -238,7 +237,6 @@
 #define MOD_CORE_DEBUGGING							(MOD_COMMUNITY_PATCH && gCustomMods.isCORE_DEBUGGING())
 #define MOD_BALANCE_CORE_YIELDS						(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_YIELDS())
 #define MOD_BALANCE_CORE_SPIES						(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_SPIES())
-#define MOD_BALANCE_CORE_SPIES_ADVANCED				(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_SPIES_ADVANCED())
 #define MOD_BALANCE_CORE_MILITARY					(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_MILITARY())
 #define MOD_BALANCE_CORE_SETTLER_ADVANCED			(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_SETTLER_ADVANCED())
 #define MOD_BALANCE_CORE_MINORS						(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_MINORS())
@@ -439,7 +437,7 @@
 // Inquisitors will keep religion out of allied City State cities if positioned adjacent (v60)
 #define MOD_RELIGION_ALLIED_INQUISITORS             gCustomMods.isRELIGION_ALLIED_INQUISITORS()
 // Send purchase notifications at every boundary and not just the first (v42)
-#define MOD_RELIGION_RECURRING_PURCHASE_NOTIFY     gCustomMods.isRELIGION_RECURRING_PURCHASE_NOTIFY()
+#define MOD_RELIGION_RECURRING_PURCHASE_NOTIFY      gCustomMods.isRELIGION_RECURRING_PURCHASE_NOTIFY()
 // Adds support for Great People being purchased by faith to be specified on a policy (usually a finisher) and not hard-coded (v53)
 #define MOD_RELIGION_POLICY_BRANCH_FAITH_GP         gCustomMods.isRELIGION_POLICY_BRANCH_FAITH_GP()
 // Adds support for "local" religions (ie ones that only have influence within the civ's own territory) (v48)
@@ -451,10 +449,12 @@
 // Civilizations benefit from their pantheons even after converted to another religion
 #define MOD_RELIGION_PERMANENT_PANTHEON				gCustomMods.isRELIGION_PERMANENT_PANTHEON()
 
+// turns off some of the less important notifications
+#define MOD_CORE_REDUCE_NOTIFICATIONS				gCustomMods.isCORE_REDUCE_NOTIFICATIONS()
 // if true, only cities cannot do ranged strikes
 #define MOD_CORE_NO_RANGED_ATTACK_FROM_CITIES		gCustomMods.isCORE_NO_RANGED_ATTACK_FROM_CITIES()
 // if true, units can pass through anyone's territory but still need open borders to stay there
-#define MOD_CORE_RELAXED_BORDER_CHECK			gCustomMods.isCORE_RELAXED_BORDER_CHECK()
+#define MOD_CORE_RELAXED_BORDER_CHECK				gCustomMods.isCORE_RELAXED_BORDER_CHECK()
 
 // Enables production to be stockpiled (v28)
 #define MOD_PROCESS_STOCKPILE                       gCustomMods.isPROCESS_STOCKPILE()
@@ -485,6 +485,8 @@
 #define MOD_NOTIFICATION_SETTINGS					gCustomMods.isNOTIFICATION_SETTINGS()
 // Full map state logging
 #define MOD_LOG_MAP_STATE							gCustomMods.isLOG_MAP_STATE()
+// Route Planner modmod
+#define MOD_ROUTE_PLANNER							gCustomMods.isROUTE_PLANNER()
 
 //
 //	 GameEvents.TradeRouteCompleted.Add(function( iOriginOwner, iOriginCity, iDestOwner, iDestCity, eDomain, eConnectionTradeType) end)
@@ -1279,6 +1281,7 @@ public:
 	MOD_OPT_DECL(GLOBAL_LOCAL_GENERALS);
 	MOD_OPT_DECL(LOCAL_GENERALS_NEAREST_CITY);
 	MOD_OPT_DECL(GLOBAL_SEPARATE_GREAT_ADMIRAL);
+	MOD_OPT_DECL(RIVER_CITY_CONNECTIONS);
 	MOD_OPT_DECL(GLOBAL_PROMOTION_CLASSES);
 	MOD_OPT_DECL(GLOBAL_PASSABLE_FORTS);
 	MOD_OPT_DECL(GLOBAL_ANYTIME_GOODY_GOLD);
@@ -1330,7 +1333,6 @@ public:
 	MOD_OPT_DECL(BALANCE_CORE);
 	MOD_OPT_DECL(BALANCE_CORE_YIELDS);
 	MOD_OPT_DECL(BALANCE_CORE_SPIES);
-	MOD_OPT_DECL(BALANCE_CORE_SPIES_ADVANCED);
 	MOD_OPT_DECL(BALANCE_CORE_MILITARY);
 	MOD_OPT_DECL(BALANCE_CORE_SETTLER_ADVANCED);
 	MOD_OPT_DECL(BALANCE_CORE_MINORS);
@@ -1471,6 +1473,7 @@ public:
 	MOD_OPT_DECL(RELIGION_EXTENSIONS);
 	MOD_OPT_DECL(RELIGION_PERMANENT_PANTHEON);
 
+	MOD_OPT_DECL(CORE_REDUCE_NOTIFICATIONS);
 	MOD_OPT_DECL(CORE_NO_RANGED_ATTACK_FROM_CITIES);
 	MOD_OPT_DECL(CORE_RELAXED_BORDER_CHECK);
 	MOD_OPT_DECL(PROCESS_STOCKPILE);
@@ -1555,6 +1558,13 @@ public:
 
 	MOD_OPT_DECL(BATTLE_ROYALE);
 
+	MOD_OPT_DECL(UNIT_KILL_STATS);
+
+	MOD_OPT_DECL(CORE_TWO_PASS_DANGER);
+	MOD_OPT_DECL(CORE_DELAYED_VISIBILITY);
+	MOD_OPT_DECL(CORE_HOVERING_UNITS);
+	MOD_OPT_DECL(CORE_RESILIENT_PANTHEONS);
+
 	MOD_OPT_DECL(AI_UNIT_PRODUCTION);
 	MOD_OPT_DECL(ADJACENT_BLOCKADE);
 	MOD_OPT_DECL(ATTRITION);
@@ -1565,6 +1575,7 @@ public:
 	MOD_OPT_DECL(NOT_FOR_SALE);
 	MOD_OPT_DECL(NOTIFICATION_SETTINGS);
 	MOD_OPT_DECL(LOG_MAP_STATE);
+	MOD_OPT_DECL(ROUTE_PLANNER);
 
 protected:
 	bool m_bInit;

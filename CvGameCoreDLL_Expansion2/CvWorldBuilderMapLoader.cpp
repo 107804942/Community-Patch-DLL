@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -681,7 +681,7 @@ void SetupUnit(const CvWorldBuilderMap::Unit& kSavedUnit, int iPlotX, int iPlotY
 	const CvUnitEntry* pkUnitType = GC.getUnitInfo(eUnitType);
 	FAssert(pkUnitType); // We should probably be concerned if this unit type isn't valid
 	if(pkUnitType != NULL)
-		eAIType = (UnitAITypes)pkUnitType->GetDefaultUnitAIType();
+		eAIType = pkUnitType->GetDefaultUnitAIType();
 	else
 		return;	// The unit type is invalid, we really can't go any further.
 

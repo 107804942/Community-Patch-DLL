@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -48,8 +48,6 @@ protected:
 	static int lCityPurchaseUnit(lua_State* L);
 	static int lCityPurchaseBuilding(lua_State* L);
 	static int lCityPurchaseProject(lua_State* L);
-
-	static int lGetProductionPerPopulation(lua_State* L);
 
 	static int lGetAdjustedPopulationPercent(lua_State* L);
 	static int lGetAdjustedLandPercent(lua_State* L);
@@ -100,8 +98,6 @@ protected:
 	static int lChangeMaxTurns(lua_State* L);
 	static int lGetMaxCityElimination(lua_State* L);
 	static int lSetMaxCityElimination(lua_State* L);
-	static int lGetNumAdvancedStartPoints(lua_State* L);
-	static int lSetNumAdvancedStartPoints(lua_State* L);
 	static int lGetStartTurn(lua_State* L);
 	static int lGetWinningTurn(lua_State* L);
 	static int lGetStartYear(lua_State* L);
@@ -152,6 +148,7 @@ protected:
 
 	static int lGetAIAutoPlay(lua_State* L);
 	static int lSetAIAutoPlay(lua_State* L);
+	static int lChangeActivePlayer(lua_State* L);
 
 	static int lIsScoreDirty(lua_State* L);
 	static int lSetScoreDirty(lua_State* L);
@@ -176,6 +173,8 @@ protected:
 
 	static int lGetActivePlayer(lua_State* L);
 	static int lSetActivePlayer(lua_State* L);
+	static int lGetObserverUIOverridePlayer(lua_State* L);
+	static int lSetObserverUIOverridePlayer(lua_State* L);
 	static int lGetPausePlayer(lua_State* L);
 	static int lSetPausePlayer(lua_State* L);
 	static int lIsPaused(lua_State* L);
@@ -230,7 +229,6 @@ protected:
 	static int lMakeSpecialUnitValid(lua_State* L);
 	static int lIsNukesValid(lua_State* L);
 	static int lMakeNukesValid(lua_State* L);
-	static int lIsInAdvancedStart(lua_State* L);
 
 	static int lSetName(lua_State* L);
 	static int lGetName(lua_State* L);
@@ -278,10 +276,7 @@ protected:
 
 	static int lGetResourceUsageType(lua_State* L);
 
-#if defined(MOD_UNITS_RESOURCE_QUANTITY_TOTALS)
 	static int lGetNumResourceTotalRequiredForUnit(lua_State* L);
-#endif
-
 	static int lGetNumResourceRequiredForUnit(lua_State* L);
 	static int lGetNumResourceRequiredForBuilding(lua_State* L);
 
@@ -330,7 +325,9 @@ protected:
 	static int lGetCultureMedianModifierBuildingGlobal(lua_State* L);
 	static int lGetReligiousUnrestModifierBuildingGlobal(lua_State* L);
 	static int lGetBuildingCorporateGPChange(lua_State* L);
-	static int lGetPromiseDuration(lua_State* L);
+	static int lGetMilitaryPromiseDuration(lua_State* L);
+	static int lGetExpansionPromiseDuration(lua_State* L);
+	static int lGetBorderPromiseDuration(lua_State* L);
 	static int lGetCorporationFounder(lua_State* L);
 	static int lGetCorporationHeadquarters(lua_State* L);
 	static int lGetNumCorporationsFounded(lua_State* L);

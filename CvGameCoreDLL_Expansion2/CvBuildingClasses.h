@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	� 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -149,7 +149,7 @@ public:
 	int GetTRTurnModGlobal() const;
 	int GetTRTurnModLocal() const;
 	int GetVotesPerGPT() const;
-	bool IsRequiresRail() const;
+	bool IsRequiresIndustrialCityConnection() const;
 	bool IsDummy() const;
 	int GetLandmarksTourismPercentGlobal() const;
 	int GetGreatWorksTourismModifierGlobal() const;
@@ -235,7 +235,7 @@ public:
 
 	int GetPurchaseCooldownReduction(bool bCivilian = false) const;
 #endif
-	bool IsVassalLevyEra() const;
+	int GetVassalLevyEra() const;
 #if defined(MOD_BALANCE_CORE_POP_REQ_BUILDINGS)
 	int GetNationalPopulationRequired() const;
 	int GetLocalPopulationRequired() const;
@@ -289,7 +289,7 @@ public:
 	int GetEspionageModifier() const;
 	int GetGlobalEspionageModifier() const;
 	int GetSpySecurityModifier() const;
-	int GetSpySecurityModifierPerPop() const;
+	int GetSpySecurityModifierPerXPop() const;
 	int GetGlobalSpySecurityModifier() const;
 	int GetExtraSpies() const;
 	int GetSpyRankChange() const;
@@ -350,8 +350,6 @@ public:
 	bool IsMountain() const;
 	bool IsHill() const;
 	bool IsFlat() const;
-	bool IsFoundsReligion() const;
-	bool IsReligious() const;
 	bool IsBorderObstacle() const;
 #if defined(MOD_BALANCE_CORE)
 	bool IsAnyBodyOfWater() const;
@@ -382,6 +380,8 @@ public:
 	bool IsExtraLuxuries() const;
 	bool IsDiplomaticVoting() const;
 	bool AllowsWaterRoutes() const;
+	bool AllowsIndustrialWaterRoutes() const;
+	bool AllowsAirRoutes() const;
 	bool IsScienceBuilding() const;
 	bool IsUnlockedByBelief() const;
 	bool IsUnlockedByLeague() const;
@@ -465,6 +465,12 @@ public:
 	int GetYieldFromBirth(int i) const;
 	int* GetYieldFromBirthArray() const;
 
+	int GetYieldFromBirthEraScaling(int i) const;
+	int* GetYieldFromBirthEraScalingArray() const;
+
+	int GetYieldFromBirthRetroactive(int i) const;
+	int* GetYieldFromBirthRetroactiveArray() const;
+
 	int GetYieldFromUnitProduction(int i) const;
 	int* GetYieldFromUnitProductionArray() const;
 
@@ -477,8 +483,8 @@ public:
 	int GetYieldFromUnitLevelUp(int i) const;
 	int* GetYieldFromUnitLevelUpArray() const;
 
-	int GetYieldFromCombatExperience(int i) const;
-	int* GetYieldFromCombatExperienceArray() const;
+	int GetYieldFromCombatExperienceTimes100(int i) const;
+	int* GetYieldFromCombatExperienceTimes100Array() const;
 
 	int GetYieldFromPurchase(int i) const;
 	int* GetYieldFromPurchaseArray() const;
@@ -543,6 +549,7 @@ public:
 	int GetFreeSpecialistCount(int i) const;
 	int GetUnitCombatFreeExperience(int i) const;
 	int GetUnitCombatProductionModifier(int i) const;
+	int GetUnitCombatProductionModifierGlobal(int i) const;
 	int GetDomainFreeExperience(int i) const;
 	int GetDomainFreeExperiencePerGreatWork(int i) const;
 #if defined(MOD_BALANCE_CORE)
@@ -684,7 +691,7 @@ private:
 	int m_iTRTurnModLocal;
 	int m_iTRVisionBoost;
 	int m_iVotesPerGPT;
-	bool m_bRequiresRail;
+	bool m_bRequiresIndustrialCityConnection;
 	bool m_bDummy;
 	int m_iLandmarksTourismPercentGlobal;
 	int m_iGreatWorksTourismModifierGlobal;
@@ -797,7 +804,7 @@ private:
 	int m_iEspionageModifier;
 	int m_iGlobalEspionageModifier;
 	int m_iSpySecurityModifier;
-	int m_iSpySecurityModifierPerPop;
+	int m_iSpySecurityModifierPerXPop;
 	int m_iGlobalSpySecurityModifier;
 	int m_iExtraSpies;
 	int m_iSpyRankChange;
@@ -887,7 +894,7 @@ private:
 	int m_iEventRequiredActive;
 	int m_iCityEventRequiredActive;
 #endif
-	bool m_bVassalLevyEra;
+	int m_iVassalLevyEra;
 #if defined(MOD_BALANCE_CORE_POP_REQ_BUILDINGS)
 	int m_iNationalPopRequired;
 	int m_iLocalPopRequired;
@@ -899,8 +906,6 @@ private:
 	bool m_bMountain;
 	bool m_bHill;
 	bool m_bFlat;
-	bool m_bFoundsReligion;
-	bool m_bIsReligious;
 	bool m_bBorderObstacle;
 #if defined(MOD_BALANCE_CORE)
 	int m_iCityAirStrikeDefense;
@@ -929,6 +934,8 @@ private:
 	bool m_bExtraLuxuries;
 	bool m_bDiplomaticVoting;
 	bool m_bAllowsWaterRoutes;
+	bool m_bAllowsIndustrialWaterRoutes;
+	bool m_bAllowsAirRoutes;
 	bool m_bCityWall;
 	bool m_bUnlockedByBelief;
 	bool m_bUnlockedByLeague;
@@ -990,11 +997,13 @@ private:
 	int* m_piYieldFromTech;
 	int* m_piYieldFromConstruction;
 	int* m_piYieldFromBirth;
+	int* m_piYieldFromBirthEraScaling;
+	int* m_piYieldFromBirthRetroactive;
 	int* m_piYieldFromUnitProduction;
 	int* m_piYieldFromBorderGrowth;
 	int* m_piYieldFromPolicyUnlock;
 	int* m_piYieldFromUnitLevelUp;
-	int* m_piYieldFromCombatExperience;
+	int* m_piYieldFromCombatExperienceTimes100;
 	int* m_piYieldFromPurchase;
 	int* m_piYieldFromFaithPurchase;
 	int* m_piYieldFromInternalTREnd;
@@ -1013,6 +1022,7 @@ private:
 	int* m_piTechEnhancedYieldChange;
 	int* m_piUnitCombatFreeExperience;
 	int* m_piUnitCombatProductionModifiers;
+	int* m_piUnitCombatProductionModifiersGlobal;
 	int* m_piDomainFreeExperience;
 	int* m_piDomainFreeExperiencePerGreatWork;
 #if defined(MOD_BALANCE_CORE)
@@ -1179,19 +1189,15 @@ public:
 	void SetBuildingOriginalTime(BuildingTypes eIndex, int iNewValue);
 
 	int GetNumRealBuilding(BuildingTypes eIndex) const;
-#if defined(MOD_BALANCE_CORE)
 	void SetNumRealBuilding(BuildingTypes eIndex, int iNewValue, bool bNoBonus = false);
 	void SetNumRealBuildingTimed(BuildingTypes eIndex, int iNewValue, bool bFirst, PlayerTypes eOriginalOwner, int iOriginalTime, bool bNoBonus = false);
-#else
-	void SetNumRealBuilding(BuildingTypes eIndex, int iNewValue);
-	void SetNumRealBuildingTimed(BuildingTypes eIndex, int iNewValue, bool bFirst, PlayerTypes eOriginalOwner, int iOriginalTime);
-#endif
+
 	int GetNumFreeBuilding(BuildingTypes eIndex) const;
 	void SetNumFreeBuilding(BuildingTypes eIndex, int iNewValue);
-#if defined(MOD_BALANCE_CORE)
+
 	int IsFirstTimeBuilding(BuildingTypes eBuilding);
 	void SetFirstTimeBuilding(BuildingTypes eBuilding, int iValue);
-#endif
+
 	int GetBuildingYieldChange(BuildingClassTypes eBuildingClass, YieldTypes eYield) const;
 	void SetBuildingYieldChange(BuildingClassTypes eBuildingClass, YieldTypes eYield, int iChange);
 	void ChangeBuildingYieldChange(BuildingClassTypes eBuildingClass, YieldTypes eYield, int iChange);
@@ -1205,32 +1211,25 @@ public:
 	bool HasAvailableGreatWorkSlot(GreatWorkSlotType eSlotType) const;
 	int GetNumAvailableGreatWorkSlots(GreatWorkSlotType eSlotType = NO_GREAT_WORK_SLOT) const;
 	int GetNumFilledGreatWorkSlots(GreatWorkSlotType eSlotType = NO_GREAT_WORK_SLOT) const;
-	bool GetNextAvailableGreatWorkSlot(BuildingClassTypes *eBuildingClass, int *iSlot) const;
-	bool GetNextAvailableGreatWorkSlot(GreatWorkSlotType eGreatWorkSlot, BuildingClassTypes *eBuildingClass, int *iSlot) const;
+	bool GetNextAvailableGreatWorkSlot(BuildingClassTypes& eBuildingClass, int& iSlot) const;
+	bool GetNextAvailableGreatWorkSlot(GreatWorkSlotType eGreatWorkSlot, BuildingClassTypes& eBuildingClass, int& iSlot) const;
 
 	int GetYieldFromGreatWorks(YieldTypes eYield) const;
 	int GetCultureFromGreatWorks() const;
-#if defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
+
 	int GetNumGreatWorks(bool bIgnoreYield = true) const;
-#else
-	int GetNumGreatWorks() const;
-#endif
 	int GetNumGreatWorks(GreatWorkSlotType eGreatWorkSlot, bool bArtifact = false, bool bArt = false) const;
-#if defined(MOD_BALANCE_CORE)
+
 	int GetThemingBonusIndex(BuildingTypes eBuilding) const;
 	void SetThemingBonusIndex(BuildingTypes eBuilding, int iIndex);
-#endif
 
 	int GetLandmarksTourismPercent() const;
 	void ChangeLandmarksTourismPercent(int iChange);
 	int GetGreatWorksTourismModifier() const;
 	void ChangeGreatWorksTourismModifier(int iChange);
 
-#if defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
 	int GetCurrentThemingBonuses(YieldTypes eYield) const;
-#else
-	int GetCurrentThemingBonuses() const;
-#endif
+
 	int GetTotalNumThemedBuildings() const;
 	int GetNumBuildingsFromFaith() const;
 

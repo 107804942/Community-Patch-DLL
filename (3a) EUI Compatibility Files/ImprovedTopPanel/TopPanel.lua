@@ -467,10 +467,11 @@ local function UpdateTopPanelNow()
 	for resourceID, resourceInstance in pairs( g_resourceString ) do
 		local resource = GameInfo.Resources[ resourceID ]
 
+		local numResourceTotal = g_activePlayer:GetNumResourceTotal( resourceID )
 		local numResourceUsed = g_activePlayer:GetNumResourceUsed( resourceID )
 
 		if not resource.HideInTopPanel then
-			if numResourceUsed > 0
+			if numResourceUsed > 0 or numResourceTotal > 0
 				or ( g_activePlayer:IsResourceRevealed(resourceID)
 				and ( civBE_mode or g_activePlayer:IsResourceCityTradeable(resourceID) ) )
 			then
@@ -651,7 +652,7 @@ local function UpdateTopPanelNow()
 					iconSize = 48
 					faithNeeded = Game.GetMinimumFaithNextPantheon()
 
-				elseif Game.GetNumReligionsStillToFound(false, Game.GetActivePlayer()) > 0 then
+				elseif Game.GetNumReligionsStillToFound(false, g_activePlayerID) > 0 then
 
 					faithTarget = GameInfo.Units.UNIT_PROPHET
 					faithNeeded = g_activePlayer:GetMinimumFaithNextGreatProphet()
@@ -936,7 +937,8 @@ end)
 -- Science Tooltip & Click Actions
 -------------------------------------------------
 local function OnTechLClick()
-	GamePopup( ButtonPopupTypes.BUTTONPOPUP_TECH_TREE, -1 )
+	local isObserver = Players[Game.GetActivePlayer()]:IsObserver();
+	Events.SerialEventGameMessagePopup( { Type = ButtonPopupTypes.BUTTONPOPUP_TECH_TREE, Data2 = -1, Data4 = (isObserver and 1 or 0), Data5 = g_activePlayerID});
 end
 local function OnTechRClick()
 	local techInfo = GameInfo.Technologies[ g_activePlayer:GetCurrentResearch() ] or GameInfo.Technologies[ g_activePlayer:GetCurrentResearch() ]
@@ -1385,21 +1387,21 @@ if civ5_mode then
 	-------------------------------------------------
 	Controls.GpIcon:RegisterCallback( Mouse.eLClick,
 	function()
-		local gp = ScanGP( Players[Game.GetActivePlayer()] )
+		local gp = ScanGP( g_activePlayer )
 		if gp then
 			return UI.DoSelectCityAtPlot( gp.City:Plot() )
 		end
 	end)
 	Controls.GpIcon:RegisterCallback( Mouse.eRClick,
 	function()
-		local gp = ScanGP( Players[Game.GetActivePlayer()] )
+		local gp = ScanGP( g_activePlayer )
 		if gp then
 			return GamePedia( GameInfo.Units[ gp.Class.DefaultUnit ].Description )
 		end
 	end)
 	g_toolTipHandler.GpIcon = function()-- control )
 		local tipText = ""
-		local gp = ScanGP( Players[Game.GetActivePlayer()] )
+		local gp = ScanGP( g_activePlayer )
 		if gp then
 			local icon = GreatPeopleIcon( gp.Class.Type )
 			tipText = L( "TXT_KEY_PROGRESS_TOWARDS", "[COLOR_YIELD_FOOD]" .. Locale.ToUpper( gp.Class.Description ) .. "[ENDCOLOR]" )
@@ -1951,7 +1953,8 @@ g_toolTipHandler.CultureString = function()-- control )
 
 	return setTextToolTip( tips:concat( "[NEWLINE]" ) )
 end
-Controls.CultureString:RegisterCallback( Mouse.eLClick, function() GamePopup( ButtonPopupTypes.BUTTONPOPUP_CHOOSEPOLICY ) end )
+Controls.CultureString:RegisterCallback( Mouse.eLClick, function() Events.SerialEventGameMessagePopup( { Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPOLICY, Data3 = Players[Game.GetActivePlayer()]:IsObserver() and 1 or 0, Data4 = g_activePlayerID }) 
+ end )
 Controls.CultureString:RegisterCallback( Mouse.eRClick, function() GamePedia( "TXT_KEY_CULTURE_HEADING1_TITLE" ) end )	-- TXT_KEY_PEDIA_CATEGORY_8_LABEL
 Controls.CultureString:SetToolTipCallback( requestTextToolTip )
 
@@ -2013,7 +2016,7 @@ if civ5_mode and gk_mode then
 				tips:insertLocalized( "TXT_KEY_NEWWORLD_SCENARIO_TP_RELIGION_TOOLTIP" )
 			else
 				if g_activePlayer:HasCreatedPantheon() then
-					if (Game.GetNumReligionsStillToFound(false, Game.GetActivePlayer()) > 0 or g_activePlayer:HasCreatedReligion())
+					if (Game.GetNumReligionsStillToFound(false, g_activePlayerID) > 0 or g_activePlayer:HasCreatedReligion())
 						and (g_activePlayer:GetCurrentEra() < GameInfoTypes.ERA_INDUSTRIAL)
 					then
 						tips:insertLocalizedIfNonZero( "TXT_KEY_TP_FAITH_NEXT_PROPHET", g_activePlayer:GetMinimumFaithNextGreatProphet() )
@@ -2027,7 +2030,7 @@ if civ5_mode and gk_mode then
 				end
 
 				tips:insert( "" )
-				tips:insert( L( "TXT_KEY_TP_FAITH_RELIGIONS_LEFT", math_max( Game.GetNumReligionsStillToFound(false, Game.GetActivePlayer()), 0 ) ) )
+				tips:insert( L( "TXT_KEY_TP_FAITH_RELIGIONS_LEFT", math_max( Game.GetNumReligionsStillToFound(false, g_activePlayerID), 0 ) ) )
 
 				if g_activePlayer:GetCurrentEra() >= GameInfoTypes.ERA_INDUSTRIAL then
 					tips:insert( "" )
@@ -2077,7 +2080,7 @@ end
 
 if civ5_mode and gk_mode then
 	g_toolTipHandler.InstantYieldsIcon = function()-- control )
-		local iPlayerID = Game.GetActivePlayer();
+		local iPlayerID = g_activePlayerID;
 		local pPlayer = Players[iPlayerID];
 
 		local strInstantYieldToolTip = pPlayer:GetInstantYieldHistoryTooltip(10);
@@ -2099,7 +2102,7 @@ end
 	g_toolTipHandler.SpyPointsString = function()-- control )
 		local tips = table()
 		
-		local iPlayerID = Game.GetActivePlayer();
+		local iPlayerID = g_activePlayerID;
 		local pPlayer = Players[iPlayerID];
 		local strSpiesStr;
 		if (Game.IsOption(GameOptionTypes.GAMEOPTION_NO_ESPIONAGE) or Game.GetSpyThreshold() == 0) then
@@ -2364,7 +2367,7 @@ end
 if civ5_mode and gk_mode then
 	g_toolTipHandler.UnitSupplyString = function()-- control )
 
-		local iPlayerID = Game.GetActivePlayer();
+		local iPlayerID = g_activePlayerID;
 		local pPlayer = Players[iPlayerID];
 
 		local iUnitSupplyMod = pPlayer:GetUnitProductionMaintenanceMod();
@@ -2377,6 +2380,7 @@ if civ5_mode and gk_mode then
 		local iPerHandicap = pPlayer:GetNumUnitsSuppliedByHandicap();
 		local iUnitsOver = pPlayer:GetNumUnitsOutOfSupply();
 		local iTechReduction = pPlayer:GetTechSupplyReduction();
+		local iEmpireSizeReduction = pPlayer:GetEmpireSizeSupplyReduction();
 		local iWarWearinessPercentReduction = pPlayer:GetSupplyReductionPercentFromWarWeariness();
 		local iWarWearinessReduction = pPlayer:GetSupplyReductionFromWarWeariness();
 		local iWarWearinessCostIncrease = pPlayer:GetUnitCostIncreaseFromWarWeariness();
@@ -2387,7 +2391,7 @@ if civ5_mode and gk_mode then
 		local iTechReductionPerPop = iPercentPerPopGross - iPercentPerPop;
 		local iPerHandicapGross = pPlayer:GetNumUnitsSuppliedByHandicap(true);
 		-- Bonuses from unlisted sources are added to the handicap value
-		local iExtra = iUnitsSupplied - (iPerHandicapGross + iPerCityGross + iPercentPerPopGross + iSupplyFromGreatPeople - iTechReduction - iWarWearinessReduction);
+		local iExtra = iUnitsSupplied - (iPerHandicapGross + iPerCityGross + iPercentPerPopGross + iSupplyFromGreatPeople - iTechReduction - iEmpireSizeReduction - iWarWearinessReduction);
 		iPerHandicap = iPerHandicap + iExtra;
 		iPerHandicapGross = iPerHandicapGross + iExtra;
 		local iTechReductionPerEra = iPerHandicapGross - iPerHandicap;
@@ -2401,10 +2405,10 @@ if civ5_mode and gk_mode then
 
 		local strUnitSupplyToolUnderTip = "";
 		if (iHighestWarWearyPlayer == -1) then
-			strUnitSupplyToolUnderTip = Locale.ConvertTextKey("TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP_NOT_WEARY", iUnitsSupplied, iUnitsTotal, iPercentPerPop, iPerCity, iPerHandicap, iWarWearinessPercentReduction, iWarWearinessReduction, iTechReduction, iWarWearinessCostIncrease, iSupplyFromGreatPeople, iUnitsTotalMilitary, iPerCityGross, iTechReductionPerCity, iPercentPerPopGross, iTechReductionPerPop, iPerHandicapGross, iTechReductionPerEra);
+			strUnitSupplyToolUnderTip = Locale.ConvertTextKey("TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP_NOT_WEARY", iUnitsSupplied, iUnitsTotal, iPercentPerPop, iPerCity, iPerHandicap, iWarWearinessPercentReduction, iWarWearinessReduction, iTechReduction, iEmpireSizeReduction, iWarWearinessCostIncrease, iSupplyFromGreatPeople, iUnitsTotalMilitary, iPerCityGross, iTechReductionPerCity, iPercentPerPopGross, iTechReductionPerPop, iPerHandicapGross, iTechReductionPerEra);
 		else
 			local iWarWearyTargetPercent = pPlayer:GetWarWearinessPercent(iHighestWarWearyPlayer);
-			strUnitSupplyToolUnderTip = Locale.ConvertTextKey("TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP", iUnitsSupplied, iUnitsTotal, iPercentPerPop, iPerCity, iPerHandicap, iWarWearinessPercentReduction, iWarWearinessReduction, iTechReduction, iWarWearinessCostIncrease, iSupplyFromGreatPeople, iUnitsTotalMilitary, iPerCityGross, iTechReductionPerCity, iPercentPerPopGross, iTechReductionPerPop, iPerHandicapGross, iTechReductionPerEra, Players[iHighestWarWearyPlayer]:GetCivilizationShortDescription(), iWarWearyTargetPercent);
+			strUnitSupplyToolUnderTip = Locale.ConvertTextKey("TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP", iUnitsSupplied, iUnitsTotal, iPercentPerPop, iPerCity, iPerHandicap, iWarWearinessPercentReduction, iWarWearinessReduction, iTechReduction, iEmpireSizeReduction, iWarWearinessCostIncrease, iSupplyFromGreatPeople, iUnitsTotalMilitary, iPerCityGross, iTechReductionPerCity, iPercentPerPopGross, iTechReductionPerPop, iPerHandicapGross, iTechReductionPerEra, Players[iHighestWarWearyPlayer]:GetCivilizationShortDescription(), iWarWearyTargetPercent);
 		end
 		if (strUnitSupplyToolTip ~= "") then
 			strUnitSupplyToolTip = strUnitSupplyToolTip .. "[NEWLINE][NEWLINE]" .. strUnitSupplyToolUnderTip;
@@ -2532,7 +2536,7 @@ local function ResourcesToolTip( control )
 									tip = tip .. " [COLOR_CYAN]" .. L(tech.Description) .. "[ENDCOLOR]"
 								end
 								local policyBranch = building.PolicyBranchType and GameInfo.PolicyBranchTypes[ building.PolicyBranchType ]
-								if policyBranch and not g_activePlayer:GetPolicyBranchChosen( policyBranch.ID ) then
+								if policyBranch and not g_activePlayer:IsPolicyBranchUnlocked( policyBranch.ID ) then
 									tip = tip .. " [COLOR_MAGENTA]" .. L(policyBranch.Description) .. "[ENDCOLOR]"
 								end
 							end
@@ -2805,7 +2809,7 @@ local function ResourcesToolTip( control )
 								tip = S( "%s [COLOR_CYAN]%s[ENDCOLOR]", tip, L(tech.Description) )
 							end
 							local policyBranch = civ5bnw_mode and building.PolicyBranchType and GameInfo.PolicyBranchTypes[ building.PolicyBranchType ]
-							if policyBranch and not g_activePlayer:GetPolicyBranchChosen( policyBranch.ID ) then
+							if policyBranch and not g_activePlayer:IsPolicyBranchUnlocked( policyBranch.ID ) then
 								tip = S( "%s [COLOR_MAGENTA]%s[ENDCOLOR]", tip, L(policyBranch.Description) )
 							end
 							if civBE_mode then
@@ -3066,7 +3070,6 @@ function()
 		Controls.CurrentTime:SetText( os_date( g_clockFormat ) )
 	end
 
-	g_activePlayerID = Game.GetActivePlayer()
 	g_activePlayer = Players[g_activePlayerID]
 
 	if g_isPopupUp ~= UI.IsPopupUp() then
@@ -3088,11 +3091,34 @@ function()
 	end
 end)
 
+function OnAIPlayerChanged(iPlayerID, szTag)
+	local player = Players[Game.GetActivePlayer()];
+	local activePlayerOld = g_activePlayerID;
+	if player:IsObserver() then
+		if (Game:GetObserverUIOverridePlayer() > -1) then
+			g_activePlayerID = Game:GetObserverUIOverridePlayer()
+		else
+			g_activePlayerID = Players[iPlayerID]:IsMajorCiv() and iPlayerID or Game.GetActivePlayer();
+		end
+		if g_activePlayerID ~= activePlayerOld then
+			g_activePlayer = Players[g_activePlayerID]
+			g_activeTeamID = g_activePlayer:GetTeam()
+			g_activeTeam = Teams[g_activeTeamID]
+			g_activeCivilizationID = g_activePlayer:GetCivilizationType()
+			g_activeCivilization = GameInfo.Civilizations[ g_activeCivilizationID ]
+			g_activeTeamTechs = g_activeTeam:GetTeamTechs()
+			UpdateTopPanel()
+			UpdateTopPanelNow()
+		end
+	end
+end
+
 Events.SerialEventGameDataDirty.Add( UpdateTopPanel )
 Events.SerialEventTurnTimerDirty.Add( UpdateTopPanel )
 Events.SerialEventCityInfoDirty.Add( UpdateTopPanel )
 Events.SerialEventImprovementCreated.Add( UpdateTopPanel )	-- required to update happiness & resources if a resource got hooked up
 Events.GameplaySetActivePlayer.Add( SetActivePlayer )
+Events.AIProcessingStartedForPlayer.Add(OnAIPlayerChanged);
 Events.GameOptionsChanged.Add( UpdateOptions )
 
 -------------------------------------------------

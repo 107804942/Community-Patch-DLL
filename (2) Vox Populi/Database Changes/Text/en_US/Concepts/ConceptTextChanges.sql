@@ -61,7 +61,7 @@ UPDATE Language_en_US
 SET Text = '[COLOR_YELLOW]Great Musician[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_SPECIALISTSANDGP_GREATMUSICIAN_HEADING3_TITLE';
 UPDATE Language_en_US
-SET Text = '[COLOR_CYAN]Special Ability: {TXT_KEY_MISSION_CREATE_GREAT_WORK}[ENDCOLOR][NEWLINE]A Great Musician can create a [ICON_VP_GREATMUSIC] Great Work of Music that is placed in the nearest city that has an appropriate building with an empty slot (like an Opera House or Broadcast Tower). The Great Musician is expended when used this way.[NEWLINE][NEWLINE][COLOR_CYAN]Special Ability: {TXT_KEY_MISSION_ONE_SHOT_TOURISM}[ENDCOLOR][NEWLINE]A Great Musician can travel to another civilization and perform a Concert Tour, [COLOR_YELLOW]which will increase Tourism with the target Civilization by 100%, and all other Civilizations by 50%, for 10 Turns (plus 1 additional Turn for every owned [ICON_VP_GREATMUSIC] Great Work of Music). You also receive 2 [ICON_HAPPINESS_1] Happiness in your Capital. You cannot perform this action if at war with the target Civilization, or if your [ICON_TOURISM] Cultural Influence over the Civilization is [ENDCOLOR][COLOR_MAGENTA]Influential[ENDCOLOR][COLOR_YELLOW] or greater.[ENDCOLOR] This action consumes the Great Musician.'
+SET Text = '[COLOR_CYAN]Special Ability: {TXT_KEY_MISSION_CREATE_GREAT_WORK}[ENDCOLOR][NEWLINE]A Great Musician can create a [ICON_VP_GREATMUSIC] Great Work of Music that is placed in the nearest city that has an appropriate building with an empty slot (like an Opera House or Broadcast Tower). The Great Musician is expended when used this way.[NEWLINE][NEWLINE][COLOR_CYAN]Special Ability: {TXT_KEY_MISSION_ONE_SHOT_TOURISM}[ENDCOLOR][NEWLINE]A Great Musician can travel to another civilization and perform a Concert Tour, [COLOR_YELLOW]which will increase Tourism with the target Civilization by 100%, and all other Civilizations by 50%, for 10 Turns (plus 1 additional Turn for every owned [ICON_VP_GREATMUSIC] Great Work of Music). You also receive 1 [ICON_HAPPINESS_1] Happiness in every City. You cannot perform this action if at war with the target Civilization, or if your [ICON_TOURISM] Cultural Influence over the Civilization is [ENDCOLOR][COLOR_MAGENTA]Influential[ENDCOLOR][COLOR_YELLOW] or greater.[ENDCOLOR] This action consumes the Great Musician.'
 WHERE Tag = 'TXT_KEY_SPECIALISTSANDGP_GREATMUSICIAN_HEADING3_BODY';
 
 UPDATE Language_en_US
@@ -127,7 +127,7 @@ UPDATE Language_en_US
 SET Text = '[COLOR_YELLOW]Resolutions[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_CONGRESS_RESOLUTIONS_HEADING2_TITLE';
 UPDATE Language_en_US
-SET Text = 'A resolution is a change to the game world that is proposed to and decided by the civilizations of the World Congress. For example, a resolution can embargo trade routes with a certain civilization, increase the culture from Wonders, prevent the construction of nuclear weapons, or award someone Diplomatic Victory. A resolution may also repeal a previously passed resolution, reversing its effects. [NEWLINE][NEWLINE][COLOR_YELLOW]Only three civilizations get to propose resolutions: the current host of the Congress, and the other two players who have the most delegates.[ENDCOLOR][NEWLINE][NEWLINE]All civilizations get to help decide the outcome of proposed resolutions once the Congress is in session. They do so by allocating their delegates towards the outcome they desire: "Yea" to help it pass or "Nay" to help it fail. Some resolutions require choosing a civilization rather than simply "Yea" or "Nay".[NEWLINE][NEWLINE]Once all civilizations have used their delegates, the resolution''s outcome is decided by whichever option received the most delegate support. If there is a tie, the resolution fails.'
+SET Text = 'A resolution is a change to the game world that is proposed to and decided by the civilizations of the World Congress. For example, a resolution can embargo trade routes with a certain civilization, increase the culture from Wonders, prevent the construction of nuclear weapons, or award someone Diplomatic Victory. A resolution may also repeal a previously passed resolution, reversing its effects.[NEWLINE][NEWLINE][COLOR_YELLOW]Only three civilizations get to propose resolutions: the current host of the Congress, and the other two players who have the most delegates.[ENDCOLOR][NEWLINE][NEWLINE]All civilizations get to help decide the outcome of proposed resolutions once the Congress is in session. They do so by allocating their delegates towards the outcome they desire: "Yea" to help it pass or "Nay" to help it fail. Some resolutions require choosing a civilization rather than simply "Yea" or "Nay".[NEWLINE][NEWLINE]Once all civilizations have used their delegates, the resolution''s outcome is decided by whichever option received the most delegate support. If there is a tie, the resolution fails.'
 WHERE Tag = 'TXT_KEY_CONGRESS_RESOLUTIONS_HEADING2_BODY';
 
 UPDATE Language_en_US
@@ -162,12 +162,12 @@ UPDATE Language_en_US
 SET Text = '[COLOR_YELLOW]Cultural Victory[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_SOCIALPOLICY_CULTUREVICTORY_HEADING2_TITLE';
 UPDATE Language_en_US
-SET Text = 'You no longer win a Cultural Victory by fully exploring five Social Policy branches. Instead, you must become the dominant cultural influence in every civilization in the game using Tourism. [COLOR_YELLOW]You must also have two Tier 3 Tenets of an Ideology, your people must be Content, and the Citizen Earth Protocol wonder must be constructed. Once these requirements are met, you can construct the Citizen Earth Protocol to win this victory.[ENDCOLOR] See the section on Victory for more information.'
+SET Text = 'You no longer win a Cultural Victory by fully exploring five Social Policy branches. Instead, you must become the dominant cultural influence in every civilization in the game using Tourism. [COLOR_YELLOW]You must also have two Tier 3 Tenets of an Ideology, and your people must be Content. Once these requirements are met, you can then construct the Citizen Earth Protocol wonder to win.[ENDCOLOR] See the section on Victory for more information.'
 WHERE Tag = 'TXT_KEY_SOCIALPOLICY_CULTUREVICTORY_HEADING2_BODY';
 
 UPDATE Language_en_US
 SET Text = '[COLOR_YELLOW]Cultural Victory[ENDCOLOR]'
-WHERE Tag = 'TXT_KEY_CULTURE_VICTORY_HEADING3_TITLE';
+WHERE Tag = 'TXT_KEY_VICTORY_CULTURAL_HEADING3_TITLE';
 UPDATE Language_en_US
 SET Text = 'To win a Cultural Victory, you must become the dominant cultural influence in every civilization in the game [COLOR_YELLOW]and construct the Citizen Earth Protocol. You must also have two Tier 3 Tenets of an Ideology, and your people must be Content[ENDCOLOR]. Cultural Influence is achieved through Tourism generated by [ICON_GREAT_WORK] Great Works that you create, and [ICON_VP_ARTIFACT] Artifacts that you discover. The Tourism you generate has a constant impact on other civilizations, and its effect is amplified through Open Borders, Trade Routes, shared Religion and Ideologies, Research Agreements, etc.[NEWLINE][NEWLINE]When your cumulative Tourism output (for the entire game) surpasses the cumulative Culture output of each remaining civilization in the game, [COLOR_YELLOW]you will be able to construct the Citizen Earth Protocol if you also have an ideology and your population is Content[ENDCOLOR].'
 WHERE Tag = 'TXT_KEY_VICTORY_CULTURAL_HEADING3_BODY';
@@ -176,7 +176,20 @@ UPDATE Language_en_US
 SET Text = '[COLOR_YELLOW]Tourism[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_CULTURE_TOURISM_HEADING2_TITLE';
 UPDATE Language_en_US
-SET Text = '[ICON_TOURISM] Tourism is the primary yield you will use to spread your cultural influence to other civilizations. It is generated passively by [COLOR_POSITIVE_TEXT]Buildings[ENDCOLOR], [COLOR_POSITIVE_TEXT]Great Works[ENDCOLOR] or [COLOR_POSITIVE_TEXT]Artifacts[ENDCOLOR][COLOR_YELLOW], and actively by [ENDCOLOR][COLOR_POSITIVE_TEXT]Historic Events[ENDCOLOR][COLOR_YELLOW] (for more on "Historic Events", see the section with this label) or completing [ENDCOLOR][COLOR_POSITIVE_TEXT]Trade Routes[ENDCOLOR][COLOR_YELLOW] (if you have constructed buildings that grant such bonuses)[ENDCOLOR]. As you place more and more Great Works and Artifacts into your Museums, Amphitheaters, Opera Houses, etc., your [ICON_TOURISM] Tourism will continue to increase. Additionally, you can boost your [ICON_TOURISM] Tourism output quite a bit through Open Borders, Trade Routes, shared Religion, and certain Ideological Tenets.'
+SET Text = '[ICON_TOURISM] Tourism is the primary yield you will use to spread your cultural influence to other civilizations. It is generated passively by [COLOR_POSITIVE_TEXT]Buildings[ENDCOLOR], [COLOR_POSITIVE_TEXT]Great Works[ENDCOLOR] or [COLOR_POSITIVE_TEXT]Artifacts[COLOR_YELLOW], and actively by [COLOR_POSITIVE_TEXT]Historic Events[COLOR_YELLOW] (for more on "Historic Events", see the section with this label) or completing [COLOR_POSITIVE_TEXT]Trade Routes[ENDCOLOR][COLOR_YELLOW] (if you have constructed buildings that grant such bonuses)[ENDCOLOR]. As you place more and more Great Works and Artifacts into your Museums, Amphitheaters, Opera Houses, etc., your [ICON_TOURISM] Tourism will continue to increase.
+
+[NEWLINE][NEWLINE]Your [ICON_TOURISM] Tourism is multiplied with each player in the following ways [COLOR_YELLOW](minimum [COLOR_NEGATIVE_TEXT]-100%[COLOR_YELLOW])[ENDCOLOR]:
+[NEWLINE][ICON_BULLET]Any Trade Route connecting your City with their City [COLOR_YELLOW]([COLOR_POSITIVE_TEXT]+10%[COLOR_YELLOW])[ENDCOLOR].
+[NEWLINE][ICON_BULLET][COLOR_YELLOW]Trade Open Borders to the player ([COLOR_POSITIVE_TEXT]+15%[COLOR_YELLOW]).[ENDCOLOR]
+[NEWLINE][ICON_BULLET]Share your Religion with the player [COLOR_YELLOW]([COLOR_POSITIVE_TEXT]+X%[COLOR_YELLOW], the percent of its followers in their empire, maximum [COLOR_POSITIVE_TEXT]+50%[COLOR_YELLOW])[ENDCOLOR].
+[NEWLINE][ICON_BULLET][COLOR_YELLOW]Have a Diplomat in their Capital City ([COLOR_POSITIVE_TEXT]+20%[COLOR_YELLOW]).[ENDCOLOR]
+[NEWLINE][ICON_BULLET][COLOR_YELLOW]Have less Boredom in your Empire ([COLOR_POSITIVE_TEXT]+X%[COLOR_YELLOW], the difference in Boredom between your two Empires).[ENDCOLOR]
+[NEWLINE][ICON_BULLET][COLOR_YELLOW]Expend a Great Musician inside their borders ([COLOR_POSITIVE_TEXT]+100%[COLOR_YELLOW], and [COLOR_POSITIVE_TEXT]+50%[COLOR_YELLOW] with everyone else).[ENDCOLOR]
+[NEWLINE][ICON_BULLET][COLOR_YELLOW]Gain the player as a Vassal ([COLOR_POSITIVE_TEXT]+33%[COLOR_YELLOW]).[ENDCOLOR]
+[NEWLINE][ICON_BULLET]Have a different Ideology than the player [COLOR_YELLOW]([COLOR_NEGATIVE_TEXT]-10%[COLOR_YELLOW])[ENDCOLOR].
+[NEWLINE][ICON_BULLET][COLOR_YELLOW]Own more non-Puppet Cities than the player ([COLOR_NEGATIVE_TEXT]-5% per additional City[COLOR_YELLOW]).[ENDCOLOR]
+
+[NEWLINE][NEWLINE][COLOR_YELLOW]Additionally, certain player Abilities, Policies, Tenets, Corporations, and World Congress proposals can change this modifier.[ENDCOLOR] Other Abilities instead directly multiply the tourism generated in a city.'
 WHERE Tag = 'TXT_KEY_CULTURE_TOURISM_HEADING2_BODY';
 
 UPDATE Language_en_US
@@ -237,7 +250,7 @@ SET Text = '[COLOR_YELLOW]City Connections[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_GOLD_TRADE_ROUTES_HEADING3_TITLE';
 
 UPDATE Language_en_US
-SET Text = 'If a City is connected by a road and/or [COLOR_YELLOW]Lighthouse[ENDCOLOR] to your Capital City (i.e. both cities have a Lighthouse), that City has a "trade route" with the Capital. Each trade route is worth a certain amount of gold each turn, the amount determined by the size of the two cities.'
+SET Text = 'If a City is connected by a road and/or [COLOR_YELLOW]Lighthouse[ENDCOLOR] to your Capital City (i.e. both cities have a Lighthouse), that City has a City Connection with the Capital. Each City Connection is worth a certain amount of gold each turn, the amount determined by the size of the two cities.[NEWLINE][NEWLINE][COLOR_GREEN]If a City is connected by a railroad and/or Seaport to your Capital City (i.e. both cities have a Seaport), that City has an Industrial City Connection with the Capital. An Industrial City Connection gives a production bonus to the targeted city, the amount determined by the size of the two cities. An Industrial City Connection also allows the construction of the Coaling Station, an industrial era building which gives a massive production boost to the city.[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_GOLD_TRADE_ROUTES_HEADING3_BODY';
 
 UPDATE Language_en_US
@@ -247,14 +260,14 @@ UPDATE Language_en_US
 SET Text = 'Does the village provide gold?'
 WHERE Tag = 'TXT_KEY_GOLD_TRADINGPOST_ADV_QUEST';
 UPDATE Language_en_US
-SET Text = 'Construct a Village improvement in a tile to increase its gold output. Earns additional gold and production if placed on a Road or Railroad that connects two owned cities and/or if a Trade Route, either internal or international, passes over it. Cannot be built adjacent to one another.'
+SET Text = 'Construct a Village improvement in a tile to increase its gold output. Earns additional gold and production if placed on a Road or Railroad that connects two owned cities (that are both connected to the Capital) and/or if a Trade Route, either internal or international, passes over it. Cannot be built adjacent to one another.'
 WHERE Tag = 'TXT_KEY_GOLD_TRADINGPOST_HEADING3_BODY';
 
 UPDATE Language_en_US
-SET Text = '[COLOR_YELLOW]Roads and Trade Routes[ENDCOLOR]'
+SET Text = '[COLOR_YELLOW]Roads and City Connections[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_WORKERS_TRADEROUTES_HEADING3_TITLE';
 UPDATE Language_en_US
-SET Text = 'If there is a road between your capital and another of your cities, those cities have a "city connection." City connections give your civilization gold bonuses each turn, the amount depending upon the size of the cities involved. ([COLOR_YELLOW]Lighthouses[ENDCOLOR] can also create city connections between coastal cities.) See the section on City Connections for details.'
+SET Text = 'If there is a road between your Capital and another of your cities, those cities have a City Connection. City Connections give your civilization gold bonuses each turn, the amount depending upon the size of the cities involved. ([COLOR_YELLOW]Lighthouses[ENDCOLOR] can also create city connections between coastal cities.) See the section on City Connections for details.'
 WHERE Tag = 'TXT_KEY_WORKERS_TRADEROUTES_HEADING3_BODY';
 
 UPDATE Language_en_US
@@ -282,21 +295,21 @@ UPDATE Language_en_US
 SET Text = '[COLOR_GREEN]Happiness[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_HAPPINESS_HEADING1_TITLE';
 UPDATE Language_en_US
-SET Text = 'The happiness system in Vox Populi is completely revised, favoring neither tall nor wide playstyles. Happiness is now based on a cause-and-effect mechanism that makes your empire feel far more alive, and dynamic, than ever before. [NEWLINE][NEWLINE]Happiness and Unhappiness are calculated locally for each City in your Empire. When the Local Unhappiness in a City exceeds the Local Happiness, the City grows slower than normally, and Production will be reduced when producing a Settler or Military Unit. This is also indicated by an [ICON_HAPPINESS_3] Unhappiness Icon displayed under the City Banner. Special rules apply for Puppet Cities and Occupied Cities.[NEWLINE][NEWLINE]The sum of the Happiness in all Cities of your Empire is compared to the sum of the Unhappiness in all of your Cities to determine the Approval Rating, which is displayed on the status line of the Main Screen (in the upper left-hand corner of the game). Watch it carefully. If it starts to drop below 50%, your population is getting restless, resulting in a growth reduction in all cities, a penalty when producing Settlers, and reduced combat strength. If it starts to dip below 35%, you are in trouble. Barbarians will spawn in your empire, and cities may abandon your empire and join other civilizations. You can get an overview of the different sources of your Happiness and Unhappiness by hovering your cursor over the status line.'
+SET Text = 'The happiness system in Vox Populi is completely revised, favoring neither tall nor wide playstyles. Happiness is now based on a cause-and-effect mechanism that makes your empire feel far more alive, and dynamic, than ever before.[NEWLINE][NEWLINE]Happiness and Unhappiness are calculated locally for each City in your Empire. When the Local Unhappiness in a City exceeds the Local Happiness, the City grows slower than normally, and Production will be reduced when producing a Settler or Military Unit. This is also indicated by an [ICON_HAPPINESS_3] Unhappiness Icon displayed under the City Banner. Special rules apply for Puppet Cities and Occupied Cities.[NEWLINE][NEWLINE]The sum of the Happiness in all Cities of your Empire is compared to the sum of the Unhappiness in all of your Cities to determine the Approval Rating, which is displayed on the status line of the Main Screen (in the upper left-hand corner of the game). Watch it carefully. If it starts to drop below 50%, your population is getting restless, resulting in a growth reduction in all cities, a penalty when producing Settlers, and reduced combat strength. If it starts to dip below 35%, you are in trouble. Barbarians will spawn in your empire, and cities may abandon your empire and join other civilizations. You can get an overview of the different sources of your Happiness and Unhappiness by hovering your cursor over the status line.'
 WHERE Tag = 'TXT_KEY_HAPPINESS_HEADING1_BODY';
 
 UPDATE Language_en_US
 SET Text = '[COLOR_GREEN]What Causes Happiness[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_HAPPINESS_CAUSES_HEADING2_TITLE';
 UPDATE Language_en_US
-SET Text = 'Happiness in your empire can come from the following sources:[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Starting Happiness[ENDCOLOR]: The amount of Happiness that your civilization begins with and the starting Local Happiness in the [ICON_CAPITAL] Capital are determined by the game''s difficulty setting. Starting Happiness will become less important over time as Happiness and Unhappiness from other sources grow. [NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Natural Wonders and Landmarks[ENDCOLOR]: Discovering Natural Wonders or using Archaeologists to build Landmarks (in your own or in other player''s lands) gives you a small Happiness bonus.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]City States[ENDCOLOR]: Mercantile City States provide you with a Happiness bonus if you are friends or allies with them.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Vassals[ENDCOLOR]: If you have vassalized other civilizations, they may provide you with some additional Happiness based on their own Approval Rating.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Luxury Resources[ENDCOLOR]: You receive Happiness for each unique Luxury Resource connected to your empire. Luxuries are therefore less vital early on, but also not useless in the late game. Moreover, Monopolies on some Luxury Resources grant additional Happiness to your empire.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Locally Generated Happiness[ENDCOLOR]: Certain Buildings increase your local Happiness in the Cities where they are built. Other sources of Local Happiness include Religious Beliefs, Policies, World Wonders and Events. Note that this does not apply to Puppet Cities and Occupied Cities, which can never generate Local Happiness.'
+SET Text = 'Happiness in your empire can come from the following sources:[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Starting Happiness[ENDCOLOR]: The amount of Happiness that your civilization begins with and the starting Local Happiness in the [ICON_CAPITAL] Capital are determined by the game''s difficulty setting. Starting Happiness will become less important over time as Happiness and Unhappiness from other sources grow.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Natural Wonders and Landmarks[ENDCOLOR]: Discovering Natural Wonders or using Archaeologists to build Landmarks (in your own or in other player''s lands) gives you a small Happiness bonus.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]City States[ENDCOLOR]: Mercantile City States provide you with a Happiness bonus if you are friends or allies with them.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Vassals[ENDCOLOR]: If you have vassalized other civilizations, they may provide you with some additional Happiness based on their own Approval Rating.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Luxury Resources[ENDCOLOR]: You receive Happiness for each unique Luxury Resource connected to your empire. Luxuries are therefore less vital early on, but also not useless in the late game. Moreover, Monopolies on some Luxury Resources grant additional Happiness to your empire.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Locally Generated Happiness[ENDCOLOR]: Certain Buildings increase your local Happiness in the Cities where they are built. Other sources of Local Happiness include Religious Beliefs, Policies, World Wonders and Events. Note that this does not apply to Puppet Cities and Occupied Cities, which can never generate Local Happiness.'
 WHERE Tag = 'TXT_KEY_HAPPINESS_CAUSES_HEADING2_BODY';
 
 UPDATE Language_en_US
 SET Text = '[COLOR_GREEN]What Causes Unhappiness[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_HAPPINESS_CAUSESUNHAPPINESS_HEADING2_TITLE';
 UPDATE Language_en_US
-SET Text = 'The Unhappiness a city produces is no longer equal to the number of citizens in it, although population still strongly affects Unhappiness. Unhappiness in Vox Populi is caused by several sources, each of them contributing to the total Unhappiness a city has. A detailed overview of the sources of Unhappiness in a city can be seen by hovering over the "[ICON_HAPPINESS_3] Unhappiness" tab in the City Screen. The total amount of Unhappiness in a city cannot exceed the city''s population, no matter how much Unhappiness is generated from the different sources. The only exception to this is Unhappiness from Urbanization, which always applies, even if it puts the total Unhappiness of your city above its population. The possible sources of Unhappiness are the following: [NEWLINE][NEWLINE][COLOR_NEGATIVE_TEXT]Unhappiness from Needs[ENDCOLOR]: Often, most of the Unhappiness in a city is caused by various Needs. With the exception of Religious Unrest, Unhappiness arises in a city if its output of a certain yield per citizen (like gold per citizen, science per citizen, etc.) is lower than the respective Needs Threshold, a reference value which is calculated based on the yields in other cities worldwide. The lower the city''s yield output per citizen is, the higher the generated Unhappiness will be. It is therefore necessary to keep yields in your cities increasing, as your population will become more and more demanding over time due to the stronger competition (other cities grow as well, increasing the Needs Thresholds). Avoiding population growth can help in keeping Unhappiness from Needs manageable, and certain Building and Policies reduce Unhappiness from Needs by a fixed amount. There are five main Needs, four based on different yield types and one based on religious diversity:[NEWLINE]
+SET Text = 'The Unhappiness a city produces is no longer equal to the number of citizens in it, although population still strongly affects Unhappiness. Unhappiness in Vox Populi is caused by several sources, each of them contributing to the total Unhappiness a city has. A detailed overview of the sources of Unhappiness in a city can be seen by hovering over the "[ICON_HAPPINESS_3] Unhappiness" tab in the City Screen. The total amount of Unhappiness in a city cannot exceed the city''s population, no matter how much Unhappiness is generated from the different sources. The only exception to this is Unhappiness from Urbanization, which always applies, even if it puts the total Unhappiness of your city above its population. The possible sources of Unhappiness are the following:[NEWLINE][NEWLINE][COLOR_NEGATIVE_TEXT]Unhappiness from Needs[ENDCOLOR]: Often, most of the Unhappiness in a city is caused by various Needs. With the exception of Religious Unrest, Unhappiness arises in a city if its output of a certain yield per citizen (like gold per citizen, science per citizen, etc.) is lower than the respective Needs Threshold, a reference value which is calculated based on the yields in other cities worldwide. The lower the city''s yield output per citizen is, the higher the generated Unhappiness will be. It is therefore necessary to keep yields in your cities increasing, as your population will become more and more demanding over time due to the stronger competition (other cities grow as well, increasing the Needs Thresholds). Avoiding population growth can help in keeping Unhappiness from Needs manageable, and certain Building and Policies reduce Unhappiness from Needs by a fixed amount. There are five main Needs, four based on different yield types and one based on religious diversity:[NEWLINE]
 [COLOR_NEGATIVE_TEXT]Distress[ENDCOLOR]: Distress is based on the sum of your [ICON_FOOD] food and [ICON_PRODUCTION] production yields. Internal Trade Routes can be used to increase a city''s food or production output, and thus counter Distress. The Farming Process also counters Distress.[NEWLINE]
 [COLOR_NEGATIVE_TEXT]Poverty[ENDCOLOR]: Poverty is based on the [ICON_GOLD] gold yield of a city. To counteract Poverty, increase the city''s gold output, for example by working tiles that provide gold or by constructing buildings like the Market. International Trade Routes give their gold to their city of origin, so sending Trade Routes from impoverished cities can also help counter Poverty. The Wealth process also counters Poverty.[NEWLINE]
 [COLOR_NEGATIVE_TEXT]Illiteracy[ENDCOLOR]: Illiteracy is based on the [ICON_RESEARCH] science yield of a city. Constructing science buildings or establishing Trade Routes to more advanced civilizations can help reduce Illiteracy. The Research process also counters Illiteracy.[NEWLINE]
@@ -346,15 +359,71 @@ WHERE Tag = 'TXT_KEY_BUILDINGS_PURCHASING_HEADING3_BODY';
 
 -- Freedom
 UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Freedom[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_SOCIALPOLICY_FREEDOM_HEADING3_TITLE';
+UPDATE Language_en_US
 SET Text = 'The Freedom ideology provides bonuses for Culture, Tourism, Specialist production, and more. [COLOR_YELLOW]This ideology unlocks upon entering the Atomic Era, or unlocking 18 Policies and having advanced at least to the Industrial Era, whichever comes first.[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_SOCIALPOLICY_FREEDOM_HEADING3_BODY';
 
 -- Order
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Order[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_SOCIALPOLICY_ORDER_HEADING3_TITLE';
 UPDATE Language_en_US
 SET Text = 'Players interested in creating massive, sprawling civs should turn to the Order ideology, as the strength of the empire is determined by the total number of cities it contains. [COLOR_YELLOW]This ideology unlocks upon entering the Atomic Era, or unlocking 18 Policies and have advanced at least to the Industrial Era, whichever comes first.[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_SOCIALPOLICY_ORDER_HEADING3_BODY';
 
 -- Autocracy
 UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Autocracy[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_SOCIALPOLICY_AUTOCRACY_HEADING3_TITLE';
+UPDATE Language_en_US
 SET Text = 'The Autocracy ideology is well suited for those wishing nothing more than to crush their foes under the weight of their iron-plated boots. [COLOR_YELLOW]This ideology unlocks upon entering the Atomic Era, or unlocking 18 Policies and having advanced at least to the Industrial Era, whichever comes first.[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_SOCIALPOLICY_AUTOCRACY_HEADING3_BODY';
+
+-- Headings whose topics have mechanics changes
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Cities[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_1';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Combat Rules[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_2';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Resources[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_4';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Constructing Improvements[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_5';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Food and City Growth[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_6';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Culture[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_8';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Diplomacy[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_9';
+UPDATE Language_en_US
+SET Text = '[COLOR_GREEN]Happiness[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_10';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Social Policies[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_12';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Gold and the Economy[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_13';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Great People and Specialists[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_15';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]City-States[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_16';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Ruins and Barbarians[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_19';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Units[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_20';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Victory[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_GAME_CONCEPT_SECTION_21';

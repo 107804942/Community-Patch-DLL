@@ -33,13 +33,13 @@
 
 /// Constructor
 CvAIOperation::CvAIOperation(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, AIOperationTypes eType, ArmyType eMoveType)
+    : m_iID(iID),
+      m_eOwner(eOwner),
+      m_eType(eType),
+      m_eEnemy(eEnemy),
+      m_eArmyType(eMoveType)
 {
-	m_iID = iID;
-	m_eOwner = eOwner;
-	m_eEnemy = eEnemy;
-	m_eType = eType;
-	m_eArmyType = eMoveType;
-	Reset();
+    Reset();
 }
 
 /// Destructor
@@ -2035,17 +2035,18 @@ CvPlot* CvAIOperationCivilianFoundCity::FindBestTargetForUnit(CvUnit* pUnit)
 	if (!pNewTarget)
 		return NULL;
 
+	int iNewScore = GET_PLAYER(m_eOwner).getPlotFoundValue(pNewTarget->getX(), pNewTarget->getY());
+	int iNewQ = GET_PLAYER(m_eOwner).GetSettlePlotQualityMeasure(pNewTarget);
+	if (iNewQ < GET_PLAYER(m_eOwner).GetMinAcceptableSettleQuality() && GET_PLAYER(m_eOwner).getNumCities() > 0)
+		return NULL;
+
 	if (!GetTargetPlot())
 	{
-		int iNewScore = GET_PLAYER(m_eOwner).getPlotFoundValue(pNewTarget->getX(), pNewTarget->getY());
-		int iNewQ = GET_PLAYER(m_eOwner).GetSettlePlotQualityMeasure(pNewTarget);
 		LogOperationSpecialMessage(CvString::format("found target for settler, score %d (q%d)", iNewScore, iNewQ).c_str());
 	}
 	else if (pNewTarget != GetTargetPlot())
 	{
-		int iNewScore = GET_PLAYER(m_eOwner).getPlotFoundValue(pNewTarget->getX(), pNewTarget->getY());
 		int iOldScore = GET_PLAYER(m_eOwner).getPlotFoundValue(m_iTargetX, m_iTargetY);
-		int iNewQ = GET_PLAYER(m_eOwner).GetSettlePlotQualityMeasure(pNewTarget);
 		int iOldQ = GET_PLAYER(m_eOwner).GetSettlePlotQualityMeasure(GetTargetPlot());
 		LogOperationSpecialMessage(CvString::format("found better target for settler, old score %d (q%d), new score %d (q%d)", iOldScore, iOldQ, iNewScore, iNewQ).c_str());
 	}
@@ -2648,7 +2649,7 @@ bool CvAIOperationNukeAttack::CheckTransitionToNextStage()
 			if(pNuke && pNuke->canMove() && pNuke->canNukeAt(pNuke->plot(),pTargetPlot->getX(),pTargetPlot->getY()))
 			{
 				//try to save any units we have nearby
-				int iBlastRadius = min(5,max(1,/*2*/ GD_INT_GET(NUKE_BLAST_RADIUS)));
+				int iBlastRadius = /*2*/ range(GD_INT_GET(NUKE_BLAST_RADIUS), 1, 5);
 				for (int i=0; i<RING_PLOTS[iBlastRadius]; i++)
 				{
 					CvPlot* pLoopPlot = iterateRingPlots(pTargetPlot,i);
@@ -2735,7 +2736,7 @@ CvPlot* CvAIOperationNukeAttack::FindBestTarget(CvPlot** ppMuster) const
 			int iThisCityValue = 0;
 
 			// check to see if there is anything good or bad in the radius that we should account for
-			int iBlastRadius = min(5,max(1,/*2*/ GD_INT_GET(NUKE_BLAST_RADIUS)));
+			int iBlastRadius = /*2*/ range(GD_INT_GET(NUKE_BLAST_RADIUS), 1, 5);
 			for (int i=0; i<RING_PLOTS[iBlastRadius]; i++)
 			{
 				CvPlot* pLoopPlot = iterateRingPlots(pCityPlot,i);
@@ -3313,7 +3314,7 @@ CvPlot* OperationalAIHelpers::FindEnemiesNearHomelandPlot(PlayerTypes ePlayer, P
 		if (pLoopUnit->isInvisible(GET_PLAYER(ePlayer).getTeam(),false))
 			continue;
 
-		if (pLoopPlot->getOwner()!=ePlayer && GET_PLAYER(ePlayer).GetCityDistancePathLength(pLoopPlot)>4) 
+		if (pLoopPlot->getOwner()!=ePlayer && GET_PLAYER(ePlayer).GetCityDistancePathLength(pLoopPlot)>6) 
 			continue;
 
 		//a single unit is too volatile, check for a whole cluster

@@ -6,13 +6,13 @@
 include( "EUI_tooltips" )
 
 Events.SequenceGameInitComplete.Add(function()
-print("Loading EUI city banners",ContextPtr,os.clock(),[[ 
-  ____ _ _         ____                              __  __                                   
- / ___(_) |_ _   _| __ )  __ _ _ __  _ __   ___ _ __|  \/  | __ _ _ __   __ _  __ _  ___ _ __ 
+print("Loading EUI city banners",ContextPtr,os.clock(),[[
+  ____ _ _         ____                              __  __
+ / ___(_) |_ _   _| __ )  __ _ _ __  _ __   ___ _ __|  \/  | __ _ _ __   __ _  __ _  ___ _ __
 | |   | | __| | | |  _ \ / _` | '_ \| '_ \ / _ \ '__| |\/| |/ _` | '_ \ / _` |/ _` |/ _ \ '__|
-| |___| | |_| |_| | |_) | (_| | | | | | | |  __/ |  | |  | | (_| | | | | (_| | (_| |  __/ |   
- \____|_|\__|\__, |____/ \__,_|_| |_|_| |_|\___|_|  |_|  |_|\__,_|_| |_|\__,_|\__, |\___|_|   
-             |___/                                                            |___/           
+| |___| | |_| |_| | |_) | (_| | | | | | | |  __/ |  | |  | | (_| | | | | (_| | (_| |  __/ |
+ \____|_|\__|\__, |____/ \__,_|_| |_|_| |_|\___|_|  |_|  |_|\__,_|_| |_|\__,_|\__, |\___|_|
+             |___/                                                            |___/
 ]])
 -------------------------------
 -- minor lua optimizations
@@ -243,7 +243,7 @@ local g_cityToolTips = {
 				if gk_mode and city:GetReligiousMajority() < 0 then
 					tipText = tipText .. "[NEWLINE]" .. GetReligionTooltip(city)
 				end
-					
+
 				-- COMMUNITY PATCH END
 
 				if not OptionsManager.IsNoBasicHelp() then
@@ -268,10 +268,10 @@ local g_cityToolTips = {
 						.. GetCityStateStatusToolTip( g_activePlayerID, cityOwnerID, true )
 				else
 					if(g_activeTeam:IsAtWar(cityTeamID)) then
-						tipText = L("TXT_KEY_CITY_OF", cityOwner:GetCivilizationAdjectiveKey(), city:GetName() ) .. tipText 
+						tipText = L("TXT_KEY_CITY_OF", cityOwner:GetCivilizationAdjectiveKey(), city:GetName() ) .. tipText
 							--.. "[NEWLINE][NEWLINE]" .. GetMoodInfo(cityOwnerID, true)
 					else
-						tipText = L("TXT_KEY_CITY_OF", cityOwner:GetCivilizationAdjectiveKey(), city:GetName() ) .. tipText 
+						tipText = L("TXT_KEY_CITY_OF", cityOwner:GetCivilizationAdjectiveKey(), city:GetName() ) .. tipText
 						.. "[NEWLINE][NEWLINE]" .. GetMoodInfo(cityOwnerID, true)
 					end
 				end
@@ -488,9 +488,9 @@ local g_cityToolTips = {
 			return L"TXT_KEY_CITY_PUPPET".."[NEWLINE][NEWLINE]"..L"TXT_KEY_CITY_ANNEX_TT"
 		end
 	end,
-	
+
 	CityIsCityState = function( city )
-		local cityOriginalOwner = Players[city:GetOriginalOwner()];	
+		local cityOriginalOwner = Players[city:GetOriginalOwner()];
 		local strTraitTT = "";
 		if (cityOriginalOwner ~= nil) then
 			local iTrait = cityOriginalOwner:GetMinorCivTrait();
@@ -508,7 +508,7 @@ local g_cityToolTips = {
 								ePrereqTech = GameInfo.Technologies["TECH_AGRICULTURE"].ID;
 							end
 						end
-						
+
 						if (ePrereqTech ~= nil) then
 							if (GameInfo.Technologies[ePrereqTech] ~= nil) then
 								strTraitTT = Locale.ConvertTextKey("TXT_KEY_CITY_STATE_MILITARISTIC_TT_ANNEXED", GameInfo.Units[eUniqueUnit].Description, GameInfo.Technologies[ePrereqTech].Description);
@@ -528,7 +528,7 @@ local g_cityToolTips = {
 		end
 		return strTraitTT;
 	end,
-	
+
 	CityIsRazing = function( city )
 		return L( "TXT_KEY_CITY_BURNING", city:GetRazingTurns() )
 	end,
@@ -547,10 +547,22 @@ local g_cityToolTips = {
 		end
 		return connectionTip
 	end,
+	CityIsIndustrialConnected = function( city )
+		local connectionTip = L"TXT_KEY_CITY_INDUSTRIAL_CONNECTED"
+		local cityOwnerID = city:GetOwner()
+		local cityOwner = Players[ cityOwnerID ]
+		if not cityOwner then
+		elseif cityOwner.GetRouteGoldTimes100 then
+			connectionTip = connectionTip .. S(" (%+g[ICON_GOLD]/[ICON_PRODUCTION])", cityOwner:GetRouteGoldTimes100( city ) / 100 )
+		elseif cityOwner.GetCityConnectionRouteGoldTimes100 then
+			connectionTip = connectionTip .. S(" (%+g[ICON_GOLD]/[ICON_PRODUCTION])", cityOwner:GetCityConnectionRouteGoldTimes100( city ) / 100 )
+		end
+		return connectionTip
+	end,
 	CityIsBlockaded = function( city )
 		if (city:GetSappedTurns() > 0) then
 			return L("TXT_KEY_CITY_SAPPED", city:GetSappedTurns());
-		else	
+		else
 			return L"TXT_KEY_CITY_BLOCKADED"
 		end
 	end,
@@ -589,6 +601,9 @@ local g_cityToolTips = {
 			end
 			return FranchiseTT
 		end
+	end,
+	CityHasObstacle = function()
+		return L"TXT_KEY_CITY_HAS_OBSTACLE"
 	end,
 	CityIsAutomated = function()
 		return L"TXT_KEY_CITY_PRODUCTION_AUTOMATED"
@@ -783,7 +798,7 @@ local function AnnexPopup( plotIndex )
 end
 
 local function EspionagePopup()
-	Events.SerialEventGameMessagePopup{ 
+	Events.SerialEventGameMessagePopup{
 		Type = ButtonPopupTypes.BUTTONPOPUP_ESPIONAGE_OVERVIEW,
 	}
 end
@@ -822,7 +837,8 @@ local function OnBannerClick( plotIndex )
 			UI.DoSelectCityAtPlot( plot )
 
 		-- Observers get to look at anything
-		elseif Game.IsDebugMode() or g_activePlayer:IsObserver() then
+		elseif Game.IsDebugMode() or (g_activePlayer:IsObserver() and 
+			Game:GetObserverUIOverridePlayer() == -1) then
 			UI.SelectCity( city )
 			UI.LookAt( plot )
 			UI.SetCityScreenUp( true )
@@ -957,7 +973,7 @@ local function RefreshCityBannersNow()
 --		return
 --	end
 	ContextPtr:ClearUpdate()
-	local isDebug = Game.IsDebugMode() or g_activePlayer:IsObserver()
+	local isDebug = Game.IsDebugMode() or (g_activePlayer:IsObserver() and Game:GetObserverUIOverridePlayer() == -1)
 	------------------------------
 	-- Loop all dirty city banners
 	local bUpdated = false;
@@ -969,8 +985,8 @@ local function RefreshCityBannersNow()
 		if city then
 			local cityOwnerID = city:GetOwner()
 			local cityOwner = Players[ cityOwnerID ]
-			local isActiveType = isDebug or city:GetTeam() == g_activeTeamID
-			local isActivePlayerCity = cityOwnerID == g_activePlayerID
+			local isActiveType = isDebug or city:GetTeam() == g_activeTeamID or (g_activePlayer:IsObserver() and Game:GetObserverUIOverridePlayer() == cityOwnerID)
+			local isActivePlayerCity = (cityOwnerID == g_activePlayerID) or (g_activePlayer:IsObserver() and Game:GetObserverUIOverridePlayer() == cityOwnerID)
 
 			-- Incompatible banner type ? Destroy !
 			if instance and isActiveType ~= instance[1] then
@@ -1033,7 +1049,10 @@ local function RefreshCityBannersNow()
 			---------------------
 
 			-- Refresh the damage bar
-			RefreshCityDamage( city, instance, city:GetDamage() )
+			local iCityDamage = city:GetDamage()
+			local iCityMaxHP = city:GetMaxHitPoints()
+			local iCityCurrentHP = iCityMaxHP - iCityDamage
+			RefreshCityDamage( city, instance, iCityDamage )
 
 			-- Colors
 			local color = g_primaryColors[ cityOwnerID ]
@@ -1075,7 +1094,7 @@ local function RefreshCityBannersNow()
 
 			-- Puppet ?
 			instance.CityIsPuppet:SetHide( not isPuppet )
-			
+
 			-- Rome UA (Annexed City-States)
 			if Players[city:GetOriginalOwner()]:IsMinorCiv() then
 				instance.CityIsCityState:SetHide ( not cityOwner:IsAnnexedCityStatesGiveYields())
@@ -1089,10 +1108,10 @@ local function RefreshCityBannersNow()
 
 			-- Has airport ?
 			instance.CityHasAirport:SetHide( not city:IsHasBuilding(GameInfoTypes["BUILDING_AIRPORT"]) )
-			
+
 			-- Has office ?
 			instance.CityHasOffice:SetHide( not city:HasOffice() )
-			
+
 			-- Has franchise ?
 			if Game.GetNumCorporationsFounded() > 0 then
 				instance.CityHasFranchise:SetHide( true )
@@ -1106,6 +1125,9 @@ local function RefreshCityBannersNow()
 				instance.CityHasFranchise:SetHide( true )
 			end
 
+			-- Has Krepost ? or Great Wall or something ? like that?
+			instance.CityHasObstacle:SetHide ( not city:IsBorderObstacleLand() ) --city:IsBorderObstacleWater() unused
+
 			-- Blockaded ? / Sapped ?
 			instance.CityIsBlockaded:SetHide( not city:IsBlockaded() )
 			if (city:GetSappedTurns() > 0) then
@@ -1113,7 +1135,7 @@ local function RefreshCityBannersNow()
 			else
 				instance.CityIsBlockaded:SetText("[ICON_BLOCKADED]")
 			end
-			
+
 			-- Garrisoned ?
 			instance.GarrisonFrame:SetHide( not ( plot:IsVisible( activeTeamID, true ) and city:GetGarrisonedUnit() ) )
 
@@ -1237,7 +1259,8 @@ local function RefreshCityBannersNow()
 				instance.CityIsAutomated:SetHide(not isAutomated )
 
 				-- Connected to capital?
-				instance.CityIsConnected:SetHide( city:IsCapital() or not cityOwner:IsCapitalConnectedToCity( city ) )
+				instance.CityIsIndustrialConnected:SetHide( city:IsCapital() or not cityOwner:IsCapitalIndustrialConnectedToCity( city ) )
+				instance.CityIsConnected:SetHide( city:IsCapital() or not cityOwner:IsCapitalConnectedToCity( city ) or cityOwner:IsCapitalIndustrialConnectedToCity( city ) )
 
 				-- Demand resource / King day ?
 				local resource = GameInfo.Resources[ city:GetResourceDemanded() ]
@@ -1257,13 +1280,12 @@ local function RefreshCityBannersNow()
 				-- update range strike button (if it is the active player's city)
 
 				UpdateRangeIcons( plotIndex, city, instance )
-
-				local ttText = Locale.ConvertTextKey("TXT_KEY_CITYVIEW_CITY_COMB_STRENGTH_TT")
+				local ttText = L("TXT_KEY_UPANEL_SET_HITPOINTS_TT", iCityCurrentHP, iCityMaxHP) .. "[NEWLINE]" .. L("TXT_KEY_CITYVIEW_CITY_COMB_STRENGTH_TT")
 				--local ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100)
 				local iRange, iIndirect = city:GetBombardRange()
 				if (iIndirect == 1) then
 					ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100) .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. L("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_POSITIVE_TEXT]" .. L("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
-				else 
+				else
 					ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100) .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. L("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_NEGATIVE_TEXT]" .. L("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
 				end
 
@@ -1275,7 +1297,7 @@ local function RefreshCityBannersNow()
 				local isMinorCiv = cityOwner:IsMinorCiv()
 				local allyID, ally
 
-				local ttText = Locale.ConvertTextKey("TXT_KEY_CITYVIEW_CITY_COMB_STRENGTH_TT")
+				local ttText = L("TXT_KEY_UPANEL_SET_HITPOINTS_TT", iCityCurrentHP, iCityMaxHP) .. "[NEWLINE]" .. L("TXT_KEY_CITYVIEW_CITY_COMB_STRENGTH_TT")
 
 				if isMinorCiv then
 					-- Update Quests
@@ -1300,7 +1322,7 @@ local function RefreshCityBannersNow()
 							local iRange, iIndirect = city:GetBombardRange()
 							if (iIndirect == 1) then
 								ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100) .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. L("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_POSITIVE_TEXT]" .. L("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
-							else 
+							else
 								ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100) .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. L("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_NEGATIVE_TEXT]" .. L("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
 							end
 						end
@@ -1324,7 +1346,7 @@ local function RefreshCityBannersNow()
 						local iRange, iIndirect = city:GetBombardRange()
 						if (iIndirect == 1) then
 							ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100) .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. L("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_POSITIVE_TEXT]" .. L("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
-						else 
+						else
 							ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100) .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. L("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_NEGATIVE_TEXT]" .. L("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
 						end
 					end
@@ -1549,7 +1571,7 @@ end)
 
 --------------------
 -- On City Destroyed
-Events.SerialEventCityDestroyed.Add( 
+Events.SerialEventCityDestroyed.Add(
 function( hexPos ) --, cityOwnerID, cityID, newPlayerID )
 	local plot = Map_GetPlot( ToGridFromHex( hexPos.x, hexPos.y ) )
 	if plot then
@@ -1721,7 +1743,7 @@ Events.GameplaySetActivePlayer.Add( function( activePlayerID, previousActivePlay
 	g_activeTeamID = Game.GetActiveTeam()
 	g_activeTeam = Teams[ g_activeTeamID ]
 	ClearHexHighlights()
-	local isDebug = Game.IsDebugMode() or g_activePlayer:IsObserver()
+	local isDebug = Game.IsDebugMode() or (g_activePlayer:IsObserver() and Game:GetObserverUIOverridePlayer() == -1)
 	-- Update all city banners
 	for playerID = 0, #Players do
 		local player = Players[ playerID ]
@@ -1731,7 +1753,7 @@ Events.GameplaySetActivePlayer.Add( function( activePlayerID, previousActivePlay
 				local isRevealed = plot:IsRevealed( g_activeTeamID, true )
 				local plotIndex = plot:GetPlotIndex()
 				local instance = g_cityBanners[ plotIndex ]
-				local isActiveType = isDebug or city:GetTeam() == g_activeTeamID
+				local isActiveType = isDebug or city:GetTeam() == g_activeTeamID or (g_activePlayer:IsObserver() and Game:GetObserverUIOverridePlayer() == player)
 
 				-- If city banner is hidden or type no longer matches, destroy the banner
 				if instance and not(isRevealed and isActiveType == instance[1]) then

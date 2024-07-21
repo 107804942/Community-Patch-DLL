@@ -34,13 +34,6 @@ local g_PianoKeys = {
 	[1] = {12/255,22/255,30/255,120/255},
 }
 
--- Texture offsets based on rank.
-local g_RankOffsets = {
-		TXT_KEY_SPY_RANK_0 = {x = 0,y = 42},
-		TXT_KEY_SPY_RANK_1 = {x = 0,y = 21},
-		TXT_KEY_SPY_RANK_2 = {x = 0,y = 0}
-};
-
 -- Progressbar state information based on agent activity.
 local g_ProgressBarStates = {
 	TXT_KEY_SPY_STATE_TRAVELLING = {
@@ -378,7 +371,7 @@ Controls.TabButtonIntrigue:RegisterCallback( Mouse.eLClick, function() TabSelect
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
-Controls.CancelButton:RegisterCallback(Mouse.eLClick, function() Refresh(); end);
+Controls.CancelRelocationButton:RegisterCallback(Mouse.eLClick, function() Refresh(); end);
 function RelocateAgent(agentID, city)
 	local activePlayer = Players[Game.GetActivePlayer()];
 	local availableCitiesToRelocate = activePlayer:GetAvailableSpyRelocationCities(agentID);
@@ -425,7 +418,6 @@ function RelocateAgent(agentID, city)
 	end
 
 	local map = Map;
-	local rankOffsets = g_RankOffsets;
 	local progressBarStates = g_ProgressBarStates;
 
 
@@ -435,13 +427,9 @@ function RelocateAgent(agentID, city)
 		agent.AgentActivity = Locale.Lookup(agent.State);
 	end
 
-	Controls.AgentRank:SetTextureOffset(rankOffsets[agent.Rank]);
 	Controls.AgentName:LocalizeAndSetText(agent.Name);
 	Controls.AgentName:LocalizeAndSetToolTip("TXT_KEY_EO_SPY_NAMEPLATE_TT", agent.Rank, agent.Name);
 
-	local szSpyRankTooltip = activePlayer:GetInfluenceSpyRankTooltip(agent.Name, agent.Rank, -1);
-	Controls.AgentRank:SetToolTipString(szSpyRankTooltip);
-	Controls.AgentIcon:SetToolTipString(szSpyRankTooltip);
 	Controls.AgentLocationActionsPanel:SetHide(false);
 	Controls.AgentActivityPanel:SetHide(false);
 
@@ -470,10 +458,6 @@ function RelocateAgent(agentID, city)
 
 			Controls.AgentLocationIcon:LocalizeAndSetToolTip("TXT_KEY_EO_SPY_LOCATION_TT", agent.Rank, agent.Name, city:GetName());
 			Controls.AgentLocation:LocalizeAndSetToolTip("TXT_KEY_EO_SPY_LOCATION_TT", agent.Rank, agent.Name, city:GetName());
-
-			szSpyRankTooltip = activePlayer:GetInfluenceSpyRankTooltip(agent.Name, agent.Rank, plot:GetOwner());
-			Controls.AgentRank:SetToolTipString(szSpyRankTooltip);
-			Controls.AgentIcon:SetToolTipString(szSpyRankTooltip);
 		end
 	end
 
@@ -553,7 +537,6 @@ function RefreshAgents()
 	g_AgentManager:ResetInstances();
 
 	local map = Map;
-	local rankOffsets = g_RankOffsets;
 	local progressBarStates = g_ProgressBarStates;
 
 	local bTickTock = true;
@@ -588,18 +571,13 @@ function RefreshAgents()
 
 		local agentEntry = g_AgentManager:GetInstance();
 
-		agentEntry.AgentRank:SetTextureOffset(rankOffsets[v.Rank]);
 		agentEntry.AgentName:LocalizeAndSetText(v.Name);
 		agentEntry.AgentName:LocalizeAndSetToolTip("TXT_KEY_EO_SPY_NAMEPLATE_TT", v.Rank, v.Name);
-		local szSpyRankTooltip = pActivePlayer:GetInfluenceSpyRankTooltip(v.Name, v.Rank, -1);
-		agentEntry.AgentRank:SetToolTipString(szSpyRankTooltip);
 
 		if (v.IsDiplomat) then
-			agentEntry.DiplomatIcon:SetToolTipString(szSpyRankTooltip);
 			agentEntry.DiplomatIcon:SetHide(false);
 			agentEntry.AgentIcon:SetHide(true);
 		else
-			agentEntry.AgentIcon:SetToolTipString(szSpyRankTooltip);
 			agentEntry.AgentIcon:SetHide(false);
 			agentEntry.DiplomatIcon:SetHide(true);
 		end
@@ -609,26 +587,17 @@ function RefreshAgents()
 			agentEntry.AgentLocationActionsPanel:SetHide(true);
 			agentEntry.AgentActivityPanel:SetHide(true);
 			agentEntry.AgentKIAPanel:SetHide(false);
-			agentEntry.AgentPrisonPanel:SetHide(true);
 
 			agentEntry.Base:SetColorVal(0,0,0,0);
 			bTickTock = not bTickTock;
 
-			agentEntry.RelocateButton:setHide(true);
-		elseif(v.State == "TXT_KEY_SPY_STATE_IMPRISONED") then
-			agentEntry.AgentLocationActionsPanel:SetHide(true);
-			agentEntry.AgentActivityPanel:SetHide(true);
-			agentEntry.AgentKIAPanel:SetHide(true);
-			agentEntry.AgentPrisonPanel:SetHide(false);
-			agentEntry.AgentPrisonText:LocalizeAndSetText("TXT_KEY_EO_IMPRISONED", v.NumTurnsImprisoned);
-
-			agentEntry.Base:SetColorVal(0,0,0,0);
-			bTickTock = not bTickTock;
+			agentEntry.RelocateButton:SetHide(true);
 		else
 			agentEntry.AgentLocationActionsPanel:SetHide(false);
 			agentEntry.AgentActivityPanel:SetHide(false);
 			agentEntry.AgentKIAPanel:SetHide(true);
-			agentEntry.AgentPrisonPanel:SetHide(true);
+			
+			agentEntry.RelocateButton:SetHide(false);
 
 			agentEntry.AgentLocation:SetText(v.AgentLocation);
 			agentEntry.AgentLocation:LocalizeAndSetToolTip("TXT_KEY_EO_SPY_NEEDS_ASSIGNMENT_TT");
@@ -657,10 +626,6 @@ function RefreshAgents()
 
 					agentEntry.AgentLocationIcon:LocalizeAndSetToolTip("TXT_KEY_EO_SPY_LOCATION_TT", v.Rank, v.Name, city:GetName());
 					agentEntry.AgentLocation:LocalizeAndSetToolTip("TXT_KEY_EO_SPY_LOCATION_TT", v.Rank, v.Name, city:GetName());
-
-					szSpyRankTooltip = pActivePlayer:GetInfluenceSpyRankTooltip(v.Name, v.Rank, plot:GetOwner());
-					agentEntry.AgentRank:SetToolTipString(szSpyRankTooltip);
-					agentEntry.AgentIcon:SetToolTipString(szSpyRankTooltip);
 				end
 			end
 
@@ -715,7 +680,7 @@ function RefreshAgents()
 
 				if (v.TurnsLeft >= 0) then
 					agentEntry.AgentProgress:LocalizeAndSetText("TXT_KEY_STR_TURNS", v.TurnsLeft);
-				elseif (v.SpyFocus >= 0) then
+				elseif (v.SpyFocus >= 0 and GameInfo.CityEventChoices[v.SpyFocus].MissionTooltip) then
 					local pMissionInfo = GameInfo.CityEventChoices[v.SpyFocus];
 					agentEntry.AgentProgress:LocalizeAndSetText(pMissionInfo.MissionTooltip);
 				elseif (v.NetworkPointsStored >= 0) then
@@ -729,6 +694,9 @@ function RefreshAgents()
 
 			if (v.NumTurnsMovementBlocked > 0) then
 				agentEntry.RelocateButton:LocalizeAndSetToolTip("TXT_KEY_EO_COUNTERSPY_CANNOT_MOVE_TT", v.Rank, v.Name,v.NumTurnsMovementBlocked);
+				agentEntry.RelocateButton:SetDisabled(true);
+			elseif (v.VassalDiplomatPlayer >= 0) then
+				agentEntry.RelocateButton:LocalizeAndSetToolTip("TXT_KEY_EO_VASSAL_DIPLOMAT_CANNOT_MOVE_TT", v.Rank, v.Name, Players[v.VassalDiplomatPlayer]:GetCivilizationShortDescription());
 				agentEntry.RelocateButton:SetDisabled(true);
 			else
 				agentEntry.RelocateButton:LocalizeAndSetToolTip("TXT_KEY_EO_SPY_MOVE_TT", v.Rank, v.Name);
@@ -747,7 +715,7 @@ function RefreshAgents()
 						
 						local count = PopulateSelectionList(Controls.MissionSelectionStack, Game.GetActivePlayer(), city, v);
 							
-						if(countpassive > 0 and count > 0) then					
+						if(countpassive > 0 or count > 0) then					
 							Controls.ConfirmMissionSelectionButton:SetDisabled(true);
 							Controls.ConfirmMissionSelectionButton:RegisterCallback(Mouse.eLClick, function()
 								CommitMissionSelection(SelectedItems, Game.GetActivePlayer(), city, v.AgentID);
@@ -1640,7 +1608,7 @@ PopulateSelectionList = function(stackControl, playerID, city, spy)
 			
 			if (playerID ~= city:GetOwner()) then
 				szHelpString = szHelpString .. "[NEWLINE][NEWLINE]";
-				szHelpString = szHelpString .. Locale.Lookup("TXT_KEY_EO_ID_CAPTURE_CHANCE", info.SpyIDChance, info.SpyCaptureChance);
+				szHelpString = szHelpString .. Locale.Lookup("TXT_KEY_EO_ID_KILL_CHANCE", info.SpyIDChance, info.SpyKillChance);
 			end
 	
 			if(info.NetworkPointsNeeded > 0) then
@@ -2027,14 +1995,14 @@ PopulateDiplomatBonusList = function(stackControl, playerID, city, spy)
 	return count;
 end
 
-CommitCounterspyFocus = function(selection, playerID, city, spyID)
-	if(city ~= nil) then
+CommitCounterspyFocus = function(selection, playerID, pCity, spyID)
+	if(pCity ~= nil) then
 		for i,v in ipairs(selection) do
 			local eventChoiceType = v[1];
 			local eventChoice = GameInfo.CityEventChoices[eventChoiceType];
 			if(eventChoice ~= nil) then
 				local pPlayer = Players[playerID];
-				pPlayer:ChangeCounterspyMission(spyID, eventChoice.ID);
+				pCity:DoCityEventChoice(eventChoice.ID, spyID, playerID);
 				break;
 			end
 		end

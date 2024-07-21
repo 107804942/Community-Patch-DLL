@@ -209,6 +209,7 @@ public:
 	bool IsAlwaysHeal() const;
 	bool IsHealOutsideFriendly() const;
 	bool IsHillsDoubleMove() const;
+	bool IsRiverDoubleMove() const;
 
 	bool IsIgnoreTerrainCost() const;
 	bool IsIgnoreTerrainDamage() const;
@@ -283,7 +284,6 @@ public:
 	int GetAdjacentCityDefenseMod() const;
 	int GetNearbyEnemyDamage() const;
 	int GetMilitaryProductionModifier() const;
-	bool IsHighSeaRaider() const;
 	int GetGeneralGoldenAgeExpPercent() const;
 	int GetGiveCombatMod() const;
 	int GetGiveHPIfEnemyKilled() const;
@@ -336,6 +336,8 @@ public:
 	std::pair<int, bool> GetInstantYields(int i) const;
 #endif
 
+	bool GetTerrainIgnoreCost(int i) const;
+	bool GetFeatureIgnoreCost(int i) const;
 	bool GetTerrainDoubleMove(int i) const;
 	bool GetFeatureDoubleMove(int i) const;
 #if defined(MOD_PROMOTIONS_HALF_MOVE)
@@ -509,6 +511,7 @@ protected:
 	bool m_bAlwaysHeal;
 	bool m_bHealOutsideFriendly;
 	bool m_bHillsDoubleMove;
+	bool m_bRiverDoubleMove;
 	bool m_bIgnoreTerrainCost;
 	bool m_bIgnoreTerrainDamage;
 	bool m_bIgnoreFeatureDamage;
@@ -605,7 +608,6 @@ protected:
 	int m_iAdjacentCityDefesneMod;
 	int m_iNearbyEnemyDamage;
 	int m_iMilitaryProductionModifier;
-	bool m_bHighSeaRaider;
 	int m_iGeneralGoldenAgeExpPercent;
 	int m_iGiveCombatMod;
 	int m_iGiveHPHealedIfEnemyKilled;
@@ -657,6 +659,8 @@ protected:
 	int* m_piTerrainPassableTech;
 	int* m_piFeaturePassableTech;
 
+	bool* m_pbTerrainIgnoreCost;
+	bool* m_pbFeatureIgnoreCost;
 	bool* m_pbTerrainDoubleMove;
 	bool* m_pbFeatureDoubleMove;
 #if defined(MOD_PROMOTIONS_HALF_MOVE)

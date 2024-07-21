@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -192,10 +192,10 @@ public:
 	void SetUsingCityStrategy(AICityStrategyTypes eStrategy, bool bValue);
 	int GetTurnCityStrategyAdopted(AICityStrategyTypes eStrategy);
 	void SetTurnCityStrategyAdopted(AICityStrategyTypes eStrategy, int iValue);
-	CvBuildingProductionAI* GetBuildingProductionAI();
-	CvUnitProductionAI* GetUnitProductionAI();
-	CvProjectProductionAI* GetProjectProductionAI();
-	CvProcessProductionAI* GetProcessProductionAI();
+	CvBuildingProductionAI* GetBuildingProductionAI() const;
+	CvUnitProductionAI* GetUnitProductionAI() const;
+	CvProjectProductionAI* GetProjectProductionAI() const;
+	CvProcessProductionAI* GetProcessProductionAI() const;
 	CvString GetLogFileName(CvString& playerName, CvString& cityName) const;
 #if defined(MOD_BALANCE_CORE)
 	CvString GetProductionLogFileName(CvString& playerName, CvString& cityName) const;
@@ -203,8 +203,8 @@ public:
 #endif
 
 #if defined(MOD_BALANCE_CORE)
-	YieldTypes GetMostDeficientYield();
-	YieldTypes GetMostAbundantYield();
+	YieldTypes GetMostDeficientYield() const;
+	YieldTypes GetMostAbundantYield() const;
 	void PrecalcYieldStats();
 #endif
 
@@ -250,6 +250,7 @@ private:
 
 	YieldTypes m_eMostDeficientYield;
 	YieldTypes m_eMostAbundantYield;
+	int m_aiYieldModifier[NUM_YIELD_TYPES];
 };
 
 FDataStream& operator>>(FDataStream&, CvCityStrategyAI&);

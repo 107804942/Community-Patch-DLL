@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -34,7 +34,7 @@ public:
 	virtual void ComputeFlavorMultipliers(const CvPlayer* pPlayer);
 	virtual bool CanFoundCity(const CvPlot* pPlot, const CvPlayer* pPlayer, bool bIgnoreDistanceToExistingCities) const;
 	virtual int PlotFoundValue(CvPlot* pPlot, const CvPlayer* pPlayer, const std::vector<int>& ignorePlots, bool bCoastOnly=false, CvString* pDebug=NULL);
-	virtual int PlotFertilityValue(CvPlot* pPlot, bool bIncludeCoast=false);
+	virtual int PlotFertilityValue(CvPlot* pPlot, const CvPlayer* pPlayer, bool bIncludeCoast=false);
 	virtual vector<int> GetAllCitySiteValues(const CvPlayer* pPlayer);
 
 protected:

@@ -165,9 +165,9 @@ VALUES
 	('BUILDING_MANDIR', 'YIELD_FAITH', 3);
 
 INSERT INTO Building_YieldFromBirth
-	(BuildingType, YieldType, Yield)
+	(BuildingType, YieldType, Yield, IsEraScaling)
 SELECT
-	'BUILDING_MANDIR', Type, 5
+	'BUILDING_MANDIR', Type, 5, 1
 FROM Yields
 WHERE ID < 6; -- "All" yields
 
@@ -194,11 +194,6 @@ INSERT INTO Building_YieldFromUnitProduction
 	(BuildingType, YieldType, Yield)
 VALUES
 	('BUILDING_ORDER', 'YIELD_FAITH', 10);
-
-INSERT INTO Building_YieldFromFaithPurchase
-	(BuildingType, YieldType, Yield)
-VALUES
-	('BUILDING_ORDER', 'YIELD_PRODUCTION', 10);
 
 -- Teocalli
 INSERT INTO Building_YieldChanges
@@ -286,13 +281,6 @@ INSERT INTO Building_YieldChanges
 	(BuildingType, YieldType, Yield)
 VALUES
 	('BUILDING_GREAT_ALTAR', 'YIELD_FAITH', 5);
-
-INSERT INTO Building_DomainProductionModifiers
-	(BuildingType, DomainType, Modifier)
-VALUES
-	('BUILDING_GREAT_ALTAR', 'DOMAIN_LAND', 15),
-	('BUILDING_GREAT_ALTAR', 'DOMAIN_SEA', 15),
-	('BUILDING_GREAT_ALTAR', 'DOMAIN_AIR', 15);
 
 -- Chartarium
 INSERT INTO Building_YieldChanges
@@ -810,13 +798,19 @@ VALUES
 UPDATE Buildings
 SET
 	PolicyBranchType = NULL,
-	IlliteracyFlatReduction = 1
+	IlliteracyFlatReduction = 1,
+	MedianTechPercentChange = 0
 WHERE Type = 'BUILDING_PORCELAIN_TOWER';
 
 INSERT INTO Building_YieldChanges
 	(BuildingType, YieldType, Yield)
 VALUES
 	('BUILDING_PORCELAIN_TOWER', 'YIELD_CULTURE', 1);
+
+INSERT INTO Building_YieldModifiers
+	(BuildingType, YieldType, Yield)
+VALUES
+	('BUILDING_PORCELAIN_TOWER', 'YIELD_SCIENCE', 10);
 
 -- Taj Mahal
 UPDATE Buildings
@@ -880,7 +874,7 @@ INSERT INTO Building_ResourceQuantity
 VALUES
 	('BUILDING_SUMMER_PALACE', 'RESOURCE_PAPER', 1);
 
-INSERT INTO Building_UnitCombatProductionModifiers
+INSERT INTO Building_UnitCombatProductionModifiersGlobal
 	(BuildingType, UnitCombatType, Modifier)
 VALUES
 	('BUILDING_SUMMER_PALACE', 'UNITCOMBAT_DIPLOMACY', 20);
@@ -1255,13 +1249,6 @@ INSERT INTO Building_ResourceQuantityPerXFranchises
 VALUES
 	('BUILDING_HEXXON_REFINERY', 'RESOURCE_COAL', 3),
 	('BUILDING_HEXXON_REFINERY', 'RESOURCE_OIL', 3);
-
-INSERT INTO Building_DomainProductionModifiers
-	(BuildingType, DomainType, Modifier)
-VALUES
-	('BUILDING_HEXXON_REFINERY', 'DOMAIN_LAND', 15),
-	('BUILDING_HEXXON_REFINERY', 'DOMAIN_SEA', 15),
-	('BUILDING_HEXXON_REFINERY', 'DOMAIN_AIR', 15);
 
 -- Giorgio Armeier
 INSERT INTO Building_YieldPerFranchise

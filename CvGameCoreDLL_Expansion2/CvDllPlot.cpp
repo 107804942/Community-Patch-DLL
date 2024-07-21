@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -97,7 +97,7 @@ void CvDllPlot::UpdateCenterUnit()
 //------------------------------------------------------------------------------
 bool CvDllPlot::IsAdjacent(ICvPlot1* pPlot) const
 {
-	CvPlot* pkPlot = (pPlot != NULL)? dynamic_cast<CvDllPlot*>(pPlot)->GetInstance() : NULL;
+	CvPlot* pkPlot = (pPlot != NULL)? static_cast<CvDllPlot*>(pPlot)->GetInstance() : NULL;
 	return m_pPlot->isAdjacent(pkPlot);
 }
 //------------------------------------------------------------------------------
@@ -129,7 +129,7 @@ bool CvDllPlot::IsCity() const
 //------------------------------------------------------------------------------
 bool CvDllPlot::IsEnemyCity(ICvUnit1* pUnit) const
 {
-	CvUnit* pkUnit = (NULL != pUnit)? dynamic_cast<CvDllUnit*>(pUnit)->GetInstance() : NULL;
+	CvUnit* pkUnit = (NULL != pUnit)? static_cast<CvDllUnit*>(pUnit)->GetInstance() : NULL;
 	if(pkUnit != NULL)
 		return m_pPlot->isEnemyCity(*pkUnit);
 	else
@@ -148,18 +148,10 @@ bool CvDllPlot::IsTradeRoute(PlayerTypes ePlayer) const
 //------------------------------------------------------------------------------
 bool CvDllPlot::IsImpassable() const
 {
-#if defined(MOD_BALANCE_CORE)
-	if(m_pPlot->getOwner() != NO_PLAYER)
-	{
+	if (m_pPlot->getOwner() != NO_PLAYER)
 		return m_pPlot->isImpassable(GET_PLAYER(m_pPlot->getOwner()).getTeam());
-	}
-	else
-	{
-		return m_pPlot->isImpassable(BARBARIAN_TEAM);
-	}
-#else
-	return m_pPlot->isImpassable();
-#endif
+
+	return m_pPlot->isImpassable(BARBARIAN_TEAM);
 }
 //------------------------------------------------------------------------------
 void CvDllPlot::GetPosition(int& iX, int& iY) const
@@ -334,13 +326,13 @@ ICvUnit1* CvDllPlot::GetUnitByIndex(int iIndex) const
 //------------------------------------------------------------------------------
 void CvDllPlot::AddUnit(ICvUnit1* pUnit, bool bUpdate)
 {
-	CvUnit* pkUnit = (NULL != pUnit)? dynamic_cast<CvDllUnit*>(pUnit)->GetInstance() : NULL;
+	CvUnit* pkUnit = (NULL != pUnit)? static_cast<CvDllUnit*>(pUnit)->GetInstance() : NULL;
 	return m_pPlot->addUnit(pkUnit, bUpdate);
 }
 //------------------------------------------------------------------------------
 void CvDllPlot::RemoveUnit(ICvUnit1* pUnit, bool bUpdate)
 {
-	CvUnit* pkUnit = (NULL != pUnit)? dynamic_cast<CvDllUnit*>(pUnit)->GetInstance() : NULL;
+	CvUnit* pkUnit = (NULL != pUnit)? static_cast<CvDllUnit*>(pUnit)->GetInstance() : NULL;
 	return m_pPlot->removeUnit(pkUnit, bUpdate);
 }
 //------------------------------------------------------------------------------

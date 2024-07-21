@@ -17,7 +17,9 @@ VALUES
 
 -- Opener (now Progress)
 UPDATE Policies
-SET CulturePerCity = 0
+SET
+	CulturePerCity = 0,
+	OneShot = 1
 WHERE Type = 'POLICY_LIBERTY';
 
 INSERT INTO Policy_YieldFromBirthCapital
@@ -47,6 +49,7 @@ WHERE PolicyType = 'POLICY_COLLECTIVE_RULE';
 UPDATE Policies
 SET
 	CapitalSettlerProductionModifier = 0,
+	IncludesOneShotFreeUnits = 0,
 	PortraitIndex = 29,
 	IconAtlas = 'POLICY_ATLAS',
 	IconAtlasAchieved = 'POLICY_A_ATLAS'
@@ -55,7 +58,7 @@ WHERE Type = 'POLICY_COLLECTIVE_RULE';
 INSERT INTO Policy_CityYieldChanges
 	(PolicyType, YieldType, Yield)
 VALUES
-	('POLICY_COLLECTIVE_RULE', 'YIELD_PRODUCTION', 3);
+	('POLICY_COLLECTIVE_RULE', 'YIELD_PRODUCTION', 2);
 
 INSERT INTO Policy_UnitClassProductionModifiers
 	(PolicyType, UnitClassType, ProductionModifier)
@@ -77,7 +80,7 @@ WHERE Type = 'POLICY_CITIZENSHIP';
 INSERT INTO Policy_CityYieldChanges
 	(PolicyType, YieldType, Yield)
 VALUES
-	('POLICY_CITIZENSHIP', 'YIELD_GOLD', 3);
+	('POLICY_CITIZENSHIP', 'YIELD_GOLD', 2);
 
 -- Republic (now Expertise)
 DELETE FROM Policy_CityYieldChanges

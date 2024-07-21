@@ -1,6 +1,13 @@
 -- General Changes to the DLL's Global Values
 
 -------------------------------------------------------------------------------------------------------------------
+-- Game Options
+-------------------------------------------------------------------------------------------------------------------
+
+-- If > -1, a player with no cities but who is still alive (Complete Kills) will be granted a free Settler after this many turns
+UPDATE Defines SET Value = 10 WHERE Name = 'COMPLETE_KILLS_TURN_TIMER';
+
+-------------------------------------------------------------------------------------------------------------------
 -- Defensive Pact
 -------------------------------------------------------------------------------------------------------------------
 
@@ -104,17 +111,8 @@ UPDATE Defines SET Value = 20 WHERE Name = 'CULTURE_COST_FIRST_PLOT';
 UPDATE Defines SET Value = 12 WHERE Name = 'CULTURE_COST_LATER_PLOT_MULTIPLIER';
 UPDATE Defines SET Value = 1.35 WHERE Name = 'CULTURE_COST_LATER_PLOT_EXPONENT';
 
--- Border growth tile selection
-UPDATE Defines SET Value = 20 WHERE Name = 'PLOT_INFLUENCE_WATER_COST';
-UPDATE Defines SET Value = -40 WHERE Name = 'PLOT_INFLUENCE_YIELD_POINT_COST'; -- 3 yield tops 1 distance
-UPDATE Defines SET Value = -180 WHERE Name = 'PLOT_INFLUENCE_RESOURCE_COST'; -- should be more than 100 to be able to skip one ring
-UPDATE Defines SET Value = -500 WHERE Name = 'PLOT_INFLUENCE_NW_COST';
-
 -- % Extra gold cost to buy a resource tile
 UPDATE Defines SET Value = 0 WHERE Name = 'PLOT_BUY_RESOURCE_COST';
-
--- Unused
-UPDATE Defines SET Value = 0 WHERE Name = 'PLOT_BUY_NW_COST';
 
 -- Population required for training settlers
 UPDATE Defines SET Value = 4 WHERE Name = 'CITY_MIN_SIZE_FOR_SETTLERS';
@@ -151,9 +149,8 @@ UPDATE Defines SET Value = 5 WHERE Name = 'GROWTH_PENALTY_PER_UNIT_OVER_SUPPLY';
 UPDATE Defines SET Value = 100 WHERE Name = 'UNIT_SUPPLY_BASE_TECH_REDUCTION_PER_ERA';
 
 -- Supply from city
--- City supply /= (1 + Tech progress * UNIT_SUPPLY_CITIES_TECH_REDUCTION_MULTIPLIER / UNIT_SUPPLY_CITIES_TECH_REDUCTION_DIVISOR)
-UPDATE Defines SET Value = 5 WHERE Name = 'UNIT_SUPPLY_CITIES_TECH_REDUCTION_MULTIPLIER';
-UPDATE Defines SET Value = 6 WHERE Name = 'UNIT_SUPPLY_CITIES_TECH_REDUCTION_DIVISOR';
+-- City supply /= (1 + Tech progress * UNIT_SUPPLY_CITIES_TECH_REDUCTION_MULTIPLIER / 100)
+UPDATE Defines SET Value = 83 WHERE Name = 'UNIT_SUPPLY_CITIES_TECH_REDUCTION_MULTIPLIER';
 
 -- Supply from population
 -- % provided by puppet city population
@@ -205,8 +202,12 @@ UPDATE Defines SET Value = 100 WHERE Name = 'MINOR_CIV_HEAVY_TRIBUTE_THRESHOLD';
 -- Influence loss x100 if pledged CS is damaged
 UPDATE Defines SET Value = 300 WHERE Name = 'MINOR_FRIENDSHIP_DROP_PER_TURN_DAMAGED_CAPITAL_MULTIPLIER';
 
--- Resting influence boost for liberation
+-- Resting influence boosts for liberation and building Landmarks
 UPDATE Defines SET Value = 100 WHERE Name = 'MINOR_LIBERATION_RESTING_INFLUENCE';
+UPDATE Defines SET Value = 10 WHERE Name = 'MINOR_LANDMARK_RESTING_INFLUENCE'; -- scales with era
+
+-- Bonus to current Influence for building Landmarks (scales with era in VP)
+UPDATE Defines SET Value = 0 WHERE Name = 'LANDMARK_MINOR_FRIENDSHIP_CHANGE';
 
 -- % extra city strength if the CS has an ally
 UPDATE Defines SET Value = 25 WHERE Name = 'BALANCE_CS_ALLIANCE_DEFENSE_BONUS';
@@ -351,9 +352,6 @@ UPDATE Defines SET Value = 10 WHERE Name = 'MINOR_CIV_BUYOUT_TURNS';
 -- Sane value in case gold gift is re-enabled
 UPDATE Defines SET Value = 18 WHERE Name = 'GOLD_GIFT_FRIENDSHIP_DIVISOR';
 
--- First meeting gold, unused in VP
-UPDATE Defines SET Value = 20 WHERE Name = 'MINOR_CIV_CONTACT_GOLD_OTHER';
-
 -------------------------------------------------------------------------------------------------------------------
 -- Policies
 -------------------------------------------------------------------------------------------------------------------
@@ -379,6 +377,9 @@ UPDATE Defines SET Value = 15 WHERE Name = 'TOURISM_MODIFIER_OPEN_BORDERS';
 UPDATE Defines SET Value = 10 WHERE Name = 'TOURISM_MODIFIER_TRADE_ROUTE';
 UPDATE Defines SET Value = -10 WHERE Name = 'TOURISM_MODIFIER_DIFFERENT_IDEOLOGIES';
 UPDATE Defines SET Value = 20 WHERE Name = 'TOURISM_MODIFIER_DIPLOMAT';
+UPDATE Defines SET Value = 1 WHERE Name = 'TOURISM_MODIFIER_SHARED_RELIGION'; -- percentage
+UPDATE Defines SET Value = 50 WHERE Name = 'TOURISM_MODIFIER_SHARED_RELIGION_MAX';
+UPDATE Defines SET Value = 2 WHERE Name = 'TOURISM_MODIFIER_SHARED_RELIGION_TYPE'; -- 0 = no scaling, 1 = scaling per city, 2 = scaling per population
 
 -------------------------------------------------------------------------------------------------------------------
 -- Religion
@@ -557,7 +558,8 @@ UPDATE Defines SET Value = 3 WHERE Name = 'SCORE_RELIGION_CITIES_MULTIPLIER';
 -- Don't rush workers until city has reached this population
 UPDATE Defines SET Value = 4 WHERE Name = 'AI_CITYSTRATEGY_WANT_TILE_IMPROVERS_MINIMUM_SIZE';
 
-UPDATE Defines SET Value = 5 WHERE Name = 'AI_CITIZEN_VALUE_GPP';
+UPDATE Defines SET Value = 10 WHERE Name = 'AI_CITIZEN_VALUE_GPP';
+UPDATE Defines SET Value = 8 WHERE Name = 'AI_CITIZEN_VALUE_GOLD';
 
 -- War progress score modifier per % happiness below 50%
 UPDATE Defines SET Value = -2 WHERE Name = 'WAR_PROGRESS_PER_UNHAPPY';
@@ -569,6 +571,7 @@ INSERT INTO PostDefines
 	(Name, "Key", "Table")
 VALUES
 	('EMBASSY_IMPROVEMENT', 'IMPROVEMENT_EMBASSY', 'Improvements'),
-	('JUGGERNAUT_PROMOTION', 'PROMOTION_JUGGERNAUT', 'UnitPromotions');
+	('JUGGERNAUT_PROMOTION', 'PROMOTION_JUGGERNAUT', 'UnitPromotions'),
+	('MARCH_SKIRMISHER_PROMOTION', 'PROMOTION_SKIRMISHER_MARCH', 'UnitPromotions');
 
 UPDATE PostDefines SET "Key" = 'ERA_MODERN' WHERE Name = 'IDEOLOGY_START_ERA';

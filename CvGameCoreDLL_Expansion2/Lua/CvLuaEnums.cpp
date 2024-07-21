@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	� 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -306,7 +306,6 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(ORDER_TRAIN);
 	RegisterEnum(ORDER_CONSTRUCT);
 	RegisterEnum(ORDER_CREATE);
-	RegisterEnum(ORDER_PREPARE);
 	RegisterEnum(ORDER_MAINTAIN);
 	RegisterEnum(NUM_ORDER_TYPES);
 	EnumEnd(L);
@@ -917,6 +916,8 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(INSTANT_YIELD_TYPE_SPY_IDENTIFY);
 	RegisterEnum(INSTANT_YIELD_TYPE_SPY_DEFENSE_OR_ID);
 	RegisterEnum(INSTANT_YIELD_TYPE_SPY_RIG_ELECTION);
+	RegisterEnum(INSTANT_YIELD_TYPE_CITY_DAMAGE);
+	RegisterEnum(INSTANT_YIELD_TYPE_LUXURY_RESOURCE_GAIN);
 	RegisterEnum(NUM_INSTANT_YIELD_TYPES);
 	EnumEnd(L);
 
@@ -1139,7 +1140,6 @@ int CvLuaEnums::pRegister(lua_State* L)
 
 #if defined(MOD_BALANCE_CORE)
 	EnumStart(L, "StrengthTypes");
-	RegisterEnum(NO_STRENGTH_VALUE);
 	RegisterEnum(STRENGTH_PATHETIC);
 	RegisterEnum(STRENGTH_WEAK);
 	RegisterEnum(STRENGTH_POOR);
@@ -1220,6 +1220,9 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(CONTROL_ESPIONAGE_OVERVIEW);
 	RegisterEnum(CONTROL_RELIGION_OVERVIEW);
 	RegisterEnum(CONTROL_RESTART_GAME);
+	RegisterEnum(CONTROL_TOGGLE_OBSERVER_MODE);
+	RegisterEnum(CONTROL_TOGGLE_AI_TAKEOVER);
+	RegisterEnum(CONTROL_SWITCH_TO_NEXT_PLAYER);
 	EnumEnd(L);
 
 	// TradeConnectionTypes
@@ -1252,6 +1255,13 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(NUM_TERRAFORMINGEVENT_TYPES);
 	EnumEnd(L);
 #endif
+
+	EnumStart(L, "RoutePlanTypes");
+	RegisterEnum(NO_PLANNED_ROUTE);
+	RegisterEnum(ROAD_PLANNING_EXCLUDE);
+	RegisterEnum(ROAD_PLANNING_INCLUDE);
+	RegisterEnum(ROAD_PLANNING_PRIORITY_CONSTRUCTION);
+	EnumEnd(L);
 
 	return 0;
 }

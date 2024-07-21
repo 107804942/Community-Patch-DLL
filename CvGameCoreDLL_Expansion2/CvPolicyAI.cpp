@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	� 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -290,27 +290,81 @@ void CvPolicyAI::DoChooseIdeology(CvPlayer *pPlayer)
 		return;
 	}
 
-	if (GET_TEAM(pPlayer->getTeam()).IsVassalOfSomeone())
+	// Vassals are forced to choose the master's ideology
+	TeamTypes eMasterTeam = GET_TEAM(pPlayer->getTeam()).GetMaster();
+	if (eMasterTeam != NO_TEAM)
 	{
-		TeamTypes eMasterTeam = GET_TEAM(pPlayer->getTeam()).GetMaster();
-		if (eMasterTeam != NO_TEAM)
+		vector<PlayerTypes> vMasterTeam = GET_TEAM(eMasterTeam).getPlayers();
+		for (size_t i=0; i<vMasterTeam.size(); i++)
 		{
-			// Loop through all players to see if they're on our team
-			for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
-			{
-				PlayerTypes eMaster = (PlayerTypes)iPlayerLoop;
+			PlayerTypes eMaster = GET_PLAYER(vMasterTeam[i]).GetID();
 
-				// Assumes one player per team for master
-				if (GET_PLAYER(eMaster).getTeam() == GET_TEAM(eMasterTeam).GetID())
+			// First player on the master's team that is alive and has > 0 cities is the one that counts
+			if (GET_PLAYER(eMaster).isAlive() && GET_PLAYER(eMaster).getNumCities() > 0)
+			{
+				if (GET_PLAYER(eMaster).GetPlayerPolicies()->GetLateGamePolicyTree() != NO_POLICY_BRANCH_TYPE)
 				{
-					if (GET_PLAYER(eMaster).GetPlayerPolicies()->GetLateGamePolicyTree() != NO_POLICY_BRANCH_TYPE)
-					{
-						pPlayer->GetPlayerPolicies()->SetPolicyBranchUnlocked(GET_PLAYER(eMaster).GetPlayerPolicies()->GetLateGamePolicyTree(), true, false);
-						LogBranchChoice(GET_PLAYER(eMaster).GetPlayerPolicies()->GetLateGamePolicyTree());
-						return;
-					}
+					pPlayer->GetPlayerPolicies()->SetPolicyBranchUnlocked(GET_PLAYER(eMaster).GetPlayerPolicies()->GetLateGamePolicyTree(), true, false);
+					LogBranchChoice(GET_PLAYER(eMaster).GetPlayerPolicies()->GetLateGamePolicyTree());
+					return;
 				}
 			}
+		}
+	}
+
+	// Team Leader used FOLLOW ME!
+	TeamTypes eTeam = pPlayer->getTeam();
+	PlayerTypes eTeamLeader = pPlayer->GetID();
+	vector<PlayerTypes> vMyTeam = GET_TEAM(eTeam).getPlayers();
+	int iBestScore = 0;
+	int iMyScore = pPlayer->GetScore();
+	if (pPlayer->GetDiplomacyAI()->IsCloseToCultureVictory())
+		iMyScore += 100000;
+
+	for (size_t i=0; i<vMyTeam.size(); i++)
+	{
+		PlayerTypes eTeamMember = GET_PLAYER(vMyTeam[i]).GetID();
+		if (!GET_PLAYER(eTeamMember).isAlive() || GET_PLAYER(eTeamMember).getNumCities() == 0)
+			continue;
+
+		if (GET_PLAYER(eTeamMember).isHuman()) // AI shall bow before the human even if they're a weakling!
+		{
+			eTeamLeader = eTeamMember;
+			break;
+		}
+
+		int iScore = GET_PLAYER(eTeamMember).GetScore();
+		if (GET_PLAYER(eTeamMember).GetDiplomacyAI()->IsCloseToCultureVictory())
+			iScore += 100000;
+
+		if (iScore > iBestScore && iScore * 2 >= iMyScore * 3) // Must be at least 50% higher to justify this
+		{
+			eTeamLeader = eTeamMember;
+			iBestScore = iScore;
+		}
+	}
+	PolicyBranchTypes eLeaderIdeology = GET_PLAYER(eTeamLeader).GetPlayerPolicies()->GetLateGamePolicyTree();
+	if (eTeamLeader != pPlayer->GetID() && eLeaderIdeology != NO_POLICY_BRANCH_TYPE)
+	{
+		// Sanity check - don't adopt the leader's ideology if it would result in us losing cities
+		bool bFollowTheLeader = false;
+		int iExtraUnhappiness = pPlayer->GetCulture()->ComputeHypotheticalPublicOpinionUnhappiness(eLeaderIdeology);
+		if (!MOD_BALANCE_VP)
+		{
+			bFollowTheLeader = pPlayer->GetExcessHappiness() - iExtraUnhappiness > /*-8*/ GD_INT_GET(VERY_UNHAPPY_THRESHOLD) + 2; // Add some margin of error
+		}
+		else
+		{
+			int iUnhappy = pPlayer->GetUnhappinessFromCitizenNeeds() + iExtraUnhappiness;
+			int iHappy = pPlayer->GetHappinessFromCitizenNeeds();
+			bFollowTheLeader = ((iHappy * 100) / max(1, iUnhappy) / 2) >= /*40*/ GD_INT_GET(VERY_UNHAPPY_THRESHOLD) + 5; // Add some margin of error
+		}
+
+		if (bFollowTheLeader)
+		{
+			pPlayer->GetPlayerPolicies()->SetPolicyBranchUnlocked(eLeaderIdeology, true, false);
+			LogBranchChoice(eLeaderIdeology);
+			return;
 		}
 	}
 
@@ -690,32 +744,40 @@ void CvPolicyAI::DoChooseIdeology(CvPlayer *pPlayer)
 }
 
 /// Should the AI look at switching ideology branches?
+/// Humans also call this function to force a switch if they're a vassal.
 void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 {
 	// Gather basic Ideology info
-	bool bVUnhappy = pPlayer->IsEmpireVeryUnhappy();
-	bool bSUnhappy = pPlayer->IsEmpireSuperUnhappy();
-	int iPublicOpinionUnhappiness = pPlayer->GetCulture()->GetPublicOpinionUnhappiness();
-	PolicyBranchTypes ePreferredIdeology = pPlayer->GetCulture()->GetPublicOpinionPreferredIdeology();
 	PolicyBranchTypes eCurrentIdeology = pPlayer->GetPlayerPolicies()->GetLateGamePolicyTree();
+	if (eCurrentIdeology == NO_POLICY_BRANCH_TYPE)
+		return;
 
-	if (GET_TEAM(pPlayer->getTeam()).IsVassalOfSomeone() && pPlayer->GetPlayerPolicies()->GetLateGamePolicyTree() != NO_POLICY_BRANCH_TYPE)
+	TeamTypes eMasterTeam = GET_TEAM(pPlayer->getTeam()).GetMaster();
+	if (eMasterTeam != NO_TEAM)
 	{
-		TeamTypes eMasterTeam = GET_TEAM(pPlayer->getTeam()).GetMaster();
-
-		// Loop through all players to see if they're on our team
-		for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
+		vector<PlayerTypes> vMasterTeam = GET_TEAM(eMasterTeam).getPlayers();
+		for (size_t i=0; i<vMasterTeam.size(); i++)
 		{
-			PlayerTypes eMaster = (PlayerTypes) iPlayerLoop;
+			PlayerTypes eMaster = GET_PLAYER(vMasterTeam[i]).GetID();
 
-			// Assumes one player per team for master
-			if (GET_PLAYER(eMaster).getTeam() == GET_TEAM(eMasterTeam).GetID())
+			// First player on the master's team that is alive and has > 0 cities is the one that counts
+			if (GET_PLAYER(eMaster).isAlive() && GET_PLAYER(eMaster).getNumCities() > 0)
 			{
-				if (GET_PLAYER(eMaster).GetPlayerPolicies()->GetLateGamePolicyTree() != NO_POLICY_BRANCH_TYPE && GET_PLAYER(eMaster).GetPlayerPolicies()->GetLateGamePolicyTree() != pPlayer->GetPlayerPolicies()->GetLateGamePolicyTree())
+				PolicyBranchTypes eMasterIdeology = GET_PLAYER(eMaster).GetPlayerPolicies()->GetLateGamePolicyTree();
+				if (eMasterIdeology != NO_POLICY_BRANCH_TYPE && eMasterIdeology != eCurrentIdeology)
 				{
+					if (MOD_API_ACHIEVEMENTS && eMasterIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
+					{
+						PlayerTypes eActivePlayer = GC.getGame().getActivePlayer();
+						if (GET_PLAYER(eActivePlayer).isAlive() && GET_PLAYER(eActivePlayer).isHuman() && GET_PLAYER(eActivePlayer).getTeam() == eMasterTeam)
+						{
+							gDLL->UnlockAchievement(ACHIEVEMENT_XP2_39);
+						}
+					}
+
 					// Cleared all obstacles -- REVOLUTION!
 					pPlayer->SetAnarchyNumTurns(/*2 in CP, 3 in VP*/ GD_INT_GET(SWITCH_POLICY_BRANCHES_ANARCHY_TURNS));
-					pPlayer->GetPlayerPolicies()->DoSwitchIdeologies(GET_PLAYER(eMaster).GetPlayerPolicies()->GetLateGamePolicyTree());	
+					pPlayer->GetPlayerPolicies()->DoSwitchIdeologies(eMasterIdeology);
 					Localization::String strSummary = Localization::Lookup("TXT_KEY_ANARCHY_BEGINS_SUMMARY");
 					Localization::String strMessage = Localization::Lookup("TXT_KEY_ANARCHY_BEGINS");
 					pPlayer->GetNotifications()->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pPlayer->GetID(), /*2 in CP, 3 in VP*/ GD_INT_GET(SWITCH_POLICY_BRANCHES_ANARCHY_TURNS), -1);
@@ -725,22 +787,154 @@ void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 		}
 	}
 
-	// Possible enough that we need to look at this in detail?
-	if (bSUnhappy && iPublicOpinionUnhappiness >= /*-20 in CP, 20 in VP*/ GD_INT_GET(SUPER_UNHAPPY_THRESHOLD))
+	// Humans halt here!
+	if (pPlayer->isHuman())
+		return;
+
+	int iPublicOpinionUnhappiness = pPlayer->GetCulture()->GetPublicOpinionUnhappiness();
+	PolicyBranchTypes ePreferredIdeology = pPlayer->GetCulture()->GetPublicOpinionPreferredIdeology();
+
+	// Can't switch.
+	if (iPublicOpinionUnhappiness == 0 || ePreferredIdeology == NO_POLICY_BRANCH_TYPE || ePreferredIdeology == eCurrentIdeology)
+		return;
+
+	// Would switching cure our happiness problems?
+	bool bVUnhappy = pPlayer->IsEmpireVeryUnhappy();
+	bool bSUnhappy = pPlayer->IsEmpireSuperUnhappy();
+	if (bSUnhappy)
 	{
-		//Sanity check - would a change to this branch simply make us unhappy in another way? If so, don't do it.
-		if(ePreferredIdeology != NO_POLICY_BRANCH_TYPE)
+		int iNewUnhappiness = pPlayer->GetCulture()->ComputeHypotheticalPublicOpinionUnhappiness(ePreferredIdeology);
+		if (!MOD_BALANCE_VP)
 		{
-			int iUnhappiness = pPlayer->GetCulture()->ComputeHypotheticalPublicOpinionUnhappiness(ePreferredIdeology);
-			if(iUnhappiness >= iPublicOpinionUnhappiness)
+			bSUnhappy = pPlayer->GetExcessHappiness() + iPublicOpinionUnhappiness - iNewUnhappiness > /*-20*/ GD_INT_GET(SUPER_UNHAPPY_THRESHOLD);
+		}
+		else
+		{
+			int iUnhappy = pPlayer->GetUnhappinessFromCitizenNeeds() - iPublicOpinionUnhappiness + iNewUnhappiness;
+			int iHappy = pPlayer->GetHappinessFromCitizenNeeds();
+			bSUnhappy = ((iHappy * 100) / max(1, iUnhappy) / 2) >= /*20*/ GD_INT_GET(SUPER_UNHAPPY_THRESHOLD);
+		}
+	}
+	else if (bVUnhappy)
+	{
+		int iNewUnhappiness = pPlayer->GetCulture()->ComputeHypotheticalPublicOpinionUnhappiness(ePreferredIdeology);
+		if (!MOD_BALANCE_VP)
+		{
+			bVUnhappy = pPlayer->GetExcessHappiness() + iPublicOpinionUnhappiness - iNewUnhappiness > /*-10*/ GD_INT_GET(VERY_UNHAPPY_THRESHOLD);
+		}
+		else
+		{
+			int iUnhappy = pPlayer->GetUnhappinessFromCitizenNeeds() - iPublicOpinionUnhappiness + iNewUnhappiness;
+			int iHappy = pPlayer->GetHappinessFromCitizenNeeds();
+			bVUnhappy = ((iHappy * 100) / max(1, iUnhappy) / 2) >= /*35*/ GD_INT_GET(VERY_UNHAPPY_THRESHOLD);
+		}
+	}
+
+	// Team Leader used FOLLOW ME!
+	TeamTypes eTeam = pPlayer->getTeam();
+	PlayerTypes eTeamLeader = pPlayer->GetID();
+	bool bTeamLeaderSwitchRequested = false;
+	bool bTeamLeaderSwitchAvoided = false;
+	if (!bSUnhappy)
+	{
+		vector<PlayerTypes> vMyTeam = GET_TEAM(eTeam).getPlayers();
+		int iBestScore = 0;
+		int iMyScore = pPlayer->GetScore();
+		if (pPlayer->GetDiplomacyAI()->IsCloseToCultureVictory())
+			iMyScore += 100000;
+
+		for (size_t i=0; i<vMyTeam.size(); i++)
+		{
+			PlayerTypes eTeamMember = GET_PLAYER(vMyTeam[i]).GetID();
+			if (!GET_PLAYER(eTeamMember).isAlive() || GET_PLAYER(eTeamMember).getNumCities() == 0)
+				continue;
+
+			if (GET_PLAYER(eTeamMember).isHuman()) // AI shall bow before the human even if they're a weakling!
 			{
-				return;
+				eTeamLeader = eTeamMember;
+				break;
 			}
 
-			//Final sanity check - are we flip-flopping?
-			if (GC.getGame().getGameTurn() - pPlayer->GetCulture()->GetTurnIdeologySwitch() <= 30)
+			int iScore = GET_PLAYER(eTeamMember).GetScore();
+			if (GET_PLAYER(eTeamMember).GetDiplomacyAI()->IsCloseToCultureVictory())
+				iScore += 100000;
+
+			if (iScore > iBestScore && iScore * 2 >= iMyScore * 3) // Must be at least 50% higher to justify this
 			{
-				return;
+				eTeamLeader = eTeamMember;
+				iBestScore = iScore;
+			}
+		}
+		if (eTeamLeader != pPlayer->GetID())
+		{
+			PolicyBranchTypes eTeamLeaderIdeology = GET_PLAYER(eTeamLeader).GetPlayerPolicies()->GetLateGamePolicyTree();
+			if (eTeamLeaderIdeology == ePreferredIdeology)
+			{
+				// Switch if we wouldn't lose cities to unhappiness
+				bTeamLeaderSwitchRequested = true;
+			}
+			else if (eTeamLeaderIdeology == eCurrentIdeology)
+			{
+				// Don't switch if we can avoid losing cities to unhappiness
+				bTeamLeaderSwitchAvoided = true;
+			}
+		}
+	}
+
+	// Possible enough that we need to look at this in detail?
+	if (bSUnhappy)
+	{
+		//Final sanity check - are we flip-flopping?
+		if (!bTeamLeaderSwitchRequested && GC.getGame().getGameTurn() - pPlayer->GetCulture()->GetTurnIdeologySwitch() <= 30)
+		{
+			return;
+		}
+
+		if (MOD_API_ACHIEVEMENTS && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
+		{
+			PlayerTypes eMostPressure = pPlayer->GetCulture()->GetPublicOpinionBiggestInfluence();
+			if (eMostPressure != NO_PLAYER && GET_PLAYER(eMostPressure).GetID() == GC.getGame().getActivePlayer())
+			{
+				gDLL->UnlockAchievement(ACHIEVEMENT_XP2_39);
+			}
+		}
+
+		// Cleared all obstacles -- REVOLUTION!
+		pPlayer->SetAnarchyNumTurns(/*2 in CP, 3 in VP*/ GD_INT_GET(SWITCH_POLICY_BRANCHES_ANARCHY_TURNS));
+		pPlayer->GetPlayerPolicies()->DoSwitchIdeologies(ePreferredIdeology);
+		Localization::String strSummary = Localization::Lookup("TXT_KEY_ANARCHY_BEGINS_SUMMARY");
+		Localization::String strMessage = Localization::Lookup("TXT_KEY_ANARCHY_BEGINS");
+		pPlayer->GetNotifications()->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pPlayer->GetID(), /*2 in CP, 3 in VP*/ GD_INT_GET(SWITCH_POLICY_BRANCHES_ANARCHY_TURNS), -1);
+	}
+	else if (bTeamLeaderSwitchAvoided)
+	{
+		return;
+	}
+	else if (bTeamLeaderSwitchRequested)
+	{
+		//Sanity check - would a change to this branch put us at risk of losing cities? If so, don't do it.
+		int iNewUnhappiness = pPlayer->GetCulture()->ComputeHypotheticalPublicOpinionUnhappiness(ePreferredIdeology);
+		bool bSwitch = false;
+		if (!MOD_BALANCE_VP)
+		{
+			bSwitch = pPlayer->GetExcessHappiness() + iPublicOpinionUnhappiness - iNewUnhappiness > /*-8*/ GD_INT_GET(VERY_UNHAPPY_THRESHOLD) + 2; // Add some margin of error
+		}
+		else
+		{
+			int iUnhappy = pPlayer->GetUnhappinessFromCitizenNeeds() - iPublicOpinionUnhappiness + iNewUnhappiness;
+			int iHappy = pPlayer->GetHappinessFromCitizenNeeds();
+			bSwitch = ((iHappy * 100) / max(1, iUnhappy) / 2) >= /*40*/ GD_INT_GET(VERY_UNHAPPY_THRESHOLD) + 5; // Add some margin of error
+		}
+
+		if (bSwitch)
+		{
+			if (MOD_API_ACHIEVEMENTS && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
+			{
+				PlayerTypes eMostPressure = pPlayer->GetCulture()->GetPublicOpinionBiggestInfluence();
+				if (eMostPressure != NO_PLAYER && GET_PLAYER(eMostPressure).GetID() == GC.getGame().getActivePlayer())
+				{
+					gDLL->UnlockAchievement(ACHIEVEMENT_XP2_39);
+				}
 			}
 
 			// Cleared all obstacles -- REVOLUTION!
@@ -751,8 +945,12 @@ void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 			pPlayer->GetNotifications()->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pPlayer->GetID(), /*2 in CP, 3 in VP*/ GD_INT_GET(SWITCH_POLICY_BRANCHES_ANARCHY_TURNS), -1);
 		}
 	}
-	else if (bVUnhappy && iPublicOpinionUnhappiness >= /*-10 in CP, 35 in VP*/ GD_INT_GET(VERY_UNHAPPY_THRESHOLD))
+	else if (bVUnhappy)
 	{
+		// Only switch ideologies if we're about to lose a city.
+		if (pPlayer->GetCityRevoltCounter() <= 2 + /*2 in CP, 3 in VP*/ GD_INT_GET(SWITCH_POLICY_BRANCHES_ANARCHY_TURNS))
+			return;
+
 		// Does the switch fight against our clearly preferred victory path?
 		bool bDontSwitchFreedom = false;
 		bool bDontSwitchOrder = false;
@@ -781,127 +979,73 @@ void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 			bDontSwitchAutocracy = true;
 		}
 
-		//Sanity check - would a change to this branch simply make us unhappy in another way? If so, don't do it.
-		if (ePreferredIdeology != NO_POLICY_BRANCH_TYPE)
+		if (bDontSwitchFreedom && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM))
 		{
-			int iUnhappiness = pPlayer->GetCulture()->ComputeHypotheticalPublicOpinionUnhappiness(ePreferredIdeology);
-			if (iUnhappiness >= iPublicOpinionUnhappiness)
-			{
-				return;
-			}
-			// Finally see what our friends (and enemies) have already chosen
-			for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
-			{
-				PlayerTypes eLoopPlayer = (PlayerTypes) iPlayerLoop;
-				if (eLoopPlayer != pPlayer->GetID() && pPlayer->GetDiplomacyAI()->IsPlayerValid(eLoopPlayer))
-				{
-					CvPlayer &kOtherPlayer = GET_PLAYER(eLoopPlayer);
-					PolicyBranchTypes eOtherPlayerIdeology;
-					eOtherPlayerIdeology = kOtherPlayer.GetPlayerPolicies()->GetLateGamePolicyTree();
-
-					if (pPlayer->GetDiplomacyAI()->GetCivApproach(eLoopPlayer) <= CIV_APPROACH_HOSTILE)
-					{
-						if (eOtherPlayerIdeology == ePreferredIdeology)
-							return;
-					}
-				}
-			}
-
-			if (bDontSwitchFreedom && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM))
-			{
-				return;
-			}
-			if (bDontSwitchAutocracy && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_AUTOCRACY))
-			{
-				return;
-			}
-			if (bDontSwitchOrder && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
-			{
-				return;
-			}
-			//Final sanity check - are we flip-flopping?
-			if(GC.getGame().getGameTurn() - pPlayer->GetCulture()->GetTurnIdeologySwitch() <= 30)
-			{
-				return;
-			}
-
-			if (MOD_API_ACHIEVEMENTS && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
-			{
-				PlayerTypes eMostPressure = pPlayer->GetCulture()->GetPublicOpinionBiggestInfluence();
-				if (eMostPressure != NO_PLAYER && GET_PLAYER(eMostPressure).GetID() == GC.getGame().getActivePlayer())
-				{
-					gDLL->UnlockAchievement(ACHIEVEMENT_XP2_39);
-				}
-			}
-
-			// Cleared all obstacles -- REVOLUTION!
-			pPlayer->SetAnarchyNumTurns(/*2 in CP, 3 in VP*/ GD_INT_GET(SWITCH_POLICY_BRANCHES_ANARCHY_TURNS));
-			pPlayer->GetPlayerPolicies()->DoSwitchIdeologies(ePreferredIdeology);	
-			Localization::String strSummary = Localization::Lookup("TXT_KEY_ANARCHY_BEGINS_SUMMARY");
-			Localization::String strMessage = Localization::Lookup("TXT_KEY_ANARCHY_BEGINS");
-			pPlayer->GetNotifications()->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pPlayer->GetID(), /*2 in CP, 3 in VP*/ GD_INT_GET(SWITCH_POLICY_BRANCHES_ANARCHY_TURNS), -1);
+			return;
 		}
+		if (bDontSwitchAutocracy && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_AUTOCRACY))
+		{
+			return;
+		}
+		if (bDontSwitchOrder && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
+		{
+			return;
+		}
+		//Sanity check - are we flip-flopping?
+		if (GC.getGame().getGameTurn() - pPlayer->GetCulture()->GetTurnIdeologySwitch() <= 30)
+		{
+			return;
+		}
+
+		if (MOD_API_ACHIEVEMENTS && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
+		{
+			PlayerTypes eMostPressure = pPlayer->GetCulture()->GetPublicOpinionBiggestInfluence();
+			if (eMostPressure != NO_PLAYER && GET_PLAYER(eMostPressure).GetID() == GC.getGame().getActivePlayer())
+			{
+				gDLL->UnlockAchievement(ACHIEVEMENT_XP2_39);
+			}
+		}
+
+		// Cleared all obstacles -- REVOLUTION!
+		pPlayer->SetAnarchyNumTurns(/*2 in CP, 3 in VP*/ GD_INT_GET(SWITCH_POLICY_BRANCHES_ANARCHY_TURNS));
+		pPlayer->GetPlayerPolicies()->DoSwitchIdeologies(ePreferredIdeology);	
+		Localization::String strSummary = Localization::Lookup("TXT_KEY_ANARCHY_BEGINS_SUMMARY");
+		Localization::String strMessage = Localization::Lookup("TXT_KEY_ANARCHY_BEGINS");
+		pPlayer->GetNotifications()->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pPlayer->GetID(), /*2 in CP, 3 in VP*/ GD_INT_GET(SWITCH_POLICY_BRANCHES_ANARCHY_TURNS), -1);
 	}
 }
 
 /// What's the total Happiness benefit we could get from all policies/tenets in the branch based on our current buildings?
 int CvPolicyAI::GetBranchBuildingHappiness(CvPlayer* pPlayer, PolicyBranchTypes eBranch)
 {
-	// Policy Building Mods
-	int iSpecialPolicyBuildingHappiness = 0;
-	int iBuildingClassLoop = 0;
-	BuildingClassTypes eBuildingClass;
-	for(int iPolicyLoop = 0; iPolicyLoop < GC.getNumPolicyInfos(); iPolicyLoop++)
+	int iTotalHappiness = 0;
+	for (int iI = 0; iI < GC.getNumPolicyInfos(); iI++)
 	{
-		PolicyTypes ePolicy = (PolicyTypes)iPolicyLoop;
+		PolicyTypes ePolicy = static_cast<PolicyTypes>(iI);
 		CvPolicyEntry* pkPolicyInfo = GC.getPolicyInfo(ePolicy);
-		if(pkPolicyInfo)
+		if (!pkPolicyInfo)
+			continue;
+
+		if (pkPolicyInfo->GetPolicyBranchType() == eBranch)
 		{
-			if (pkPolicyInfo->GetPolicyBranchType() == eBranch)
+			for (int iJ = 0; iJ < GC.getNumBuildingClassInfos(); iJ++)
 			{
-				for(iBuildingClassLoop = 0; iBuildingClassLoop < GC.getNumBuildingClassInfos(); iBuildingClassLoop++)
+				BuildingClassTypes eBuildingClass = static_cast<BuildingClassTypes>(iJ);
+				int iHappiness = pkPolicyInfo->GetBuildingClassHappiness(iJ);
+				if (pkPolicyInfo->GetBuildingClassHappiness(iJ) != 0)
 				{
-					eBuildingClass = (BuildingClassTypes) iBuildingClassLoop;
-
-					CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(eBuildingClass);
-					if (!pkBuildingClassInfo)
+					int iLoop = 0;
+					for (CvCity* pCity = pPlayer->firstCity(&iLoop); pCity != NULL; pCity = pPlayer->nextCity(&iLoop))
 					{
-						continue;
-					}
-
-					if (pkPolicyInfo->GetBuildingClassHappiness(eBuildingClass) != 0)
-					{
-						BuildingTypes eBuilding = NO_BUILDING;
-
-						if (!MOD_BUILDINGS_THOROUGH_PREREQUISITES)
-						{
-							eBuilding = (BuildingTypes)pPlayer->getCivilizationInfo().getCivilizationBuildings(eBuildingClass);
-						}
-						if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || eBuilding != NO_BUILDING)
-						{
-							int iLoop = 0;
-							for (CvCity* pCity = pPlayer->firstCity(&iLoop); pCity != NULL; pCity = pPlayer->nextCity(&iLoop))
-							{
-								if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
-								{
-									eBuilding = pCity->GetCityBuildings()->GetBuildingTypeFromClass(eBuildingClass);
-									if (eBuilding == NO_BUILDING)
-									{
-										continue;
-									}
-								}
-								if (pCity->GetCityBuildings()->GetNumBuilding(eBuilding) > 0)
-								{
-									iSpecialPolicyBuildingHappiness += pkPolicyInfo->GetBuildingClassHappiness(eBuildingClass);
-								}
-							}
-						}
+						int iNumBuilding = pCity->GetCityBuildings()->GetNumBuildingClass(eBuildingClass);
+						iTotalHappiness += iHappiness * iNumBuilding;
 					}
 				}
 			}
 		}
 	}
-	return iSpecialPolicyBuildingHappiness;
+
+	return iTotalHappiness;
 }
 
 /// How many policies in this branch help happiness?
@@ -1034,7 +1178,7 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 			iNumCities++;
 		else if (pPlayerTraits->IsSmaller())
 			iNumCities--;
-		if (GC.getGame().getGameTurn() <= 125)
+		if (GC.getGame().getGameTurn() <= GC.getGame().getEstimateEndTurn() / 4)
 		{
 			//Estimation, because early game we assume we'll expand.
 			iNumCities = (3 + iNumCities);
@@ -1790,6 +1934,17 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 			yield[YIELD_FOOD] += PolicyInfo->GetHappinessPerXPolicies() * 5;
 		}
 	}
+	if (PolicyInfo->GetHappinessPerCityOverStrengthThreshold() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger() || pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_FOOD] += iNumCities * PolicyInfo->GetHappinessPerCityOverStrengthThreshold() * 10;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += iNumCities * PolicyInfo->GetHappinessPerCityOverStrengthThreshold() * 5;
+		}
+	}
 	if (PolicyInfo->GetHappinessPerXGreatWorks() != 0)
 	{
 		if (pPlayerTraits->IsTourism())
@@ -2265,6 +2420,10 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 		{
 			yield[YIELD_GOLD] += PolicyInfo->GetRigElectionInfluenceModifier();
 		}
+	}
+	if (PolicyInfo->GetPassiveEspionageBonusModifier() != 0)
+	{
+		yield[YIELD_SCIENCE] += PolicyInfo->GetRigElectionInfluenceModifier() / 10;
 	}
 	if (PolicyInfo->GetMilitaryUnitGiftExtraInfluence() != 0)
 	{
@@ -3095,18 +3254,6 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 		}
 	}
 
-	if (PolicyInfo->GetNonSpecialistFoodChange() != 0)
-	{
-		if (pPlayerTraits->IsSmaller() || pPlayerTraits->IsTourism() || pPlayerTraits->IsNerd())
-		{
-			yield[YIELD_FOOD] += PolicyInfo->GetNonSpecialistFoodChange() * -2 * max(1, (iPopulation * 2 / 3));
-		}
-		else
-		{
-			yield[YIELD_FOOD] += PolicyInfo->GetNonSpecialistFoodChange() * -1 * max(1, (iPopulation * 4 / 5));
-		}
-	}
-
 	if (PolicyInfo->GetWarWearinessModifier() != 0)
 	{
 		if (pPlayerTraits->IsWarmonger())
@@ -3370,6 +3517,17 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 		else
 		{
 			yield[YIELD_GOLD] += 400 / PolicyInfo->GetFreeWCVotes();
+		}
+	}
+	if (PolicyInfo->GetSpySecurityModifier() != 0)
+	{
+		if (pPlayerTraits->IsNerd())
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetSpySecurityModifier() * 2;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetSpySecurityModifier();
 		}
 	}
 	if (PolicyInfo->GetInfluenceGPExpend() != 0)
@@ -3706,108 +3864,84 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 					yield[eYield] += PolicyInfo->GetReligionBuildingYieldMod(eBuildingClass, eYield) * iNumCities;
 				}
 			}
-#if defined(MOD_BALANCE_CORE_POLICIES)
+
 			if (PolicyInfo->GetYieldChangesPerReligionTimes100(i) != 0)
 			{
 				yield[eYield] += PolicyInfo->GetYieldChangesPerReligionTimes100(i) * iNumCities / 100;
 			}
-#endif
 		}
 	}
 
-	UnitClassTypes eUnitClass;
+	// Unit related
 	for (int iI = 0; iI < GC.getNumUnitClassInfos(); iI++)
 	{
-		eUnitClass = (UnitClassTypes)iI;
-		CvUnitClassInfo* pkUnitClassInfo = GC.getUnitClassInfo(eUnitClass);
-		if (!pkUnitClassInfo)
-			continue;
-		
+		const UnitClassTypes eUnitClass = static_cast<UnitClassTypes>(iI);
 		const UnitTypes eUnit = pPlayer->GetSpecificUnitType(eUnitClass);
 		CvUnitEntry* pUnitEntry = GC.getUnitInfo(eUnit);
 		if (!pUnitEntry)
 			continue;
-		bool bCombat = pUnitEntry->GetCombat() > 0 || pUnitEntry->GetRangedCombat() > 0;
-		if (PolicyInfo->GetUnitClassProductionModifiers(eUnitClass) != 0)
-		{
-			if (bCombat ? pPlayerTraits->IsWarmonger() : pPlayerTraits->IsExpansionist())
-			{
-				yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetUnitClassProductionModifiers(eUnitClass) * 2;
-			}
-			else
-			{
-				yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetUnitClassProductionModifiers(eUnitClass);
-			}
-		}
-	
-		if (PolicyInfo->GetNumFreeUnitsByClass(eUnitClass) != 0)
-		{
-			if (bCombat ? pPlayerTraits->IsWarmonger() : pPlayerTraits->IsExpansionist())
-			{
-				yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetNumFreeUnitsByClass(eUnitClass) * 25;
-			}
-			if (pUnitEntry->IsFound())
-				yield[YIELD_FOOD] += PolicyInfo->GetNumFreeUnitsByClass(eUnitClass) * (50 - (pPlayer->getNumCities() * 5));
-			else if (pUnitEntry->GetWorkRate() > 0)
-				yield[YIELD_FOOD] += PolicyInfo->GetNumFreeUnitsByClass(eUnitClass) * 50 * pPlayer->getNumCities();
-			else
-				yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetNumFreeUnitsByClass(eUnitClass) * 25;
 
+		bool bCombat = pUnitEntry->GetCombat() > 0 || pUnitEntry->GetRangedCombat() > 0;
+		int iProductionModifier = PolicyInfo->GetUnitClassProductionModifiers(eUnitClass);
+		if (iProductionModifier != 0)
+		{
+			if (bCombat ? pPlayerTraits->IsWarmonger() : pPlayerTraits->IsExpansionist())
+				yield[YIELD_GREAT_GENERAL_POINTS] += iProductionModifier * 2;
+			else
+				yield[YIELD_GREAT_GENERAL_POINTS] += iProductionModifier;
 		}
-		if (PolicyInfo->GetTourismByUnitClassCreated(eUnitClass) != 0)
+
+		int iNumFreeUnitsByClass = PolicyInfo->GetNumFreeUnitsByClass(eUnitClass);
+		if (iNumFreeUnitsByClass != 0)
+		{
+			if (bCombat ? pPlayerTraits->IsWarmonger() : pPlayerTraits->IsExpansionist())
+				yield[YIELD_GREAT_GENERAL_POINTS] += iNumFreeUnitsByClass * 25;
+
+			if (pUnitEntry->IsFound())
+				yield[YIELD_FOOD] += iNumFreeUnitsByClass * (50 - (pPlayer->getNumCities() * 5));
+			else if (pUnitEntry->GetWorkRate() > 0)
+				yield[YIELD_FOOD] += iNumFreeUnitsByClass * 50 * pPlayer->getNumCities();
+			else
+				yield[YIELD_GREAT_GENERAL_POINTS] += iNumFreeUnitsByClass * 25;
+		}
+
+		int iTourismByUnitClassCreated = PolicyInfo->GetTourismByUnitClassCreated(eUnitClass);
+		if (iTourismByUnitClassCreated != 0)
 		{
 			if (pPlayerTraits->IsTourism())
-			{
-				yield[YIELD_TOURISM] += PolicyInfo->GetTourismByUnitClassCreated(eUnitClass) * 5;
-			}
+				yield[YIELD_TOURISM] += iTourismByUnitClassCreated * 5;
 			else
-			{
-				yield[YIELD_TOURISM] += PolicyInfo->GetTourismByUnitClassCreated(eUnitClass);
-			}
+				yield[YIELD_TOURISM] += iTourismByUnitClassCreated;
 		}
 
-		if (pPlayer->getCapitalCity() != NULL)
+		if (pPlayer->getCapitalCity())
 		{
+			int iBaseValue = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetUnitProductionAI()->CheckUnitBuildSanity(eUnit, false, 10, true, true);
+
 			if (PolicyInfo->IsFaithPurchaseUnitClass(eUnitClass, /*INDUSTRIAL*/ GD_INT_GET(RELIGION_GP_FAITH_PURCHASE_ERA)) != 0)
 			{
-				CvUnitClassInfo* pkUnitClassInfo = GC.getUnitClassInfo(eUnitClass);
-				if (pkUnitClassInfo)
+				if (iBaseValue > 0)
 				{
-					const UnitTypes eUnit = pPlayer->GetSpecificUnitType(eUnitClass);
-					CvUnitEntry* pUnitEntry = GC.getUnitInfo(eUnit);
-					if (pUnitEntry)
-					{
-						int iValue = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetUnitProductionAI()->CheckUnitBuildSanity(eUnit, false, 10, true, true);
-						if (iValue > 0)
-						{
-							if (pPlayerTraits->IsReligious())
-							{
-								iValue *= 2;
-							}
-							yield[YIELD_FAITH] += min(225, iValue);
-						}
-					}
+					int iValue = iBaseValue;
+					if (pPlayerTraits->IsReligious())
+						iValue *= 2;
+
+					yield[YIELD_FAITH] += min(225, iValue);
 				}
 			}
-			CvUnitClassInfo* pkUnitClassInfo = GC.getUnitClassInfo(eUnitClass);
-			if (pkUnitClassInfo)
+
+			if (pUnitEntry->GetPolicyType() == ePolicy)
 			{
-				const UnitTypes eUnit = (UnitTypes)pPlayer->GetSpecificUnitType(eUnitClass);
-				CvUnitEntry* pUnitEntry = GC.getUnitInfo(eUnit);
-				if (pUnitEntry && pUnitEntry->GetPolicyType() == ePolicy)
+				if (iBaseValue > 0)
 				{
-					int iValue = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetUnitProductionAI()->CheckUnitBuildSanity(eUnit, false, 10, true, true);
-					if (iValue > 0)
-					{
-						if (pPlayerTraits->IsWarmonger())
-						{
-							iValue *= 2;
-						}
-						if (pUnitEntry->GetDomainType() == DOMAIN_LAND || pUnitEntry->GetDomainType() == DOMAIN_AIR)
-							yield[YIELD_GREAT_GENERAL_POINTS] += min(150, iValue);
-						else
-							yield[YIELD_GREAT_ADMIRAL_POINTS] += min(150, iValue);
-					}
+					int iValue = iBaseValue;
+					if (pPlayerTraits->IsWarmonger())
+						iValue *= 2;
+
+					if (pUnitEntry->GetDomainType() == DOMAIN_LAND || pUnitEntry->GetDomainType() == DOMAIN_AIR)
+						yield[YIELD_GREAT_GENERAL_POINTS] += min(150, iValue);
+					else
+						yield[YIELD_GREAT_ADMIRAL_POINTS] += min(150, iValue);
 				}
 			}
 		}
@@ -4583,6 +4717,38 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 				yield[eYield] += PolicyInfo->GetYieldFromDelegateCount(eYield) * 5;
 			}
 		}
+		if (PolicyInfo->GetYieldPerCityOverStrengthThreshold(eYield) != 0)
+		{
+			if (pPlayerTraits->IsWarmonger() || pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += iNumCities * PolicyInfo->GetYieldPerCityOverStrengthThreshold(eYield) * 2;
+			}
+			else
+			{
+				yield[eYield] += iNumCities * PolicyInfo->GetYieldPerCityOverStrengthThreshold(eYield);
+			}
+		}
+		if (PolicyInfo->GetYieldFromXMilitaryUnits(eYield) != 0)
+		{
+			// count units
+			int iCount = 0;
+			int iLoop = 0;
+			for (const CvUnit* pLoopUnit = pPlayer->firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = pPlayer->nextUnit(&iLoop))
+			{
+				if (pLoopUnit->IsCivilianUnit() || pLoopUnit->isDelayedDeath())
+					continue;
+
+				iCount++;
+			}
+			if (pPlayerTraits->IsWarmonger())
+			{
+				yield[eYield] += iNumCities * (iCount / PolicyInfo->GetYieldFromXMilitaryUnits(eYield)) * 2;
+			}
+			else
+			{
+				yield[eYield] += iNumCities * (iCount / PolicyInfo->GetYieldFromXMilitaryUnits(eYield));
+			}
+		}
 	}
 	
 	if (yield.size() != 0)
@@ -4729,7 +4895,7 @@ int CvPolicyAI::WeighPolicy(CvPlayer* pPlayer, PolicyTypes ePolicy)
 				}
 				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_EXPANSION" )
 				{
-					iWeight += iFlavorValue;
+						iWeight += iFlavorValue;
 				}
 				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_PRODUCTION")
 				{

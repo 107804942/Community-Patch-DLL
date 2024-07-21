@@ -243,11 +243,7 @@ void CvMilitaryAIStrategyXMLEntries::DeleteArray()
 /// Get a specific entry
 _Ret_maybenull_ CvMilitaryAIStrategyXMLEntry* CvMilitaryAIStrategyXMLEntries::GetEntry(int index)
 {
-#if defined(MOD_BALANCE_CORE)
-	return (index!=NO_MILITARYAISTRATEGY) ? m_paAIStrategyEntries[index] : NULL;
-#else
-	return m_paAIStrategyEntries[index];
-#endif
+	return (index != NO_MILITARYAISTRATEGY) ? m_paAIStrategyEntries[index] : NULL;
 }
 
 
@@ -322,9 +318,10 @@ void CvMilitaryAI::Reset()
 	m_eNavalDefenseState = NO_DEFENSE_STATE;
 	m_iNumberOfTimesOpsBuildSkippedOver = 0;
 	m_iNumberOfTimesSettlerBuildSkippedOver = 0;
-#if defined(MOD_BALANCE_CORE)
+
 	for (int iI = 0; iI < MAX_MAJOR_CIVS; iI++)
 		m_aiWarFocus[iI] = WARTYPE_UNDEFINED;
+
 	m_iNumFreeCarriers = 0;
 	//new unit counters
 	m_iNumArcherLandUnits = 0;
@@ -339,7 +336,6 @@ void CvMilitaryAI::Reset()
 	m_iNumCarrierNavalUnits = 0;
 	m_iNumMissileUnits = 0;
 	m_iNumActiveUniqueUnits = 0;
-#endif
 
 	for(int iI = 0; iI < m_pAIStrategies->GetNumMilitaryAIStrategies(); iI++)
 	{
@@ -530,7 +526,7 @@ bool CvMilitaryAI::RequestBullyingOperation(PlayerTypes eEnemy)
 /// Spend money to quickly add a unit to a city
 CvUnit* CvMilitaryAI::BuyEmergencyUnit(UnitAITypes eUnitType, CvCity* pCity)
 {
-	// No units in puppet cities or automated citites except for Venice!
+	// No units in puppet cities or automated cities except for Venice!
 	if (CityStrategyAIHelpers::IsTestCityStrategy_IsPuppetAndAnnexable(pCity) || pCity->isHumanAutomated())
 	{
 		return NULL;
@@ -538,67 +534,39 @@ CvUnit* CvMilitaryAI::BuyEmergencyUnit(UnitAITypes eUnitType, CvCity* pCity)
 
 	// Get best unit with this AI type
 	UnitTypes eType = pCity->GetCityStrategyAI()->GetUnitProductionAI()->RecommendUnit(eUnitType, true);
+	CvUnit* pUnit = NULL;
+	bool bGold = false;
+
 	if(eType != NO_UNIT)
 	{
 		CvUnitEntry* pUnitInfo = GC.GetGameUnits()->GetEntry(eType);
 		if(pUnitInfo && pUnitInfo->GetUnitAIType(eUnitType))
 		{
-			// Can we buy the primary unit type at the start city?
-			if(pCity->IsCanPurchase(/*bTestPurchaseCost*/ true, /*bTestTrainable*/ true, eType, NO_BUILDING, NO_PROJECT, YIELD_GOLD))
+			//make sure we want to spend our gold on this
+			int iGoldCost = pCity->GetPurchaseCost(eType);
+			int iPriority = /*500*/ GD_INT_GET(AI_GOLD_PRIORITY_UNIT);
+			if(m_pPlayer->GetEconomicAI()->CanWithdrawMoneyForPurchase(PURCHASE_TYPE_UNIT, iGoldCost, iPriority))
+				//try with gold first
+				pUnit = pCity->PurchaseUnit(eType, YIELD_GOLD);
+
+			if (pUnit)
+				bGold = true;
+			else
 			{
-				int iGoldCost = pCity->GetPurchaseCost(eType);
-				int iPriority = /*500*/ GD_INT_GET(AI_GOLD_PRIORITY_UNIT);
-				if(m_pPlayer->GetEconomicAI()->CanWithdrawMoneyForPurchase(PURCHASE_TYPE_UNIT, iGoldCost, iPriority))
-				{
-					if(pCity->getOwner() == m_pPlayer->GetID())		// Player must own the city or this will create a unit for another player
-					{
-						// This is an EXTRA build for the operation beyond any that are already assigned to this city, so pass in the right flag to CreateUnit()
-						CvUnit* pUnit = pCity->CreateUnit(eType, NO_UNITAI, REASON_BUY, false /*bUseToSatisfyOperation*/);
-						if (pUnit)
-						{
-							m_pPlayer->GetTreasury()->LogExpenditure((CvString)pUnit->getUnitInfo().GetText(), iGoldCost, 7);
-							m_pPlayer->GetTreasury()->ChangeGold(-iGoldCost);
-
-							CvString szMsg;
-							szMsg.Format("Emergency Unit Purchased: %s, ", pUnit->getUnitInfo().GetDescription());
-							szMsg += pCity->getName();
-							m_pPlayer->GetTacticalAI()->LogTacticalMessage(szMsg);
-
-							return pUnit;
-						}
-						else
-						{
-							return NULL;
-						}
-					}
-				}
-			}
-
-			// Try again with Faith
-			if(pCity->IsCanPurchase(/*bTestPurchaseCost*/ true, /*bTestTrainable*/ true, eType, NO_BUILDING, NO_PROJECT, YIELD_FAITH))
-			{
-				int iFaithCost = pCity->GetFaithPurchaseCost(eType, false /*bIncludeBeliefDiscounts*/);
-
-				if(pCity->getOwner() == m_pPlayer->GetID())		// Player must own the city or this will create a unit for another player
-				{
-					m_pPlayer->ChangeFaith(-iFaithCost);
-
-					// This is an EXTRA build for the operation beyond any that are already assigned to this city, so pass in the right flag to CreateUnit()
-					CvUnit* pUnit = pCity->CreateUnit(eType, NO_UNITAI, REASON_FAITH_BUY, false /*bUseToSatisfyOperation*/);
-					if (pUnit)
-					{
-						CvString szMsg;
-						szMsg.Format("Emergency Faith Unit Purchase: %s, ", pUnit->getUnitInfo().GetDescription());
-						szMsg += pCity->getName();
-						m_pPlayer->GetTacticalAI()->LogTacticalMessage(szMsg);
-					}
-					return pUnit;
-				}
+				//try again with Faith (only because this is any emergency)
+				pUnit = pCity->PurchaseUnit(eType, YIELD_FAITH);
 			}
 		}
 	}
 
-	return NULL;
+	if (pUnit)
+	{
+		CvString szMsg;
+		szMsg.Format("Emergency %s Unit Purchased: %s, ", bGold?"Gold":"Faith", pUnit->getUnitInfo().GetDescription());
+		szMsg += pCity->getName();
+		m_pPlayer->GetTacticalAI()->LogTacticalMessage(szMsg);
+	}
+	return pUnit;
 }
 
 /// Spend money to quickly add a defensive building to a city
@@ -697,14 +665,30 @@ bool MilitaryAIHelpers::ArmyPathIsGood(const SPath & path, PlayerTypes eAttacker
 	return (iThirdPartyPlots < iThresholdForDiscard) && (iWrongCityPlots < iThresholdForDiscard);
 }
 
-bool CvMilitaryAI::IsPossibleAttackTarget(const CvCity* pCity) const
+bool CvMilitaryAI::IsPossibleAttackTarget(const CvCity* pCity, ArmyType eArmyType) const
 {
 	if (!pCity || pCity->getOwner()==m_pPlayer->GetID())
 		return false;
 
+	//cities may be listed multiple times!
 	for (size_t i = 0; i < m_potentialAttackTargets.size(); i++)
 		if (m_potentialAttackTargets[i].GetTargetPlot() == pCity->plot())
-			return true;
+			if (m_potentialAttackTargets[i].m_armyType == eArmyType || eArmyType == ARMY_TYPE_ANY)
+				return true;
+
+	return false;
+}
+
+bool CvMilitaryAI::IsPossibleMusterCity(const CvCity* pCity, ArmyType eArmyType) const
+{
+	if (!pCity || pCity->getOwner() == m_pPlayer->GetID())
+		return false;
+
+	//cities may be listed multiple times!
+	for (size_t i = 0; i < m_potentialAttackTargets.size(); i++)
+		if (m_potentialAttackTargets[i].GetMusterPlot() == pCity->plot())
+			if (m_potentialAttackTargets[i].m_armyType == eArmyType || eArmyType == ARMY_TYPE_ANY)
+				return true;
 
 	return false;
 }
@@ -714,6 +698,7 @@ bool CvMilitaryAI::IsPreferredAttackTarget(const CvCity* pCity) const
 	if (!pCity || pCity->getOwner()==m_pPlayer->GetID())
 		return false;
 
+	//cities may be listed multiple times!
 	for (size_t i = 0; i < m_potentialAttackTargets.size(); i++)
 		if (m_potentialAttackTargets[i].GetTargetPlot() == pCity->plot() && m_potentialAttackTargets[i].IsPreferred())
 			return true;
@@ -721,22 +706,25 @@ bool CvMilitaryAI::IsPreferredAttackTarget(const CvCity* pCity) const
 	return false;
 }
 
-bool CvMilitaryAI::IsExposedToEnemy(const CvCity * pCity, PlayerTypes eOtherPlayer) const
+bool CvMilitaryAI::IsExposedToEnemy(const CvCity * pCity, PlayerTypes eOtherPlayer, ArmyType eArmyType) const
 {
 	//minors don't really explore, so they don't know what's exposed ... just assume all their cities are
 	if (m_pPlayer->isMinorCiv())
 		return true;
 
+	//cities may be listed multiple times!
 	for (size_t i = 0; i < m_exposedCities.size(); i++)
-		if (eOtherPlayer==NO_PLAYER || m_exposedCities[i].first == eOtherPlayer)
-			if (pCity == NULL || m_exposedCities[i].second == pCity->GetID())
-				return true;
+		if (eOtherPlayer==NO_PLAYER || m_exposedCities[i].GetAttacker() == eOtherPlayer)
+			if (pCity == NULL || m_exposedCities[i].GetTargetPlot() == pCity->plot())
+				if (m_exposedCities[i].m_armyType == eArmyType || eArmyType == ARMY_TYPE_ANY)
+					return true;
 
 	return false;
 }
 
 bool CvMilitaryAI::HavePreferredAttackTarget(PlayerTypes eEnemy) const
 {
+	//cities may be listed multiple times!
 	for (size_t i = 0; i < m_potentialAttackTargets.size(); i++)
 		if (m_potentialAttackTargets[i].GetTargetPlot()->getOwner() == eEnemy && m_potentialAttackTargets[i].IsPreferred())
 			return true;
@@ -746,6 +734,7 @@ bool CvMilitaryAI::HavePreferredAttackTarget(PlayerTypes eEnemy) const
 
 bool CvMilitaryAI::HavePossibleAttackTarget(PlayerTypes eEnemy) const
 {
+	//cities may be listed multiple times!
 	for (size_t i = 0; i < m_potentialAttackTargets.size(); i++)
 		if (m_potentialAttackTargets[i].GetTargetPlot()->getOwner() == eEnemy)
 			return true;
@@ -863,8 +852,8 @@ size_t CvMilitaryAI::UpdateAttackTargets()
 			//mark the best targets
 			target.m_bPreferred = (iScore > iBestScore / 3);
 
-			//don't target a city twice with different army types, only keep the best approach
-			if (IsPossibleAttackTarget(target.GetTargetPlot()->getPlotCity()))
+			//don't target a city twice with the same army type, only keep the best approach
+			if (IsPossibleAttackTarget(target.GetTargetPlot()->getPlotCity(),target.m_armyType))
 				continue;
 
 			m_potentialAttackTargets.push_back(target);
@@ -874,7 +863,7 @@ size_t CvMilitaryAI::UpdateAttackTargets()
 				CvCity* pMuster = target.GetMusterPlot()->getPlotCity();
 				CvCity* pTarget = target.GetTargetPlot()->getPlotCity();
 				CvString msg = CvString::format("%03d, %s, %sattack target: %s, muster: %s, army type: %s, score: %d",
-					GC.getGame().getElapsedGameTurns(), m_pPlayer->getName(), target.IsPreferred() ? "preferred " : "",
+					GC.getGame().getElapsedGameTurns(), m_pPlayer->getCivilizationShortDescription(), target.IsPreferred() ? "preferred " : "",
 					pTarget->getNameNoSpace().c_str(), pMuster->getNameNoSpace().c_str(), ArmyTypeToString(target.m_armyType), iScore);
 				CvString playerName = GetPlayer()->getCivilizationShortDescription();
 				FILogFile* pLog = LOGFILEMGR.GetLog(GetLogFileName(playerName), FILogFile::kDontTimeStamp);
@@ -899,15 +888,15 @@ size_t CvMilitaryAI::UpdateAttackTargets()
 				CvCity* pMuster = target.GetMusterPlot()->getPlotCity();
 				CvCity* pTarget = target.GetTargetPlot()->getPlotCity();
 
-				//store it only once (for one army type)
+				//store it multiple times for multiple potential enemies
 				if (!IsExposedToEnemy(pTarget, pMuster->getOwner()))
 				{
-					m_exposedCities.push_back(make_pair(pMuster->getOwner(), pTarget->GetID()));
+					m_exposedCities.push_back(target);
 
 					if (GC.getLogging() && GC.getAILogging())
 					{
 						CvString msg = CvString::format("%03d, %s, exposed city: %s, muster: %s, army type: %s, score: %d",
-							GC.getGame().getElapsedGameTurns(), m_pPlayer->getName(),
+							GC.getGame().getElapsedGameTurns(), m_pPlayer->getCivilizationShortDescription(),
 							pTarget->getNameNoSpace().c_str(), pMuster->getNameNoSpace().c_str(), ArmyTypeToString(target.m_armyType), iScore);
 						CvString playerName = GetPlayer()->getCivilizationShortDescription();
 						FILogFile* pLog = LOGFILEMGR.GetLog(GetLogFileName(playerName), FILogFile::kDontTimeStamp);
@@ -1838,10 +1827,7 @@ void CvMilitaryAI::UpdateDefenseState()
 /// Count up barbarian camps and units visible to us
 void CvMilitaryAI::ScanForBarbarians()
 {
-
-#if defined(MOD_BALANCE_CORE)
 	int iLastTurnBarbarianCount = m_iVisibleBarbarianCount;
-#endif
 
 	m_iBarbarianCampCount = 0;
 	m_iVisibleBarbarianCount = 0;
@@ -1871,12 +1857,9 @@ void CvMilitaryAI::ScanForBarbarians()
 		}
 	}
 
-#if defined(MOD_BALANCE_CORE)
 	//try to smooth the count a bit
 	if (m_iVisibleBarbarianCount < iLastTurnBarbarianCount)
-		m_iVisibleBarbarianCount = iLastTurnBarbarianCount-1;
-#endif
-
+		m_iVisibleBarbarianCount = iLastTurnBarbarianCount - 1;
 }
 
 /// Start or stop military strategies to get flavors set properly
@@ -1992,10 +1975,8 @@ void CvMilitaryAI::UpdateMilitaryStrategies()
 					bStrategyShouldBeActive = MilitaryAIHelpers::IsTestStrategy_MinorCivThreatCritical(m_pPlayer);
 				else if(strStrategyName == "MILITARYAISTRATEGY_ERADICATE_BARBARIANS")
 					bStrategyShouldBeActive = MilitaryAIHelpers::IsTestStrategy_EradicateBarbarians(eStrategy, m_pPlayer, m_iBarbarianCampCount, m_iVisibleBarbarianCount);
-#if defined(MOD_BALANCE_CORE)
 				else if(strStrategyName == "MILITARYAISTRATEGY_ERADICATE_BARBARIANS_CRITICAL")
 					bStrategyShouldBeActive = MilitaryAIHelpers::IsTestStrategy_EradicateBarbariansCritical(eStrategy, m_pPlayer, m_iBarbarianCampCount, m_iVisibleBarbarianCount);
-#endif
 				else if(strStrategyName == "MILITARYAISTRATEGY_WINNING_WARS")
 					bStrategyShouldBeActive = MilitaryAIHelpers::IsTestStrategy_WinningWars(m_pPlayer);
 				else if(strStrategyName == "MILITARYAISTRATEGY_LOSING_WARS")
@@ -2287,7 +2268,7 @@ void CvMilitaryAI::CheckLandDefenses(PlayerTypes eEnemy, CvCity* pThreatenedCity
 
 	//first a quick one if necessary
 	bool bHasOperationUnderway = m_pPlayer->getFirstAIOperationOfType(AI_OPERATION_RAPID_RESPONSE, NO_PLAYER, pThreatenedCity->plot()) != NULL;
-	CvPlot* pStartPlot = OperationalAIHelpers::FindEnemiesNearHomelandPlot(m_pPlayer->GetID(), eEnemy, DOMAIN_LAND, pThreatenedCity->plot(), 5);
+	CvPlot* pStartPlot = OperationalAIHelpers::FindEnemiesNearHomelandPlot(m_pPlayer->GetID(), eEnemy, DOMAIN_LAND, pThreatenedCity->plot(), 8);
 	if (!bHasOperationUnderway && pStartPlot != NULL && pStartPlot->getOwningCity() != NULL)
 		m_pPlayer->addAIOperation(AI_OPERATION_RAPID_RESPONSE, 1, eEnemy, pStartPlot->getOwningCity());
 
@@ -2642,28 +2623,12 @@ CvUnit* CvMilitaryAI::FindUnitToScrap(DomainTypes eDomain, bool bCheckObsolete, 
 			UnitTypes eUpgradeUnit = pLoopUnit->GetUpgradeUnitType();
 			if (eUpgradeUnit != NO_UNIT)
 			{
-				//ok nice looks like we can upgrade
+				// Ok nice looks like we can upgrade
 				bIsObsolete = false;
 
-				//but does this unit's upgrade require additional resources we don't have?
-				CvUnitEntry* pUpgradeUnitInfo = GC.GetGameUnits()->GetEntry(eUpgradeUnit);
-				if (pUpgradeUnitInfo != NULL)
-				{
-					for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
-					{
-						ResourceTypes eResource = (ResourceTypes)iResourceLoop;
-						int iNumResourceNeeded = pUpgradeUnitInfo->GetResourceQuantityRequirement(eResource);
-						int iNumResourceInUse = pLoopUnit->getUnitInfo().GetResourceQuantityRequirement(eResource);
-						if (iNumResourceNeeded - iNumResourceInUse > m_pPlayer->getNumResourceTotal(eResource))
-							bIsObsolete = true;
-
-						if (MOD_UNITS_RESOURCE_QUANTITY_TOTALS)
-						{
-							if (pUpgradeUnitInfo->GetResourceQuantityTotal(eResource) > m_pPlayer->getNumResourceTotal(eResource))
-								bIsObsolete = true;
-						}
-					}
-				}
+				// But do we have the resources for it?
+				if (!m_pPlayer->HasResourceForNewUnit(eUpgradeUnit, false, true, pLoopUnit->getUnitType()))
+					bIsObsolete = true;
 			}
 		}
 
@@ -3639,7 +3604,7 @@ bool MilitaryAIHelpers::IsTestStrategy_WarMobilization(MilitaryAIStrategyTypes e
 	for(int iMajorLoop = 0; iMajorLoop < MAX_MAJOR_CIVS; iMajorLoop++)
 	{
 		eOtherPlayer = (PlayerTypes) iMajorLoop;
-#if defined(MOD_BALANCE_CORE)
+
 		if(pkDiplomacyAI->GetVictoryBlockLevel(eOtherPlayer) > BLOCK_LEVEL_WEAK)
 		{
 			iCurrentWeight += 5;
@@ -3648,7 +3613,6 @@ bool MilitaryAIHelpers::IsTestStrategy_WarMobilization(MilitaryAIStrategyTypes e
 		{
 			iCurrentWeight += 5;
 		}
-#endif
 
 		// Mobilize for war is automatic if we are preparing a sneak attack
 		if (pkDiplomacyAI->GetCivApproach(eOtherPlayer) == CIV_APPROACH_WAR)
@@ -3852,7 +3816,6 @@ bool MilitaryAIHelpers::IsTestStrategy_EnoughRangedUnits(CvPlayer* pPlayer, int 
 /// "Need Ranged" Player Strategy: If a player has too many melee units
 bool MilitaryAIHelpers::IsTestStrategy_NeedRangedUnits(CvPlayer* pPlayer, int iNumRanged, int iNumMelee)
 {
-#if defined(MOD_BALANCE_CORE_MILITARY)
 	if(pPlayer->GetMilitaryAI()->IsBuildingArmy(ARMY_TYPE_LAND))
 	{
 		if (pPlayer->IsUnderrepresentedUnitType(UNITAI_RANGED) || pPlayer->IsUnderrepresentedUnitType(UNITAI_CITY_BOMBARD))
@@ -3860,7 +3823,7 @@ bool MilitaryAIHelpers::IsTestStrategy_NeedRangedUnits(CvPlayer* pPlayer, int iN
 			return true;
 		}
 	}
-#endif
+
 	int iFlavorRange = pPlayer->GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_RANGED"));
 	int iRatio = iNumRanged * 10 / max(1,iNumMelee+iNumRanged);
 	return (iRatio <= iFlavorRange / 2);
@@ -4304,6 +4267,16 @@ CvPlot* CvAttackTarget::GetStagingPlot() const
 CvPlot* CvAttackTarget::GetTargetPlot() const
 {
 	return GC.getMap().plotByIndex(m_iTargetPlotIndex);
+}
+
+PlayerTypes CvAttackTarget::GetAttacker() const
+{
+	return GC.getMap().plotByIndex(m_iMusterPlotIndex)->getOwner();
+}
+
+PlayerTypes CvAttackTarget::GetDefender() const
+{
+	return GC.getMap().plotByIndex(m_iTargetPlotIndex)->getOwner();
 }
 
 int CvAttackTarget::GetPathLength() const

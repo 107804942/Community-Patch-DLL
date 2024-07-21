@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -21,10 +21,7 @@
 
 /// Constructor
 CvTechEntry::CvTechEntry(void):
-	m_iAIWeight(0),
-	m_iAITradeModifier(0),
 	m_iResearchCost(0),
-	m_iAdvancedStartCost(0),
 	m_iEra(NO_ERA),
 	m_iFeatureProductionModifier(0),
 	m_iUnitFortificationModifier(0),
@@ -109,10 +106,7 @@ bool CvTechEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 		return false;
 
 	//Basic Properties
-	m_iAIWeight = kResults.GetInt("AIWeight");
-	m_iAITradeModifier = kResults.GetInt("AITradeModifier");
 	m_iResearchCost = kResults.GetInt("Cost");
-	m_iAdvancedStartCost = kResults.GetInt("AdvancedStartCost");
 	m_iFeatureProductionModifier = kResults.GetInt("FeatureProductionModifier");
 	m_iUnitFortificationModifier = kResults.GetInt("UnitFortificationModifier");
 	m_iUnitBaseHealModifier = kResults.GetInt("UnitBaseHealModifier");
@@ -266,28 +260,10 @@ bool CvTechEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 	return true;
 }
 
-/// Additional weight to having AI purchase this
-int CvTechEntry::GetAIWeight() const
-{
-	return m_iAIWeight;
-}
-
-/// Additional weight to having AI trade for this
-int CvTechEntry::GetAITradeModifier() const
-{
-	return m_iAITradeModifier;
-}
-
 /// Research/science points required to obtain tech
 int CvTechEntry::GetResearchCost() const
 {
 	return m_iResearchCost;
-}
-
-/// Cost if starting midway through game
-int CvTechEntry::GetAdvancedStartCost() const
-{
-	return m_iAdvancedStartCost;
 }
 
 /// Historical era within tech tree
@@ -1267,6 +1243,9 @@ void CvPlayerTechs::SetLocalePriorities()
 #if defined(MOD_BALANCE_CORE)
 void CvPlayerTechs::SetGSPriorities()
 {
+	if (m_pPlayer->isMinorCiv())
+		return;
+
 	for(int iI = 0; iI < m_pTechs->GetNumTechs(); iI++)
 	{
 		m_piGSTechPriority[iI] = 1;
@@ -1408,7 +1387,7 @@ void CvPlayerTechs::SetGSPriorities()
 				{
 					m_piGSTechPriority[iTechLoop]++;
 				}
-				if (bDiploFocus && pkUnitInfo->IsTrade() || pkUnitInfo->GetBaseGold() > 0 || pkUnitInfo->GetDefaultUnitAIType() == UNITAI_MESSENGER)
+				if ((bDiploFocus && pkUnitInfo->IsTrade()) || pkUnitInfo->GetBaseGold() > 0 || pkUnitInfo->GetDefaultUnitAIType() == UNITAI_MESSENGER)
 				{
 					m_piGSTechPriority[iTechLoop]++;
 				}
@@ -1426,7 +1405,7 @@ void CvPlayerTechs::SetGSPriorities()
 bool CvPlayerTechs::IsResearch() const
 {
 	// Have we founded a city?
-	return m_pPlayer->isFoundedFirstCity();
+	return m_pPlayer->GetNumCitiesFounded() > 0;
 }
 
 /// Accessor: Is this tech disabled?
@@ -1496,7 +1475,7 @@ bool CvPlayerTechs::CanResearch(TechTypes eTech, bool bTrade) const
 	if(pkTechEntry == NULL)
 		return false;
 
-	if(!IsResearch() && m_pPlayer->getAdvancedStartPoints() < 0)
+	if(!IsResearch())
 	{
 		return false;
 	}
@@ -1706,7 +1685,7 @@ void CvPlayerTechs::CheckForTechAchievement() const
 
 		}
 
-		if(GET_TEAM(m_pPlayer->getTeam()).GetTeamTechs()->GetTechCount((TechTypes)m_pPlayer->GetPlayerTechs()->GetCurrentResearch()) < 1)
+		if(GET_TEAM(m_pPlayer->getTeam()).GetTeamTechs()->GetTechCount(m_pPlayer->GetPlayerTechs()->GetCurrentResearch()) < 1)
 		{
 			return;
 		}
@@ -1931,7 +1910,7 @@ void CvPlayerTechs::CheckHasUUTech()
 							continue;
 
 						// Must be a combat or combat support unit
-						if (pkUnitEntry->GetCombat() > 0 || pkUnitEntry->GetRangedCombat() > 0 || pkUnitEntry->GetCultureBombRadius() > 0 || pkUnitEntry->IsCanRepairFleet() || pkUnitEntry->IsCityAttackSupport() || pkUnitEntry->GetNukeDamageLevel() != -1)
+						if (pkUnitEntry->GetCombat() > 0 || pkUnitEntry->GetRangedCombat() > 0 || pkUnitEntry->GetCultureBombRadius() > 0 || pkUnitEntry->IsCanRepairFleet() || pkUnitEntry->IsCityAttackSupport() || pkUnitEntry->GetNukeDamageLevel() > 0)
 						{
 							int iTech = pkUnitEntry->GetPrereqAndTech();
 							int iObsoleteTech = pkUnitEntry->GetObsoleteTech();
@@ -2001,7 +1980,7 @@ void CvPlayerTechs::CheckWillHaveUUTechSoon()
 							continue;
 
 						// Must be a combat or combat support unit
-						if (pkUnitEntry->GetCombat() > 0 || pkUnitEntry->GetRangedCombat() > 0 || pkUnitEntry->GetCultureBombRadius() > 0 || pkUnitEntry->IsCanRepairFleet() || pkUnitEntry->IsCityAttackSupport() || pkUnitEntry->GetNukeDamageLevel() != -1)
+						if (pkUnitEntry->GetCombat() > 0 || pkUnitEntry->GetRangedCombat() > 0 || pkUnitEntry->GetCultureBombRadius() > 0 || pkUnitEntry->IsCanRepairFleet() || pkUnitEntry->IsCityAttackSupport() || pkUnitEntry->GetNukeDamageLevel() > 0)
 						{
 							int iTech = pkUnitEntry->GetPrereqAndTech();
 							if (iTech != NO_TECH && !m_pPlayer->HasTech((TechTypes)iTech))
@@ -2338,7 +2317,7 @@ void CvTeamTechs::Write(FDataStream& kStream) const
 	{
 		// Write out an array of all the active tech's hash types so we can re-map on loading if need be.
 		int iNumTechs = m_pTechs->GetNumTechs();
-		kStream << (int)iNumTechs;
+		kStream << iNumTechs;
 
 		for(int i = 0; i < iNumTechs; ++i)
 			CvInfosSerializationHelper::WriteHashed(kStream, m_pTechs->GetEntry(i));
@@ -2353,7 +2332,7 @@ void CvTeamTechs::Write(FDataStream& kStream) const
 	}
 	else
 	{
-		kStream << (int)0;
+		kStream << 0;
 	}
 }
 
@@ -2666,6 +2645,135 @@ int CvTeamTechs::GetResearchLeft(TechTypes eTech) const
 CvTechXMLEntries* CvTeamTechs::GetTechs() const
 {
 	return m_pTechs;
+}
+
+set<TechTypes> CvTeamTechs::GetTechsToResearchFor(TechTypes eTech, int iMaxSearchDepth) const
+{
+	set<TechTypes> result;
+
+	//trivial case
+	if (HasTech(eTech) || iMaxSearchDepth==0)
+		return result;
+
+	CvTechEntry* pkTechInfo = GC.getTechInfo(eTech);
+	if (pkTechInfo == NULL)
+		return result; //really an error but ignore silently
+
+	//need to research at least the tech in question
+	result.insert(eTech);
+
+	//now look at potential prerequisites
+	//todo: do we need to check CanEverResearch()?
+
+	//AND condition is easy, we need all of them
+	for (int i = 0; i < /*6*/ GD_INT_GET(NUM_AND_TECH_PREREQS); i++)
+	{
+		TechTypes ePreReq = (TechTypes)pkTechInfo->GetPrereqAndTechs(i);
+		if (ePreReq == NO_TECH)
+			break;
+
+		if (!HasTech(ePreReq))
+		{
+			set<TechTypes> prevGen = GetTechsToResearchFor(ePreReq, iMaxSearchDepth-1);
+			result.insert(prevGen.begin(), prevGen.end());
+		}
+	}
+
+	//OR condition is tricky, need to pick one
+	set<TechTypes> currentBest;
+	for (int i = 0; i < /*6*/ GD_INT_GET(NUM_OR_TECH_PREREQS); i++)
+	{
+		TechTypes ePreReq = (TechTypes)pkTechInfo->GetPrereqOrTechs(i);
+		if (ePreReq == NO_TECH)
+			break;
+
+		if (!HasTech(ePreReq))
+		{
+			set<TechTypes> prevGen = GetTechsToResearchFor(ePreReq, iMaxSearchDepth-1);
+			if (i == 0 || prevGen.size() < currentBest.size())
+				currentBest = prevGen;
+		}
+	}
+	//store only the easiest option
+	if (!currentBest.empty())
+		result.insert(currentBest.begin(), currentBest.end());
+
+	return result;
+}
+
+bool CvTeamTechs::HasPrereqTechs(TechTypes eTech, const vector<TechTypes>& extraTech) const
+{
+	CvTechEntry* pkTechInfo = GC.getTechInfo(eTech);
+	if (pkTechInfo == NULL)
+		return false;
+
+	//if we have all AND prereqs
+	bool bAndCondition = true;
+	for (int i = 0; i < /*6*/ GD_INT_GET(NUM_AND_TECH_PREREQS); i++)
+	{
+		TechTypes ePreReq = (TechTypes)pkTechInfo->GetPrereqAndTechs(i);
+		if (ePreReq == NO_TECH)
+			break;
+		
+		if (!HasTech(ePreReq) && std::find(extraTech.begin(),extraTech.end(),ePreReq)==extraTech.end())
+		{
+			bAndCondition = false;
+			break;
+		}
+	}
+
+	//if we have one OR prereqs
+	bool bOrCondition = false;
+	for (int i = 0; i < /*6*/ GD_INT_GET(NUM_OR_TECH_PREREQS); i++)
+	{
+		TechTypes ePreReq = (TechTypes)pkTechInfo->GetPrereqOrTechs(i);
+		if (ePreReq == NO_TECH)
+			break;
+
+		if (HasTech(ePreReq) || std::find(extraTech.begin(), extraTech.end(), ePreReq) != extraTech.end())
+		{
+			bOrCondition = true;
+			break;
+		}
+	}
+
+	return bAndCondition || bOrCondition;
+}
+
+vector<TechTypes> CvTeamTechs::GetTechFrontier() const
+{
+	vector<TechTypes> l1, l2;
+
+	//first pass yields "level 1" frontier
+	for (int i = 0; i < GC.getNumTechInfos(); i++)
+	{
+		TechTypes eTech = (TechTypes)i;
+		//skip known techs
+		if (HasTech(eTech))
+			continue;
+		if (HasPrereqTechs(eTech, l2)) //l2 still empty, just a dummy
+			l1.push_back(eTech);
+	}
+	//second pass yields "level 2" frontier
+	for (int i = 0; i < GC.getNumTechInfos(); i++)
+	{
+		TechTypes eTech = (TechTypes)i;
+		//skip known and level 1 techs
+		if (HasTech(eTech) || std::find(l1.begin(),l1.end(),eTech)!=l1.end())
+			continue;
+		if (HasPrereqTechs(eTech, l1))
+			l2.push_back(eTech);
+	}
+
+	vector<TechTypes> result;
+	result.insert(result.end(), l1.begin(), l1.end());
+	result.insert(result.end(), l2.begin(), l2.end());
+
+	//remove duplicates (just in case)
+	std::stable_sort(result.begin(), result.end());
+	result.erase(std::unique(result.begin(), result.end()), result.end());
+
+	return result;
 }
 
 /// Add an increment of research to a tech

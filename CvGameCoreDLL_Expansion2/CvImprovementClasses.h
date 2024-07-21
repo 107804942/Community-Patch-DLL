@@ -63,7 +63,6 @@ public:
 #endif
 
 	int GetTilesPerGoody() const;
-	int GetGoodyUniqueRange() const;
 	int GetFeatureGrowthProbability() const;
 	int GetUpgradeTime() const;
 	int GetRiverSideUpgradeMod() const;
@@ -84,6 +83,7 @@ public:
 	int GetWonderProductionModifier() const;
 	int GetUnitPlotExperience() const;
 	int GetMovesChange() const;
+	bool IsRestoreMoves() const;
 	int GetGAUnitPlotExperience() const;
 	FeatureTypes GetCreatedFeature() const;
 	int GetRandomResourceChance() const;
@@ -237,7 +237,6 @@ protected:
 #endif
 
 	int m_iTilesPerGoody;
-	int m_iGoodyUniqueRange;
 	int m_iFeatureGrowthProbability;
 	int m_iUpgradeTime;
 	int m_iRiverSideUpgradeMod;
@@ -264,6 +263,7 @@ protected:
 	bool m_bNewOwner;
 	bool m_bOwnerOnly;
 	int m_iMovesChange;
+	bool m_bRestoreMoves;
 #endif
 	int m_iImprovementPillage;
 	int m_iImprovementUpgrade;

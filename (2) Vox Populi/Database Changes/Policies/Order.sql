@@ -13,6 +13,10 @@ WHERE PolicyType = 'POLICY_SOCIALIST_REALISM';
 DELETE FROM Policy_BuildingClassProductionModifiers
 WHERE PolicyType = 'POLICY_SOCIALIST_REALISM';
 
+UPDATE Policies
+SET OneShot = 1
+WHERE Type = 'POLICY_SOCIALIST_REALISM';
+
 INSERT INTO Policy_BuildingClassProductionModifiers
 	(PolicyType, BuildingClassType, ProductionModifier)
 VALUES
@@ -64,7 +68,9 @@ VALUES
 
 -- Worker's Faculties
 UPDATE Policies
-SET Level = 1
+SET
+	Level = 1,
+	OneShot = 1
 WHERE Type = 'POLICY_WORKERS_FACULTIES';
 
 UPDATE Policy_BuildingClassYieldModifiers
@@ -99,7 +105,7 @@ SET
 	Level = 2,
 	NumFreeTechs = 1,
 	OneShot = 1,
-	StealTechFasterModifier = 100
+	PassiveEspionageBonusModifier = 100
 WHERE Type = 'POLICY_YOUNG_PIONEERS';
 
 INSERT INTO Policy_YieldFromNonSpecialistCitizens
@@ -112,7 +118,9 @@ DELETE FROM Policy_BuildingClassHappiness
 WHERE PolicyType = 'POLICY_ACADEMY_SCIENCES';
 
 UPDATE Policies
-SET IlliteracyFlatReductionGlobal = 2
+SET
+	IlliteracyFlatReductionGlobal = 2,
+	OneShot = 1
 WHERE Type = 'POLICY_ACADEMY_SCIENCES';
 
 INSERT INTO Policy_BuildingClassProductionModifiers
@@ -143,7 +151,8 @@ UPDATE Policies
 SET
 	-- NewCityExtraPopulation = 3,
 	FreePopulation = 2,
-	NoPartisans = 1
+	NoPartisans = 1,
+	OneShot = 1
 WHERE Type = 'POLICY_RESETTLEMENT';
 
 -- Five Year Plan

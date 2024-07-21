@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -52,7 +52,7 @@ public:
 	void ChangeGoldPerTurnFromDiplomacy(int iChange);
 
 	// City connections
-	int GetCityConnectionRouteGoldTimes100(CvCity* pNonCapitalCity) const;
+	int GetCityConnectionRouteGoldTimes100(const CvCity* pNonCapitalCity) const;
 	int GetCityConnectionGold() const;
 	int GetCityConnectionGoldTimes100() const;
 	void DoUpdateCityConnectionGold();
@@ -103,13 +103,14 @@ public:
 	int AverageIncome100(int iTurns);
 	void LogExpenditure(const CvString& strExpenditure, int iAmount, int iColumn);
 
-	int GetVassalGoldMaintenance() const;
+	int GetVassalGoldMaintenance(TeamTypes eTeam = NO_TEAM) const;
 
-	int GetMyShareOfVassalTaxes() const;
+	int GetMyShareOfVassalTaxes(TeamTypes eTeam = NO_TEAM, int iProjectedTaxRate = -1) const;
 	int GetVassalTaxContributionTimes100(PlayerTypes ePlayer) const;
 	int GetVassalTaxContribution(PlayerTypes ePlayer) const;
 
 	void CalculateExpensePerTurnFromVassalTaxes();
+	int CalculateProjectedExpensePerTurnFromVassalTaxes(int iProjectedTaxRate);
 	
 	int GetExpensePerTurnFromVassalTaxesTimes100() const;
 	int GetExpensePerTurnFromVassalTaxes() const;

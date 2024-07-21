@@ -13,7 +13,6 @@
 			<ColorString>[COLOR_WHITE]</ColorString>
 			<ImageTexture>YieldAtlas_128_Tourism.dds</ImageTexture>
 			<MinCity>0</MinCity>
-			<AIWeightPercent>80</AIWeightPercent>
 		</Row>
 		<Row>
 			<!-- DO NOT CHANGE! MUST correspond to the value in CvGameCoreEnums.h -->
@@ -24,7 +23,6 @@
 			<ColorString>[COLOR_WHITE]</ColorString>
 			<ImageTexture>YieldAtlas_128_GoldenAge.dds</ImageTexture>
 			<MinCity>0</MinCity>
-			<AIWeightPercent>80</AIWeightPercent>
 		</Row>
 	</Yields>
 	<Table name="SpyPassiveBonuses">
@@ -52,6 +50,7 @@
 		<Column name="RevealMilitaryUnitCount" type="boolean" default="false"/>
 		<Column name="RevealTradeDeals" type="boolean" default="false"/>
 		<Column name="RevealTrueApproaches" type="boolean" default="false"/>
+		<Column name="VoteTradePercent" type="int" default="0"/>
 	</Table>
 	<Table name="GreatPersons">
 		<Column name="ID" type="integer" primarykey="true" autoincrement="true"/>
@@ -275,6 +274,11 @@
 		<Column name="YieldType" type="integer" reference="Yields(Type)"/>
 		<Column name="Yield" type="integer" default="0"/>
 	</Table>
+	<Table name="Policy_YieldFromXMilitaryUnits">
+		<Column name="PolicyType" type="text" reference="Policies(Type)"/>
+		<Column name="YieldType" type="text" reference="Yields(Type)"/>
+		<Column name="Yield" type="integer" notnull="true"/>
+	</Table>
 	<Table name="Policy_YieldFromBarbarianKills">
 		<!-- Refer to Policies.CultureFromBarbarianKills, Yield is percentage of combat str of killed unit -->
 		<Column name="PolicyType" type="text" reference="Policies(Type)"/>
@@ -442,6 +446,12 @@
 		<Column name="Yield" type="integer"/>
 	</Table>
 	<Table name="Trait_YieldFromMinorDemand">
+		<Column name="TraitType" type="text" reference="Traits(Type)"/>
+		<Column name="YieldType" type="integer" reference="Yields(Type)"/>
+		<Column name="Yield" type="integer" default="0"/>
+	</Table>
+	<Table name="Trait_YieldFromLuxuryResourceGain">
+		<!-- Excludes imports -->
 		<Column name="TraitType" type="text" reference="Traits(Type)"/>
 		<Column name="YieldType" type="integer" reference="Yields(Type)"/>
 		<Column name="Yield" type="integer" default="0"/>
@@ -685,6 +695,12 @@
 		<Column name="BuildingType" type="text" reference="Buildings(Type)"/>
 		<Column name="DomainType" type="text" reference="Domains(Type)"/>
 		<Column name="Experience" type="integer"/>
+	</Table>
+	<!-- BUILDING: Global version of Building_UnitCombatProductionModifiers -->
+	<Table name="Building_UnitCombatProductionModifiersGlobal">
+		<Column name="BuildingType" type="text" reference="Buildings(Type)"/>
+		<Column name="UnitCombatType" type="text" reference="UnitCombatInfos(Type)"/>
+		<Column name="Modifier" type="integer"/>
 	</Table>
 	<!-- Allows you to define a yield that generates another yield for every x% you produce in that city. -->
 	<Table name="Building_YieldFromYieldPercent">
@@ -1030,6 +1046,13 @@
 		<Column name="BuildingType" type="text" reference="Buildings(Type)"/>
 		<Column name="YieldType" type="integer" reference="Yields(Type)"/>
 		<Column name="Yield" type="integer" default="0"/>
+		<Column name="IsEraScaling" type="boolean" default="false"/>
+	</Table>
+	<!-- BUILDING: Allows you to define a yield granted from citizen birth in a city. Retroactive, one-shot bonus -->
+	<Table name="Building_YieldFromBirthRetroactive">
+		<Column name="BuildingType" type="text" reference="Buildings(Type)"/>
+		<Column name="YieldType" type="integer" reference="Yields(Type)"/>
+		<Column name="Yield" type="integer" default="0"/>
 	</Table>
 	<!-- BUILDING: Allows you to define a building to grant a yield when a city produces a unit. Yield below is % of unit's production (so higher production units make more!) -->
 	<Table name="Building_YieldFromUnitProduction">
@@ -1360,8 +1383,8 @@
 		<Column name="Yield" type="integer" default="0"/>
 	</Table>
 
-	<!-- BUILDING: Allows you to define a building yield that is gained when a unit gains experience in combat - only grants to unit's origin city -->
-	<Table name="Building_YieldFromCombatExperience">
+	<!-- BUILDING: Allows you to define a building yield that is gained when a unit gains experience in combat - only grants to unit's origin city - times 100 -->
+	<Table name="Building_YieldFromCombatExperienceTimes100">
 		<Column name="BuildingType" type="text" reference="Buildings(Type)"/>
 		<Column name="YieldType" type="integer" reference="Yields(Type)"/>
 		<Column name="Yield" type="integer" default="0"/>
@@ -1486,6 +1509,13 @@
 	<!-- POLICY: Allows you to define a modifier (+X%) to any type of yield of international trade routes (other than FOOD and PRODUCTION)
 	Interops with UNIFIED_YIELD changes to allow faith, culture, etc. -->
 	<Table name="Policy_InternationalRouteYieldModifiers">
+		<Column name="PolicyType" type="text" reference="Policies(Type)"></Column>
+		<Column name="YieldType" type="text" reference="Yields(Type)"></Column>
+		<Column name="Yield" type="integer" default="0"></Column>
+	</Table>
+	
+	<!-- POLICY: Provides yields in every city for which the city strength is at least the define value 'CITY_STRENGTH_THRESHOLD_FOR_BONUSES' -->
+	<Table name="Policy_YieldPerCityOverStrengthThreshold">
 		<Column name="PolicyType" type="text" reference="Policies(Type)"></Column>
 		<Column name="YieldType" type="text" reference="Yields(Type)"></Column>
 		<Column name="Yield" type="integer" default="0"></Column>
@@ -1678,7 +1708,7 @@
 		<Column name="TraitType" type="text" reference="Traits(Type)"/>
 		<Column name="YieldType" type="text" reference="Yields(Type)"/>
 		<Column name="Yield" type="integer" notnull="true"/>
-		<Column name="IsEraScaling" type="boolean" default="0"/>
+		<Column name="IsEraScaling" type="boolean" default="false"/>
 	</Table>
 
 	<!-- TRAIT: Allows you to define a terrain type that is gained when you acquire a tile naturally. -->
@@ -1767,7 +1797,14 @@
 		<Column name="TechReveal" type="text" reference="Technologies(Type)"/>
 		<Column name="TechCityTrade" type="text" reference="Technologies(Type)"/>
 	</Table>
-	
+
+	<!-- TRAIT: Instant yields for every hitpoint of damage dealt to enemy cities, times 100 -->
+	<Table name="Trait_YieldFromCityDamageTimes100">
+		<Column name="TraitType" type="text" reference="Traits(Type)" />
+		<Column name="YieldType" type="text" reference="Yields(Type)" />
+		<Column name="Yield" type="integer" notnull="true" />
+	</Table>
+
 	<!-- RESOURCES: Allows Resources to grant bonuses if you control a monopoly of the resource. Must have DEALS functions enabled to use. -->
 	<Table name="Resource_YieldChangeFromMonopoly">
 		<Column name="ResourceType" type="text" reference="Resources(Type)"/>
@@ -2305,7 +2342,6 @@
 			<ColorString>[COLOR_WHITE]</ColorString>
 			<ImageTexture>yieldatlas_128_general.dds</ImageTexture>
 			<MinCity>0</MinCity>
-			<AIWeightPercent>80</AIWeightPercent>
 		</Row>
 		<Row>
 			<ID>9</ID>
@@ -2315,7 +2351,6 @@
 			<ColorString>[COLOR_WHITE]</ColorString>
 			<ImageTexture>yieldatlas_128_admiral.dds</ImageTexture>
 			<MinCity>0</MinCity>
-			<AIWeightPercent>80</AIWeightPercent>
 		</Row>
 		<Row>
 			<ID>10</ID>
@@ -2323,7 +2358,6 @@
 			<Description>TXT_KEY_YIELD_POPULATION</Description>
 			<IconString>[ICON_CITIZEN]</IconString>
 			<MinCity>0</MinCity>
-			<AIWeightPercent>80</AIWeightPercent>
 		</Row>
 		<Row>
 			<ID>11</ID>
@@ -2333,7 +2367,6 @@
 			<ColorString>[COLOR_WHITE]</ColorString>
 			<ImageTexture>yieldatlas_128_culturelocal.dds</ImageTexture>
 			<MinCity>0</MinCity>
-			<AIWeightPercent>80</AIWeightPercent>
 		</Row>
 		<Row>
 			<ID>12</ID>
@@ -2341,7 +2374,6 @@
 			<Description>TXT_KEY_YIELD_JFD_HEALTH</Description>
 			<IconString>[ICON_CULTURE]</IconString>
 			<MinCity>0</MinCity>
-			<AIWeightPercent>80</AIWeightPercent>
 		</Row>
 		<Row>
 			<ID>13</ID>
@@ -2349,7 +2381,6 @@
 			<Description>TXT_KEY_YIELD_JFD_DISEASE</Description>
 			<IconString>[ICON_CULTURE]</IconString>
 			<MinCity>0</MinCity>
-			<AIWeightPercent>80</AIWeightPercent>
 		</Row>
 		<Row>
 			<ID>14</ID>
@@ -2357,7 +2388,6 @@
 			<Description>TXT_KEY_YIELD_JFD_CRIME</Description>
 			<IconString>[ICON_CULTURE]</IconString>
 			<MinCity>0</MinCity>
-			<AIWeightPercent>80</AIWeightPercent>
 		</Row>
 		<Row>
 			<ID>15</ID>
@@ -2365,7 +2395,6 @@
 			<Description>TXT_KEY_YIELD_JFD_LOYALTY</Description>
 			<IconString>[ICON_CULTURE]</IconString>
 			<MinCity>0</MinCity>
-			<AIWeightPercent>80</AIWeightPercent>
 		</Row>
 		<Row>
 			<ID>16</ID>
@@ -2373,7 +2402,6 @@
 			<Description>TXT_KEY_YIELD_JFD_SOVEREIGNTY</Description>
 			<IconString>[ICON_CULTURE]</IconString>
 			<MinCity>0</MinCity>
-			<AIWeightPercent>80</AIWeightPercent>
 		</Row>
 	</Yields>
 	<Notifications>

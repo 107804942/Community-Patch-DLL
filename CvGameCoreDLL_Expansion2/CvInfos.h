@@ -40,7 +40,7 @@ struct ResourceMonopolySettings
 
 	bool operator==(const ResourceMonopolySettings& t) const
 	{
-		return this->m_bGlobalMonopoly == t.m_bGlobalMonopoly && this->m_bGlobalMonopoly == t.m_bGlobalMonopoly;
+		return this->m_bGlobalMonopoly == t.m_bGlobalMonopoly && this->m_bStrategicMonopoly == t.m_bStrategicMonopoly;
 	}
 
 	bool m_bGlobalMonopoly;
@@ -927,23 +927,7 @@ private:
 class CvHurryInfo :	public CvBaseInfo
 {
 public:
-	CvHurryInfo();
-
-	int getPolicyPrereq() const;
-	int getGoldPerProduction() const;
-	int getProductionPerPopulation() const;
-	int getGoldPerBeaker() const;
-	int getGoldPerCulture() const;
-
 	virtual bool CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility);
-
-protected:
-
-	int m_iPolicyPrereq;
-	int m_iGoldPerProduction;
-	int m_iProductionPerPopulation;
-	int m_iGoldPerBeaker;
-	int m_iGoldPerCulture;
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1803,7 +1787,6 @@ public:
 	virtual ~CvRouteInfo();
 
 	int GetGoldMaintenance() const;
-	int getAdvancedStartCost() const;
 
 	int getValue() const;
 	int getMovementCost() const;
@@ -1820,7 +1803,6 @@ public:
 
 protected:
 	int m_iGoldMaintenance;
-	int m_iAdvancedStartCost;
 	int m_iValue;
 	int m_iMovementCost;
 	int m_iFlatMovementCost;
@@ -1843,13 +1825,7 @@ private:
 class CvResourceClassInfo :	public CvBaseInfo
 {
 public:
-	CvResourceClassInfo();
-
-	int getUniqueRange() const;
-
 	virtual bool CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility);
-protected:
-	int m_iUniqueRange;
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1871,26 +1847,12 @@ public:
 	int getTechObsolete() const;
 	int getAIStopTradingEra() const;
 	int getStartingResourceQuantity() const;
-	int getAITradeModifier() const;
-	int getAIObjective() const;
 	int getHappiness() const;
 	int getWonderProductionMod() const;
 	EraTypes getWonderProductionModObsoleteEra() const;
 	int getMinAreaSize() const;
 	int getMinLatitude() const;
 	int getMaxLatitude() const;
-	int getPlacementOrder() const;
-	int getConstAppearance() const;
-	int getRandAppearance1() const;
-	int getRandAppearance2() const;
-	int getRandAppearance3() const;
-	int getRandAppearance4() const;
-	int getPercentPerPlayer() const;
-	int getTilesPer() const;
-	int getMinLandPercent() const;
-	int getUniqueRange() const;
-	int getGroupRange() const;
-	int getGroupRand() const;
 #if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	int getMonopolyHappiness() const;
 	int getMonopolyGALength() const;
@@ -1975,25 +1937,11 @@ protected:
 	int m_iTechObsolete;
 	int m_iAIStopTradingEra;
 	int m_iStartingResourceQuantity;
-	int m_iAITradeModifier;
-	int m_iAIObjective;
 	int m_iHappiness;
 	int m_iWonderProductionMod;
 	int m_iMinAreaSize;
 	int m_iMinLatitude;
 	int m_iMaxLatitude;
-	int m_iPlacementOrder;
-	int m_iConstAppearance;
-	int m_iRandAppearance1;
-	int m_iRandAppearance2;
-	int m_iRandAppearance3;
-	int m_iRandAppearance4;
-	int m_iPercentPerPlayer;
-	int m_iTilesPer;
-	int m_iMinLandPercent;
-	int m_iUniqueRange;
-	int m_iGroupRange;
-	int m_iGroupRand;
 #if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	int m_iMonopolyHappiness;
 	int m_iMonopolyGALength;
@@ -2011,7 +1959,6 @@ protected:
 	bool m_bHills;
 	bool m_bFlatlands;
 	bool m_bNoRiverSide;
-	bool m_bNormalize;
 	bool m_bOnlyMinorCivs;
 
 	CivilizationTypes m_eRequiredCivilization;
@@ -2068,12 +2015,10 @@ public:
 	int getGrowthTerrainType() const;
 	int getDefenseModifier() const;
 	int getInfluenceCost() const;
-	int getAdvancedStartRemoveCost() const;
 	int getTurnDamage() const;
 	int getExtraTurnDamage() const;
 	int getFirstFinderGold() const;
 	int getInBorderHappiness() const;
-	int getOccurrenceFrequency() const;
 	int getAdjacentUnitFreePromotion() const;
 #if defined(MOD_BALANCE_CORE)
 	int getPromotionIfOwned() const;
@@ -2098,12 +2043,9 @@ public:
 	bool isVisibleAlways() const;
 	bool isNukeImmune() const;
 	bool IsRough() const;
-#if defined(MOD_PSEUDO_NATURAL_WONDER)
+
 	bool IsNaturalWonder(bool orPseudoNatural = false) const;
 	bool IsPseudoNaturalWonder() const;
-#else
-	bool IsNaturalWonder() const;
-#endif
 
 	const char* getArtDefineTag() const;
 	void setArtDefineTag(const char* szTag);
@@ -2143,12 +2085,10 @@ protected:
 	int m_iGrowthTerrainType;
 	int m_iDefenseModifier;
 	int m_iInfluenceCost;
-	int m_iAdvancedStartRemoveCost;
 	int m_iTurnDamage;
 	int m_iExtraTurnDamage;
 	int m_iFirstFinderGold;
 	int m_iInBorderHappiness;
-	int m_iOccurrenceFrequency;
 	int m_iAdjacentUnitFreePromotion;
 #if defined(MOD_BALANCE_CORE)
 	int m_iPromotionIfOwned;
@@ -2201,7 +2141,6 @@ protected:
 private:
 	CvString m_strArtDefineTag;
 
-private:
 	CvFeatureInfo(const CvFeatureInfo&);
 	CvFeatureInfo& operator=(const CvFeatureInfo&);
 };
@@ -2235,7 +2174,6 @@ public:
 	int getGoldenAgeYield() const;
 	int getGoldenAgeYieldThreshold() const;
 	int getGoldenAgeYieldMod() const;
-	int getAIWeightPercent() const;
 
 	virtual bool CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility);
 
@@ -2260,7 +2198,6 @@ protected:
 	int m_iGoldenAgeYield;
 	int m_iGoldenAgeYieldThreshold;
 	int m_iGoldenAgeYieldMod;
-	int m_iAIWeightPercent;
 };
 
 
@@ -2358,7 +2295,6 @@ protected:
 private:
 	CvString m_strArtDefineTag;
 
-private:
 	CvTerrainInfo(const CvTerrainInfo&);
 	CvTerrainInfo& operator=(const CvTerrainInfo&);
 
@@ -2488,7 +2424,6 @@ public:
 	int getTargetNumCities() const;
 	int getNumFreeBuildingResources() const;
 	int getBuildingClassPrereqModifier() const;
-	int getMaxConscriptModifier() const;
 	int getGridWidth() const;
 	int getGridHeight() const;
 	int getMaxActiveReligions() const;
@@ -2500,6 +2435,7 @@ public:
 	int GetNumCitiesTechCostMod() const;
 #if defined(MOD_TRADE_ROUTE_SCALING)
 	int GetNumCitiesTourismCostMod() const;
+	int GetNumCitiesUnitSupplyMod() const;
 	int getTradeRouteDistanceMod() const;
 #endif
 #if defined(MOD_BALANCE_CORE)
@@ -2536,7 +2472,6 @@ protected:
 	int m_iTargetNumCities;
 	int m_iNumFreeBuildingResources;
 	int m_iBuildingClassPrereqModifier;
-	int m_iMaxConscriptModifier;
 	int m_iGridWidth;
 	int m_iGridHeight;
 	int m_iMaxActiveReligions;
@@ -2548,6 +2483,7 @@ protected:
 	int m_iNumCitiesTechCostMod;
 #if defined(MOD_TRADE_ROUTE_SCALING)
 	int m_iNumCitiesTourismCostMod;
+	int m_iNumCitiesUnitSupplyMod;
 	int m_iTradeRouteDistanceMod;
 #endif
 #if defined(MOD_BALANCE_CORE)
@@ -3447,11 +3383,11 @@ public:
 	CvCityEventLinkingInfo() :
 	  m_bCheckWorld(false),
 	  m_bActive(false),
+	  m_bOnlyActiveCity(false),
 	  m_iEvent(-1),
 	  m_iEventChoice(-1),
 	  m_iCityEvent(-1),
-	  m_iCityEventChoice(-1),
-	  m_bOnlyActiveCity(false)
+	  m_iCityEventChoice(-1)
 	  {
 	  };
 	  int GetLinkingEvent() {return m_iEvent;};
@@ -3629,10 +3565,13 @@ class CvCityEventNotificationInfo
 
 public:
 	CvCityEventNotificationInfo() :
-	  m_bWorldEvent(false),
-	  m_bEspionageEvent(false),
 	  m_bNeedCityCoordinates(false),
 	  m_iVariable(-1),
+	  m_strNotificationType(""),
+	  m_strDescription(""),
+	  m_strShortDescription(""),
+	  m_bWorldEvent(false),
+	  m_bEspionageEvent(false),
 	  m_bNeedPlayerID(false)
 	  {
 	  };
@@ -3667,11 +3606,11 @@ public:
 	CvCityEventChoiceLinkingInfo() :
 	  m_bCheckWorld(false),
 	  m_bActive(false),
+	  m_bOnlyActiveCity(false),
 	  m_iEvent(-1),
 	  m_iEventChoice(-1),
 	  m_iCityEvent(-1),
-	  m_iCityEventChoice(-1),
-	  m_bOnlyActiveCity(false)
+	  m_iCityEventChoice(-1)
 	  {
 	  };
 	  int GetLinkingEvent() {return m_iEvent;};
@@ -3719,7 +3658,7 @@ public:
 	int getPillageRoadsChance() const;
 	int getPillageFortificationsChance() const;
 	int getMutuallyExclusiveGroup() const;
-	int getRemoveTurnsOfProductionProgress() const;
+	int getBlockBuildingTurns() const;
 	int getFlavorValue(int i) const;
 	int getWLTKD() const;
 	int getGrowthMod() const;
@@ -3743,7 +3682,8 @@ public:
 	int getCityYield(int i) const;
 	int getCityYieldModifier(int i) const;
 	int getYieldSiphon(int i) const;
-	int getYieldOnSpyCaught(int i) const;
+	int getYieldOnSpyIdentified(int i) const;
+	int getYieldOnSpyKilled(int i) const;
 	int getBuildingClassYield(int i, int j) const;
 	int getBuildingClassYieldModifier(int i, int j) const;
 	int getTerrainYield(int i, int j) const;
@@ -3762,7 +3702,7 @@ public:
 	//espionage
 	int GetNetworkPointsNeededScaled() const;
 	int GetSpyIdentificationChance() const;
-	int GetSpyCaptureChance() const;
+	int GetSpyKillChance() const;
 	int GetSpyLevelRequired() const;
 	int getStealTech() const;
 	int getStealGW() const;
@@ -3778,9 +3718,6 @@ public:
 	bool isCounterspyBlockSapCity() const;
 	int getCityDefenseModifierBase() const;
 	int getCityDefenseModifier() const;
-	bool isAlwaysIDSpies() const;
-	bool isKillCaughtSpies() const;
-	bool isSecretMission() const;
 	EventChoiceTypes GetTriggerPlayerEventChoice() const;
 
 	//Filters
@@ -3816,6 +3753,7 @@ public:
 	bool isRazing() const;
 	bool hasAnyReligion() const;
 	bool isPuppet() const;
+	bool isNotPuppet() const;
 	bool hasTradeConnection() const;
 	bool hasCityConnection() const;
 	bool isNearNaturalWonder() const;
@@ -3887,7 +3825,7 @@ protected:
 	int m_iPillageRoadsChance;
 	int m_iPillageFortificationsChance;
 	int m_iMutuallyExclusiveGroup;
-	int m_iRemoveTurnsOfProductionProgress;
+	int m_iBlockBuildingTurns;
 	int m_iCityHappiness;
 	int m_iReligiousPressureModifier;
 	int m_iBasicNeedsMedianModifier;
@@ -3897,7 +3835,8 @@ protected:
 	int m_iReligiousUnrestModifier;
 	int* m_piResourceChange;
 	int* m_piYieldSiphon;
-	int* m_piYieldOnSpyCaught;
+	int* m_piYieldOnSpyIdentified;
+	int* m_piYieldOnSpyKilled;
 	CvString m_strDisabledTooltip;
 	CvString m_strSpyMissionEffect;
 	int m_iConvertsCityToPlayerReligion;
@@ -3908,7 +3847,7 @@ protected:
 	int m_iNetworkPointsNeeded;
 	int m_bNetworkPointsScaling; 
 	int m_iSpyIdentificationChance;
-	int m_iSpyCaptureChance;
+	int m_iSpyKillChance;
 	int m_iSpyLevelRequired;
 	bool m_bIsEspionageMission;
 	int m_iStealTech;
@@ -3922,9 +3861,6 @@ protected:
 	bool m_bCounterspyBlockSapCity;
 	int m_iCityDefenseModifierBase;
 	int m_iCityDefenseModifier;
-	bool m_bIsAlwaysIDSpies;
-	bool m_bIsKillCaughtSpies;
-	bool m_bIsSecretMission;
 
 	//Filters
 	int m_iPrereqTech;
@@ -3960,6 +3896,7 @@ protected:
 	bool m_bIsRazing;
 	bool m_bHasAnyReligion;
 	bool m_bIsPuppet;
+	bool m_bIsNotPuppet;
 	bool m_bTradeConnection;
 	bool m_bCityConnection;
 	bool m_bNearNaturalWonder;

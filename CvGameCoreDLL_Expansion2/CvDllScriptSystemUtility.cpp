@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -67,7 +67,7 @@ void CvDllScriptSystemUtility::PushCvCityInstance(lua_State* L, ICvCity1* pkCity
 {
 	if(NULL != L && NULL != pkCity)
 	{
-		CvDllCity* pkDllCity = dynamic_cast<CvDllCity*>(pkCity);
+		CvDllCity* pkDllCity = static_cast<CvDllCity*>(pkCity);
 		CvLuaCity::Push(L, pkDllCity->GetInstance());
 	}
 	else
@@ -86,7 +86,7 @@ void CvDllScriptSystemUtility::PushCvDealInstance(lua_State* L, ICvDeal1* pkDeal
 {
 	if(NULL != L && NULL != pkDeal)
 	{
-		CvDllDeal* pkDllDeal = dynamic_cast<CvDllDeal*>(pkDeal);
+		CvDllDeal* pkDllDeal = static_cast<CvDllDeal*>(pkDeal);
 		CvLuaDeal::Push(L, pkDllDeal->GetInstance());
 	}
 	else
@@ -105,7 +105,7 @@ void CvDllScriptSystemUtility::PushCvPlotInstance(lua_State* L, ICvPlot1* pkPlot
 {
 	if(NULL != L && NULL != pkPlot)
 	{
-		CvDllPlot* pkDllPlot = dynamic_cast<CvDllPlot*>(pkPlot);
+		CvDllPlot* pkDllPlot = static_cast<CvDllPlot*>(pkPlot);
 		CvLuaPlot::Push(L, pkDllPlot->GetInstance());
 	}
 	else
@@ -124,7 +124,7 @@ void CvDllScriptSystemUtility::PushCvUnitInstance(lua_State* L, ICvUnit1* pkUnit
 {
 	if(NULL != L && NULL != pkUnit)
 	{
-		CvDllUnit* pkDllUnit = dynamic_cast<CvDllUnit*>(pkUnit);
+		CvDllUnit* pkDllUnit = static_cast<CvDllUnit*>(pkUnit);
 		CvLuaUnit::Push(L, pkDllUnit->GetInstance());
 	}
 	else

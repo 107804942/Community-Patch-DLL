@@ -103,8 +103,6 @@ public:
 	bool canDoControl(ControlTypes eControl);
 	void doControl(ControlTypes eControl);
 
-	int getProductionPerPopulation(HurryTypes eHurry);
-
 	int getAdjustedPopulationPercent(VictoryTypes eVictory) const;
 	int getAdjustedLandPercent(VictoryTypes eVictory) const;
 
@@ -164,9 +162,6 @@ public:
 
 	int getMaxCityElimination() const;
 	void setMaxCityElimination(int iNewValue) const;
-
-	int getNumAdvancedStartPoints() const;
-	void setNumAdvancedStartPoints(int iNewValue) const;
 
 	int getStartTurn() const;
 	void setStartTurn(int iNewValue);
@@ -329,6 +324,8 @@ public:
 
 	PlayerTypes getActivePlayer() const;
 	void setActivePlayer(PlayerTypes eNewValue, bool bForceHotSeat = false, bool bAutoplaySwitch = false);
+	PlayerTypes getObserverUIOverridePlayer() const;
+	void setObserverUIOverridePlayer(PlayerTypes ePlayer);
 
 	const CvHandicapInfo& getHandicapInfo() const;
 	HandicapTypes getHandicapType() const;
@@ -412,14 +409,6 @@ public:
 
 	int GetWorldMilitaryStrengthAverage(PlayerTypes ePlayer, bool bIncludeMe, bool bIncludeOnlyKnown);
 
-	int GetTotalReligionTechCost() const;
-	void DoUpdateTotalReligionTechCost();
-	int GetCachedWorldReligionTechProgress() const;
-	void DoUpdateCachedWorldReligionTechProgress();
-
-	TechTypes GetReligionTech() const;
-	void SetReligionTech(TechTypes eTech);
-	int GetResearchLeftToReligionTech(TeamTypes eTeam);
 	int GetResearchLeftToTech(TeamTypes eTeam, TechTypes eTech);
 
 	GameStateTypes getGameState();
@@ -487,8 +476,6 @@ public:
 
 	bool isNukesValid() const;
 	void makeNukesValid(bool bValid = true);
-
-	bool isInAdvancedStart() const;
 
 	const CvString& getName();
 	void setName(const char* szName);
@@ -676,13 +663,7 @@ public:
 	int GetBarbarianReleaseTurn() const;
 	void SetBarbarianReleaseTurn(int iValue);
 
-	UnitTypes GetRandomSpawnUnitType(PlayerTypes ePlayer, bool bIncludeUUs, bool bIncludeRanged);
-	UnitTypes GetCompetitiveSpawnUnitType(PlayerTypes ePlayer, bool bIncludeUUs, bool bIncludeRanged, bool bIncludeShips, bool bNoResource = false, bool bIncludeOwnUUsOnly = false, bool bRandom = true, bool bMinorCivGift = false);
-	UnitTypes GetCompetitiveSpawnUnitType(PlayerTypes ePlayer, bool bIncludeUUs, bool bIncludeRanged, bool bIncludeShips, bool bNoResource, bool bIncludeOwnUUsOnly, bool bRandom, bool bMinorCivGift, CvSeeder seed);
-	UnitTypes GetCsGiftSpawnUnitType(PlayerTypes ePlayer, bool bIncludeShips);
-
 	UnitTypes GetRandomUniqueUnitType(bool bIncludeCivsInGame, bool bIncludeStartEra, bool bIncludeOldEras, bool bIncludeRanged, bool bCoastal, int iPlotX, int iPlotY);
-	bool DoSpawnUnitsAroundTargetCity(PlayerTypes ePlayer, CvCity* pCity, int iNumber, bool bIncludeUUs, bool bIncludeShips, bool bNoResource, bool bIncludeOwnUUsOnly);
 
 	CvSiteEvaluatorForSettler* GetSettlerSiteEvaluator();
 	CvCitySiteEvaluator* GetStartSiteEvaluator();
@@ -884,8 +865,6 @@ protected:
 	int m_iInitTech;
 	int m_iInitWonders;
 	int m_iAIAutoPlay;
-	int m_iTotalReligionTechCost;
-	int m_iCachedWorldReligionTechProgress;
 	int m_iUnitedNationsCountdown;
 	int m_iNumVictoryVotesTallied;
 	int m_iNumVictoryVotesExpected;
@@ -911,6 +890,7 @@ protected:
 	bool m_bTunerEverConnected;
 	bool m_bDynamicTurnsSimultMode;		//if playing dynamic turn mode, are we currently running simultaneous turns?
 	bool m_bIsDesynced; // whether the game was desynced or not as a result of the very last sync
+	PlayerTypes m_eObserverUIOverridePlayer;
 	PlayerTypes m_eWaitDiploPlayer;
 	TechTypes m_eTechAstronomy;
 
@@ -939,7 +919,6 @@ protected:
 	PlayerTypes m_eBestWondersPlayer;
 	PlayerTypes m_eBestPoliciesPlayer;
 	PlayerTypes m_eBestGreatPeoplePlayer;
-	TechTypes m_eReligionTech;
 	RouteTypes m_eIndustrialRoute;
 	EraTypes m_eGameEra;
 	bool m_bArchaeologyTriggered;

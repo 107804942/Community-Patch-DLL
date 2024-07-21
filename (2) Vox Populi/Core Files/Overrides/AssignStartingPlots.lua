@@ -317,6 +317,7 @@ function AssignStartingPlots.Create()
 		AdjustTiles = AssignStartingPlots.AdjustTiles,
 		PlaceBonusResources = AssignStartingPlots.PlaceBonusResources,
 		IsEvenMoreResourcesActive = AssignStartingPlots.IsEvenMoreResourcesActive,
+		IsAloeVeraResourceActive = AssignStartingPlots.IsAloeVeraResourceActive,
 		IsReducedSupplyActive = AssignStartingPlots.IsReducedSupplyActive,
 		Plot_GetPlotsInCircle = AssignStartingPlots.Plot_GetPlotsInCircle,
 		Plot_GetFertilityInRange = AssignStartingPlots.Plot_GetFertilityInRange,
@@ -464,36 +465,37 @@ function AssignStartingPlots:__Init()
 			self.coral_ID = resourceID;
 		elseif resourceType == "RESOURCE_LAPIS" then
 			self.lapis_ID = resourceID;
-		elseif self:IsEvenMoreResourcesActive() then
 		-- Even More Resources for Vox Populi (luxuries)
-			if resourceType == "RESOURCE_LAVENDER" then
-				self.lavender_ID = resourceID;
-			elseif resourceType == "RESOURCE_OBSIDIAN" then
-				self.obsidian_ID = resourceID;
-			elseif resourceType == "RESOURCE_PLATINUM" then
-				self.platinum_ID = resourceID;
-			elseif resourceType == "RESOURCE_POPPY" then
-				self.poppy_ID = resourceID;
-			elseif resourceType == "RESOURCE_TIN" then
-				self.tin_ID = resourceID;
-			-- Even More Resources for Vox Populi (bonus)
-			elseif resourceType == "RESOURCE_COCONUT" then
-				self.coconut_ID = resourceID;
-			elseif resourceType == "RESOURCE_HARDWOOD" then
-				self.hardwood_ID = resourceID;
-			elseif resourceType == "RESOURCE_LEAD" then
-				self.lead_ID = resourceID;
-			elseif resourceType == "RESOURCE_PINEAPPLE" then
-				self.pineapple_ID = resourceID;
-			elseif resourceType == "RESOURCE_POTATO" then
-				self.potato_ID = resourceID;
-			elseif resourceType == "RESOURCE_RUBBER" then
-				self.rubber_ID = resourceID;
-			elseif resourceType == "RESOURCE_SULFUR" then
-				self.sulfur_ID = resourceID;
-			elseif resourceType == "RESOURCE_TITANIUM" then
-				self.titanium_ID = resourceID;
-			end
+		elseif resourceType == "RESOURCE_LAVENDER" then
+			self.lavender_ID = resourceID;
+		elseif resourceType == "RESOURCE_OBSIDIAN" then
+			self.obsidian_ID = resourceID;
+		elseif resourceType == "RESOURCE_PLATINUM" then
+			self.platinum_ID = resourceID;
+		elseif resourceType == "RESOURCE_POPPY" then
+			self.poppy_ID = resourceID;
+		elseif resourceType == "RESOURCE_TIN" then
+			self.tin_ID = resourceID;
+		-- Even More Resources for Vox Populi (bonus)
+		elseif resourceType == "RESOURCE_COCONUT" then
+			self.coconut_ID = resourceID;
+		elseif resourceType == "RESOURCE_HARDWOOD" then
+			self.hardwood_ID = resourceID;
+		elseif resourceType == "RESOURCE_LEAD" then
+			self.lead_ID = resourceID;
+		elseif resourceType == "RESOURCE_PINEAPPLE" then
+			self.pineapple_ID = resourceID;
+		elseif resourceType == "RESOURCE_POTATO" then
+			self.potato_ID = resourceID;
+		elseif resourceType == "RESOURCE_RUBBER" then
+			self.rubber_ID = resourceID;
+		elseif resourceType == "RESOURCE_SULFUR" then
+			self.sulfur_ID = resourceID;
+		elseif resourceType == "RESOURCE_TITANIUM" then
+			self.titanium_ID = resourceID;
+		-- Aloe Vera for Vox Populi
+		elseif resourceType == "RESOURCE_JAR_ALOE_VERA" then
+			self.aloevera_ID = resourceID;
 		end
 	end
 
@@ -771,11 +773,11 @@ function AssignStartingPlots:__InitLuxuryWeights()
 	-- MOD.Barathor: All region weights below have been updated.
 	-- MOD.Barathor: Start
 	self.luxury_region_weights[1] = { -- Tundra
-		{self.fur_ID,		50},
-		{self.silver_ID,	40},
-		{self.salt_ID,		40},
-		{self.amber_ID,		10},
-		{self.copper_ID,	10},
+		{self.fur_ID,		60},
+		{self.amber_ID,		35},
+		{self.silver_ID,	30},
+		{self.copper_ID,	20},
+		{self.salt_ID,		15},
 		{self.gems_ID,		10},
 		{self.jade_ID,		10},
 		{self.lapis_ID,		10},
@@ -797,11 +799,11 @@ function AssignStartingPlots:__InitLuxuryWeights()
 	self.luxury_region_weights[10] = self.luxury_region_weights[1];
 
 	self.luxury_region_weights[2] = { -- Jungle
-		{self.citrus_ID,	40},
-		{self.cocoa_ID,		40},
-		{self.spices_ID,	40},
-		{self.sugar_ID,		50},
-		{self.truffles_ID,	40},
+		{self.citrus_ID,	35},
+		{self.cocoa_ID,		35},
+		{self.spices_ID,	35},
+		{self.sugar_ID,		35},
+		{self.truffles_ID,	15},
 		{self.silk_ID,		10},
 		{self.dye_ID,		10},
 		{self.gems_ID,		10},
@@ -813,42 +815,42 @@ function AssignStartingPlots:__InitLuxuryWeights()
 
 	-- MOD.HungryForFood: Start
 	if self:IsEvenMoreResourcesActive() then
-		table.insert(self.luxury_region_weights[2], {self.obsidian_ID,	40});
-		table.insert(self.luxury_region_weights[2], {self.poppy_ID,		40});
+		table.insert(self.luxury_region_weights[2], {self.obsidian_ID,	35});
+		table.insert(self.luxury_region_weights[2], {self.poppy_ID,		35});
 		table.insert(self.luxury_region_weights[2], {self.platinum_ID,	10});
 		table.insert(self.luxury_region_weights[2], {self.tin_ID,		10});
 	end
 	-- MOD.HungryForFood: End
 
 	self.luxury_region_weights[3] = { -- Forest
-		{self.silk_ID,		40},
-		{self.dye_ID,		40},
-		{self.truffles_ID,	10},
-		{self.citrus_ID,	10},
-		{self.cocoa_ID,		10},
-		{self.spices_ID,	10},
-		{self.whale_ID,		10},
-		{self.crab_ID,		10},
-		{self.pearls_ID,	10},
-		{self.coral_ID,		10},
+		{self.truffles_ID,	40},
+		{self.silk_ID,		35},
+		{self.dye_ID,		35},
+		{self.citrus_ID,	15},
+		{self.cocoa_ID,		15},
+		{self.spices_ID,	15},
+		{self.whale_ID,		8},
+		{self.crab_ID,		8},
+		{self.pearls_ID,	8},
+		{self.coral_ID,		8},
 	};
 
 	-- MOD.HungryForFood: Start
 	if self:IsEvenMoreResourcesActive() then
-		table.insert(self.luxury_region_weights[3], {self.lavender_ID,	10});
+		table.insert(self.luxury_region_weights[3], {self.lavender_ID,	15});
 	end
 	-- MOD.HungryForFood: End
 
 	self.luxury_region_weights[4] = { -- Desert
-		{self.incense_ID,	40},
-		{self.salt_ID,		40},
-		{self.gold_ID,		40},
-		{self.lapis_ID,		40},
+		{self.incense_ID,	35},
+		{self.lapis_ID,		35},
+		{self.gold_ID,		20},
 		{self.silver_ID,	20},
+		{self.salt_ID,		15},
+		{self.jade_ID,		15},
 		{self.copper_ID,	10},
 		{self.amber_ID,		10},
 		{self.gems_ID,		10},
-		{self.jade_ID,		10},
 		{self.sugar_ID,		10},
 		{self.cotton_ID,	10},
 		{self.whale_ID,		10},
@@ -866,25 +868,25 @@ function AssignStartingPlots:__InitLuxuryWeights()
 	-- MOD.HungryForFood: End
 
 	self.luxury_region_weights[5] = { -- Hills
-		{self.gold_ID,		30},
-		{self.copper_ID,	30},
-		{self.gems_ID,		30},
-		{self.salt_ID,		30},
-		{self.jade_ID,		30},
-		{self.amber_ID,		30},
-		{self.lapis_ID,		30},
-		{self.whale_ID,		10},
-		{self.crab_ID,		10},
-		{self.pearls_ID,	10},
-		{self.coral_ID,		10},
+		{self.gold_ID,		20},
+		{self.copper_ID,	20},
+		{self.gems_ID,		20},
+		{self.jade_ID,		20},
+		{self.salt_ID,		10},
+		{self.amber_ID,		10},
+		{self.lapis_ID,		10},
+		{self.whale_ID,		6},
+		{self.crab_ID,		6},
+		{self.pearls_ID,	6},
+		{self.coral_ID,		6},
 	};
 
 	-- MOD.HungryForFood: Start
 	if self:IsEvenMoreResourcesActive() then
-		table.insert(self.luxury_region_weights[5], {self.obsidian_ID,	30});
-		table.insert(self.luxury_region_weights[5], {self.poppy_ID,		30});
-		table.insert(self.luxury_region_weights[5], {self.platinum_ID,	30});
-		table.insert(self.luxury_region_weights[5], {self.tin_ID,		30});
+		table.insert(self.luxury_region_weights[5], {self.obsidian_ID,	20});
+		table.insert(self.luxury_region_weights[5], {self.poppy_ID,		20});
+		table.insert(self.luxury_region_weights[5], {self.platinum_ID,	20});
+		table.insert(self.luxury_region_weights[5], {self.tin_ID,		20});
 	end
 	-- MOD.HungryForFood: End
 
@@ -892,18 +894,19 @@ function AssignStartingPlots:__InitLuxuryWeights()
 	self.luxury_region_weights[9] = self.luxury_region_weights[5];
 
 	self.luxury_region_weights[6] = { -- Plains
-		{self.incense_ID,	40},
 		{self.wine_ID,		40},
 		{self.olives_ID,	40},
 		{self.coffee_ID,	40},
-		{self.tobacco_ID,	10},
-		{self.tea_ID,		10},
-		{self.perfume_ID,	10},
-		{self.cotton_ID,	10},
-		{self.whale_ID,		10},
-		{self.crab_ID,		10},
-		{self.pearls_ID,	10},
-		{self.coral_ID,		10},
+		{self.incense_ID,	20},
+		{self.cotton_ID,	20},
+		{self.salt_ID,		15},
+		{self.tobacco_ID,	15},
+		{self.tea_ID,		15},
+		{self.perfume_ID,	15},
+		{self.whale_ID,		11},
+		{self.crab_ID,		11},
+		{self.pearls_ID,	11},
+		{self.coral_ID,		11},
 	};
 
 	-- MOD.HungryForFood: Start
@@ -914,24 +917,25 @@ function AssignStartingPlots:__InitLuxuryWeights()
 	-- MOD.HungryForFood: End
 
 	self.luxury_region_weights[7] = { -- Grass
-		{self.tobacco_ID,	40},
-		{self.tea_ID,		40},
-		{self.perfume_ID,	40},
-		{self.cotton_ID,	40},
-		{self.wine_ID,		10},
-		{self.olives_ID,	10},
-		{self.coffee_ID,	10},
+		{self.tobacco_ID,	50},
+		{self.tea_ID,		50},
+		{self.perfume_ID,	50},
+		{self.cotton_ID,	35},
+		{self.wine_ID,		20},
+		{self.olives_ID,	20},
+		{self.coffee_ID,	20},
 		{self.sugar_ID,		10},
-		{self.whale_ID,		10},
-		{self.crab_ID,		10},
-		{self.pearls_ID,	10},
-		{self.coral_ID,		10},
+		{self.gold_ID,		10},
+		{self.whale_ID,		14},
+		{self.crab_ID,		14},
+		{self.pearls_ID,	14},
+		{self.coral_ID,		14},
 	};
 
 	-- MOD.HungryForFood: Start
 	if self:IsEvenMoreResourcesActive() then
-		table.insert(self.luxury_region_weights[7], {self.lavender_ID,	40});
-		table.insert(self.luxury_region_weights[7], {self.poppy_ID,		40});
+		table.insert(self.luxury_region_weights[7], {self.lavender_ID,	50});
+		table.insert(self.luxury_region_weights[7], {self.poppy_ID,		50});
 	end
 	-- MOD.HungryForFood: End
 
@@ -1905,7 +1909,7 @@ function AssignStartingPlots:GenerateRegions(args)
 			else -- Ties exist! Special handling required to protect against a shortfall in the number of defined regions.
 				local iNumUniqueFertValues = table.maxn(fertility_value_list);
 				for fertLoop = 1, iNumUniqueFertValues do
-					for areaID, fert in pairs(landmass_fert) do
+					for areaID, fert in pairs(area_fert) do
 						if fert == fertility_value_list[fertLoop] then
 							-- Add ties only if there is room!
 							if table.maxn(best_areas) < iNumRelevantAreas then
@@ -2348,9 +2352,9 @@ function AssignStartingPlots:DetermineRegionTypes()
 		-- MOD.Barathor: These are the minimum values
 		local desert_percent = 0.20;
 		local tundra_percent = 0.20;
-		local jungle_percent = 0.20;
-		local forest_percent = 0.25;
-		local hills_percent = 0.30;
+		local jungle_percent = 0.28;
+		local forest_percent = 0.28;
+		local hills_percent = 0.37;
 		local plains_percent = 0.30;
 		local grass_percent = 0.30;
 
@@ -2380,8 +2384,8 @@ function AssignStartingPlots:DetermineRegionTypes()
 				print("Region #", this_region, " has been defined as a JUNGLE Region.");
 				found_region = true;
 
-			-- Forest check.
-			elseif forestCount >= regionPlots * (forest_percent + adjustment) and tundraCount < regionPlots * tundra_percent then
+			-- Forest check. Can't have too much tundra.
+			elseif forestCount >= regionPlots * (forest_percent + adjustment) and tundraCount < regionPlots * (tundra_percent + adjustment) * 0.5 then
 				table.insert(self.regionTypes, RegionTypes.REGION_FOREST);
 				print("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
 				print("Region #", this_region, " has been defined as a FOREST Region.");
@@ -2420,9 +2424,9 @@ function AssignStartingPlots:DetermineRegionTypes()
 			end
 		end
 
-		--[[ MOD.Barathor: New data for very useful debug printouts.
+		---[[ MOD.Barathor: New data for very useful debug printouts.
 		print("Threshold Values:");
-		print(string.format("Desert: %.2f - Tundra: %.2f - Jungle: %.2f - Forest: %.2f - Hills: %.2f - Plains: %.2f - Grass: %.2f", desert_percent, tundra_percent, jungle_percent, forest_percent, hills_percent, plains_percent, grass_percent));
+		print(string.format("Desert: %.2f - Tundra: %.2f - Jungle: %.2f - Forest: %.2f - Hills: %.2f - Plains: %.2f - Grass: %.2f", desert_percent + adjustment, tundra_percent + adjustment, jungle_percent + adjustment, forest_percent + adjustment, hills_percent + adjustment, plains_percent + adjustment, grass_percent + adjustment));
 		print("Region Values:");
 		print(string.format("Desert: %.2f - Tundra: %.2f - Jungle: %.2f - Forest: %.2f - Hills: %.2f - Plains: %.2f - Grass: %.2f", desertCount / regionPlots, tundraCount / regionPlots, jungleCount / regionPlots, forestCount / regionPlots, hillsCount / regionPlots, plainsCount / regionPlots, grassCount / regionPlots));
 		print("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
@@ -9048,7 +9052,10 @@ function AssignStartingPlots:GenerateLuxuryPlotListsInRegion(region_number)
 					end
 				end
 			elseif plotType ~= PlotTypes.PLOT_MOUNTAIN and not plot:IsNaturalWonder(true) and featureType ~= FeatureTypes.FEATURE_OASIS then
-				if iAreaID ~= -1 then
+				if iAreaID == -1 then
+					-- Always ok!
+					table.insert(plotList, plotIndex);
+				else
 					-- Need to check whether the plot is in/adjacent to the correct area/landmass
 					if self.bArea and (plot:GetArea() == iAreaID or plot:IsAdjacentToArea(region_area_object)) then
 						table.insert(plotList, plotIndex);
@@ -9667,7 +9674,7 @@ function AssignStartingPlots:PlaceLuxuries(args)
 		for _, index in ipairs(tList) do
 			local shuf_list = luxury_plot_lists[index];
 			if iNumLeftToPlace > 0 and index > 0 then
-				iNumLeftToPlace = self:PlaceSpecificNumberOfResources(res_ID, 1, iNumLeftToPlace, 0.25, ImpactLayers.LAYER_LUXURY, 1, 3, shuf_list);
+				iNumLeftToPlace = self:PlaceSpecificNumberOfResources(res_ID, 1, iNumLeftToPlace, 0.25, ImpactLayers.LAYER_LUXURY, 1, 2, shuf_list);
 			end
 			if iNumLeftToPlace <= 0 then
 				break;
@@ -10838,6 +10845,10 @@ function AssignStartingPlots:PrintFinalResourceTotalsToLog()
 		print(self.titanium_ID, "Titanium: ", self.amounts_of_resources_placed[self.titanium_ID + 1]);
 	end
 	-- MOD.HungryForFood: End
+	if self:IsAloeVeraResourceActive() then
+		print("- Aloe Vera for Vox Populi (Bonus) -");
+		print(self.aloevera_ID, "AloeVera: ", self.amounts_of_resources_placed[self.aloevera_ID + 1]);
+	end
 	print("-----------------------------------------------------");
 end
 ------------------------------------------------------------------------------
@@ -11052,6 +11063,13 @@ function AssignStartingPlots:PlaceBonusResources()
 
 	local resources_to_place = {};
 
+	if self:IsAloeVeraResourceActive() then
+		resources_to_place = {
+			{self.aloevera_ID, 1, 100, 1, 2}
+		};
+		self:ProcessResourceList(10 * resMultiplier, ImpactLayers.LAYER_BONUS, tPlotList[PlotListTypes.FLAT_DESERT_NO_FEATURE], resources_to_place);
+	end
+
 	if self:IsEvenMoreResourcesActive() then
 		resources_to_place = {
 			{self.deer_ID, 1, 100, 0, 2}
@@ -11196,7 +11214,6 @@ function AssignStartingPlots:PlaceBonusResources()
 		};
 		self:ProcessResourceList(35 * resMultiplier, ImpactLayers.LAYER_BONUS, tPlotList[PlotListTypes.HILLS_NO_FEATURE], resources_to_place);
 	-- Even More Resources for VP end
-
 		-- Placed last, since this blocks a large area
 		resources_to_place = {
 			{self.deer_ID, 1, 100, 3, 4}
@@ -11204,6 +11221,7 @@ function AssignStartingPlots:PlaceBonusResources()
 		self:ProcessResourceList(50 * resMultiplier, ImpactLayers.LAYER_BONUS, tPlotList[PlotListTypes.FLAT_PLAINS_GRASS_FOREST], resources_to_place);
 		self:ProcessResourceList(50 * resMultiplier, ImpactLayers.LAYER_BONUS, tPlotList[PlotListTypes.HILLS_FOREST], resources_to_place);
 	else
+		
 		resources_to_place = {
 			{self.deer_ID, 1, 100, 0, 2}
 		};
@@ -11344,6 +11362,27 @@ function AssignStartingPlots:IsEvenMoreResourcesActive()
 
 	if not isUsingCommunityPatch then -- fallback method for modpack mode
 		for _ in DB.Query("SELECT * FROM Resources WHERE Type = 'RESOURCE_POPPY'") do
+			return true;
+		end
+	end
+	return false;
+end
+--------------------------------------------------------------------------------
+function AssignStartingPlots:IsAloeVeraResourceActive()
+	local communityPatchModID = "d1b6328c-ff44-4b0d-aad7-c657f83610cd";
+	local aloeVeraModID = "c2c3797b-2728-417c-94c8-f30410528bf2";
+	local isUsingCommunityPatch = false;
+
+	for _, mod in pairs(Modding.GetActivatedMods()) do
+		if mod.ID == communityPatchModID then -- if Community Patch is not activated, then we are running in modpack mode
+			isUsingCommunityPatch = true;
+		elseif mod.ID == aloeVeraModID then
+			return true;
+		end
+	end
+
+	if not isUsingCommunityPatch then -- fallback method for modpack mode
+		for _ in DB.Query("SELECT * FROM Resources WHERE Type = 'RESOURCE_JAR_ALOE_VERA'") do
 			return true;
 		end
 	end

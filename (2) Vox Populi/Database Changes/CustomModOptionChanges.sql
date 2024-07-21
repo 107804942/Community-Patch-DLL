@@ -12,6 +12,10 @@ WHERE Name = 'BALANCE_PERMANENT_VOTE_COMMITMENTS';
 
 UPDATE CustomModOptions
 SET Value = 1
+WHERE Name = 'RIVER_CITY_CONNECTIONS';
+
+UPDATE CustomModOptions
+SET Value = 1
 WHERE Name = 'BALANCE_CORE_MINORS';
 
 UPDATE CustomModOptions
@@ -267,3 +271,5 @@ UPDATE CustomModOptions SET Value = 1 WHERE Name = 'BALANCE_CORE_GOODY_RECON_ONL
 
 -- No longer needed now that Helicopter Gunship doesn't embark anywhere
 UPDATE CustomModOptions SET Value = 0 WHERE Name = 'PROMOTIONS_DEEP_WATER_EMBARKATION';
+
+UPDATE CustomModOptions SET Value = 1 WHERE Name = 'CORE_RESILIENT_PANTHEONS';

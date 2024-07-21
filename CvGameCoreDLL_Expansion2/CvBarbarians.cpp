@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -813,7 +813,7 @@ void CvBarbarians::DoCamps()
 		int iY = pLoopPlot->getY();
 		bool bTooClose = false;
 
-		for (std::vector<int>::iterator it = MajorCapitals.begin(); it != MajorCapitals.end(); it++)
+		for (std::vector<int>::iterator it = MajorCapitals.begin(); it != MajorCapitals.end(); ++it)
 		{
 			CvPlot* pInvalidAreaPlot = theMap.plotByIndex(*it);
 			int iDistance = plotDistance(iX, iY, pInvalidAreaPlot->getX(), pInvalidAreaPlot->getY());
@@ -825,7 +825,7 @@ void CvBarbarians::DoCamps()
 		}
 		if (!bTooClose)
 		{
-			for (std::vector<int>::iterator it = BarbCamps.begin(); it != BarbCamps.end(); it++)
+			for (std::vector<int>::iterator it = BarbCamps.begin(); it != BarbCamps.end(); ++it)
 			{
 				CvPlot* pInvalidAreaPlot = theMap.plotByIndex(*it);
 				int iDistance = plotDistance(iX, iY, pInvalidAreaPlot->getX(), pInvalidAreaPlot->getY());
@@ -838,7 +838,7 @@ void CvBarbarians::DoCamps()
 		}
 		if (!bTooClose)
 		{
-			for (std::vector<int>::iterator it = RecentlyClearedBarbCamps.begin(); it != RecentlyClearedBarbCamps.end(); it++)
+			for (std::vector<int>::iterator it = RecentlyClearedBarbCamps.begin(); it != RecentlyClearedBarbCamps.end(); ++it)
 			{
 				CvPlot* pInvalidAreaPlot = theMap.plotByIndex(*it);
 				int iDistance = plotDistance(iX, iY, pInvalidAreaPlot->getX(), pInvalidAreaPlot->getY());
@@ -871,7 +871,7 @@ void CvBarbarians::DoCamps()
 			vThoseWhoSee.push_back(ePlayer);
 	}
 
-	// What % of camps should be prioritized to be on the coast?
+	// What % of camps should spawn on the coast, on average?
 	int iCoastPercent = /*33*/ GD_INT_GET(BARBARIAN_CAMP_COASTAL_SPAWN_ROLL);
 
 	// How many units should we spawn from new encampments?
@@ -909,11 +909,8 @@ void CvBarbarians::DoCamps()
 	// Place the camps on the map
 	do
 	{
-		// Bias towards coastal if we don't have the desired % of coastal camps (and there are valid plots)
-		bool bWantsCoastal = !vValidCoastalPlots.empty();
-		if (((iNumCampsInExistence * iCoastPercent) / 100) >= iNumCoastalCamps)
-			bWantsCoastal = false;
-
+		// Random roll to see if we bias towards coastal
+		bool bWantsCoastal = !vValidCoastalPlots.empty() && GC.getGame().randRangeInclusive(1, 100, CvSeeder::fromRaw(0x04cd84f9).mix(iNumCampsToAdd)) <= iCoastPercent;
 		std::vector<CvPlot*>& vRelevantPlots = bWantsCoastal ? vValidCoastalPlots : vValidPlots;
 
 		// No valid plots to place a camp? We're done.
@@ -931,7 +928,7 @@ void CvBarbarians::DoCamps()
 		ActivateBarbSpawner(pPlot);
 
 		// Show the new camp to any who have the policy
-		for (std::vector<PlayerTypes>::iterator it = vThoseWhoSee.begin(); it != vThoseWhoSee.end(); it++)
+		for (std::vector<PlayerTypes>::iterator it = vThoseWhoSee.begin(); it != vThoseWhoSee.end(); ++it)
 		{
 			TeamTypes eTeam = GET_PLAYER(*it).getTeam();
 			if (pPlot->isRevealed(eTeam))
@@ -1329,7 +1326,7 @@ UnitTypes CvBarbarians::GetRandomBarbarianUnitType(CvPlot* pPlot, UnitAITypes eP
 			continue;
 
 		// No ships on land, no land on water, no air units
-		if (eDomain != (DomainTypes)pkUnitInfo->GetDomainType())
+		if (eDomain != pkUnitInfo->GetDomainType())
 			continue;
 
 		// No civilians

@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -82,6 +82,7 @@ public:
 	int GetNetworkPointsNeededScaled() const;
 	bool IsReceiveIntrigue() const;
 	bool IsRevealTrueApproaches() const;
+	int GetVoteTradePercent() const;
 	int GetTradeRouteGoldBonus() const;
 
 protected:
@@ -89,6 +90,7 @@ protected:
 	bool m_bNetworkPointsScaling;
 	bool m_bReceiveIntrigue;
 	bool m_bRevealTrueApproaches;
+	int m_iVoteTradePercent;
 	int m_iTradeRouteGoldBonus;
 
 
@@ -154,7 +156,6 @@ enum CLOSED_ENUM CvSpyState
     SPY_STATE_COUNTER_INTEL,
 	SPY_STATE_MAKING_INTRODUCTIONS, // CP only
 	SPY_STATE_SCHMOOZE,
-	SPY_STATE_IMPRISONED, // VP only
     SPY_STATE_DEAD,
     SPY_STATE_TERMINATED, // currently not used
     NUM_SPY_STATES ENUM_META_VALUE
@@ -162,12 +163,11 @@ enum CLOSED_ENUM CvSpyState
 
 enum CLOSED_ENUM CvSpyResult // what was the result of the last spy action
 {
-    SPY_RESULT_UNDETECTED, // spy was not detected
-    SPY_RESULT_DETECTED,   // a spy was detected in the city, but the defensive player can't tell which player
-    SPY_RESULT_IDENTIFIED, // a spy was detected and identified in the city
-	SPY_RESULT_CAUGHT,     // a spy was caught
-	SPY_RESULT_CAUGHT_AND_IDENTIFIED, // a spy was caught and identified
-    SPY_RESULT_KILLED,     // a spy was detected, identified, and killed in the city
+    SPY_RESULT_UNDETECTED,					// spy was not detected
+    SPY_RESULT_DETECTED,					// a spy was detected in the city, but the defensive player can't tell which player
+    SPY_RESULT_IDENTIFIED,					// a spy was detected and identified in the city
+    SPY_RESULT_KILLED,						// a spy was detected, identified, and killed in the city
+    SPY_RESULT_KILLED_NOT_IDENTIFIED,		// a spy was killed without being identified (VP only)
     NUM_SPY_RESULTS ENUM_META_VALUE
 };
 
@@ -195,6 +195,7 @@ public:
 
 	const char* GetSpyName(CvPlayer* pPlayer);
 
+	PlayerTypes GetVassalDiplomatPlayer() const;
 	CvSpyState GetSpyState() const;
 	void SetSpyState(PlayerTypes eSpyOwner, int iSpyIndex, CvSpyState eSpyState);
 	void SetSpyFocus(CityEventChoiceTypes eEventChoice);
@@ -202,9 +203,6 @@ public:
 
 	void SetTurnCounterspyMissionChanged(int iTurn);
 	int GetTurnCounterspyMissionChanged() const;
-
-	void SetTurnSpyImprisoned(int iTurn);
-	int GetTurnSpyImprisoned() const;
 
 	void SetTurnActiveMissionConducted(int iTurn);
 	int GetTurnActiveMissionConducted() const;
@@ -220,10 +218,10 @@ public:
 	CvSpyState m_eSpyState;
 	int m_iReviveCounter; // after killed, counter to reincarnate a spy
 	bool m_bIsDiplomat;
+	PlayerTypes m_eVassalDiplomatPlayer; // for spies that are diplomats in the capital of a vassal
 	bool m_bEvaluateReassignment; // used by the AI. Flag to indicate if the spy should be evaluated to be reassigned
 	bool m_bPassive;
 	int m_iTurnCounterspyMissionChanged;
-	int m_iTurnSpyImprisoned;
 	int m_iTurnActiveMissionConducted;
 	CityEventChoiceTypes m_eSpyFocus; // focus type for events- events are classified.
 };
@@ -307,8 +305,11 @@ public:
 
 	// Functions invoked each player turn
 	void DoTurn(void);
+	void LogSpyStatus();
 
-	void CreateSpy(void);
+	void CreateSpy(PlayerTypes eAsDiplomatInCapitalOfPlayer = NO_PLAYER);
+	void MoveDiplomatVassalToNewCity(PlayerTypes eVassal, CvCity* pNewCity);
+	void DeleteDiplomatForVassal(PlayerTypes eFormerVassal);
 	void ProcessSpy(uint uiSpyIndex);
 	bool TriggerSpyFocusSetup(CvCity* pCity, int uiSpyIndex);
 	bool DoStealTechnology(CvCity* pPlayerCity, PlayerTypes eTargetPlayer);
@@ -329,12 +330,10 @@ public:
 	CvEspionageSpy* GetSpyByID(uint uiSpyIndex);
 	int  GetSpyIndexInCity(CvCity* pCity);
 	bool CanEverMoveSpyTo(CvCity* pCity);
-	bool CanMoveSpyTo(CvCity* pCity, uint uiSpyIndex, bool bAsDiplomat);
-	bool MoveSpyTo(CvCity* pCity, uint uiSpyIndex, bool bAsDiplomat);
+	bool CanMoveSpyTo(CvCity* pCity, uint uiSpyIndex, bool bAsDiplomat, bool bForce = false);
+	bool MoveSpyTo(CvCity* pCity, uint uiSpyIndex, bool bAsDiplomat, bool bForce = false);
 	int GetNumTurnsSpyMovementBlocked(uint uiSpyIndex);
 	int GetNumTurnsSpyActiveMissionsBlocked(uint uiSpyIndex);
-	int GetNumTurnsSpyImprisoned(uint uiSpyIndex);
-	void ChangeCounterspyMission(uint uiSpyIndex, CityEventChoiceTypes eNewMission);
 	bool ExtractSpyFromCity(uint uiSpyIndex);
 	void LevelUpSpy(uint uiSpyIndex, int iExperience = 0);
 
@@ -462,11 +461,17 @@ public:
 	void Reset(void);
 
 	void SetActivity(PlayerTypes ePlayer, int iAmount, int iRate, int iGoal);
-	void SetRate(PlayerTypes ePlayer, int iRate);
 	void Process(PlayerTypes ePlayer);
-	int GetAmount(PlayerTypes ePlayer);
-	int GetMaxAmount(PlayerTypes ePlayer);
-	int GetNextPassiveBonus(PlayerTypes ePlayer);
+	int GetAmount(PlayerTypes ePlayer) const;
+	void ChangeAmount(PlayerTypes ePlayer, int iChange);
+	void SetAmount(PlayerTypes ePlayer, int iValue);
+	int GetRate(PlayerTypes ePlayer) const;
+	void SetRate(PlayerTypes ePlayer, int iRate);
+	int GetGoal(PlayerTypes ePlayer) const;
+	void SetGoal(PlayerTypes ePlayer, int iGoal);
+	int GetMaxAmount(PlayerTypes ePlayer) const;
+	void SetMaxAmount(PlayerTypes ePlayer, int iValue);
+	int GetNextPassiveBonus(PlayerTypes ePlayer) const;
 	void SetNextPassiveBonus(PlayerTypes ePlayer, int iValue);
 	bool HasReachedGoal(PlayerTypes ePlayer);
 	void ResetProgress(PlayerTypes ePlayer);
@@ -484,14 +489,17 @@ public:
 	bool IsDiplomatReceiveIntrigues(PlayerTypes ePlayer);
 	void SetDiplomatRevealTrueApproaches(PlayerTypes ePlayer, bool bValue);
 	bool IsDiplomatRevealTrueApproaches(PlayerTypes ePlayer);
+	void SetDiplomatVoteTradePercent(PlayerTypes ePlayer, int iValue);
+	void ChangeDiplomatVoteTradePercent(PlayerTypes ePlayer, int iValue);
+	int GetDiplomatVoteTradePercent(PlayerTypes ePlayer);
 	void SetSciencePassivePerTurn(PlayerTypes ePlayer, int iValue);
 	void ChangeSciencePassivePerTurn(PlayerTypes ePlayer, int iValue);
 	int GetSciencePassivePerTurn(PlayerTypes ePlayer);
 	void SetVisionBonus(PlayerTypes ePlayer, int iValue);
 	void ChangeVisionBonus(PlayerTypes ePlayer, int iValue);
 	int GetVisionBonus(PlayerTypes ePlayer);
-	void AddNetworkPoints(PlayerTypes eSpyOwner, CvEspionageSpy* pSpy, int iNetworkPointsAdded);
-	void AddNetworkPointsDiplomat(PlayerTypes eSpyOwner, CvEspionageSpy* pSpy, int iNetworkPointsAdded);
+	void AddNetworkPoints(PlayerTypes eSpyOwner, CvEspionageSpy* pSpy, int iNetworkPointsAdded, bool bInit = false);
+	void AddNetworkPointsDiplomat(PlayerTypes eSpyOwner, CvEspionageSpy* pSpy, int iNetworkPointsAdded, bool bInit = false);
 	void DoMission(PlayerTypes eSpyOwner, CityEventChoiceTypes eMission);
 	int GetSpyResult(PlayerTypes eSpyOwner);
 
@@ -521,6 +529,7 @@ public:
 	PassiveBonusList m_aiDiplomatTradeBonus; // gold bonus to trade routes between the diplomat owner and the other civ
 	PassiveBonusBoolList m_abDiplomatReceiveIntrigues; // the diplomat in this city can receives intrigues
 	PassiveBonusBoolList m_abDiplomatRevealTrueApproaches; // the diplomat in this city causes the other player to give honest answers when asked about a third player
+	PassiveBonusList m_aiDiplomatVoteTradePercent; // percentage of votes that can be traded
 	PassiveBonusList m_aiSciencePassivePerTurn; // percentage of city's science given to the spy owner
 	PassiveBonusList m_aiVisionBonus; // number of tiles visible around city
 };
@@ -543,14 +552,6 @@ typedef vector<CvCity*> EspionageCityList;
 class CvEspionageAI
 {
 public:
-	// check to see if the countdown clock is started
-	enum CLOSED_ENUM {
-		PLAN_DEFEND_CS_FOR_WIN,
-		PLAN_ATTACK_CS_TO_PREVENT_DEFEAT,
-		PLAN_COLLECT_VOTES,
-		PLAN_PLAY_NORMAL
-	};
-
 	CvEspionageAI(void);
 	~CvEspionageAI(void);
 	void Init(CvPlayer* pPlayer);
@@ -560,18 +561,17 @@ public:
 	void DoTurn(void);
 	void StealTechnology(void);
 	void UpdateCivOutOfTechTurn(void);
+	int GetPlayerModifier(PlayerTypes eTargetPlayer, bool bOnlyDiplo);
 	void AttemptCoups(void);
 	void PerformSpyMissions(void);
 
-	int GetMissionScore(CvCity* pCity, CityEventChoiceTypes eMission, int iSpyIndex = -1);
-	CityEventChoiceTypes GetBestMissionInCity(CvCity* pCity, int& iScore, std::vector<int> aMissionList, int iSpyIndex = -1);
+	int GetMissionScore(CvCity* pCity, CityEventChoiceTypes eMission, int iSpyIndex = -1, bool bLogAllChoices = false);
+	CityEventChoiceTypes GetBestMissionInCity(CvCity* pCity, int& iScore, std::vector<int> aMissionList, int iSpyIndex = -1, bool bLogAllChoices = false);
 
-	std::vector<ScoreCityEntry> BuildDiplomatCityList();
-	std::vector<ScoreCityEntry> BuildOffenseCityList();
-	std::vector<ScoreCityEntry> BuildDefenseCityList();
-	std::vector<ScoreCityEntry> BuildMinorCityList();
-
-	int GetCityStatePlan(PlayerTypes* peDiploThreat = NULL);
+	std::vector<ScoreCityEntry> BuildDiplomatCityList(bool bLogAllChoices = false);
+	std::vector<ScoreCityEntry> BuildOffenseCityList(bool bLogAllChoices = false);
+	std::vector<ScoreCityEntry> BuildDefenseCityList(bool bLogAllChoices = false);
+	std::vector<ScoreCityEntry> BuildMinorCityList(bool bLogAllChoices = false);
 
 	void EvaluateSpiesAssignedToTargetPlayer(PlayerTypes ePlayer);
 	void EvaluateUnassignedSpies(void);

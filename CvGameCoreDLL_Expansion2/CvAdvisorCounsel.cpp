@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -318,7 +318,7 @@ void CvAdvisorCounsel::BuildCounselList(PlayerTypes ePlayer)
 			{
 				BuildingTypes eBuilding = (BuildingTypes)iI;
 				CvBuildingEntry* pBuilding = GC.getBuildingInfo(eBuilding);
-				if(pBuilding && pBuilding->GetPrereqAndTech() == eTech && pBuilding->GetFlavorValue(eFlavorScience) > 0 && !GC.getGame().isBuildingClassMaxedOut((BuildingClassTypes)pBuilding->GetBuildingClassType()))
+				if(pBuilding && pBuilding->GetPrereqAndTech() == eTech && pBuilding->GetFlavorValue(eFlavorScience) > 0 && !GC.getGame().isBuildingClassMaxedOut(pBuilding->GetBuildingClassType()))
 				{
 					BuildingTypes eCivBuilding = ((GET_PLAYER(ePlayer).GetSpecificBuildingType(pBuilding->GetBuildingClassInfo().GetType(), false)));
 					if (eBuilding != eCivBuilding)
@@ -384,7 +384,7 @@ void CvAdvisorCounsel::BuildCounselList(PlayerTypes ePlayer)
 				{
 					if(pUnitEntry->GetPrereqAndTech() == eTech && pUnitEntry->GetUnitCombatType() != NO_UNITCOMBAT)
 					{
-						UnitTypes eCivUnit = ((GET_PLAYER(ePlayer).GetSpecificUnitType((UnitClassTypes)pUnitEntry->GetUnitClassType())));
+						UnitTypes eCivUnit = GET_PLAYER(ePlayer).GetSpecificUnitType((UnitClassTypes)pUnitEntry->GetUnitClassType());
 						if(eUnitType != eCivUnit)
 						{
 							continue;
@@ -717,8 +717,6 @@ void CvAdvisorCounsel::BuildCounselList(PlayerTypes ePlayer)
 		{
 			switch(eMilitaryStrengthComparedToUs)
 			{
-			case NO_STRENGTH_VALUE:
-				break; // Do nothing; We can't provide useful info.
 			case STRENGTH_PATHETIC:
 			{
 				int iRating = 60;

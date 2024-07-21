@@ -3,9 +3,21 @@
 INSERT INTO Defines(Name, Value) SELECT 'MAJORS_CAN_MOVE_STARTING_SETTLER', 1;
 INSERT INTO Defines(Name, Value) SELECT 'CS_CAN_MOVE_STARTING_SETTLER', 0;
 
--- Can units that ignore terrain cost (mainly scouts) cross rivers without expending additional movement?
+-- If > -1, a player with no cities but who is still alive (Complete Kills) will be granted a free Settler after this many turns
+INSERT INTO Defines(Name, Value) SELECT 'COMPLETE_KILLS_TURN_TIMER', -1;
+
+-- Maximum number of Ideology Tenets of each Level that a Player can have (should correspond to the limitations put on human players by the Ideology Selection UI)
+INSERT INTO Defines(Name, Value) SELECT 'MAX_NUM_TENETS_LEVEL_1', 7;
+INSERT INTO Defines(Name, Value) SELECT 'MAX_NUM_TENETS_LEVEL_2', 4;
+INSERT INTO Defines(Name, Value) SELECT 'MAX_NUM_TENETS_LEVEL_3', 3;
+
+-- Can units that ignore ALL terrain costs cross rivers without expending additional movement? Doesn't affect trait abilities.
 -- 1 to enable, 0 to disable
-INSERT INTO Defines(Name, Value) SELECT 'IGNORE_TERRAIN_COST_INCLUDES_RIVERS', 1;
+INSERT INTO Defines (Name, Value) SELECT 'IGNORE_GLOBAL_TERRAIN_COSTS_INCLUDES_RIVERS', 1;
+
+-- Can units that ignore SPECIFIC terrain costs via UnitPromotions_Features or UnitPromotions_Terrains cross rivers without expending additional movement? Doesn't affect trait abilities.
+-- 1 to enable, 0 to disable
+INSERT INTO Defines (Name, Value) SELECT 'IGNORE_SPECIFIC_TERRAIN_COSTS_INCLUDES_RIVERS', 0;
 
 -- Victory conditions
 INSERT INTO Defines (Name, Value) SELECT 'VICTORY_DOMINATION_CONTROL_PERCENT', 100;
@@ -27,6 +39,9 @@ UPDATE Defines SET Value = 5 WHERE Name = 'AI_DIPLO_PLOT_RANGE_FROM_CITY_HOME_FR
 INSERT INTO Defines(Name, Value) SELECT 'WAR_MAJOR_MINIMUM_TURNS', 10;
 INSERT INTO Defines(Name, Value) SELECT 'WAR_MINOR_MINIMUM_TURNS', 1;
 
+-- City strength threshold used for some policy bonuses (VP)
+INSERT INTO Defines(Name, Value) SELECT 'CITY_STRENGTH_THRESHOLD_FOR_BONUSES', 10;
+
 -- Minimum war duration for aggressively attacked City-States (scales with game speed)
 INSERT INTO Defines (Name, Value) SELECT 'WAR_MINOR_PEACE_BLOCKED_TURNS', 2;
 
@@ -46,10 +61,9 @@ INSERT INTO Defines (Name, Value) SELECT 'AI_DEFENSIVE_PACT_LIMIT_SCALER', 10; -
 INSERT INTO Defines (Name, Value) SELECT 'MAX_UNIT_SUPPLY_GROWTH_MOD', 70;
 INSERT INTO Defines (Name, Value) SELECT 'PRODUCTION_PENALTY_PER_UNIT_OVER_SUPPLY', 10;
 INSERT INTO Defines (Name, Value) SELECT 'GROWTH_PENALTY_PER_UNIT_OVER_SUPPLY', 0;
-INSERT INTO Defines (Name, Value) SELECT 'UNIT_SUPPLY_BASE_TECH_REDUCTION_PER_ERA', 0; -- 100 = 1
+INSERT INTO Defines (Name, Value) SELECT 'UNIT_SUPPLY_BASE_TECH_REDUCTION_PER_ERA', 0;
 INSERT INTO Defines (Name, Value) SELECT 'UNIT_SUPPLY_CITIES_TECH_REDUCTION_MULTIPLIER', 0;
-INSERT INTO Defines (Name, Value) SELECT 'UNIT_SUPPLY_CITIES_TECH_REDUCTION_DIVISOR', 1;
-INSERT INTO Defines (Name, Value) SELECT 'UNIT_SUPPLY_POPULATION_TECH_REDUCTION_MULTIPLIER', 0; -- 100 = 1
+INSERT INTO Defines (Name, Value) SELECT 'UNIT_SUPPLY_POPULATION_TECH_REDUCTION_MULTIPLIER', 0;
 INSERT INTO Defines (Name, Value) SELECT 'UNIT_SUPPLY_WAR_WEARINESS_PERCENT_REDUCTION', 34;
 INSERT INTO Defines (Name, Value) SELECT 'UNIT_SUPPLY_POPULATION_PUPPET_PERCENT', 100;
 INSERT INTO Defines (Name, Value) SELECT 'MINOR_CIV_UNIT_SUPPLY_MODIFIER_CULTURED', 0;
@@ -158,6 +172,7 @@ UPDATE Defines SET Value = 25 WHERE Name = 'PERMANENT_WAR_OTHER_CHANCE_NEIGHBORS
 UPDATE Defines SET Value = 20 WHERE Name = 'PERMANENT_WAR_OTHER_AT_WAR';
 INSERT INTO Defines (Name, Value) SELECT 'MINOR_REMOVE_SPHERE_FRIENDSHIP', 0;
 INSERT INTO Defines (Name, Value) SELECT 'MINOR_LIBERATION_RESTING_INFLUENCE', 0;
+INSERT INTO Defines (Name, Value) SELECT 'MINOR_LANDMARK_RESTING_INFLUENCE', 0; -- scales with era; set to 0 to disable all effects
 INSERT INTO Defines (Name, Value) SELECT 'MINOR_CIV_QUEST_ROUTE_MAXIMUM_DISTANCE', 7;
 INSERT INTO Defines (Name, Value) SELECT 'MINOR_CIV_QUEST_WONDER_COMPLETION_MAX_TURNS', 30;
 INSERT INTO Defines (Name, Value) SELECT 'MINOR_CIV_QUEST_FIND_CITY_MIN_DISTANCE', 16;
@@ -197,11 +212,14 @@ UPDATE Defines SET Value = 1000 WHERE Name = 'BUILDER_TASKING_BASELINE_REPAIR';
 UPDATE Defines SET Value = 750 WHERE Name = 'BUILDER_TASKING_BASELINE_BUILD_ROUTES';
 UPDATE Defines SET Value = 300 WHERE Name = 'BUILDER_TASKING_BASELINE_BUILD_RESOURCE_IMPROVEMENTS';
 UPDATE Defines SET Value = 100 WHERE Name = 'BUILDER_TASKING_BASELINE_BUILD_IMPROVEMENTS';
-INSERT INTO Defines (Name, Value) SELECT 'BUILDER_TASKING_BASELINE_ADDS_FOOD', 200;
-INSERT INTO Defines (Name, Value) SELECT 'BUILDER_TASKING_BASELINE_ADDS_GOLD', 40;
-INSERT INTO Defines (Name, Value) SELECT 'BUILDER_TASKING_BASELINE_ADDS_FAITH', 150;
-INSERT INTO Defines (Name, Value) SELECT 'BUILDER_TASKING_BASELINE_ADDS_PRODUCTION', 200;
+INSERT INTO Defines (Name, Value) SELECT 'BUILDER_TASKING_BASELINE_ADDS_FOOD', 180;
+INSERT INTO Defines (Name, Value) SELECT 'BUILDER_TASKING_BASELINE_ADDS_GOLD', 80;
+INSERT INTO Defines (Name, Value) SELECT 'BUILDER_TASKING_BASELINE_ADDS_FAITH', 200;
+INSERT INTO Defines (Name, Value) SELECT 'BUILDER_TASKING_BASELINE_ADDS_PRODUCTION', 180;
 INSERT INTO Defines (Name, Value) SELECT 'BUILDER_TASKING_BASELINE_ADDS_SCIENCE', 200;
+INSERT INTO Defines (Name, Value) SELECT 'BUILDER_TASKING_BASELINE_ADDS_TOURISM', 200;
+INSERT INTO Defines (Name, Value) SELECT 'BUILDER_TASKING_BASELINE_ADDS_CULTURE_LOCAL', 100;
+INSERT INTO Defines (Name, Value) SELECT 'BUILDER_TASKING_BASELINE_ADDS_GOLDEN_AGE_POINTS', 200;
 UPDATE Defines SET Value = 200 WHERE Name = 'BUILDER_TASKING_BASELINE_ADDS_CULTURE';
 
 -- Scouts
@@ -233,6 +251,11 @@ UPDATE Defines SET Value = 6 WHERE Name = 'RELIGION_BELIEF_SCORE_CITY_MULTIPLIER
 UPDATE Defines SET Value = 4 WHERE Name = 'RELIGION_BELIEF_SCORE_UNOWNED_PLOT_MULTIPLIER'; -- Unowned but in range more valuable than before to make sure AI knows it's in a good position
 UPDATE Defines SET Value = 8 WHERE Name = 'RELIGION_BELIEF_SCORE_OWNED_PLOT_MULTIPLIER'; -- Owned slightly more valuable than before
 
+-- Tourism Stuff
+UPDATE Defines SET Value = 25 WHERE Name = 'TOURISM_MODIFIER_SHARED_RELIGION'; -- percentage
+INSERT INTO Defines (Name, Value) SELECT 'TOURISM_MODIFIER_SHARED_RELIGION_MAX', 0; -- maximum base percentage allowed (0 is no max)
+INSERT INTO Defines (Name, Value) SELECT 'TOURISM_MODIFIER_SHARED_RELIGION_TYPE', 0; -- 0 = no scaling, 1 = scaling per city, 2 = scaling per population
+
 -- AI Grand Strategy
 UPDATE Defines SET Value = 10 WHERE Name = 'AI_GRAND_STRATEGY_NUM_TURNS_STRATEGY_MUST_BE_ACTIVE';
 UPDATE Defines SET Value = 50 WHERE Name = 'AI_GRAND_STRATEGY_CURRENT_STRATEGY_WEIGHT';
@@ -255,13 +278,24 @@ UPDATE Defines SET Value = 250 WHERE Name = 'AI_CITY_SPECIALIZATION_PRODUCTION_W
 
 -- Citizen allocation
 -- should all be in the same ballpark, specialization decides which yield to maximize; food is always highly valued when needed
-UPDATE Defines SET Value = 12 WHERE Name = 'AI_CITIZEN_VALUE_FOOD';
+UPDATE Defines SET Value = 8 WHERE Name = 'AI_CITIZEN_VALUE_FOOD';
 UPDATE Defines SET Value = 12 WHERE Name = 'AI_CITIZEN_VALUE_PRODUCTION';
 UPDATE Defines SET Value = 12 WHERE Name = 'AI_CITIZEN_VALUE_GOLD';
-UPDATE Defines SET Value = 16 WHERE Name = 'AI_CITIZEN_VALUE_SCIENCE';
-UPDATE Defines SET Value = 16 WHERE Name = 'AI_CITIZEN_VALUE_CULTURE';
-UPDATE Defines SET Value = 12 WHERE Name = 'AI_CITIZEN_VALUE_FAITH';
-INSERT INTO Defines (Name, Value) SELECT 'AI_CITIZEN_VALUE_GPP', 4;
+UPDATE Defines SET Value = 20 WHERE Name = 'AI_CITIZEN_VALUE_SCIENCE';
+UPDATE Defines SET Value = 20 WHERE Name = 'AI_CITIZEN_VALUE_CULTURE';
+UPDATE Defines SET Value = 20 WHERE Name = 'AI_CITIZEN_VALUE_FAITH';
+
+INSERT INTO Defines (Name, Value) SELECT 'AI_CITIZEN_VALUE_GPP', 8;
+INSERT INTO Defines (Name, Value) SELECT 'AI_CITIZEN_VALUE_FOOD_NEED_GROWTH', 32;
+INSERT INTO Defines (Name, Value) SELECT 'AI_CITIZEN_VALUE_FOOD_STARVING', 500;
+
+INSERT INTO Defines (Name, Value) SELECT 'AI_CITIZEN_VALUE_GOLD_IN_DEBT', 24;
+INSERT INTO Defines (Name, Value) SELECT 'AI_CITIZEN_SPECIALIST_COMBO_BONUS', 1000;
+INSERT INTO Defines (Name, Value) SELECT 'AI_CITIZEN_UNHAPPINESS_VALUE_EMPIRE_VERY_UNHAPPY', -50000;
+INSERT INTO Defines (Name, Value) SELECT 'AI_CITIZEN_UNHAPPINESS_VALUE_EMPIRE_UNHAPPY', -15000;
+INSERT INTO Defines (Name, Value) SELECT 'AI_CITIZEN_UNHAPPINESS_VALUE_CITY_UNHAPPY', -5000;
+INSERT INTO Defines (Name, Value) SELECT 'AI_CITIZEN_UNHAPPINESS_VALUE_EMPIRE_HAPPY', -2000;
+
 
 -- AI City Strategy
 UPDATE Defines SET Value = 7 WHERE Name = 'AI_CITYSTRATEGY_MEDIUM_CITY_POP_THRESHOLD';
@@ -275,6 +309,9 @@ INSERT INTO Defines (Name, Value) SELECT 'AI_CITYSTRATEGY_YIELD_DEFICIENT_CULTUR
 INSERT INTO Defines (Name, Value) SELECT 'AI_CITYSTRATEGY_YIELD_DEFICIENT_FAITH', 2.5;
 UPDATE Defines SET Value = 3 WHERE Name = 'AI_CITYSTRATEGY_WANT_TILE_IMPROVERS_MINIMUM_SIZE';
 UPDATE AICityStrategies SET WeightThreshold = 1 WHERE Type = 'AICITYSTRATEGY_WANT_TILE_IMPROVERS';
+
+-- Number of cities the AI considers as core production cities for spaceship building
+INSERT INTO Defines (Name, Value) SELECT 'AI_NUM_CORE_CITIES_FOR_SPACESHIP', 4;
 
 -- AI Player Strategy
 UPDATE Defines SET Value = 20 WHERE Name = 'AI_STRATEGY_EARLY_EXPANSION_NUM_UNOWNED_TILES_REQUIRED'; -- Was 25 before, making the AI miss out on possible good city spots just because there might be cities nearby
@@ -641,6 +678,7 @@ INSERT INTO Defines (Name, Value) SELECT 'TECH_NEED_MODIFIER_PER_TECH_BELOW_MEDI
 INSERT INTO Defines (Name, Value) SELECT 'CITY_SIZE_NEED_MODIFIER', 0; -- Modifier to needs per citizen in the city. Disabled by default. -100 = -1%.
 INSERT INTO Defines (Name, Value) SELECT 'EMPIRE_SIZE_NEED_MODIFIER_CITIES', 500; -- Modifier to needs per non-puppet city in the empire, excluding the capital. Scales with map size. Default is 500 (+5%). Does not support negative values.
 INSERT INTO Defines (Name, Value) SELECT 'EMPIRE_SIZE_NEED_MODIFIER_POP', 125; --  Modifier to needs per citizen in the empire, excluding those in puppet cities. Scales with map size. Default is 125 (+1% per 8 citizens). Does not support negative values.
+INSERT INTO Defines (Name, Value) SELECT 'EMPIRE_SIZE_NEED_MODIFIER_CAP', 100000; -- Cap to total Empire Size Modifier for Needs. (1 = 1%)
 
 -- Unhappiness from Other Sources
 INSERT INTO Defines (Name, Value) SELECT 'UNHAPPINESS_PER_STARVING_POP', 1.0; -- Unhappiness point per starving citizen. (rounded down)
@@ -828,15 +866,15 @@ INSERT INTO Defines (Name, Value) SELECT 'BALANCE_SPY_POINT_MAJOR_PLAYER_MULTIPL
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_SPY_POINT_THRESHOLD_MIN', 33;  -- VP
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_SPY_POINT_THRESHOLD_MAX', 100;  -- VP
 	
+-- Influence modifier for each successfully rigged election
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_CONSECUTIVE_RIGGING_INFLUENCE_MODIFIER', 40;
 
 -- Calculation of Network Points (VP Espionage System)
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_BASE', 20;  -- Base Network Points generated per Turn
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_PER_SPY_RANK', 10;  -- Additional Network Points per Spy Level
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_BASE', 30;  -- Base Network Points generated per Turn
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_PER_SPY_RANK', 0;  -- Additional Network Points per Spy Level
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_CULTURAL_INFLUENCE', 10;  -- Additional Network Points for Cultural Influence
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_PER_TECHNOLOGY_BEHIND', 2;  -- Additional Network Points per Technology the Spy Owner does not have
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_MAX_NUM_TECH', 10;  -- Max Number of Techs taken into account (see previous line)
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_COUNTERSPY_NETWORK', -10;  -- Reduction of Network Points from Enemy Counterspy Network 
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_COUNTERSPY_PER_RANK', -10;  -- Reduction of Network Points from Enemy Counterspy Rank, if Counterspy Network established
 
 -- Security (VP Espionage System)
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_NP_REDUCTION_PER_SECURITY_POINT', 160;  -- divided by 100: Percentage Reduction of Network Points per Security Point
@@ -845,22 +883,21 @@ INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_BASE', 10; -- Base 
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_NOT_ALL_HAVE_SPIES', 1000; -- Security if not all players have a Spy
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_PREVIOUS_CITY_MISSIONS', 2; -- Security for each previous Spy Mission completed in the City
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_PER_POPULATION', -2; -- Security per Population in City
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_PER_POPULATION_BUILDING_SCALER', 360; -- Adds +1 Security every time X reaches this value, where X = (total SpySecurityModifierPerXPop in city) * (city population)
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_PER_TRADE_ROUTE', -1; -- Security per Trade Route to/from City
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SECURITY_PER_EXCESS_UNHAPPINESS', -4; -- Security per Excess Unhappiness in City
 
 -- Spy XP (VP Espionage System)
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SPY_EXPERIENCE_DENOMINATOR', 100; -- XP needed to get to the next Level (scales with game speed)
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_PER_TURN_COUNTERSPY', 2; -- XP gained per Turn when active as Counterspy
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_PER_TURN_DIPLOMAT', 1; -- XP gained per Turn when active as Diplomat
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_PER_TURN_OFFENSIVE', 1; -- XP gained per Turn when active against another Major Civ
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_PER_TURN_COUNTERSPY', 0; -- XP gained per Turn when active as Counterspy
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_PER_TURN_DIPLOMAT', 0; -- XP gained per Turn when active as Diplomat
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_PER_TURN_OFFENSIVE', 0; -- XP gained per Turn when active against another Major Civ
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_PER_TURN_CITYSTATE', 0; -- XP gained per Turn when active in a City-State
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_RIGGING_SUCCESS', 20; -- XP gained when successfully rigging an Election
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_UNCOVER_INTRIGUE', 15; -- XP gained when uncovering an Intrigue
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SPY_XP_MISSION_SUCCESS_DENOMINATOR', 50; -- When succesfully completing a Spy Mission, gain (NP Points needed for Mission) / ESPIONAGE_XP_MISSION_SUCESS_DENOMINATOR
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_RIGGING_SUCCESS', 0; -- XP gained when successfully rigging an Election
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_XP_UNCOVER_INTRIGUE', 0; -- XP gained when uncovering an Intrigue
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SPY_XP_MISSION_SUCCESS_PERCENT', 0; -- When successfully completing a Spy Mission, gain (NP Points needed for Mission) * ESPIONAGE_XP_MISSION_SUCESS_PERCENT / 100 XP
 
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_COUNTERSPY_CHANGE_FOCUS_COOLDOWN', 5; -- Cooldown between switching Counterspy Missions
-INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_IMPRISONMENT_COOLDOWN', 5; -- Number of turns after which an imprisoned spy is released
-
 
 -- Ideology Unlock via Policies
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_MOD_POLICY_BRANCHES_NEEDED_IDEOLOGY', 3;
@@ -1474,9 +1511,19 @@ INSERT INTO Defines (Name, Value) SELECT 'VASSALAGE_VASSAL_MASTER_CITY_PERCENT_T
 INSERT INTO Defines (Name, Value) SELECT 'VASSALAGE_VASSAL_MASTER_POP_PERCENT_THRESHOLD', 60;
 
 INSERT INTO Defines (Name, Value) SELECT 'VASSALAGE_CAPITULATE_BASE_THRESHOLD', 100; -- How likely is a vassal to voluntarily capitulate?
+INSERT INTO Defines (Name, Value) SELECT 'VASSALAGE_LIBERATE_BASE_THRESHOLD', 100; -- How likely is a master to voluntarily liberate a vassal?
 
+-- Border growth tile selection
+UPDATE Defines SET Value = 200 WHERE Name = 'PLOT_INFLUENCE_RING_COST';
+UPDATE Defines SET Value = 20 WHERE Name = 'PLOT_INFLUENCE_WATER_COST';
+UPDATE Defines SET Value = -40 WHERE Name = 'PLOT_INFLUENCE_YIELD_POINT_COST'; -- 3 yield tops 1 distance
+UPDATE Defines SET Value = -180 WHERE Name = 'PLOT_INFLUENCE_RESOURCE_COST'; -- should be more than 100 to be able to skip one ring
+UPDATE Defines SET Value = -500 WHERE Name = 'PLOT_INFLUENCE_NW_COST';
 
 -- Misc. Modmod Defines
 INSERT INTO Defines (Name, Value) SELECT 'FRIENDSHIP_THRESHOLD_MOD_MEDIEVAL', 6;
 INSERT INTO Defines (Name, Value) SELECT 'FRIENDSHIP_THRESHOLD_MOD_INDUSTRIAL', 10;
 INSERT INTO Defines (Name, Value) SELECT 'CITY_STATE_SCALE_PER_CITY_MOD', 0;
+
+-- Fix default max builder interaction with policies
+UPDATE Defines SET Value = -9999 WHERE Name = 'DEFAULT_MAX_NUM_BUILDERS';

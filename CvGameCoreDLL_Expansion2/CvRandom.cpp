@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -11,7 +11,7 @@
 #include "CvGlobals.h"
 #include "FCallStack.h"
 #include "FStlContainerSerialization.h"
-#include "stackwalker\StackWalker.h"
+#include "stackwalker/StackWalker.h"
 
 // include this after all other headers!
 #include "LintFree.h"
@@ -28,6 +28,15 @@ CvRandom::CvRandom(const std::string& name) :
 	, m_bSynchronous(true)
 {
 	reset();
+}
+
+CvRandom* CvRandom::Clone() const {
+    CvRandom* newRandom = new CvRandom(m_name);
+    newRandom->m_ullRandomSeed = m_ullRandomSeed;
+    newRandom->m_ulCallCount = m_ulCallCount;
+    newRandom->m_ulResetCount = m_ulResetCount;
+    newRandom->m_bSynchronous = m_bSynchronous;
+    return newRandom;
 }
 
 /*

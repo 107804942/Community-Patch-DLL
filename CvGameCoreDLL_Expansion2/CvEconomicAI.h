@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -253,6 +253,8 @@ private:
 	void DisbandExtraWorkboats();
 	void DisbandUselessSettlers();
 	void DisbandMiscUnits();
+	void DisbandUnitsToFreeSpaceshipResources();
+
 	CvUnit* FindSettlerToScrap(bool bMayBeInOperation);
 	CvUnit* FindSeaWorkerToScrap();
 	void DisbandExtraArchaeologists();
@@ -265,6 +267,7 @@ private:
 	// Logging functions
 	void LogStrategy(EconomicAIStrategyTypes eStrategy, bool bValue);
 	void LogScrapUnit(CvUnit* pUnit, int iNumWorkers, int iNumCities, int iNumImprovedPlots, int iNumValidPlots);
+	void LogScrapUnitSpaceship(CvUnit* pUnit, int iNumAluminumNeeded, int iNumAluminumAvailable);
 
 
 	CvPlayer* m_pPlayer;

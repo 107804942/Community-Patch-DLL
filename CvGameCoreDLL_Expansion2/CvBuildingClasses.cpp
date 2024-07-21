@@ -59,7 +59,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_iTRTurnModGlobal(0),
 	m_iTRTurnModLocal(0),
 	m_iVotesPerGPT(0),
-	m_bRequiresRail(false),
+	m_bRequiresIndustrialCityConnection(false),
 	m_bDummy(false),
 	m_iLandmarksTourismPercentGlobal(0),
 	m_iGreatWorksTourismModifierGlobal(0),
@@ -152,7 +152,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_iEspionageModifier(0),
 	m_iGlobalEspionageModifier(0),
 	m_iSpySecurityModifier(0),
-	m_iSpySecurityModifierPerPop(0),
+	m_iSpySecurityModifierPerXPop(0),
 	m_iGlobalSpySecurityModifier(0),
 	m_iExtraSpies(0),
 	m_iSpyRankChange(0),
@@ -241,7 +241,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_iPurchaseCooldownReduction(0),
 	m_iPurchaseCooldownReductionCivilian(0),
 #endif
-	m_bVassalLevyEra(false),
+	m_iVassalLevyEra(0),
 #if defined(MOD_BALANCE_CORE_POP_REQ_BUILDINGS)
 	m_iNationalPopRequired(-1),
 	m_iLocalPopRequired(-1),
@@ -253,8 +253,6 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_bMountain(false),
 	m_bHill(false),
 	m_bFlat(false),
-	m_bFoundsReligion(false),
-	m_bIsReligious(false),
 	m_bBorderObstacle(false),
 #if defined(MOD_BALANCE_CORE)
 	m_iCityAirStrikeDefense(0),
@@ -283,6 +281,8 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_bExtraLuxuries(false),
 	m_bDiplomaticVoting(false),
 	m_bAllowsWaterRoutes(false),
+	m_bAllowsIndustrialWaterRoutes(false),
+	m_bAllowsAirRoutes(false),
 	m_bCityWall(false),
 	m_bUnlockedByBelief(false),
 	m_bUnlockedByLeague(false),
@@ -334,11 +334,13 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piYieldFromProcessModifier(NULL),
 
 	m_piYieldFromBirth(NULL),
+	m_piYieldFromBirthEraScaling(NULL),
+	m_piYieldFromBirthRetroactive(NULL),
 	m_piYieldFromUnitProduction(NULL),
 	m_piYieldFromBorderGrowth(NULL),
 	m_piYieldFromPolicyUnlock(NULL),
 	m_piYieldFromUnitLevelUp(NULL),
-	m_piYieldFromCombatExperience(NULL),
+	m_piYieldFromCombatExperienceTimes100(NULL),
 	m_piYieldFromPurchase(NULL),
 	m_piYieldFromFaithPurchase(NULL),
 #endif
@@ -354,6 +356,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piTechEnhancedYieldChange(NULL),
 	m_piUnitCombatFreeExperience(NULL),
 	m_piUnitCombatProductionModifiers(NULL),
+	m_piUnitCombatProductionModifiersGlobal(NULL),
 	m_piDomainFreeExperience(NULL),
 	m_piDomainFreeExperiencePerGreatWork(NULL),
 #if defined(MOD_BALANCE_CORE)
@@ -471,11 +474,13 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piYieldFromInternal);
 	SAFE_DELETE_ARRAY(m_piYieldFromProcessModifier);
 	SAFE_DELETE_ARRAY(m_piYieldFromBirth);
+	SAFE_DELETE_ARRAY(m_piYieldFromBirthEraScaling);
+	SAFE_DELETE_ARRAY(m_piYieldFromBirthRetroactive);
 	SAFE_DELETE_ARRAY(m_piYieldFromUnitProduction);
 	SAFE_DELETE_ARRAY(m_piYieldFromBorderGrowth);
 	SAFE_DELETE_ARRAY(m_piYieldFromPolicyUnlock);
 	SAFE_DELETE_ARRAY(m_piYieldFromUnitLevelUp);
-	SAFE_DELETE_ARRAY(m_piYieldFromCombatExperience);
+	SAFE_DELETE_ARRAY(m_piYieldFromCombatExperienceTimes100);
 	SAFE_DELETE_ARRAY(m_piYieldFromPurchase);
 	SAFE_DELETE_ARRAY(m_piYieldFromFaithPurchase);
 #endif
@@ -491,6 +496,7 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piTechEnhancedYieldChange);
 	SAFE_DELETE_ARRAY(m_piUnitCombatFreeExperience);
 	SAFE_DELETE_ARRAY(m_piUnitCombatProductionModifiers);
+	SAFE_DELETE_ARRAY(m_piUnitCombatProductionModifiersGlobal);
 	SAFE_DELETE_ARRAY(m_piDomainFreeExperience);
 	SAFE_DELETE_ARRAY(m_piDomainFreeExperiencePerGreatWork);
 #if defined(MOD_BALANCE_CORE)
@@ -594,7 +600,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iPurchaseCooldownReduction = kResults.GetInt("PurchaseCooldownReduction");
 	m_iPurchaseCooldownReductionCivilian = kResults.GetInt("PurchaseCooldownReductionCivilian");
 #endif
-	m_bVassalLevyEra = kResults.GetBool("VassalLevyEra");
+	m_iVassalLevyEra = kResults.GetInt("VassalLevyEra");
 #if defined(MOD_BALANCE_CORE_POP_REQ_BUILDINGS)
 	m_iNationalPopRequired = kResults.GetInt("NationalPopRequired");
 	m_iLocalPopRequired = kResults.GetInt("LocalPopRequired");
@@ -606,8 +612,6 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_bMountain = kResults.GetBool("Mountain");
 	m_bHill = kResults.GetBool("Hill");
 	m_bFlat = kResults.GetBool("Flat");
-	m_bFoundsReligion = kResults.GetBool("FoundsReligion");
-	m_bIsReligious = kResults.GetBool("IsReligious");
 	m_bBorderObstacle = kResults.GetBool("BorderObstacle");
 #if defined(MOD_BALANCE_CORE)
 	m_iCityAirStrikeDefense = kResults.GetInt("CityAirStrikeDefense");
@@ -637,6 +641,8 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_bExtraLuxuries = kResults.GetBool("ExtraLuxuries");
 	m_bDiplomaticVoting = kResults.GetBool("DiplomaticVoting");
 	m_bAllowsWaterRoutes = kResults.GetBool("AllowsWaterRoutes");
+	m_bAllowsIndustrialWaterRoutes = kResults.GetBool("AllowsIndustrialWaterRoutes");
+	m_bAllowsAirRoutes = kResults.GetBool("AllowsAirRoutes");
 	m_iProductionCost = kResults.GetInt("Cost");
 	m_iFaithCost = kResults.GetInt("FaithCost");
 	m_iLeagueCost = kResults.GetInt("LeagueCost");
@@ -739,7 +745,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iEspionageModifier = kResults.GetInt("EspionageModifier");
 	m_iGlobalEspionageModifier = kResults.GetInt("GlobalEspionageModifier");
 	m_iSpySecurityModifier = kResults.GetInt("SpySecurityModifier");
-	m_iSpySecurityModifierPerPop = kResults.GetInt("SpySecurityModifierPerPop");
+	m_iSpySecurityModifierPerXPop = kResults.GetInt("SpySecurityModifierPerXPop");
 	m_iGlobalSpySecurityModifier = kResults.GetInt("GlobalSpySecurityModifier");
 	m_iExtraSpies = kResults.GetInt("ExtraSpies");
 	m_iSpyRankChange = kResults.GetInt("SpyRankChange");
@@ -845,7 +851,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iTRTurnModGlobal = kResults.GetInt("TRTurnModGlobal");
 	m_iTRTurnModLocal = kResults.GetInt("TRTurnModLocal");
 	m_iVotesPerGPT = kResults.GetInt("VotesPerGPT");
-	m_bRequiresRail = kResults.GetBool("RequiresRail");
+	m_bRequiresIndustrialCityConnection = kResults.GetBool("RequiresIndustrialCityConnection");
 	m_bDummy = kResults.GetBool("IsDummy");
 	m_iLandmarksTourismPercentGlobal = kResults.GetInt("GlobalLandmarksTourismPercent");
 	m_iGreatWorksTourismModifierGlobal = kResults.GetInt("GlobalGreatWorksTourismModifier");
@@ -962,12 +968,14 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.SetYields(m_piYieldFromInternalTREnd, "Building_YieldFromInternalTREnd", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromInternal, "Building_YieldFromInternalTR", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromProcessModifier, "Building_YieldFromProcessModifier", "BuildingType", szBuildingType);
-	kUtility.SetYields(m_piYieldFromBirth, "Building_YieldFromBirth", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piYieldFromBirth, "Building_YieldFromBirth", "BuildingType", szBuildingType, "(IsEraScaling='false' or IsEraScaling='0')");
+	kUtility.SetYields(m_piYieldFromBirthEraScaling, "Building_YieldFromBirth", "BuildingType", szBuildingType, "(IsEraScaling='true' or IsEraScaling='1')");
+	kUtility.SetYields(m_piYieldFromBirthRetroactive, "Building_YieldFromBirthRetroactive", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromUnitProduction, "Building_YieldFromUnitProduction", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromBorderGrowth, "Building_YieldFromBorderGrowth", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromPolicyUnlock, "Building_YieldFromPolicyUnlock", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromUnitLevelUp, "Building_YieldFromUnitLevelUp", "BuildingType", szBuildingType);
-	kUtility.SetYields(m_piYieldFromCombatExperience, "Building_YieldFromCombatExperience", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piYieldFromCombatExperienceTimes100, "Building_YieldFromCombatExperienceTimes100", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromPurchase, "Building_YieldFromPurchase", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromFaithPurchase, "Building_YieldFromFaithPurchase", "BuildingType", szBuildingType);
 #endif
@@ -997,6 +1005,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 
 	kUtility.PopulateArrayByValue(m_piUnitCombatFreeExperience, "UnitCombatInfos", "Building_UnitCombatFreeExperiences", "UnitCombatType", "BuildingType", szBuildingType, "Experience");
 	kUtility.PopulateArrayByValue(m_piUnitCombatProductionModifiers, "UnitCombatInfos", "Building_UnitCombatProductionModifiers", "UnitCombatType", "BuildingType", szBuildingType, "Modifier");
+	kUtility.PopulateArrayByValue(m_piUnitCombatProductionModifiersGlobal, "UnitCombatInfos", "Building_UnitCombatProductionModifiersGlobal", "UnitCombatType", "BuildingType", szBuildingType, "Modifier");
 	kUtility.PopulateArrayByValue(m_piDomainFreeExperience, "Domains", "Building_DomainFreeExperiences", "DomainType", "BuildingType", szBuildingType, "Experience", 0, NUM_DOMAIN_TYPES);
 	kUtility.PopulateArrayByValue(m_piDomainFreeExperiencePerGreatWork, "Domains", "Building_DomainFreeExperiencePerGreatWork", "DomainType", "BuildingType", szBuildingType, "Experience", 0, NUM_DOMAIN_TYPES);
 #if defined(MOD_BALANCE_CORE)
@@ -1797,7 +1806,7 @@ YieldTypes CvBuildingEntry::GetGreatWorkYieldType() const
 /// How many great works are allowed by this Building
 int CvBuildingEntry::GetGreatWorkCount() const
 {
-	return m_iGreatWorkCount;
+	return max(0, m_iGreatWorkCount); // protect against modders using negative values
 }
 
 /// Does this building come with a built-in Great Work?
@@ -1848,9 +1857,9 @@ int CvBuildingEntry::GetVotesPerGPT() const
 {
 	return m_iVotesPerGPT;
 }
-bool CvBuildingEntry::IsRequiresRail() const
+bool CvBuildingEntry::IsRequiresIndustrialCityConnection() const
 {
-	return m_bRequiresRail;
+	return m_bRequiresIndustrialCityConnection;
 }
 bool CvBuildingEntry::IsDummy() const
 {
@@ -2403,10 +2412,10 @@ int CvBuildingEntry::GetSpySecurityModifier() const
 	return m_iSpySecurityModifier;
 }
 
-/// Modifier to Security against espionage per population
-int CvBuildingEntry::GetSpySecurityModifierPerPop() const
+/// Modifier to Security against espionage based on ESPIONAGE_SECURITY_PER_POPULATION_BUILDING_SCALER
+int CvBuildingEntry::GetSpySecurityModifierPerXPop() const
 {
-	return m_iSpySecurityModifierPerPop;
+	return m_iSpySecurityModifierPerXPop;
 }
 
 /// Modifier to Security against espionage in all cities
@@ -2717,18 +2726,6 @@ bool CvBuildingEntry::IsFlat() const
 	return m_bFlat;
 }
 
-/// Does this Building Found a Religion?
-bool CvBuildingEntry::IsFoundsReligion() const
-{
-	return m_bFoundsReligion;
-}
-
-/// Is this a "Religous" Building? (qualifies it for Production bonuses for Policies, etc.)
-bool CvBuildingEntry::IsReligious() const
-{
-	return m_bIsReligious;
-}
-
 /// Is this an obstacle at the edge of your empire (e.g. Great Wall) -- for you AND your teammates
 bool CvBuildingEntry::IsBorderObstacle() const
 {
@@ -2918,6 +2915,18 @@ bool CvBuildingEntry::IsDiplomaticVoting() const
 bool CvBuildingEntry::AllowsWaterRoutes() const
 {
 	return m_bAllowsWaterRoutes;
+}
+
+/// Does the building allow industrial routes over the water
+bool CvBuildingEntry::AllowsIndustrialWaterRoutes() const
+{
+	return m_bAllowsIndustrialWaterRoutes;
+}
+
+/// Does the building allow routes through the air
+bool CvBuildingEntry::AllowsAirRoutes() const
+{
+	return m_bAllowsAirRoutes;
 }
 
 /// Derive property: is this considered a science building?
@@ -3267,6 +3276,28 @@ int* CvBuildingEntry::GetYieldFromBirthArray() const
 {
 	return m_piYieldFromBirth;
 }
+int CvBuildingEntry::GetYieldFromBirthEraScaling(int i) const
+{
+	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piYieldFromBirthEraScaling[i];
+}
+/// Array of yield changes
+int* CvBuildingEntry::GetYieldFromBirthEraScalingArray() const
+{
+	return m_piYieldFromBirthEraScaling;
+}
+int CvBuildingEntry::GetYieldFromBirthRetroactive(int i) const
+{
+	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piYieldFromBirthRetroactive[i];
+}
+/// Array of yield changes
+int* CvBuildingEntry::GetYieldFromBirthRetroactiveArray() const
+{
+	return m_piYieldFromBirthRetroactive;
+}
 int CvBuildingEntry::GetYieldFromUnitProduction(int i) const
 {
 	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
@@ -3315,16 +3346,16 @@ int* CvBuildingEntry::GetYieldFromUnitLevelUpArray() const
 	return m_piYieldFromUnitLevelUp;
 }
 
-int CvBuildingEntry::GetYieldFromCombatExperience(int i) const
+int CvBuildingEntry::GetYieldFromCombatExperienceTimes100(int i) const
 {
 	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
 	CvAssertMsg(i > -1, "Index out of bounds");
-	return m_piYieldFromCombatExperience[i];
+	return m_piYieldFromCombatExperienceTimes100[i];
 }
 /// Array of yield changes
-int* CvBuildingEntry::GetYieldFromCombatExperienceArray() const
+int* CvBuildingEntry::GetYieldFromCombatExperienceTimes100Array() const
 {
-	return m_piYieldFromCombatExperience;
+	return m_piYieldFromCombatExperienceTimes100;
 }
 
 
@@ -3652,12 +3683,20 @@ int CvBuildingEntry::GetUnitCombatFreeExperience(int i) const
 	return m_piUnitCombatFreeExperience ? m_piUnitCombatFreeExperience[i] : -1;
 }
 
-/// Free combat experience by unit combat type
+/// Extra Production towards a unit combat type in this city
 int CvBuildingEntry::GetUnitCombatProductionModifier(int i) const
 {
 	CvAssertMsg(i < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
 	CvAssertMsg(i > -1, "Index out of bounds");
 	return m_piUnitCombatProductionModifiers ? m_piUnitCombatProductionModifiers[i] : -1;
+}
+
+/// Extra Production towards a unit combat type in all cities
+int CvBuildingEntry::GetUnitCombatProductionModifierGlobal(int i) const
+{
+	CvAssertMsg(i < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piUnitCombatProductionModifiersGlobal ? m_piUnitCombatProductionModifiersGlobal[i] : -1;
 }
 
 /// Free experience gained for units in this domain
@@ -4371,9 +4410,9 @@ int CvBuildingEntry::GetPurchaseCooldownReduction(bool bCivilian) const
 }
 #endif
 
-bool CvBuildingEntry::IsVassalLevyEra() const
+int CvBuildingEntry::GetVassalLevyEra() const
 {
-	return m_bVassalLevyEra;
+	return m_iVassalLevyEra;
 }
 
 #if defined(MOD_BALANCE_CORE_POP_REQ_BUILDINGS)
@@ -4489,17 +4528,10 @@ void CvBuildingXMLEntries::DeleteArray()
 }
 
 /// Get a specific entry
-#if defined(MOD_BALANCE_CORE)
 CvBuildingEntry* CvBuildingXMLEntries::GetEntry(int index) const
 {
 	return (index!=NO_BUILDING) ? m_paBuildingEntries[index] : NULL;
 }
-#else
-CvBuildingEntry* CvBuildingXMLEntries::GetEntry(int index)
-{
-	return m_paBuildingEntries[index];
-}
-#endif
 
 //=====================================
 // CvCityBuildings
@@ -4813,21 +4845,27 @@ void CvCityBuildings::RemoveAllRealBuildingsOfClass(BuildingClassTypes eIndex)
 {
 	CvAssertMsg(eIndex != NO_BUILDINGCLASS, "BuildingClassTypes eIndex is expected to not be NO_BUILDINGCLASS");
 
-	std::vector<BuildingTypes> aBuildingsToDelete;
-	for (std::vector<BuildingTypes>::const_iterator iI = m_buildingsThatExistAtLeastOnce.begin(); iI != m_buildingsThatExistAtLeastOnce.end(); ++iI)
+	// Shortcut
+	if (!MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 	{
-		CvBuildingEntry* pkInfo = GC.getBuildingInfo(*iI);
-		if (pkInfo && pkInfo->GetBuildingClassType() == eIndex && GetNumRealBuilding(*iI) > 0)
+		BuildingTypes eBuilding = static_cast<BuildingTypes>(GET_PLAYER(m_pCity->getOwner()).getCivilizationInfo().getCivilizationBuildings(eIndex));
+		SetNumRealBuilding(eBuilding, 0);
+		return;
+	}
+
+	std::vector<BuildingTypes> aBuildingsToDelete;
+	for (std::vector<BuildingTypes>::const_iterator it = m_buildingsThatExistAtLeastOnce.begin(); it != m_buildingsThatExistAtLeastOnce.end(); ++it)
+	{
+		CvBuildingEntry* pkInfo = GC.getBuildingInfo(*it);
+		if (pkInfo && pkInfo->GetBuildingClassType() == eIndex && GetNumRealBuilding(*it) > 0)
 		{
-			aBuildingsToDelete.push_back(*iI);
+			aBuildingsToDelete.push_back(*it);
 		}
 	}
-	for (std::vector<BuildingTypes>::const_iterator iI = aBuildingsToDelete.begin(); iI != aBuildingsToDelete.end(); ++iI)
+
+	for (std::vector<BuildingTypes>::const_iterator it = aBuildingsToDelete.begin(); it != aBuildingsToDelete.end(); ++it)
 	{
-		if (*iI != NO_BUILDING)
-		{
-			SetNumRealBuilding(*iI, 0);
-		}
+		SetNumRealBuilding(*it, 0);
 	}
 }
 
@@ -4898,6 +4936,9 @@ bool CvCityBuildings::IsBuildingSellable(const CvBuildingEntry& kBuilding) const
 			continue;
 
 		if (kBuilding.GetInstantYield((YieldTypes)iYieldLoop) > 0)
+			return false;
+
+		if (kBuilding.GetYieldFromBirthRetroactive((YieldTypes)iYieldLoop) > 0)
 			return false;
 	}
 #endif
@@ -5145,124 +5186,106 @@ int CvCityBuildings::GetNumRealBuilding(BuildingTypes eIndex) const
 }
 
 /// Accessor: Set number of these buildings that have been constructed in the city
-
-#if defined(MOD_BALANCE_CORE)
 void CvCityBuildings::SetNumRealBuilding(BuildingTypes eIndex, int iNewValue, bool bNoBonus)
 {
 	SetNumRealBuildingTimed(eIndex, iNewValue, true, m_pCity->getOwner(), GC.getGame().getGameTurnYear(), bNoBonus);
 }
-#else
-void CvCityBuildings::SetNumRealBuilding(BuildingTypes eIndex, int iNewValue)
-{
-	SetNumRealBuildingTimed(eIndex, iNewValue, true, m_pCity->getOwner(), GC.getGame().getGameTurnYear());
 
-}
-#endif
 /// Accessor: Set number of these buildings that have been constructed in the city (with date)
-#if defined(MOD_BALANCE_CORE)
 void CvCityBuildings::SetNumRealBuildingTimed(BuildingTypes eIndex, int iNewValue, bool bFirst, PlayerTypes eOriginalOwner, int iOriginalTime, bool bNoBonus)
-#else
-void CvCityBuildings::SetNumRealBuildingTimed(BuildingTypes eIndex, int iNewValue, bool bFirst, PlayerTypes eOriginalOwner, int iOriginalTime)
-#endif
 {
-	CvPlayer* pPlayer = &GET_PLAYER(m_pCity->getOwner());
+	CvPlayer& kPlayer = GET_PLAYER(m_pCity->getOwner());
 
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
 	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 
 	int iChangeNumRealBuilding = iNewValue - GetNumRealBuilding(eIndex);
+	if (iChangeNumRealBuilding == 0)
+		return;
 
 	CvBuildingEntry* buildingEntry = GC.getBuildingInfo(eIndex);
+	if (!buildingEntry)
+		return;
+
 	const BuildingClassTypes buildingClassType = buildingEntry->GetBuildingClassType();
 	const CvBuildingClassInfo& kBuildingClassInfo = buildingEntry->GetBuildingClassInfo();
 
-	if(iChangeNumRealBuilding != 0)
+	int iOldNumBuilding = GetNumBuilding(eIndex);
+
+	if (iNewValue == 0)
 	{
-		int iOldNumBuilding = GetNumBuilding(eIndex);
+		m_pCity->SetBuildingInvestment(buildingClassType, false);
+		m_pCity->GetCityCitizens()->DoRemoveAllSpecialistsFromBuilding(eIndex, CvCity::YIELD_UPDATE_GLOBAL);
+	}
 
-		if (iNewValue == 0)
+	m_paiNumRealBuilding[eIndex] = iNewValue;
+
+	if (iNewValue > 0)
+	{
+		if (std::find(m_buildingsThatExistAtLeastOnce.begin(), m_buildingsThatExistAtLeastOnce.end(), eIndex) == m_buildingsThatExistAtLeastOnce.end())
+			m_buildingsThatExistAtLeastOnce.push_back(eIndex);
+
+		SetBuildingTypeByClassDirty(true);
+	}
+	else if (GetNumFreeBuilding(eIndex)==0)
+	{
+		//we care about iteration speed, so erasing something can be cumbersome
+		std::vector<BuildingTypes>::iterator pos = std::find(m_buildingsThatExistAtLeastOnce.begin(), m_buildingsThatExistAtLeastOnce.end(), eIndex );
+		if (pos != m_buildingsThatExistAtLeastOnce.end())
+			m_buildingsThatExistAtLeastOnce.erase(pos);
+
+		SetBuildingTypeByClassDirty(true);
+	}
+
+	if(GetNumRealBuilding(eIndex) > 0)
+	{
+		SetBuildingOriginalOwner(eIndex, eOriginalOwner);
+		SetBuildingOriginalTime(eIndex, iOriginalTime);
+	}
+	else
+	{
+		SetBuildingOriginalOwner(eIndex, NO_PLAYER);
+		SetBuildingOriginalTime(eIndex, MIN_INT);
+	}
+
+	// Process building effects
+	if(iOldNumBuilding != GetNumBuilding(eIndex))
+	{
+		m_pCity->processBuilding(eIndex, iChangeNumRealBuilding, bFirst, false, false, bNoBonus);
+	}
+
+	// Maintenance cost
+	if(buildingEntry->GetGoldMaintenance() != 0)
+	{
+		kPlayer.GetTreasury()->ChangeBaseBuildingGoldMaintenance(buildingEntry->GetGoldMaintenance() * iChangeNumRealBuilding);
+	}
+
+	//Achievement for Temples
+	if (MOD_API_ACHIEVEMENTS)
+	{
+		const char* szBuildingTypeC = buildingEntry->GetType();
+		CvString szBuildingType = szBuildingTypeC;
+		if (szBuildingType == "BUILDING_TEMPLE")
 		{
-			m_pCity->SetBuildingInvestment(buildingClassType, false);
-			m_pCity->GetCityCitizens()->DoRemoveAllSpecialistsFromBuilding(eIndex, CvCity::YIELD_UPDATE_GLOBAL);
-		}
-
-		m_paiNumRealBuilding[eIndex] = iNewValue;
-
-		if (iNewValue > 0)
-		{
-			if (std::find(m_buildingsThatExistAtLeastOnce.begin(), m_buildingsThatExistAtLeastOnce.end(), eIndex) == m_buildingsThatExistAtLeastOnce.end())
-				m_buildingsThatExistAtLeastOnce.push_back(eIndex);
-
-			SetBuildingTypeByClassDirty(true);
-		}
-		else if (GetNumFreeBuilding(eIndex)==0)
-		{
-			//we care about iteration speed, so erasing something can be cumbersome
-			std::vector<BuildingTypes>::iterator pos = std::find(m_buildingsThatExistAtLeastOnce.begin(), m_buildingsThatExistAtLeastOnce.end(), eIndex );
-			if (pos != m_buildingsThatExistAtLeastOnce.end())
-				m_buildingsThatExistAtLeastOnce.erase(pos);
-
-			SetBuildingTypeByClassDirty(true);
-		}
-
-		if(GetNumRealBuilding(eIndex) > 0)
-		{
-			SetBuildingOriginalOwner(eIndex, eOriginalOwner);
-			SetBuildingOriginalTime(eIndex, iOriginalTime);
-		}
-		else
-		{
-			SetBuildingOriginalOwner(eIndex, NO_PLAYER);
-			SetBuildingOriginalTime(eIndex, MIN_INT);
-		}
-
-		// Process building effects
-		if(iOldNumBuilding != GetNumBuilding(eIndex))
-		{
-#if defined(MOD_BALANCE_CORE)
-			m_pCity->processBuilding(eIndex, iChangeNumRealBuilding, bFirst, false, false, bNoBonus);
-#else
-			m_pCity->processBuilding(eIndex, iChangeNumRealBuilding, bFirst);
-#endif
-		}
-
-		// Maintenance cost
-		if(buildingEntry->GetGoldMaintenance() != 0)
-		{
-			pPlayer->GetTreasury()->ChangeBaseBuildingGoldMaintenance(buildingEntry->GetGoldMaintenance() * iChangeNumRealBuilding);
-		}
-
-		//Achievement for Temples
-		if (MOD_API_ACHIEVEMENTS)
-		{
-			const char* szBuildingTypeC = buildingEntry->GetType();
-			CvString szBuildingType = szBuildingTypeC;
-			if (szBuildingType == "BUILDING_TEMPLE")
+			if (m_pCity->getOwner() == GC.getGame().getActivePlayer())
 			{
-				if (m_pCity->getOwner() == GC.getGame().getActivePlayer())
-				{
-					gDLL->IncrementSteamStatAndUnlock(ESTEAMSTAT_TEMPLES, 1000, ACHIEVEMENT_1000TEMPLES);
-				}
+				gDLL->IncrementSteamStatAndUnlock(ESTEAMSTAT_TEMPLES, 1000, ACHIEVEMENT_1000TEMPLES);
 			}
 		}
+	}
 
-		if(buildingEntry->GetPreferredDisplayPosition() > 0)
+	if(buildingEntry->GetPreferredDisplayPosition() > 0)
+	{
+		CvInterfacePtr<ICvCity1> pDllCity(new CvDllCity(m_pCity));
+
+		if(iNewValue > 0)
 		{
-			CvInterfacePtr<ICvCity1> pDllCity(new CvDllCity(m_pCity));
-
-			if(iNewValue > 0)
+			// if this is a WW that (likely has a half-built state)
+			if(isWorldWonderClass(kBuildingClassInfo))
 			{
-				// if this is a WW that (likely has a half-built state)
-				if(isWorldWonderClass(kBuildingClassInfo))
+				if(GetBuildingProduction(eIndex))
 				{
-					if(GetBuildingProduction(eIndex))
-					{
-						GC.GetEngineUserInterface()->AddDeferredWonderCommand(WONDER_EDITED, pDllCity.get(), eIndex, 1);
-					}
-					else
-					{
-						GC.GetEngineUserInterface()->AddDeferredWonderCommand(WONDER_CREATED, pDllCity.get(), eIndex, 1);
-					}
+					GC.GetEngineUserInterface()->AddDeferredWonderCommand(WONDER_EDITED, pDllCity.get(), eIndex, 1);
 				}
 				else
 				{
@@ -5271,159 +5294,159 @@ void CvCityBuildings::SetNumRealBuildingTimed(BuildingTypes eIndex, int iNewValu
 			}
 			else
 			{
-				GC.GetEngineUserInterface()->AddDeferredWonderCommand(WONDER_REMOVED, pDllCity.get(), eIndex, 0);
+				GC.GetEngineUserInterface()->AddDeferredWonderCommand(WONDER_CREATED, pDllCity.get(), eIndex, 1);
 			}
 		}
-
-		if(!(kBuildingClassInfo.isNoLimit()))
+		else
 		{
-			if(isWorldWonderClass(kBuildingClassInfo))
+			GC.GetEngineUserInterface()->AddDeferredWonderCommand(WONDER_REMOVED, pDllCity.get(), eIndex, 0);
+		}
+	}
+
+	if(!(kBuildingClassInfo.isNoLimit()))
+	{
+		if(isWorldWonderClass(kBuildingClassInfo))
+		{
+			m_pCity->changeNumWorldWonders(iChangeNumRealBuilding);
+			kPlayer.ChangeNumWonders(iChangeNumRealBuilding);
+		}
+		else if(isTeamWonderClass(kBuildingClassInfo))
+		{
+			m_pCity->changeNumTeamWonders(iChangeNumRealBuilding);
+		}
+		else if(isNationalWonderClass(kBuildingClassInfo))
+		{
+			m_pCity->changeNumNationalWonders(iChangeNumRealBuilding);
+			if(m_pCity->isHuman() && !GC.getGame().isGameMultiPlayer())
 			{
-				m_pCity->changeNumWorldWonders(iChangeNumRealBuilding);
-				pPlayer->ChangeNumWonders(iChangeNumRealBuilding);
+				IncrementWonderStats(buildingClassType);
 			}
-			else if(isTeamWonderClass(kBuildingClassInfo))
+		}
+		else
+		{
+			if(!buildingEntry->IsDummy())
 			{
-				m_pCity->changeNumTeamWonders(iChangeNumRealBuilding);
-			}
-			else if(isNationalWonderClass(kBuildingClassInfo))
-			{
-				m_pCity->changeNumNationalWonders(iChangeNumRealBuilding);
-				if(m_pCity->isHuman() && !GC.getGame().isGameMultiPlayer())
-				{
-					IncrementWonderStats(buildingClassType);
-				}
-			}
-			else
-			{
-#if defined(MOD_BALANCE_CORE)
-				if(!buildingEntry->IsDummy())
-				{
-#endif
 				ChangeNumBuildings(iChangeNumRealBuilding);
-#if defined(MOD_BALANCE_CORE)
-				}
-#endif
 			}
 		}
+	}
 
-		if(buildingEntry->IsCityWall())
+	if(buildingEntry->IsCityWall())
+	{
+		CvInterfacePtr<ICvPlot1> pDllPlot(new CvDllPlot(m_pCity->plot()));
+		gDLL->GameplayWallCreated(pDllPlot.get());
+	}
+
+	// Update the amount of a Resource used up by this Building
+	int iNumResources = GC.getNumResourceInfos();
+	for(int iResourceLoop = 0; iResourceLoop < iNumResources; iResourceLoop++)
+	{
+		if(buildingEntry->GetResourceQuantityRequirement(iResourceLoop) > 0)
 		{
-			CvInterfacePtr<ICvPlot1> pDllPlot(new CvDllPlot(m_pCity->plot()));
-			gDLL->GameplayWallCreated(pDllPlot.get());
+			kPlayer.changeNumResourceUsed((ResourceTypes) iResourceLoop, iChangeNumRealBuilding * buildingEntry->GetResourceQuantityRequirement(iResourceLoop));
 		}
+	}
 
-		// Update the amount of a Resource used up by this Building
-		int iNumResources = GC.getNumResourceInfos();
-		for(int iResourceLoop = 0; iResourceLoop < iNumResources; iResourceLoop++)
+	if(iChangeNumRealBuilding > 0)
+	{
+		if(bFirst)
 		{
-			if(buildingEntry->GetResourceQuantityRequirement(iResourceLoop) > 0)
+			if(GC.getGame().isFinalInitialized()/* && !(gDLL->GetWorldBuilderMode() )*/)
 			{
-				pPlayer->changeNumResourceUsed((ResourceTypes) iResourceLoop, iChangeNumRealBuilding * buildingEntry->GetResourceQuantityRequirement(iResourceLoop));
-			}
-		}
-
-		if(iChangeNumRealBuilding > 0)
-		{
-			if(bFirst)
-			{
-				if(GC.getGame().isFinalInitialized()/* && !(gDLL->GetWorldBuilderMode() )*/)
+				// World Wonder Notification
+				if(isWorldWonderClass(kBuildingClassInfo))
 				{
-					// World Wonder Notification
-					if(isWorldWonderClass(kBuildingClassInfo))
+					Localization::String localizedText = Localization::Lookup("TXT_KEY_MISC_COMPLETES_WONDER");
+					localizedText << kPlayer.getNameKey() << buildingEntry->GetTextKey();
+					GC.getGame().addReplayMessage(REPLAY_MESSAGE_MAJOR_EVENT, m_pCity->getOwner(), localizedText.toUTF8(), m_pCity->getX(), m_pCity->getY());
+
+					bool bDontShowRewardPopup = GC.GetEngineUserInterface()->IsOptionNoRewardPopups();
+
+					// Notification in MP games
+					if(bDontShowRewardPopup || GC.getGame().isReallyNetworkMultiPlayer())
 					{
-						Localization::String localizedText = Localization::Lookup("TXT_KEY_MISC_COMPLETES_WONDER");
-						localizedText << pPlayer->getNameKey() << buildingEntry->GetTextKey();
-						GC.getGame().addReplayMessage(REPLAY_MESSAGE_MAJOR_EVENT, m_pCity->getOwner(), localizedText.toUTF8(), m_pCity->getX(), m_pCity->getY());
-
-						bool bDontShowRewardPopup = GC.GetEngineUserInterface()->IsOptionNoRewardPopups();
-
-						// Notification in MP games
-						if(bDontShowRewardPopup || GC.getGame().isReallyNetworkMultiPlayer())
+						CvNotifications* pNotifications = GET_PLAYER(m_pCity->getOwner()).GetNotifications();
+						if(pNotifications)
 						{
-							CvNotifications* pNotifications = GET_PLAYER(m_pCity->getOwner()).GetNotifications();
-							if(pNotifications)
-							{
-								localizedText = Localization::Lookup("TXT_KEY_MISC_WONDER_COMPLETED");
-								localizedText << pPlayer->getNameKey() << buildingEntry->GetTextKey();
-								pNotifications->Add(NOTIFICATION_WONDER_COMPLETED_ACTIVE_PLAYER, localizedText.toUTF8(), localizedText.toUTF8(), m_pCity->getX(), m_pCity->getY(), eIndex, pPlayer->GetID());
-							}
+							localizedText = Localization::Lookup("TXT_KEY_MISC_WONDER_COMPLETED");
+							localizedText << kPlayer.getNameKey() << buildingEntry->GetTextKey();
+							pNotifications->Add(NOTIFICATION_WONDER_COMPLETED_ACTIVE_PLAYER, localizedText.toUTF8(), localizedText.toUTF8(), m_pCity->getX(), m_pCity->getY(), eIndex, kPlayer.GetID());
 						}
-						// Popup in SP games
-						else
+					}
+					// Popup in SP games
+					else
+					{
+						if(m_pCity->getOwner() == GC.getGame().getActivePlayer())
 						{
-							if(m_pCity->getOwner() == GC.getGame().getActivePlayer())
+							CvPopupInfo kPopup(BUTTONPOPUP_WONDER_COMPLETED_ACTIVE_PLAYER, eIndex);
+							GC.GetEngineUserInterface()->AddPopup(kPopup);
+
+							if (MOD_API_ACHIEVEMENTS && GET_PLAYER(GC.getGame().getActivePlayer()).isHuman())
 							{
-								CvPopupInfo kPopup(BUTTONPOPUP_WONDER_COMPLETED_ACTIVE_PLAYER, eIndex);
-								GC.GetEngineUserInterface()->AddPopup(kPopup);
+								gDLL->UnlockAchievement(ACHIEVEMENT_BUILD_WONDER);
 
-								if (MOD_API_ACHIEVEMENTS && GET_PLAYER(GC.getGame().getActivePlayer()).isHuman())
-								{
-									gDLL->UnlockAchievement(ACHIEVEMENT_BUILD_WONDER);
-
-									//look to see if all wonders have been built to unlock the other one
-									IncrementWonderStats(buildingClassType);
-								}
-							}
-						}
-
-						// Wonder notification for all other players
-						for(int iI = 0; iI < MAX_MAJOR_CIVS; iI++)
-						{
-							CvPlayerAI& thisPlayer = GET_PLAYER((PlayerTypes)iI);
-							if(thisPlayer.isAlive() || thisPlayer.isObserver())
-							{
-								// Owner already got his messaging
-								if(iI != m_pCity->getOwner())
-								{
-									// If the builder is met, and the city is revealed
-									// Special case for DLC_06 Scenario: Always show the more informative notification
-									if((m_pCity->plot()->isRevealed(thisPlayer.getTeam()) && GET_TEAM(thisPlayer.getTeam()).isHasMet(m_pCity->getTeam())) || gDLL->IsModActivated(CIV5_DLC_06_SCENARIO_MODID) || thisPlayer.isObserver())
-									{
-										CvNotifications* pNotifications = thisPlayer.GetNotifications();
-										if(pNotifications)
-										{
-											localizedText = Localization::Lookup("TXT_KEY_MISC_WONDER_COMPLETED");
-											localizedText << pPlayer->getNameKey() << buildingEntry->GetTextKey();
-											pNotifications->Add(NOTIFICATION_WONDER_COMPLETED, localizedText.toUTF8(), localizedText.toUTF8(), m_pCity->getX(), m_pCity->getY(), eIndex, pPlayer->GetID());
-										}
-									}
-									else
-									{
-										CvNotifications* pNotifications = thisPlayer.GetNotifications();
-										if(pNotifications)
-										{
-											localizedText = Localization::Lookup("TXT_KEY_MISC_WONDER_COMPLETED_UNKNOWN");
-											localizedText <<  buildingEntry->GetTextKey();
-											pNotifications->Add(NOTIFICATION_WONDER_COMPLETED, localizedText.toUTF8(), localizedText.toUTF8(), -1, -1, eIndex, -1);
-										}
-									}
-								}
-							}
-
-							//Achievements!
-							if (MOD_API_ACHIEVEMENTS && pPlayer->GetID() == GC.getGame().getActivePlayer() && strcmp(buildingEntry->GetType(), "BUILDING_GREAT_FIREWALL") == 0)
-							{
-								gDLL->UnlockAchievement(ACHIEVEMENT_XP1_16);
+								//look to see if all wonders have been built to unlock the other one
+								IncrementWonderStats(buildingClassType);
 							}
 						}
 					}
+
+					// Wonder notification for all other players
+					for(int iI = 0; iI < MAX_MAJOR_CIVS; iI++)
+					{
+						CvPlayerAI& thisPlayer = GET_PLAYER((PlayerTypes)iI);
+						if(thisPlayer.isAlive() || thisPlayer.isObserver())
+						{
+							// Owner already got his messaging
+							if(iI != m_pCity->getOwner())
+							{
+								// If the builder is met, and the city is revealed
+								// Special case for DLC_06 Scenario: Always show the more informative notification
+								if((m_pCity->plot()->isRevealed(thisPlayer.getTeam()) && GET_TEAM(thisPlayer.getTeam()).isHasMet(m_pCity->getTeam())) || gDLL->IsModActivated(CIV5_DLC_06_SCENARIO_MODID) || thisPlayer.isObserver())
+								{
+									CvNotifications* pNotifications = thisPlayer.GetNotifications();
+									if(pNotifications)
+									{
+										localizedText = Localization::Lookup("TXT_KEY_MISC_WONDER_COMPLETED");
+										localizedText << kPlayer.getNameKey() << buildingEntry->GetTextKey();
+										pNotifications->Add(NOTIFICATION_WONDER_COMPLETED, localizedText.toUTF8(), localizedText.toUTF8(), m_pCity->getX(), m_pCity->getY(), eIndex, kPlayer.GetID());
+									}
+								}
+								else
+								{
+									CvNotifications* pNotifications = thisPlayer.GetNotifications();
+									if(pNotifications)
+									{
+										localizedText = Localization::Lookup("TXT_KEY_MISC_WONDER_COMPLETED_UNKNOWN");
+										localizedText <<  buildingEntry->GetTextKey();
+										pNotifications->Add(NOTIFICATION_WONDER_COMPLETED, localizedText.toUTF8(), localizedText.toUTF8(), -1, -1, eIndex, -1);
+									}
+								}
+							}
+						}
+
+						//Achievements!
+						if (MOD_API_ACHIEVEMENTS && kPlayer.GetID() == GC.getGame().getActivePlayer() && strcmp(buildingEntry->GetType(), "BUILDING_GREAT_FIREWALL") == 0)
+						{
+							gDLL->UnlockAchievement(ACHIEVEMENT_XP1_16);
+						}
+					}
 				}
-
-				GC.getGame().incrementBuildingClassCreatedCount(buildingClassType);
 			}
+
+			GC.getGame().incrementBuildingClassCreatedCount(buildingClassType);
 		}
-
-		m_pCity->updateStrengthValue();
-
-		// Building might affect City Banner stats
-		CvInterfacePtr<ICvCity1> pCity = GC.WrapCityPointer(m_pCity);
-		GC.GetEngineUserInterface()->SetSpecificCityInfoDirty(pCity.get(), CITY_UPDATE_TYPE_BANNER);
-
-		//Test for any achievements being unlocked.
-		if (MOD_API_ACHIEVEMENTS)
-			pPlayer->GetPlayerAchievements().FinishedBuilding(m_pCity, eIndex);
 	}
+
+	m_pCity->updateStrengthValue();
+
+	// Building might affect City Banner stats
+	CvInterfacePtr<ICvCity1> pCity = GC.WrapCityPointer(m_pCity);
+	GC.GetEngineUserInterface()->SetSpecificCityInfoDirty(pCity.get(), CITY_UPDATE_TYPE_BANNER);
+
+	//Test for any achievements being unlocked.
+	if (MOD_API_ACHIEVEMENTS)
+		kPlayer.GetPlayerAchievements().FinishedBuilding(m_pCity, eIndex);
 }
 
 /// Accessor: Get number of free buildings of this type in city
@@ -5503,9 +5526,9 @@ int CvCityBuildings::GetBuildingYieldChange(BuildingClassTypes eBuildingClass, Y
 {
 	for(std::vector<BuildingYieldChange>::const_iterator it = m_aBuildingYieldChange.begin(); it != m_aBuildingYieldChange.end(); ++it)
 	{
-		if((*it).eBuildingClass == eBuildingClass && (*it).eYield == eYield)
+		if(it->eBuildingClass == eBuildingClass && it->eYield == eYield)
 		{
-			return (*it).iChange;
+			return it->iChange;
 		}
 	}
 
@@ -5515,47 +5538,34 @@ int CvCityBuildings::GetBuildingYieldChange(BuildingClassTypes eBuildingClass, Y
 /// Accessor: Set yield boost for a specific building by yield type
 void CvCityBuildings::SetBuildingYieldChange(BuildingClassTypes eBuildingClass, YieldTypes eYield, int iChange)
 {
-	for(std::vector<BuildingYieldChange>::iterator it = m_aBuildingYieldChange.begin(); it != m_aBuildingYieldChange.end(); ++it)
+	for (std::vector<BuildingYieldChange>::iterator it = m_aBuildingYieldChange.begin(); it != m_aBuildingYieldChange.end(); ++it)
 	{
-		if((*it).eBuildingClass == eBuildingClass && (*it).eYield == eYield)
+		if (it->eBuildingClass == eBuildingClass && it->eYield == eYield)
 		{
-			int iOldChange = (*it).iChange;
-			if(iOldChange != iChange)
+			int iOldChange = it->iChange;
+			if (iOldChange != iChange)
 			{
 
-				if(iChange == 0)
+				if (iChange == 0)
 				{
 					m_aBuildingYieldChange.erase(it);
 				}
 				else
 				{
-					(*it).iChange = iChange;
+					it->iChange = iChange;
 				}
 
-				BuildingTypes eBuilding = NO_BUILDING;
-
-				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
+				BuildingTypes eBuilding = m_pCity->GetBuildingTypeFromClass(eBuildingClass);
+				if (eBuilding != NO_BUILDING && GetNumActiveBuilding(eBuilding) > 0)
 				{
-					eBuilding = GetBuildingTypeFromClass(eBuildingClass);
-				}
-				else
-				{
-					eBuilding = (BuildingTypes)GC.getCivilizationInfo(m_pCity->getCivilizationType())->getCivilizationBuildings(eBuildingClass);
-				}
-				if(NO_BUILDING != eBuilding)
-				{
-					if(GetNumActiveBuilding(eBuilding) > 0)
-					{
-						m_pCity->ChangeBaseYieldRateFromBuildings(eYield, (iChange - iOldChange) * GetNumActiveBuilding(eBuilding));
-					}
+					m_pCity->ChangeBaseYieldRateFromBuildings(eYield, (iChange - iOldChange) * GetNumActiveBuilding(eBuilding));
 				}
 			}
-
 			return;
 		}
 	}
 
-	if(0 != iChange)
+	if (iChange != 0)
 	{
 		BuildingYieldChange kChange;
 		kChange.eBuildingClass = eBuildingClass;
@@ -5563,22 +5573,10 @@ void CvCityBuildings::SetBuildingYieldChange(BuildingClassTypes eBuildingClass, 
 		kChange.iChange = iChange;
 		m_aBuildingYieldChange.push_back(kChange);
 
-		BuildingTypes eBuilding = NO_BUILDING;
-
-		if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
+		BuildingTypes eBuilding = m_pCity->GetBuildingTypeFromClass(eBuildingClass);
+		if (eBuilding != NO_BUILDING && GetNumActiveBuilding(eBuilding) > 0)
 		{
-			eBuilding = GetBuildingTypeFromClass(eBuildingClass);
-		}
-		else
-		{
-			eBuilding = (BuildingTypes)GC.getCivilizationInfo(m_pCity->getCivilizationType())->getCivilizationBuildings(eBuildingClass);
-		}
-		if(NO_BUILDING != eBuilding)
-		{
-			if(GetNumActiveBuilding(eBuilding) > 0)
-			{
-				m_pCity->ChangeBaseYieldRateFromBuildings(eYield, iChange * GetNumActiveBuilding(eBuilding));
-			}
+			m_pCity->ChangeBaseYieldRateFromBuildings(eYield, iChange * GetNumActiveBuilding(eBuilding));
 		}
 	}
 }
@@ -5592,11 +5590,11 @@ void CvCityBuildings::ChangeBuildingYieldChange(BuildingClassTypes eBuildingClas
 /// Accessor: Get Great Work in a specific building by slot index
 int CvCityBuildings::GetBuildingGreatWork(BuildingClassTypes eBuildingClass, int iSlot) const
 {
-	for(std::vector<BuildingGreatWork>::const_iterator it = m_aBuildingGreatWork.begin(); it != m_aBuildingGreatWork.end(); ++it)
+	for (std::vector<BuildingGreatWork>::const_iterator it = m_aBuildingGreatWork.begin(); it != m_aBuildingGreatWork.end(); ++it)
 	{
-		if((*it).eBuildingClass == eBuildingClass && (*it).iSlot == iSlot)
+		if (it->eBuildingClass == eBuildingClass && it->iSlot == iSlot)
 		{
-			return (*it).iGreatWorkIndex;
+			return it->iGreatWorkIndex;
 		}
 	}
 
@@ -5685,7 +5683,7 @@ bool CvCityBuildings::HasAnyAvailableGreatWorkSlot() const
 	BuildingClassTypes eBuildingClass = NO_BUILDINGCLASS; // Passed by reference below
 	int iSlot = -1; // Passed by reference below
 
-	return GetNextAvailableGreatWorkSlot (&eBuildingClass, &iSlot);
+	return GetNextAvailableGreatWorkSlot(eBuildingClass, iSlot);
 }
 
 /// Accessor: Is there a Great Work slot of this type somewhere in the city?
@@ -5694,7 +5692,7 @@ bool CvCityBuildings::HasAvailableGreatWorkSlot(GreatWorkSlotType eSlotType) con
 	BuildingClassTypes eBuildingClass = NO_BUILDINGCLASS; // Passed by reference below
 	int iSlot = -1; // Passed by reference below
 
-	return GetNextAvailableGreatWorkSlot (eSlotType, &eBuildingClass, &iSlot);
+	return GetNextAvailableGreatWorkSlot(eSlotType, eBuildingClass, iSlot);
 }
 
 /// Accessor: How many Great Work slots of this type are in the city?
@@ -5744,37 +5742,31 @@ int CvCityBuildings::GetNumFilledGreatWorkSlots(GreatWorkSlotType eSlotType) con
 }
 
 /// Accessor: Is there a Great Work slot of this type somewhere in the city?
-bool CvCityBuildings::GetNextAvailableGreatWorkSlot(BuildingClassTypes *eBuildingClass, int *iSlot) const
+bool CvCityBuildings::GetNextAvailableGreatWorkSlot(BuildingClassTypes& eBuildingClass, int& iSlot) const
 {
 	if (eBuildingClass && iSlot)
 	{
-		for(int iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
+		for (int iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
 		{
-			BuildingClassTypes eLoopBuildingClass = (BuildingClassTypes) iI;
-			BuildingTypes eBuilding = NO_BUILDING;
+			BuildingClassTypes eLoopBuildingClass = static_cast<BuildingClassTypes>(iI);
+			BuildingTypes eBuilding = m_pCity->GetBuildingTypeFromClass(eLoopBuildingClass);
+			if (eBuilding == NO_BUILDING)
+				continue;
 
-			if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
+			CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
+			if (!pkBuildingInfo)
+				continue;
+
+			if (GetNumBuilding(eBuilding) > 0)
 			{
-				eBuilding = GetBuildingTypeFromClass(eLoopBuildingClass);
-			}
-			else
-			{
-				eBuilding = (BuildingTypes)GC.getCivilizationInfo(m_pCity->getCivilizationType())->getCivilizationBuildings(eLoopBuildingClass);
-			}
-			if(NO_BUILDING != eBuilding)
-			{
-				CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
-				if (pkBuildingInfo && GetNumBuilding(eBuilding) > 0)
+				int iNumSlots = pkBuildingInfo->GetGreatWorkCount();
+				for (int iJ = 0; iJ < iNumSlots; iJ++)
 				{
-					int iNumSlots = pkBuildingInfo->GetGreatWorkCount();
-					for (int jJ = 0; jJ < iNumSlots; jJ++)
+					if (GetBuildingGreatWork(eLoopBuildingClass, iJ) == NO_GREAT_WORK)
 					{
-						if (GetBuildingGreatWork (eLoopBuildingClass, jJ) == NO_GREAT_WORK)
-						{
-							*eBuildingClass = eLoopBuildingClass;
-							*iSlot = jJ;
-							return true;
-						}
+						eBuildingClass = eLoopBuildingClass;
+						iSlot = iJ;
+						return true;
 					}
 				}
 			}
@@ -5785,39 +5777,33 @@ bool CvCityBuildings::GetNextAvailableGreatWorkSlot(BuildingClassTypes *eBuildin
 }
 
 /// Accessor: Is there a Great Work slot of this type somewhere in the city?
-bool CvCityBuildings::GetNextAvailableGreatWorkSlot(GreatWorkSlotType eGreatWorkSlot, BuildingClassTypes *eBuildingClass, int *iSlot) const
+bool CvCityBuildings::GetNextAvailableGreatWorkSlot(GreatWorkSlotType eGreatWorkSlot, BuildingClassTypes& eBuildingClass, int& iSlot) const
 {
 	if (eBuildingClass && iSlot)
 	{
-		for(int iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
+		for (int iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
 		{
-			BuildingClassTypes eLoopBuildingClass = (BuildingClassTypes) iI;
-			BuildingTypes eBuilding = NO_BUILDING;
+			BuildingClassTypes eLoopBuildingClass = static_cast<BuildingClassTypes>(iI);
+			BuildingTypes eBuilding = m_pCity->GetBuildingTypeFromClass(eLoopBuildingClass);
+			if (eBuilding == NO_BUILDING)
+				continue;
 
-			if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
+			CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
+			if (!pkBuildingInfo)
+				continue;
+
+			if (GetNumBuilding(eBuilding) > 0)
 			{
-				eBuilding = GetBuildingTypeFromClass(eLoopBuildingClass);
-			}
-			else
-			{
-				eBuilding = (BuildingTypes)GC.getCivilizationInfo(m_pCity->getCivilizationType())->getCivilizationBuildings(eLoopBuildingClass);
-			}
-			if(NO_BUILDING != eBuilding)
-			{
-				CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
-				if (pkBuildingInfo && GetNumBuilding(eBuilding) > 0)
+				if (pkBuildingInfo->GetGreatWorkSlotType() == eGreatWorkSlot)
 				{
-					if (pkBuildingInfo->GetGreatWorkSlotType() == eGreatWorkSlot)
+					int iNumSlots = pkBuildingInfo->GetGreatWorkCount();
+					for (int iJ = 0; iJ < iNumSlots; iJ++)
 					{
-						int iNumSlots = pkBuildingInfo->GetGreatWorkCount();
-						for (int jJ = 0; jJ < iNumSlots; jJ++)
+						if (GetBuildingGreatWork(eLoopBuildingClass, iJ) == NO_GREAT_WORK)
 						{
-							if (GetBuildingGreatWork (eLoopBuildingClass, jJ) == NO_GREAT_WORK)
-							{
-								*eBuildingClass = eLoopBuildingClass;
-								*iSlot = jJ;
-								return true;
-							}
+							eBuildingClass = eLoopBuildingClass;
+							iSlot = iJ;
+							return true;
 						}
 					}
 				}
@@ -5958,13 +5944,8 @@ int CvCityBuildings::GetYieldFromGreatWorks(YieldTypes eYield) const
 	int iRtnValue = (iStandardWorkCount * iBaseYield);
 	iRtnValue += (iRealWorkCount * iSecondaryYield);
 	//Then theming bonuses for the yield.
-#if defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
 	iRtnValue += GetCurrentThemingBonuses(eYield);
-#else
-	if (eYield == YIELD_CULTURE) {
-		iRtnValue += GetCurrentThemingBonuses();
-	}
-#endif
+
 	//Next add in any UA or extra theming bonuses.
 	iRtnValue += (iTypeBonuses + iThemingBonusTotal);
 
@@ -5978,140 +5959,86 @@ int CvCityBuildings::GetCultureFromGreatWorks() const
 }
 
 /// Accessor: How many Great Works of specific slot type present in this city?
-#if defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
 int CvCityBuildings::GetNumGreatWorks(bool bIgnoreYield) const
-#else
-int CvCityBuildings::GetNumGreatWorks() const
-#endif
 {
-#if defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
 	int iRtnValue = 0;
 
-	CvCivilizationInfo *pkCivInfo = GC.getCivilizationInfo(m_pCity->getCivilizationType());
-	if (pkCivInfo)
+	for (std::vector<BuildingGreatWork>::const_iterator it = m_aBuildingGreatWork.begin(); it != m_aBuildingGreatWork.end(); ++it)
 	{
-		for(std::vector<BuildingGreatWork>::const_iterator it = m_aBuildingGreatWork.begin(); it != m_aBuildingGreatWork.end(); ++it)
+		BuildingClassTypes eBuildingClass = it->eBuildingClass;
+		BuildingTypes eBuilding = m_pCity->GetBuildingTypeFromClass(eBuildingClass);
+		CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
+		if (pkBuildingInfo)
 		{
-			BuildingClassTypes eBldgClass = (*it).eBuildingClass;
-			CvBuildingClassInfo *pkClassInfo = GC.getBuildingClassInfo(eBldgClass);
-			if (pkClassInfo)
+			if (bIgnoreYield || pkBuildingInfo->GetGreatWorkYieldType() != NO_YIELD)
 			{
-				BuildingTypes eBuilding = NO_BUILDING;
-
-				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
-				{
-					eBuilding = GetBuildingTypeFromClass(eBldgClass);
-				}
-				else
-				{
-					eBuilding = (BuildingTypes)pkCivInfo->getCivilizationBuildings(eBldgClass);
-				}
-
-				CvBuildingEntry *pkInfo = GC.getBuildingInfo(eBuilding);
-				if (pkInfo)
-				{
-					if (bIgnoreYield || pkInfo->GetGreatWorkYieldType() != NO_YIELD)
-					{
-						iRtnValue++;
-					}
-				}
+				iRtnValue++;
 			}
 		}
 	}
+
 	return iRtnValue;
-#else
-	// Simple if want total of all types
-	return m_aBuildingGreatWork.size();
-#endif
 }
 
 /// Accessor: How many Great Works of specific slot type present in this city?
-#if defined(MOD_BALANCE_CORE)
 int CvCityBuildings::GetNumGreatWorks(GreatWorkSlotType eGreatWorkSlot, bool bArtifact, bool bArt) const
-#else
-int CvCityBuildings::GetNumGreatWorks(GreatWorkSlotType eGreatWorkSlot) const
-#endif
 {
 	if (eGreatWorkSlot == NO_GREAT_WORK_SLOT)
 		return 0;
 
 	int iRtnValue = 0;
-#if defined(MOD_BALANCE_CORE)
-	GreatWorkClass eArtifactsClass = (GreatWorkClass)GC.getInfoTypeForString("GREAT_WORK_ARTIFACT");
-	GreatWorkClass eArtClass = (GreatWorkClass)GC.getInfoTypeForString("GREAT_WORK_ART");
-#endif
-	CvCivilizationInfo *pkCivInfo = GC.getCivilizationInfo(m_pCity->getCivilizationType());
-	if (pkCivInfo)
+	GreatWorkClass eArtifactsClass = static_cast<GreatWorkClass>(GC.getInfoTypeForString("GREAT_WORK_ARTIFACT"));
+	GreatWorkClass eArtClass = static_cast<GreatWorkClass>(GC.getInfoTypeForString("GREAT_WORK_ART"));
+	for (std::vector<BuildingGreatWork>::const_iterator it = m_aBuildingGreatWork.begin(); it != m_aBuildingGreatWork.end(); ++it)
 	{
-		for(std::vector<BuildingGreatWork>::const_iterator it = m_aBuildingGreatWork.begin(); it != m_aBuildingGreatWork.end(); ++it)
+		BuildingClassTypes eBuildingClass = it->eBuildingClass;
+		BuildingTypes eBuilding = m_pCity->GetBuildingTypeFromClass(eBuildingClass);
+		CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
+		if (!pkBuildingInfo)
+			continue;
+
+		// Art/Artifact need distinction here, because they occupy the same slot!
+		if (bArtifact)
 		{
-			BuildingClassTypes eBldgClass = (*it).eBuildingClass;
-			CvBuildingClassInfo *pkClassInfo = GC.getBuildingClassInfo(eBldgClass);
-			if (pkClassInfo)
+			CvGreatWork work = GC.getGame().GetGameCulture()->m_CurrentGreatWorks[it->iGreatWorkIndex];
+
+			// Check Great Work class
+			if (work.m_eClassType == eArtifactsClass)
 			{
-				BuildingTypes eBuilding = NO_BUILDING;
-
-				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
-				{
-
-					eBuilding = GetBuildingTypeFromClass(eBldgClass);
-				}
-				else
-				{
-					eBuilding = (BuildingTypes)pkCivInfo->getCivilizationBuildings(eBldgClass);
-				}
-				CvBuildingEntry *pkInfo = GC.getBuildingInfo(eBuilding);
-				if (pkInfo)
-				{
-#if defined(MOD_BALANCE_CORE)
-					//Art/Artifact need distinction here, because they occupy the same slot!
-					if(bArtifact)
-					{
-						CvGreatWork work = GC.getGame().GetGameCulture()->m_CurrentGreatWorks[(*it).iGreatWorkIndex];
-
-						// Check Great Work class
-						if (work.m_eClassType == eArtifactsClass)
-						{
-							iRtnValue++;
-						}
-					}
-					else if(bArt)
-					{
-						CvGreatWork work = GC.getGame().GetGameCulture()->m_CurrentGreatWorks[(*it).iGreatWorkIndex];
-
-						// Check Great Work class
-						if (work.m_eClassType == eArtClass)
-						{
-							iRtnValue++;
-						}
-					}
-					else
-#endif
-					if (pkInfo->GetGreatWorkSlotType() == eGreatWorkSlot)
-					{
-						iRtnValue++;
-					}
-				}
+				iRtnValue++;
 			}
 		}
+		else if (bArt)
+		{
+			CvGreatWork work = GC.getGame().GetGameCulture()->m_CurrentGreatWorks[it->iGreatWorkIndex];
+
+			// Check Great Work class
+			if (work.m_eClassType == eArtClass)
+			{
+				iRtnValue++;
+			}
+		}
+		else if (pkBuildingInfo->GetGreatWorkSlotType() == eGreatWorkSlot)
+		{
+			iRtnValue++;
+		}
 	}
+
 	return iRtnValue;
 }
-#if defined(MOD_BALANCE_CORE)
+
 int CvCityBuildings::GetThemingBonusIndex(BuildingTypes eBuilding) const
 {
 	return m_paiThemingBonusIndex[eBuilding];
 }
+
 void CvCityBuildings::SetThemingBonusIndex(BuildingTypes eBuilding, int iIndex)
 {
 	CvAssertMsg(eBuilding >= 0, "eBuilding expected to be >= 0");
 	CvAssertMsg(eBuilding < GetNumBuildings(), "eBuilding expected to be < GetNumBuildings()");
-	if (GetThemingBonusIndex(eBuilding) != iIndex)
-	{
-		m_paiThemingBonusIndex[eBuilding] = iIndex;
-	}
+	m_paiThemingBonusIndex[eBuilding] = iIndex;
 }
-#endif
+
 /// Accessor: Get tourism converted from culture from Improvements and Wonders
 int CvCityBuildings::GetLandmarksTourismPercent() const
 {
@@ -6145,16 +6072,11 @@ void CvCityBuildings::ChangeGreatWorksTourismModifier(int iChange)
 }
 
 /// Accessor: Total theming bonus from all buildings in the city
-#if defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
 int CvCityBuildings::GetCurrentThemingBonuses(YieldTypes eYield) const
-#else
-int CvCityBuildings::GetCurrentThemingBonuses() const
-#endif
 {
 	int iTotal = 0;
 	for(std::vector<BuildingTypes>::const_iterator iI=m_buildingsThatExistAtLeastOnce.begin(); iI!=m_buildingsThatExistAtLeastOnce.end(); ++iI)
 	{
-#if defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
 		CvBuildingEntry *pkBuilding = GC.getBuildingInfo(*iI);
 		if (pkBuilding)
 		{
@@ -6178,9 +6100,6 @@ int CvCityBuildings::GetCurrentThemingBonuses() const
 				iTotal += iBonus;
 			}
 		}
-#else
-		iTotal += m_pCity->GetCityCulture()->GetThemingBonus( (BuildingClassTypes)pkInfo->GetBuildingClassType() );
-#endif
 	}
 
 	return iTotal;
@@ -6539,8 +6458,6 @@ bool CvCityBuildings::CheckForSevenAncientWondersBuilt()
 void CvCityBuildings::NotifyNewBuildingStarted(BuildingTypes /*eIndex*/)
 {
 	// JON: Disabling this notification
-	return;
-
 	// is this city starting a wonder? If so, send a notification
 	//CvBuildingEntry* buildingEntry = GC.getBuildingInfo(eIndex);
 	//if (isLimitedWonderClass((BuildingClassTypes)(buildingEntry->GetBuildingClassType())) && GetBuildingProductionTimes100(eIndex) == 0)
@@ -6643,7 +6560,7 @@ void BuildingArrayHelpers::Write(FDataStream& kStream, int* paiBuildingArray, in
 		}
 		else
 		{
-			kStream << (int)0;
+			kStream << 0;
 		}
 	}
 }

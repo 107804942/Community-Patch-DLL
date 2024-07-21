@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -12,6 +12,7 @@
 #include "CvDllDeal.h"
 #include "CvDllPlayer.h"
 #include "CvDealAI.h"
+#include "CvDiplomacyAI.h"
 
 CvDllDealAI::CvDllDealAI(CvDealAI* pDealAI)
 	: m_pDealAI(pDealAI)
@@ -88,33 +89,46 @@ ICvPlayer1* CvDllDealAI::GetPlayer()
 //------------------------------------------------------------------------------
 int CvDllDealAI::DoHumanOfferDealToThisAI(ICvDeal1* pDeal)
 {
-	CvDeal* pkDeal = (NULL != pDeal)? dynamic_cast<CvDllDeal*>(pDeal)->GetInstance() : NULL;
+	CvDeal* pkDeal = (NULL != pDeal)? static_cast<CvDllDeal*>(pDeal)->GetInstance() : NULL;
 	return m_pDealAI->DoHumanOfferDealToThisAI(pkDeal);
 }
 //------------------------------------------------------------------------------
 void CvDllDealAI::DoAcceptedDeal(PlayerTypes eFromPlayer, ICvDeal1* pDeal, int iDealValueToMe, int iValueImOffering, int iValueTheyreOffering)
 {
-	CvDeal* pkDeal = (NULL != pDeal)? dynamic_cast<CvDllDeal*>(pDeal)->GetInstance() : NULL;
-	if(pkDeal != NULL)
-		m_pDealAI->DoAcceptedDeal(eFromPlayer, *pkDeal, iDealValueToMe, iValueImOffering, iValueTheyreOffering);
+	CvDeal* pkDeal = (NULL != pDeal)? static_cast<CvDllDeal*>(pDeal)->GetInstance() : NULL;
+	if (pkDeal != NULL)
+	{
+		// hack for multiplayer: we use DoAcceptedDeal with the following values to convey the information that a renew deal has been canceled
+		if (iDealValueToMe == INT_MAX && iValueImOffering == INT_MAX && iValueTheyreOffering == INT_MAX)
+		{
+			PlayerTypes eCancelingPlayer = eFromPlayer;
+			PlayerTypes eOtherPlayer = m_pDealAI->GetPlayer()->GetID();
+			// we don't want to run into an infinite loop of network messages being sent back and forth
+			GET_PLAYER(eFromPlayer).GetDiplomacyAI()->CancelRenewDeal(eOtherPlayer, NO_REASON, false, pkDeal, false, /*bSendNetworkMessage*/ false);
+		}
+		else
+		{
+			m_pDealAI->DoAcceptedDeal(eFromPlayer, *pkDeal, iDealValueToMe, iValueImOffering, iValueTheyreOffering);
+		}
+	}
 }
 //------------------------------------------------------------------------------
 int CvDllDealAI::DoHumanDemand(ICvDeal1* pDeal)
 {
-	CvDeal* pkDeal = (NULL != pDeal)? dynamic_cast<CvDllDeal*>(pDeal)->GetInstance() : NULL;
+	CvDeal* pkDeal = (NULL != pDeal)? static_cast<CvDllDeal*>(pDeal)->GetInstance() : NULL;
 	return m_pDealAI->DoHumanDemand(pkDeal);
 }
 //------------------------------------------------------------------------------
 void CvDllDealAI::DoAcceptedDemand(PlayerTypes eFromPlayer, ICvDeal1* pDeal)
 {
-	CvDeal* pkDeal = (NULL != pDeal)? dynamic_cast<CvDllDeal*>(pDeal)->GetInstance() : NULL;
+	CvDeal* pkDeal = (NULL != pDeal)? static_cast<CvDllDeal*>(pDeal)->GetInstance() : NULL;
 	if(pkDeal != NULL)
 		m_pDealAI->DoAcceptedDemand(eFromPlayer, *pkDeal);
 }
 //------------------------------------------------------------------------------
 bool CvDllDealAI::DoEqualizeDealWithHuman(ICvDeal1* pDeal, PlayerTypes eOtherPlayer, bool bDontChangeMyExistingItems, bool bDontChangeTheirExistingItems, bool& bDealGoodToBeginWith, bool& bCantMatchOffer)
 {
-	CvDeal* pkDeal = (NULL != pDeal)? dynamic_cast<CvDllDeal*>(pDeal)->GetInstance() : NULL;
+	CvDeal* pkDeal = (NULL != pDeal)? static_cast<CvDllDeal*>(pDeal)->GetInstance() : NULL;
 	return m_pDealAI->DoEqualizeDeal(pkDeal, eOtherPlayer, bDealGoodToBeginWith, bCantMatchOffer, true);
 }
 //------------------------------------------------------------------------------

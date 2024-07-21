@@ -252,6 +252,9 @@ public:
 	int GetTurnTeamMet(TeamTypes eTeam) const;
 	void SetTurnTeamMet(TeamTypes eTeam, int iTurn);
 
+	int GetNumTurnsAtWar(TeamTypes eTeam) const;
+	void SetTurnWarStarted(TeamTypes eTeam, int iTurn);
+
 	bool IsHasFoundPlayersTerritory(PlayerTypes ePlayer) const;
 	bool SetHasFoundPlayersTerritory(PlayerTypes ePlayer, bool bValue);
 
@@ -261,10 +264,6 @@ public:
 	bool isAtWar(TeamTypes eIndex) const;
 	void setAtWar(TeamTypes eIndex, bool bNewValue, bool bAggressorPacifier);
 	bool HasCommonEnemy(TeamTypes eOtherTeam) const;
-
-	int GetNumTurnsAtWar(TeamTypes eTeam) const;
-	void SetNumTurnsAtWar(TeamTypes eTeam, int iValue);
-	void ChangeNumTurnsAtWar(TeamTypes eTeam, int iChange);
 
 	int GetNumTurnsLockedIntoWar(TeamTypes eTeam) const;
 	void SetNumTurnsLockedIntoWar(TeamTypes eTeam, int iValue);
@@ -350,11 +349,7 @@ public:
 	bool isTerrainTrade(TerrainTypes eIndex) const;
 	void changeTerrainTradeCount(TerrainTypes eIndex, int iChange);
 
-#if defined(MOD_BALANCE_CORE)
 	void setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, bool bFirst, bool bAnnounce, bool bNoBonus = false);
-#else
-	void setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, bool bFirst, bool bAnnounce);
-#endif
 	CvTeamTechs* GetTeamTechs() const;
 
 	int GetTechProgressPercent() const;
@@ -479,7 +474,7 @@ public:
 	void SetNumTurnsSinceVassalTaxSet(PlayerTypes ePlayer, int iValue);
 	void ChangeNumTurnsSinceVassalTaxSet(PlayerTypes ePlayer, int iChange);
 
-	int GetSSProjectCount();
+	int GetSSProjectCount(bool bIncludeApollo = true);
 
 	// Wrapper for giving Players on this Team a notification message
 	void AddNotification(NotificationTypes eNotificationType, const char* strMessage, const char* strSummary, int iX = -1, int iY = -1, int iGameDataIndex = -1, int iExtraGameData = -1);
@@ -551,7 +546,6 @@ protected:
 	TeamTypes m_eKilledByTeam;
 
 	Firaxis::Array< int, REALLY_MAX_TEAMS > m_aiTechShareCount;
-	Firaxis::Array< int, REALLY_MAX_TEAMS > m_aiNumTurnsAtWar;
 	Firaxis::Array< int, REALLY_MAX_TEAMS > m_aiNumTurnsLockedIntoWar;
 	Firaxis::Array< int, NUM_DOMAIN_TYPES > m_aiExtraMoves;
 	Firaxis::Array< int, REALLY_MAX_TEAMS > m_paiTurnMadePeaceTreatyWithTeam;
@@ -568,7 +562,8 @@ protected:
 	Firaxis::Array< bool, REALLY_MAX_TEAMS > m_abResearchAgreement;
 	Firaxis::Array< bool, REALLY_MAX_TEAMS > m_abForcePeace;
 	Firaxis::Array< bool, REALLY_MAX_TEAMS > m_abWonLatestWar;
-	Firaxis::Array< int, REALLY_MAX_PLAYERS > m_aiTurnTeamMet;
+	Firaxis::Array< int, REALLY_MAX_TEAMS > m_aiTurnTeamMet;
+	Firaxis::Array< int, REALLY_MAX_TEAMS > m_aiTurnWarStarted;
 
 	typedef
 	FAllocArrayType< int,
@@ -649,17 +644,13 @@ protected:
 	void updateTechShare();
 
 	void testCircumnavigated();
-#if defined(MOD_BALANCE_CORE)
 	void processTech(TechTypes eTech, int iChange, bool bNoBonus = false);
-#else
-	void processTech(TechTypes eTech, int iChange);
-#endif
 	void cancelDefensivePacts();
 	void announceTechToPlayers(TechTypes eIndex, bool bPartial = false);
 
 	void DoNowAtWarOrPeace(TeamTypes eTeam, bool bWar);
 
-	void DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamTypes eTeam, bool bDefensivePact, bool bMinorAllyPact = false);
+	void DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamTypes eTeam, bool bDefensivePact, TeamTypes eDefensivePactTeam = NO_TEAM, bool bMinorAllyPact = false);
 	void DoMakePeace(PlayerTypes eOriginatingPlayer, bool bPacifier, TeamTypes eTeam, bool bBumpUnits, bool bSuppressNotification = false);
 };
 

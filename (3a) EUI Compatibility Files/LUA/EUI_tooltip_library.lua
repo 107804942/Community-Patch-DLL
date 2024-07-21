@@ -562,12 +562,19 @@ local function GetHelpTextForBuilding( buildingID, bExcludeName, bExcludeHeader,
 	local buildingClass = GameInfo.BuildingClasses[ buildingClassType ]
 	local buildingClassID = buildingClass and buildingClass.ID
 	local activePlayerID = Game and Game.GetActivePlayer()
+	-- when viewing a (foreign) city, always show tooltips as they are for the city owner
+	if (city ~= nil) then
+		activePlayerID = city:GetOwner();
+	end
 	local activePlayer = activePlayerID and Players[ activePlayerID ]
 	local maxGlobalInstances = buildingClass and tonumber(buildingClass.MaxGlobalInstances) or 0
 	local thisBuildingType = { BuildingType = buildingType }
 	local thisBuildingAndResourceTypes =  { BuildingType = buildingType }
 	local thisBuildingClassType = { BuildingClassType = buildingClassType }
 	local activeTeamID = Game and Game.GetActiveTeam()
+	if (city ~= nil) then
+		activeTeamID = activePlayer:GetTeam();
+	end
 	local activeTeam = activeTeamID and Teams[ activeTeamID ]
 	local activeTeamTechs = activeTeam and activeTeam:GetTeamTechs()
 	local activePlayerIdeologyID = bnw_mode and activePlayer and activePlayer:GetLateGamePolicyTree()
@@ -619,6 +626,7 @@ local function GetHelpTextForBuilding( buildingID, bExcludeName, bExcludeHeader,
 	local maintenanceCost = tonumber(building[g_maintenanceCurrency]) or 0
 	local happinessChange = (tonumber(building.Happiness) or 0) + (tonumber(building.UnmoddedHappiness) or 0)
 	local defenseChange = tonumber(building.Defense) or 0
+	local defenseModifier = tonumber(building.BuildingDefenseModifier) or 0
 	local hitPointChange = tonumber(building.ExtraCityHitPoints) or 0
 	local damageReductionChange = tonumber(building.DamageReductionFlat) or 0
 	local cultureChange = not gk_mode and tonumber(building.Culture) or 0
@@ -724,9 +732,6 @@ local function GetHelpTextForBuilding( buildingID, bExcludeName, bExcludeHeader,
 					yieldChange = yieldChange + city:GetLeagueBuildingClassYieldChange( buildingClassID, yieldID )
 				end
 -- CBP
-				if yield.Type == "YIELD_CULTURE" then
-					yieldChange = yieldChange + city:GetBuildingClassCultureChange(buildingClassID )
-				end
 				
 				yieldChange = yieldChange + city:GetLocalBuildingClassYield(buildingClassID, yieldID)
 					
@@ -853,6 +858,9 @@ local function GetHelpTextForBuilding( buildingID, bExcludeName, bExcludeHeader,
 	-- Defense:
 	if defenseChange ~=0 then
 		tip = S("%s %+g[ICON_STRENGTH]", tip, defenseChange / 100 )
+	end
+	if defenseModifier ~=0 then
+		tip = S("%s %+g%%[ICON_STRENGTH]", tip, defenseModifier )
 	end
 	if hitPointChange ~=0 then
 		tip = tip .. " " .. L( "TXT_KEY_PEDIA_DEFENSE_HITPOINTS", hitPointChange )
@@ -1910,6 +1918,10 @@ local function GetYieldTooltip( city, yieldID, baseYield, totalYield, yieldIconS
 	if gk_mode then
 		tips:insertLocalizedBulletIfNonZero( "TXT_KEY_YIELD_FROM_RELIGION", city:GetBaseYieldRateFromReligion( yieldID ), yieldIconString )
 	end
+	
+	if(yieldID == YieldTypes.YIELD_PRODUCTION and city:IsIndustrialConnectedToCapital()) then
+		tips:insertLocalizedBulletIfNonZero("TXT_KEY_YIELD_FROM_INDUSTRIAL_CITY_CONNECTION", city:GetConnectionGoldTimes100() / 100, yieldIconString )
+	end
 
 -- CBP
 	-- Yield Increase from City Yields
@@ -2006,8 +2018,25 @@ end
 
 -- Yield Tooltip Helper
 local function GetYieldTooltipHelper( city, yieldID, yieldIconString )
-
-	return GetYieldTooltip( city, yieldID, city:GetBaseYieldRate( yieldID ) + city:GetYieldPerPopTimes100( yieldID ) * city:GetPopulation() / 100, yieldID == YieldTypes.YIELD_FOOD and city:FoodDifferenceTimes100()/100 or city:GetYieldRateTimes100( yieldID )/100, yieldIconString, city:GetYieldModifierTooltip( yieldID ) )
+	local iBaseYield = city:GetBaseYieldRate( yieldID )
+	local iYieldPerPop = city:GetYieldPerPopTimes100(yieldID);
+	if (iYieldPerPop ~= 0) then
+		iYieldPerPop = iYieldPerPop * city:GetPopulation();
+		iYieldPerPop = iYieldPerPop / 100;
+		
+		iBaseYield = iBaseYield + iYieldPerPop;
+	end
+	local iYieldPerPopInEmpire = city:GetYieldPerPopInEmpireTimes100(yieldID);
+	if (iYieldPerPopInEmpire ~= 0) then
+		iYieldPerPopInEmpire = iYieldPerPopInEmpire * Players[city:GetOwner()]:GetTotalPopulation();
+		iYieldPerPopInEmpire = iYieldPerPopInEmpire / 100;
+		
+		iBaseYield = iBaseYield + iYieldPerPopInEmpire;
+	end
+	if yieldID == YieldTypes.YIELD_PRODUCTION and city:IsIndustrialConnectedToCapital() then
+		iBaseYield = iBaseYield + city:GetConnectionGoldTimes100() / 100
+	end
+	return GetYieldTooltip( city, yieldID, iBaseYield, yieldID == YieldTypes.YIELD_FOOD and city:FoodDifferenceTimes100()/100 or city:GetYieldRateTimes100( yieldID )/100, yieldIconString, city:GetYieldModifierTooltip( yieldID ) )
 end
 
 -- FOOD
@@ -2177,7 +2206,25 @@ local function GetProductionTooltip( city )
 			strModifiersString = strModifiersString .. L( "TXT_KEY_PRODMOD_FOOD_CONVERSION", productionFromFood / 100 )
 		end
 	end
-	tipText = GetYieldTooltip( city, YieldTypes.YIELD_PRODUCTION, city:GetBaseYieldRate( YieldTypes.YIELD_PRODUCTION ) + city:GetYieldPerPopTimes100( YieldTypes.YIELD_PRODUCTION ) * city:GetPopulation() / 100, productionPerTurn100 / 100, "[ICON_PRODUCTION]", strModifiersString ) .. "[NEWLINE][NEWLINE]" .. tipText
+	local iBaseProductionPT = city:GetBaseYieldRate(YieldTypes.YIELD_PRODUCTION)
+	local iYieldPerPop = city:GetYieldPerPopTimes100(YieldTypes.YIELD_PRODUCTION);
+	if (iYieldPerPop ~= 0) then
+		iYieldPerPop = iYieldPerPop * city:GetPopulation();
+		iYieldPerPop = iYieldPerPop / 100;
+		
+		iBaseProductionPT = iBaseProductionPT + iYieldPerPop;
+	end
+	local iYieldPerPopInEmpire = city:GetYieldPerPopInEmpireTimes100(YieldTypes.YIELD_PRODUCTION);
+	if (iYieldPerPopInEmpire ~= 0) then
+		iYieldPerPopInEmpire = iYieldPerPopInEmpire * Players[city:GetOwner()]:GetTotalPopulation();
+		iYieldPerPopInEmpire = iYieldPerPopInEmpire / 100;
+		
+		iBaseProductionPT = iBaseProductionPT + iYieldPerPopInEmpire;
+	end
+	if city:IsIndustrialConnectedToCapital() then
+		iBaseProductionPT = iBaseProductionPT + city:GetConnectionGoldTimes100() / 100
+	end
+	tipText = GetYieldTooltip( city, YieldTypes.YIELD_PRODUCTION, iBaseProductionPT, productionPerTurn100 / 100, "[ICON_PRODUCTION]", strModifiersString ) .. "[NEWLINE][NEWLINE]" .. tipText
 
 	-- Basic explanation of production
 	if isNoob then

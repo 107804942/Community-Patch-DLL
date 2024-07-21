@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -261,7 +261,7 @@ void CvFlavorManager::RemoveFlavorRecipient(CvFlavorRecipient* pTargetObject)
 			m_FlavorTargetList.erase(iter);
 			return;
 		}
-		iter++;
+		++iter;
 	}
 }
 
@@ -304,7 +304,7 @@ void CvFlavorManager::ChangeActivePersonalityFlavors(const CvEnumMap<FlavorTypes
 		}
 	}
 
-	for (Flavor_List::iterator it = m_FlavorTargetList.begin(); it != m_FlavorTargetList.end(); it++)
+	for (Flavor_List::iterator it = m_FlavorTargetList.begin(); it != m_FlavorTargetList.end(); ++it)
 	{
 		if ((*it)->IsCity())
 			continue;
@@ -315,7 +315,7 @@ void CvFlavorManager::ChangeActivePersonalityFlavors(const CvEnumMap<FlavorTypes
 
 void CvFlavorManager::ChangeCityFlavors(const CvEnumMap<FlavorTypes, int>& piDeltaFlavorValues, const char* reason, bool effectstart)
 {
-	for (Flavor_List::iterator it = m_FlavorTargetList.begin(); it != m_FlavorTargetList.end(); it++)
+	for (Flavor_List::iterator it = m_FlavorTargetList.begin(); it != m_FlavorTargetList.end(); ++it)
 	{
 		if ((*it)->IsCity())
 			(*it)->ChangeFlavors(piDeltaFlavorValues, reason, effectstart);
@@ -448,7 +448,7 @@ int CvFlavorManager::GetAdjustedValue(int iOriginalValue, int iPlusMinus, int iM
 /// Sends base personality flavor settings to all recipients
 void CvFlavorManager::BroadcastBaseFlavors()
 {
-	for(Flavor_List::iterator it = m_FlavorTargetList.begin(); it != m_FlavorTargetList.end(); it++)
+	for(Flavor_List::iterator it = m_FlavorTargetList.begin(); it != m_FlavorTargetList.end(); ++it)
 	{
 		(*it)->SetFlavors(m_piPersonalityFlavor, "BASEFLAVOR");
 	}

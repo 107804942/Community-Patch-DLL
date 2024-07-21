@@ -11,109 +11,131 @@ CustomMods::CustomMods() :
 {
 }
 
-
-// I would rather have all of this shit here (where it need never be read more than once) to make the calling of events cleaner in the main code
+// This function hooks an event with a variable number of arguments.
 int CustomMods::eventHook(const char* szName, const char* p, ...) {
+	// Initialize an argument handle for Lua.
 	CvLuaArgsHandle args;
 
-	va_list vl = NULL;
+	// Initialize the variable argument list.
+	va_list vl;
 	va_start(vl, p);
 
+	// Iterate through the format string to handle each argument.
 	for (const char* it = p; *it; ++it) {
 		if (*it == 'b') {
-			// It's a boolean
+			// Handle boolean arguments.
 			args->Push(!!va_arg(vl, int));
 		} else if (*it == 'i') {
-			// It's an int
+			// Handle integer arguments.
 			args->Push(va_arg(vl, int));
 		} else {
-			// Assume it's a string (char *)
+			// Assume it's a string argument.
 			char* s = va_arg(vl, char*);
 			args->Push(s, strlen(s));
-			break;
+			break; // Exit after processing the first string argument.
 		}
 	}
 
+	// Clean up the variable argument list.
 	va_end(vl);
 
+	// Call the event hook with the constructed arguments.
 	return eventHook(szName, args);
 }
 
+// This function tests all conditions for an event with a variable number of arguments.
 int CustomMods::eventTestAll(const char* szName, const char* p, ...) {
+	// Initialize an argument handle for Lua.
 	CvLuaArgsHandle args;
 
-	va_list vl = NULL;
-	va_start(vl, p);
+	// Initialize the variable argument list.
+    va_list vl;
+    va_start(vl, p);
 
+	// Iterate through the format string to handle each argument.
 	for (const char* it = p; *it; ++it) {
 		if (*it == 'b') {
-			// It's a boolean
+			// Handle boolean arguments.
 			args->Push(!!va_arg(vl, int));
 		} else if (*it == 'i') {
-			// It's an int
+			// Handle integer arguments.
 			args->Push(va_arg(vl, int));
 		} else {
-			// Assume it's a string (char *)
+			// Assume it's a string argument.
 			char* s = va_arg(vl, char*);
 			args->Push(s, strlen(s));
-			break;
+			break; // Exit after processing the first string argument.
 		}
 	}
 
+	// Clean up the variable argument list.
 	va_end(vl);
 
+	// Call the event test function with the constructed arguments.
 	return eventTestAll(szName, args);
 }
 
+// This function tests any condition for an event with a variable number of arguments.
 int CustomMods::eventTestAny(const char* szName, const char* p, ...) {
+	// Initialize an argument handle for Lua.
 	CvLuaArgsHandle args;
 
-	va_list vl = NULL;
+	// Initialize the variable argument list.
+	va_list vl;
 	va_start(vl, p);
 
+	// Iterate through the format string to handle each argument.
 	for (const char* it = p; *it; ++it) {
 		if (*it == 'b') {
-			// It's a boolean
+			// Handle boolean arguments.
 			args->Push(!!va_arg(vl, int));
 		} else if (*it == 'i') {
-			// It's an int
+			// Handle integer arguments.
 			args->Push(va_arg(vl, int));
 		} else {
-			// Assume it's a string (char *)
+			// Assume it's a string argument.
 			char* s = va_arg(vl, char*);
 			args->Push(s, strlen(s));
-			break;
+			break; // Exit after processing the first string argument.
 		}
 	}
 
+	// Clean up the variable argument list.
 	va_end(vl);
 
+	// Call the event test function with the constructed arguments.
 	return eventTestAny(szName, args);
 }
 
+// This function accumulates results for an event with a variable number of arguments.
 int CustomMods::eventAccumulator(int &iValue, const char* szName, const char* p, ...) {
+	// Initialize an argument handle for Lua.
 	CvLuaArgsHandle args;
 
-	va_list vl = NULL;
+	// Initialize the variable argument list.
+	va_list vl;
 	va_start(vl, p);
 
+	// Iterate through the format string to handle each argument.
 	for (const char* it = p; *it; ++it) {
 		if (*it == 'b') {
-			// It's a boolean
+			// Handle boolean arguments.
 			args->Push(!!va_arg(vl, int));
 		} else if (*it == 'i') {
-			// It's an int
+			// Handle integer arguments.
 			args->Push(va_arg(vl, int));
 		} else {
-			// Assume it's a string (char *)
+			// Assume it's a string argument.
 			char* s = va_arg(vl, char*);
 			args->Push(s, strlen(s));
-			break;
+			break; // Exit after processing the first string argument.
 		}
 	}
 
+	// Clean up the variable argument list.
 	va_end(vl);
 
+	// Call the event accumulator with the constructed arguments.
 	return eventAccumulator(iValue, szName, args);
 }
 
@@ -283,6 +305,7 @@ int CustomMods::getOption(const string& sOption, int defValue) {
 		MOD_OPT_CACHE(GLOBAL_LOCAL_GENERALS);
 		MOD_OPT_CACHE(LOCAL_GENERALS_NEAREST_CITY);
 		MOD_OPT_CACHE(GLOBAL_SEPARATE_GREAT_ADMIRAL);
+		MOD_OPT_CACHE(RIVER_CITY_CONNECTIONS);
 		MOD_OPT_CACHE(GLOBAL_PROMOTION_CLASSES);
 		MOD_OPT_CACHE(GLOBAL_PASSABLE_FORTS);
 		MOD_OPT_CACHE(GLOBAL_ANYTIME_GOODY_GOLD);
@@ -334,7 +357,6 @@ int CustomMods::getOption(const string& sOption, int defValue) {
 		MOD_OPT_CACHE(BALANCE_CORE);
 		MOD_OPT_CACHE(BALANCE_CORE_YIELDS);
 		MOD_OPT_CACHE(BALANCE_CORE_SPIES);
-		MOD_OPT_CACHE(BALANCE_CORE_SPIES_ADVANCED);
 		MOD_OPT_CACHE(BALANCE_CORE_MILITARY);
 		MOD_OPT_CACHE(BALANCE_CORE_SETTLER_ADVANCED);
 		MOD_OPT_CACHE(BALANCE_CORE_MINORS);
@@ -473,6 +495,7 @@ int CustomMods::getOption(const string& sOption, int defValue) {
 		MOD_OPT_CACHE(RELIGION_PASSIVE_SPREAD_WITH_CONNECTION_ONLY);
 		MOD_OPT_CACHE(RELIGION_EXTENSIONS);
 		MOD_OPT_CACHE(RELIGION_PERMANENT_PANTHEON);
+		MOD_OPT_CACHE(CORE_REDUCE_NOTIFICATIONS);
 		MOD_OPT_CACHE(CORE_NO_RANGED_ATTACK_FROM_CITIES);
 		MOD_OPT_CACHE(CORE_RELAXED_BORDER_CHECK);
 
@@ -558,6 +581,13 @@ int CustomMods::getOption(const string& sOption, int defValue) {
 
 		MOD_OPT_CACHE(BATTLE_ROYALE);
 
+		MOD_OPT_CACHE(CORE_TWO_PASS_DANGER);
+		MOD_OPT_CACHE(CORE_DELAYED_VISIBILITY);
+		MOD_OPT_CACHE(CORE_HOVERING_UNITS);
+		MOD_OPT_CACHE(CORE_RESILIENT_PANTHEONS);
+
+		MOD_OPT_CACHE(UNIT_KILL_STATS);
+
 		MOD_OPT_CACHE(AI_UNIT_PRODUCTION);
 		MOD_OPT_CACHE(ADJACENT_BLOCKADE);
 		MOD_OPT_CACHE(ATTRITION);
@@ -568,6 +598,7 @@ int CustomMods::getOption(const string& sOption, int defValue) {
 		MOD_OPT_CACHE(NOT_FOR_SALE);
 		MOD_OPT_CACHE(NOTIFICATION_SETTINGS);
 		MOD_OPT_CACHE(LOG_MAP_STATE);
+		MOD_OPT_CACHE(ROUTE_PLANNER);
 
 		m_bInit = true;
 	}

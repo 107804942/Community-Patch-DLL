@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	� 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -389,6 +389,58 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 		}
 	}
 
+	if (pkBuildingInfo->AllowsIndustrialWaterRoutes())
+	{
+		CvCity* pCapital = kPlayer.getCapitalCity();
+		if (m_pCity->GetTradePrioritySea() <= 0 && m_pCity->IsIndustrialRouteToCapitalConnected())
+		{
+			iBonus -= 50;
+		}
+		else if (pCapital != NULL && !pCapital->HasSharedAreaWith(m_pCity, true, true))
+		{
+			iBonus += 10 * max(1, m_pCity->getPopulation());
+		}
+		else
+		{
+			iBonus += 5 * max(1, m_pCity->getPopulation());
+		}
+
+		//Higher value the higher the number of routes.
+		if (kPlayer.GetPlayerTraits()->GetSeaTradeRouteRangeBonus() > 0 || kPlayer.getTradeRouteSeaDistanceModifier() != 0)
+		{
+			iBonus += m_pCity->GetTradePrioritySea() * 5;
+		}
+	}
+
+	if (pkBuildingInfo->AllowsAirRoutes())
+	{
+		CvCity* pCapital = kPlayer.getCapitalCity();
+		int iLocalBonus = 0;
+		if (m_pCity->IsRouteToCapitalConnected())
+		{
+			iLocalBonus -= 50;
+		}
+		else if (pCapital != NULL && !pCapital->HasSharedAreaWith(m_pCity, true, true))
+		{
+			iLocalBonus += 10 * max(1, m_pCity->getPopulation());
+		}
+		else
+		{
+			iLocalBonus += 5 * max(1, m_pCity->getPopulation());
+		}
+
+		int iUnhappyConnection = m_pCity->GetUnhappinessFromIsolation();
+		if (iUnhappyConnection > 0)
+		{
+			iLocalBonus += (iUnhappyConnection * 10);
+			bGoodforHappiness = true;
+			bGoodforGPT = true;
+		}
+
+		if (iLocalBonus > 0)
+			iBonus += iLocalBonus;
+	}
+
 	//bonus to sea trade
 	if (pkBuildingInfo->GetTradeRouteSeaDistanceModifier() > 0)
 	{
@@ -412,6 +464,7 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 
 	///Resources check
 	int iLuxuries = 0;
+	ResourceTypes eAluminum = (ResourceTypes)GC.getInfoTypeForString("RESOURCE_ALUMINUM", true);
 	for(int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 	{
 		const ResourceTypes eResource = static_cast<ResourceTypes>(iResourceLoop);
@@ -422,6 +475,30 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 			if(pkBuildingInfo->GetResourceQuantityRequirement(eResource) > 0 && (CityStrategyAIHelpers::IsTestCityStrategy_IsPuppetAndAnnexable(m_pCity) || m_pCity->isHumanAutomated()))
 			{
 				return SR_STRATEGY;
+			}
+
+			// the building needs aluminum? check if we'd still have enough for the spaceship
+			if (eResource == eAluminum && pkBuildingInfo->GetResourceQuantityRequirement(eResource) > 0)
+			{
+				const vector<int>& vCitiesForSpaceshipParts = kPlayer.GetCoreCitiesForSpaceshipProduction();
+				if (std::find(vCitiesForSpaceshipParts.begin(), vCitiesForSpaceshipParts.end(), m_pCity->GetID()) == vCitiesForSpaceshipParts.end())
+				{
+					// this is not one of the core cities for spaceship parts. only build something if we'd still have enough aluminum for spaceship parts and for buildings in the core cities
+					int iNumAluminumWeCanUse = kPlayer.getNumResourceAvailable(eResource, true) - kPlayer.GetNumAluminumStillNeededForSpaceship() - kPlayer.GetNumAluminumStillNeededForCoreCities();
+					if (pkBuildingInfo->GetResourceQuantityRequirement(eResource) > iNumAluminumWeCanUse)
+					{
+						return SR_STRATEGY;
+					}
+				}
+				else
+				{
+					// in the core cities we do want to build the building, unless we need the aluminum for the spaceship parts
+					int iNumAluminumWeCanUse = kPlayer.getNumResourceAvailable(eResource, true) - kPlayer.GetNumAluminumStillNeededForSpaceship();
+					if (pkBuildingInfo->GetResourceQuantityRequirement(eResource) > iNumAluminumWeCanUse)
+					{
+						return SR_STRATEGY;
+					}
+				}
 			}
 
 			if(pkBuildingInfo->GetResourceQuantity(eResource) > 0)
@@ -482,7 +559,7 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 			{
 				if(pkBuildingInfo->GetBuildingClassHappiness(pkLoopBuilding->GetBuildingClassType()) > 0)
 				{
-					iBonus += (kPlayer.getBuildingClassCount((BuildingClassTypes)pkLoopBuilding->GetBuildingClassType()) * 25);
+					iBonus += (kPlayer.getBuildingClassCount(pkLoopBuilding->GetBuildingClassType()) * 25);
 					bGoodforHappiness = true;
 				}
 			}
@@ -689,7 +766,7 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 	if (MOD_BALANCE_CORE_BUILDING_INVESTMENTS && !bIgnoreSituational)
 	{
 		//Virtually force this.
-		const BuildingClassTypes eBuildingClass = (BuildingClassTypes)(pkBuildingInfo->GetBuildingClassType());
+		const BuildingClassTypes eBuildingClass = pkBuildingInfo->GetBuildingClassType();
 		if(m_pCity->IsBuildingInvestment(eBuildingClass))
 		{
 			iBonus += 1000;
@@ -758,9 +835,8 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 			if(eTestDomain != NO_DOMAIN)
 			{
 				int iTempBonus = 0;
-#if defined(MOD_BALANCE_CORE)
 				int iTempMod = 0;
-#endif
+
 				if(pkBuildingInfo->GetDomainFreeExperience(eTestDomain) > 0 || pkBuildingInfo->GetDomainFreeExperiencePerGreatWork(eTestDomain))
 				{
 					iTempBonus += (m_pCity->getDomainFreeExperience(eTestDomain) + pkBuildingInfo->GetDomainFreeExperience(eTestDomain) + pkBuildingInfo->GetDomainFreeExperiencePerGreatWork(eTestDomain));
@@ -773,7 +849,6 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 				{
 					iTempBonus += (m_pCity->getDomainFreeExperience(eTestDomain) +  pkBuildingInfo->GetDomainFreeExperiencePerGreatWorkGlobal(eTestDomain));
 				}
-#if defined(MOD_BALANCE_CORE)
 				if (pkBuildingInfo->GetDomainFreeExperienceGlobal(eTestDomain) > 0)
 				{
 					iTempBonus += m_pCity->getDomainFreeExperience(eTestDomain) + kPlayer.GetDomainFreeExperience(eTestDomain) + pkBuildingInfo->GetDomainFreeExperienceGlobal(eTestDomain);
@@ -785,7 +860,6 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 
 				iTempBonus *= (100 + iTempMod);
 				iTempBonus /= 100;
-#endif
 				if(iTempBonus > 0)
 				{
 					//Let's try to build our military buildings in our best cities only. More cities we have, the more this matters.
@@ -802,6 +876,7 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 			}
 		}
 	}
+
 	//Unitcombat Bonuses should stack too.
 	if (!CityStrategyAIHelpers::IsTestCityStrategy_IsPuppetAndAnnexable(m_pCity))
 	{
@@ -815,6 +890,10 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 				if(pkBuildingInfo->GetUnitCombatProductionModifier(eUnitCombatClass) > 0)
 				{
 					iTempBonus += m_pCity->getUnitCombatProductionModifier(eUnitCombatClass) + pkBuildingInfo->GetUnitCombatProductionModifier(eUnitCombatClass);
+				}
+				if(pkBuildingInfo->GetUnitCombatProductionModifierGlobal(eUnitCombatClass) > 0)
+				{
+					iTempBonus += kPlayer.getUnitCombatProductionModifiers(eUnitCombatClass) + m_pCity->getUnitCombatProductionModifier(eUnitCombatClass) + pkBuildingInfo->GetUnitCombatProductionModifierGlobal(eUnitCombatClass);
 				}
 				if(pkBuildingInfo->GetUnitCombatFreeExperience(eUnitCombatClass) > 0)
 				{

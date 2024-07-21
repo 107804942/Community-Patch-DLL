@@ -70,6 +70,7 @@ CvBeliefEntry::CvBeliefEntry() :
 	m_bRequiresPeace(false),
 	m_bConvertsBarbarians(false),
 	m_bFaithPurchaseAllGreatPeople(false),
+
 #if defined(MOD_BALANCE_CORE_BELIEFS_RESOURCE)
 	m_bRequiresImprovement(false),
 	m_bRequiresResource(false),
@@ -120,6 +121,7 @@ CvBeliefEntry::CvBeliefEntry() :
 	m_iReducePolicyRequirements(0),
 	m_iCSYieldBonus(0),
 #endif
+
 #if defined(MOD_BALANCE_CORE)
 	m_eRequiredCivilization(NO_CIVILIZATION),
 #endif
@@ -162,11 +164,13 @@ CvBeliefEntry::CvBeliefEntry() :
 	m_piYieldFromBarbarianKills(NULL),
 	m_ppiPlotYieldChange(NULL),
 	m_pbFaithPurchaseUnitSpecificEnabled(NULL),
+
 #if defined(MOD_RELIGION_EXTENSIONS)
 	m_aiFreePromotions(),
 	m_pbiYieldFromImprovementBuild(),
 	m_pbiYieldFromPillageGlobal(),
 #endif
+
 	m_piResourceHappiness(NULL),
 	m_piYieldChangeAnySpecialist(NULL),
 	m_piYieldChangeTradeRoute(NULL),
@@ -1856,11 +1860,7 @@ void CvBeliefXMLEntries::DeleteArray()
 /// Get a specific entry
 CvBeliefEntry* CvBeliefXMLEntries::GetEntry(int index)
 {
-#if defined(MOD_BALANCE_CORE)
-	return (index!=NO_BELIEF) ? m_paBeliefEntries[index] : NULL;
-#else
-	return m_paBeliefEntries[index];
-#endif
+	return (index != NO_BELIEF) ? m_paBeliefEntries[index] : NULL;
 }
 
 //=====================================
@@ -1868,118 +1868,30 @@ CvBeliefEntry* CvBeliefXMLEntries::GetEntry(int index)
 //=====================================
 /// Constructor
 CvReligionBeliefs::CvReligionBeliefs() :
-#if !defined(MOD_BALANCE_CORE_BELIEFS)
-m_paiBuildingClassEnabled(NULL)
-#else
-m_ReligionBeliefs(),
-m_BeliefLookup(),
-m_eReligion(NO_RELIGION)
-#endif
+	m_eReligion(NO_RELIGION),
+	m_BeliefLookup(GC.GetGameBeliefs()->GetNumBeliefs(), 0),
+	m_ReligionBeliefs()
 {
 	Reset();
 }
 
-/// Destructor
-CvReligionBeliefs::~CvReligionBeliefs(void)
-{
-	Uninit();
-}
-
 /// Copy Constructor with typical parameters
-CvReligionBeliefs::CvReligionBeliefs(const CvReligionBeliefs& source)
+CvReligionBeliefs::CvReligionBeliefs(const CvReligionBeliefs& source) :
+	m_eReligion(source.m_eReligion),
+	m_BeliefLookup(source.m_BeliefLookup),
+	m_ReligionBeliefs(source.m_ReligionBeliefs)
 {
-	m_ReligionBeliefs = source.m_ReligionBeliefs;
-#if defined(MOD_BALANCE_CORE)
-	m_BeliefLookup = source.m_BeliefLookup;
-	m_eReligion = source.m_eReligion;
-#endif
-#if !defined(MOD_BALANCE_CORE_BELIEFS)
-	m_paiBuildingClassEnabled = FNEW(int[GC.getNumBuildingClassInfos()], c_eCiv5GameplayDLL, 0);
-	for(int iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
-	{
-		CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo((BuildingClassTypes)iI);
-		if(!pkBuildingClassInfo)
-		{
-			continue;
-		}
-
-		m_paiBuildingClassEnabled[iI] = source.m_paiBuildingClassEnabled[iI];
-	}
-#endif
-}
-
-/// Deallocate memory created in initialize
-void CvReligionBeliefs::Uninit()
-{
-#if !defined(MOD_BALANCE_CORE_BELIEFS)
-	SAFE_DELETE_ARRAY(m_paiBuildingClassEnabled);
-#endif
+	// No need to call Reset here since we're copying the state from source
 }
 
 /// Reset data members
 void CvReligionBeliefs::Reset()
 {
-#if !defined(MOD_BALANCE_CORE_BELIEFS)
-	m_iFaithFromDyingUnits = 0;
-	m_iRiverHappiness = 0;
-	m_iPlotCultureCostModifier = 0;
-	m_iCityRangeStrikeModifier = 0;
-	m_iCombatModifierEnemyCities = 0;
-	m_iCombatModifierFriendlyCities = 0;
-	m_iFriendlyHealChange = 0;
-	m_iCityStateFriendshipModifier = 0;
-	m_iLandBarbarianConversionPercent = 0;
-	m_iSpreadDistanceModifier = 0;
-	m_iSpreadStrengthModifier = 0;
-	m_iProphetStrengthModifier = 0;
-	m_iProphetCostModifier = 0;
-	m_iMissionaryStrengthModifier = 0;
-	m_iMissionaryCostModifier = 0;
-	m_iFriendlyCityStateSpreadModifier = 0;
-	m_iGreatPersonExpendedFaith = 0;
-	m_iCityStateMinimumInfluence = 0;
-	m_iCityStateInfluenceModifier = 0;
-	m_iOtherReligionPressureErosion = 0;
-	m_iSpyPressure = 0;
-	m_iInquisitorPressureRetention = 0;
-	m_iFaithBuildingTourism = 0;
-
-#if defined(MOD_BALANCE_CORE_BELIEFS)
-	m_iCombatVersusOtherReligionOwnLands = 0;
-	m_iCombatVersusOtherReligionTheirLands = 0;
-	m_iMissionaryInfluenceCS = 0;
-	m_iHappinessPerPantheon = 0;
-	m_iExtraVotes = 0;
-#endif
-#if defined(MOD_BALANCE_CORE)
-	m_eRequiredCivilization = NO_CIVILIZATION;
-#endif
-
-	m_eObsoleteEra = NO_ERA;
-	m_eResourceRevealed = NO_RESOURCE;
-	m_eSpreadModifierDoublingTech = NO_TECH;
-#endif
-
 	m_ReligionBeliefs.clear();
-#if defined(MOD_BALANCE_CORE)
 	m_eReligion = NO_RELIGION;
 	m_BeliefLookup = std::vector<int>(GC.GetGameBeliefs()->GetNumBeliefs(),0);
-#endif
-#if !defined(MOD_BALANCE_CORE_BELIEFS)
-	m_paiBuildingClassEnabled = FNEW(int[GC.getNumBuildingClassInfos()], c_eCiv5GameplayDLL, 0);
-	for(int iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
-	{
-		CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo((BuildingClassTypes)iI);
-		if(!pkBuildingClassInfo)
-		{
-			continue;
-		}
-
-		m_paiBuildingClassEnabled[iI] = 0;
-	}
-#endif
 }
-#if defined(MOD_BALANCE_CORE)
+
 void CvReligionBeliefs::SetReligion(ReligionTypes eReligion)
 {
 	m_eReligion = eReligion;
@@ -1988,83 +1900,30 @@ ReligionTypes CvReligionBeliefs::GetReligion() const
 {
 	return m_eReligion;
 }
-#endif
+
 /// Store off data on bonuses from beliefs
 void CvReligionBeliefs::AddBelief(BeliefTypes eBelief)
 {
 	CvAssert(eBelief != NO_BELIEF);
-	if(eBelief == NO_BELIEF)
+	if (eBelief == NO_BELIEF)
 		return;
 
 	CvBeliefEntry* belief = GC.GetGameBeliefs()->GetEntry(eBelief);
-	CvAssert(belief != NULL);
-	if(belief == NULL)
+	CvAssert(belief);
+	if (!belief)
 		return;
-#if !defined(MOD_BALANCE_CORE_BELIEFS)
-	m_iFaithFromDyingUnits += belief->GetFaithFromDyingUnits();
-	m_iRiverHappiness += belief->GetRiverHappiness();
-	m_iPlotCultureCostModifier += belief->GetPlotCultureCostModifier();
-	m_iCityRangeStrikeModifier += belief->GetCityRangeStrikeModifier();
-	m_iCombatModifierEnemyCities += belief->GetCombatModifierEnemyCities();
-	m_iCombatModifierFriendlyCities += belief->GetCombatModifierFriendlyCities();
-	m_iFriendlyHealChange += belief->GetFriendlyHealChange();
-	m_iCityStateFriendshipModifier += belief->GetCityStateFriendshipModifier();
-	m_iLandBarbarianConversionPercent += belief->GetLandBarbarianConversionPercent();
-	m_iSpreadDistanceModifier += belief->GetSpreadDistanceModifier();
-	m_iSpreadStrengthModifier += belief->GetSpreadStrengthModifier();
-	m_iProphetStrengthModifier += belief->GetProphetStrengthModifier();
-	m_iProphetCostModifier += belief->GetProphetCostModifier();
-	m_iMissionaryStrengthModifier += belief->GetMissionaryStrengthModifier();
-	m_iMissionaryCostModifier += belief->GetMissionaryCostModifier();
-	m_iFriendlyCityStateSpreadModifier += belief->GetFriendlyCityStateSpreadModifier();
-	m_iGreatPersonExpendedFaith += belief->GetGreatPersonExpendedFaith();
-	m_iCityStateMinimumInfluence += belief->GetCityStateMinimumInfluence();
-	m_iCityStateInfluenceModifier += belief->GetCityStateInfluenceModifier();
-	m_iOtherReligionPressureErosion += belief->GetOtherReligionPressureErosion();
-	m_iSpyPressure += belief->GetSpyPressure();
-	m_iInquisitorPressureRetention += belief->GetInquisitorPressureRetention();
-	m_iFaithBuildingTourism += belief->GetFaithBuildingTourism();
-#if defined(MOD_BALANCE_CORE_BELIEFS)
-	m_iCombatVersusOtherReligionOwnLands += belief->GetCombatVersusOtherReligionOwnLands();
-	m_iCombatVersusOtherReligionTheirLands += belief->GetCombatVersusOtherReligionTheirLands();
-	m_iMissionaryInfluenceCS += belief->GetMissionaryInfluenceCS();
-	m_iHappinessPerPantheon += belief->GetHappinessPerPantheon();
-	m_iExtraVotes += belief->GetExtraVotes();
-#endif
-#if defined(MOD_BALANCE_CORE)
-	m_eRequiredCivilization = belief->GetRequiredCivilization();
-#endif
 
-	m_eObsoleteEra = belief->GetObsoleteEra();
-	m_eResourceRevealed = belief->GetResourceRevealed();
-	for (int iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
-	{
-		if (belief->IsBuildingClassEnabled(iI))
-		{
-			m_paiBuildingClassEnabled[iI]++;
-		}
-	}
-	if(belief->GetSpreadModifierDoublingTech() != NO_TECH)
-	{
-		m_eSpreadModifierDoublingTech = belief->GetSpreadModifierDoublingTech();
-	}
-#endif
-
-	m_ReligionBeliefs.push_back((int)eBelief);
-	m_BeliefLookup[(int)(eBelief)] = 1;
+	m_ReligionBeliefs.push_back(eBelief);
+	m_BeliefLookup[eBelief] = 1;
 }
 
 /// Does this religion possess a specific belief?
 bool CvReligionBeliefs::HasBelief(BeliefTypes eBelief) const
 {
-#if defined(MOD_BALANCE_CORE)
-	if (eBelief==NO_BELIEF)
+	if (eBelief == NO_BELIEF)
 		return m_ReligionBeliefs.empty();
 
-	return m_BeliefLookup[(int)(eBelief)]==1;
-#else
-	return (find(m_ReligionBeliefs.begin(), m_ReligionBeliefs.end(), (int)eBelief) != m_ReligionBeliefs.end());
-#endif
+	return (m_BeliefLookup[eBelief] == 1);
 }
 
 /// Does this religion possess a specific belief?
@@ -2976,7 +2835,8 @@ int CvReligionBeliefs::GetWonderProductionModifier(EraTypes eWonderEra, PlayerTy
 	for(BeliefList::const_iterator it = m_ReligionBeliefs.begin(); it != m_ReligionBeliefs.end(); ++it)
 	{
 		int iValue = 0;
-		if ((int)eWonderEra < (int)pBeliefs->GetEntry(*it)->GetObsoleteEra())
+		EraTypes eObsoleteEra = pBeliefs->GetEntry(*it)->GetObsoleteEra();
+		if (eObsoleteEra == NO_ERA || eWonderEra < eObsoleteEra)
 		{
 			iValue = pBeliefs->GetEntry(*it)->GetWonderProductionModifier();
 		}
@@ -3757,7 +3617,6 @@ int CvReligionBeliefs::GetPlotYieldChange(PlotTypes ePlot, YieldTypes eYieldType
 	return rtnValue;
 }
 
-#if defined(MOD_RELIGION_EXTENSIONS)
 /// Get free promotions from beliefs
 std::vector<int> CvReligionBeliefs::GetFreePromotions(PlayerTypes ePlayer, const CvCity* pCity, bool bHolyCityOnly) const
 {
@@ -3826,7 +3685,6 @@ int CvReligionBeliefs::GetYieldFromPillageGlobal(YieldTypes eYield, bool bEraSca
 
 	return rtnValue;
 }
-#endif
 
 // Get happiness boost from a resource
 int CvReligionBeliefs::GetResourceHappiness(ResourceTypes eResource, PlayerTypes ePlayer, bool bHolyCityOnly) const
@@ -4704,11 +4562,8 @@ int CvReligionBeliefs::GetIgnorePolicyRequirementsAmount(EraTypes eEra, PlayerTy
 
 	for (BeliefList::const_iterator it = m_ReligionBeliefs.begin(); it != m_ReligionBeliefs.end(); ++it)
 	{
-		int iEra = (int)pBeliefs->GetEntry(*it)->GetObsoleteEra();
-		if (iEra <= 0)
-			iEra = GC.getNumEraInfos()+1;
-
-		if (pBeliefs->GetEntry(*it)->GetIgnorePolicyRequirementsAmount() && ((int)eEra < iEra) && IsBeliefValid((BeliefTypes)*it, GetReligion(), ePlayer, pCity, bHolyCityOnly))
+		EraTypes eObsoleteEra = pBeliefs->GetEntry(*it)->GetObsoleteEra();
+		if (pBeliefs->GetEntry(*it)->GetIgnorePolicyRequirementsAmount() && (eObsoleteEra == NO_ERA || eEra < eObsoleteEra) && IsBeliefValid((BeliefTypes)*it, GetReligion(), ePlayer, pCity, bHolyCityOnly))
 		{
 			return true;
 		}

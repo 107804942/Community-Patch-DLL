@@ -119,14 +119,16 @@
 				<Label ID="CityIsRazing" String="[ICON_RAZING]"/>
 				<Label ID="CityIsResistance" String="[ICON_RESISTANCE]"/>
 				<Label ID="CityIsConnected" String="[ICON_CONNECTED]"/>
+				<Label ID="CityIsIndustrialConnected" String="[ICON_INDUSTRIAL_CONNECTED]"/>
 				<Label ID="CityIsBlockaded" String="[ICON_BLOCKADED]"/>
 				<Label ID="CityIsOccupied" String="[ICON_OCCUPIED]"/>
 				<Label ID="CityIsCityState" String="[ICON_CITY_STATE]" Hidden="1"/>
 				<Label ID="CityIsMined" String="[ICON_MINEFIELD]"/>
 				<Label ID="CityIsUnhappy" String="[ICON_HAPPINESS_3]"/>
 				<Label ID="CityHasAirport" String="[ICON_AIRPORT]"/>
-				<Label ID="CityHasFranchise" String="[ICON_VP_FRANCHISE]"/>
 				<Label ID="CityHasOffice" String="[ICON_VP_OFFICE]"/>
+				<Label ID="CityHasFranchise" String="[ICON_VP_FRANCHISE]"/>
+				<Label ID="CityHasObstacle" String="[ICON_VP_BORDER_OBSTRUCTION]"/>
 				<Label ID="CityQuests"/>
 			</Stack>
 			<!--  CityRangeStrikeButton -->
@@ -226,6 +228,7 @@
 				<Label ID="CityHasAirport" String="[ICON_AIRPORT]"/>
 				<Label ID="CityHasOffice" String="[ICON_VP_OFFICE]"/>
 				<Label ID="CityHasFranchise" String="[ICON_VP_FRANCHISE]"/>
+				<Label ID="CityHasObstacle" String="[ICON_VP_BORDER_OBSTRUCTION]"/>
 			</Stack>
 		</WorldAnchor>
 	</Instance>

@@ -3042,11 +3042,9 @@ CivilopediaCategory[CategoryUnits].SelectArticle = function( unitID, shouldAddTo
 		AnalyzeUnit("OneShotTourismPercentOthers");
 		AnalyzeUnit("IgnoreBuildingDefense");
 		AnalyzeUnit("PrereqResources");
-		AnalyzeUnit("Mechanized");
 		AnalyzeUnit("Suicide");
 		AnalyzeUnit("CaptureWhileEmbarked");
 		AnalyzeUnit("HurryCostModifier");
-		AnalyzeUnit("AdvancedStartCost");
 		AnalyzeUnit("AirInterceptRange", "[ICON_RANGE_STRENGTH]");
 		AnalyzeUnit("AirUnitCap", "[ICON_AIRSTRIKE_DEFENSE]");
 		AnalyzeUnit("NukeDamageLevel");
@@ -3067,13 +3065,9 @@ CivilopediaCategory[CategoryUnits].SelectArticle = function( unitID, shouldAddTo
 		AnalyzeUnit("RequiresEnhancedReligion");
 		AnalyzeUnit("ProhibitsSpread");
 		AnalyzeUnit("CanBuyCityState");
-		--AnalyzeUnit("CombatLimit", ""); -- intrernal
-		-- AnalyzeUnit("RangedCombatLimit"); -- internal
 		AnalyzeUnit("RangeAttackOnlyInDomain");
 		AnalyzeUnit("RangeAttackIgnoreLOS");
 		AnalyzeUnit("NumExoticGoods", "");
-		--AnalyzeUnit("XPValueAttack", ""); -- internal
-		--AnalyzeUnit("XPValueDefense", ""); -- internal
 		AnalyzeUnit("DomainCargo", "Domains", "Cargo domain");
 		AnalyzeUnit("SpecialCargo", "SpecialUnits", "Special cargo");
 		AnalyzeUnit("SpecialUnitCargoLoad", "SpecialUnits", "Special cargo load");
@@ -3489,7 +3483,6 @@ CivilopediaCategory[CategoryPromotions].SelectArticle = function( promotionID, s
 		AnalyzePromotion("AdjacentCityDefenseMod");
 		AnalyzePromotion("NearbyEnemyDamage", "");
 		AnalyzePromotion("MilitaryProductionModifier");
-		AnalyzePromotion("HighSeaRaider");
 		AnalyzePromotion("AuraRangeChange", "");
 		AnalyzePromotion("AuraEffectChange", "");
 		AnalyzePromotion("NearbyHealEnemyTerritory");
@@ -3517,7 +3510,7 @@ CivilopediaCategory[CategoryPromotions].SelectArticle = function( promotionID, s
 		AnalyzePromotion("MaxHitPointsModifier");
 		-- Domains
 		for row in DB.Query("SELECT Domains.Description, UnitPromotions_Domains.Modifier, UnitPromotions_Domains.Attack, UnitPromotions_Domains.Defense FROM UnitPromotions_Domains INNER JOIN Domains ON UnitPromotions_Domains.DomainType = Domains.Type WHERE PromotionType = ?", thisPromotion.Type) do
-			if row.Modifier ~= 0 then sText = sText.."[NEWLINE][ICON_BULLET]"..string.format("%+d", row.Modifier).."% strength against [COLOR_CYAN]"..Locale.Lookup(row.Description).."[ENDCOLOR]"; end
+			if row.Modifier and row.Modifier ~= 0 then sText = sText.."[NEWLINE][ICON_BULLET]"..string.format("%+d", row.Modifier).."% strength against [COLOR_CYAN]"..Locale.Lookup(row.Description).."[ENDCOLOR]"; end
 			if row.Attack ~= 0 then sText = sText.."[NEWLINE][ICON_BULLET]"..string.format("%+d", row.Attack).."% strength when attacking [COLOR_CYAN]"..Locale.Lookup(row.Description).."[ENDCOLOR]"; end
 			if row.Defense ~= 0 then sText = sText.."[NEWLINE][ICON_BULLET]"..string.format("%+d", row.Defense).."% strength when defending against [COLOR_CYAN]"..Locale.Lookup(row.Description).."[ENDCOLOR]"; end
 		end
@@ -3926,25 +3919,67 @@ function SelectBuildingOrWonderArticle( buildingID )
 
 		end
 
-		-- update the Culture
+		-- Culture
+		local cultureItems = {};
+
 		local iCulture = GetBuildingYieldChange(buildingID, "YIELD_CULTURE");
-		if iCulture > 0 then
-			Controls.CultureLabel:SetText( tostring(iCulture).." [ICON_CULTURE]" );
+		if(iCulture > 0) then
+			table.insert(cultureItems, "+" .. tostring(iCulture).." [ICON_CULTURE]" );
+		end
+
+		local iCulture = thisBuilding.CultureRateModifier;
+		if(iCulture > 0) then
+			table.insert(cultureItems, "+" .. tostring(iCulture).."% [ICON_CULTURE]" );
+		end
+
+		if(#cultureItems > 0) then
+			Controls.CultureLabel:SetText( table.concat(cultureItems, ", ") );
 			Controls.CultureFrame:SetHide( false );
 		end
 
-		-- update the Faith
+		-- Use Game to calculate Yield Changes and modifiers.
+		local GetBuildingYieldModifier = function(buildingID, yieldType)
+			if(Game ~= nil) then
+				return Game.GetBuildingYieldModifier(buildingID, YieldTypes[yieldType]);
+			else
+				local yieldModifier = 0;
+				local buildingType = GameInfo.Buildings[buildingID].Type;
+				for row in GameInfo.Building_YieldModifiers{BuildingType = buildingType, YieldType = yieldType} do
+					yieldModifier = yieldModifier + row.Yield;
+				end
+
+				return yieldModifier;
+			end
+
+		end
+		
+		-- Faith
+		local faithItems = {};
 		local iFaith = GetBuildingYieldChange(buildingID, "YIELD_FAITH");
-		if iFaith > 0 then
-			Controls.FaithLabel:SetText( tostring(iFaith).." [ICON_PEACE]" );
+		if(iFaith > 0) then
+			table.insert(faithItems, "+" .. tostring(iFaith).." [ICON_PEACE]" );
+		end
+
+		local iFaith = GetBuildingYieldModifier(buildingID, "YIELD_FAITH");
+		if(iFaith > 0) then
+			table.insert(faithItems, "+" .. tostring(iFaith).."% [ICON_PEACE]" );
+		end
+
+		if(#faithItems > 0) then
+			Controls.FaithLabel:SetText( table.concat(faithItems, ", ") );
 			Controls.FaithFrame:SetHide( false );
 		end
 
 		-- update the Defense
 		local defenseEntries = {};
-		local iDefense = thisBuilding.Defense;
+		local iDefense = thisBuilding.Defense / 100;
 		if iDefense > 0 then
-			table.insert(defenseEntries, tostring(iDefense / 100).." [ICON_STRENGTH]");
+			table.insert(defenseEntries, "+" ..tostring(iDefense) .. " [ICON_STRENGTH]");
+		end
+
+		local iDefenseModifier = thisBuilding.BuildingDefenseModifier;
+		if iDefenseModifier > 0 then
+			table.insert(defenseEntries, "+" ..tostring(iDefenseModifier) .. "% [ICON_STRENGTH]");
 		end
 
 		local iExtraHitPoints = thisBuilding.ExtraCityHitPoints;
@@ -3964,72 +3999,72 @@ function SelectBuildingOrWonderArticle( buildingID )
 			Controls.DefenseFrame:SetHide(true);
 		end
 
-		local GetBuildingYieldModifier = function(buildingID, yieldType)
-			if(Game ~= nil) then
-				return Game.GetBuildingYieldModifier(buildingID, YieldTypes[yieldType]);
-			else
-				local yieldModifier = 0;
-				local buildingType = GameInfo.Buildings[buildingID].Type;
-				for row in GameInfo.Building_YieldModifiers{BuildingType = buildingType, YieldType = yieldType} do
-					yieldModifier = yieldModifier + row.Yield;
-				end
+		
+		-- Food	
+		local foodItems = {};
 
-				return yieldModifier;
-			end
-
+		local iFood = GetBuildingYieldChange(buildingID, "YIELD_FOOD");
+		if(iFood > 0) then
+			table.insert(foodItems, "+" .. tostring(iFood).." [ICON_FOOD]" );
 		end
 
-		-- Use Game to calculate Yield Changes and modifiers.
-		-- update the Food Change
-		local iFood = GetBuildingYieldChange(buildingID, "YIELD_FOOD");
-		if (iFood > 0) then
-			Controls.FoodLabel:SetText( "+" .. tostring(iFood).." [ICON_FOOD]" );
+		local iFood = GetBuildingYieldModifier(buildingID, "YIELD_FOOD");
+		if(iFood > 0) then
+			table.insert(foodItems, "+" .. tostring(iFood).."% [ICON_FOOD]" );
+		end
+
+		if(#foodItems > 0) then
+			Controls.FoodLabel:SetText( table.concat(foodItems, ", ") );
 			Controls.FoodFrame:SetHide( false );
 		end
 
-		-- update the Gold Change
+		-- Gold
+		local goldItems = {};
+		
 		local iGold = GetBuildingYieldChange(buildingID, "YIELD_GOLD");
-		if (iGold > 0) then
-			Controls.GoldChangeLabel:SetText( "+" .. tostring(iGold).." [ICON_GOLD]" );
-			Controls.GoldChangeFrame:SetHide( false );
+		if(iGold > 0) then
+			table.insert(goldItems, "+" .. tostring(iGold).." [ICON_GOLD]" );
+		end
+		
+		local iGold = GetBuildingYieldModifier(buildingID, "YIELD_GOLD");
+		if(iGold > 0) then
+			table.insert(goldItems, "+" .. tostring(iGold).."% [ICON_GOLD]" );
 		end
 
-		-- update the Gold
-		local iGold = GetBuildingYieldModifier(buildingID, "YIELD_GOLD");
-		if (iGold > 0) then
-			Controls.GoldLabel:SetText( "+" .. tostring(iGold).."% [ICON_GOLD]" );
+		if(#goldItems > 0) then
+			Controls.GoldLabel:SetText( table.concat(goldItems, ", ") );
 			Controls.GoldFrame:SetHide( false );
 		end
-
-		-- update the Science
+		
+		-- Science
 		local scienceItems = {};
-		local iScience = GetBuildingYieldModifier(buildingID, "YIELD_SCIENCE");
-		if(iScience > 0) then
-			table.insert(scienceItems, "+" .. tostring(iScience).."% [ICON_RESEARCH]" );
-		end
 
-		-- update the Science Change
 		local iScience = GetBuildingYieldChange(buildingID, "YIELD_SCIENCE");
 		if(iScience > 0) then
 			table.insert(scienceItems, "+" .. tostring(iScience).." [ICON_RESEARCH]" );
+		end
+		
+		local iScience = GetBuildingYieldModifier(buildingID, "YIELD_SCIENCE");
+		if(iScience > 0) then
+			table.insert(scienceItems, "+" .. tostring(iScience).."% [ICON_RESEARCH]" );
 		end
 
 		if(#scienceItems > 0) then
 			Controls.ScienceLabel:SetText( table.concat(scienceItems, ", ") );
 			Controls.ScienceFrame:SetHide( false );
 		end
-
-		-- update the Production % mods
+		
+				-- Production
 		local productionItems = {};
-		local iProduction = GetBuildingYieldModifier(buildingID, "YIELD_PRODUCTION");
-		if(iProduction > 0) then
-			table.insert(productionItems, "+" .. tostring(iProduction).."% [ICON_PRODUCTION]");
-		end
 
-		-- update the Production
 		local iProduction = GetBuildingYieldChange(buildingID, "YIELD_PRODUCTION");
 		if(iProduction > 0) then
 			table.insert(productionItems, "+" .. tostring(iProduction).." [ICON_PRODUCTION]");
+		end
+		
+		local iProduction = GetBuildingYieldModifier(buildingID, "YIELD_PRODUCTION");
+		if(iProduction > 0) then
+			table.insert(productionItems, "+" .. tostring(iProduction).."% [ICON_PRODUCTION]");
 		end
 
 		if(#productionItems > 0) then
@@ -4038,19 +4073,23 @@ function SelectBuildingOrWonderArticle( buildingID )
 		end
 -- Vox Populi update the Tourism
 		local tourismItems = {}
+
+		local iTourism = GetBuildingYieldChange(buildingID, "YIELD_TOURISM");
+		if(iTourism > 0) then
+			table.insert(tourismItems, "+" .. tostring(iTourism).." [ICON_TOURISM]" );
+		end
+		
 		local iTourism = GetBuildingYieldModifier(buildingID, "YIELD_TOURISM");
 		if(iTourism > 0) then
 			table.insert(tourismItems, "+" .. tostring(iTourism).."% [ICON_TOURISM]" );
 		end
-		iTourism = GetBuildingYieldChange(buildingID, "YIELD_TOURISM");
-		if(iTourism > 0) then
-			table.insert(tourismItems, "+" .. tostring(iTourism).." [ICON_TOURISM]" );
-		end
+
 		if(#tourismItems > 0) then
 			Controls.TourismLabel:SetText( table.concat(tourismItems, ", ") );
 			Controls.TourismFrame:SetHide( false );
 		end
 -- Vox Populi end
+
 		-- update the Great People
 		local iGPType = thisBuilding.SpecialistType;
 		if iGPType ~= nil then
@@ -4314,14 +4353,14 @@ function SelectBuildingOrWonderArticle( buildingID )
 		if thisBuilding.NearbyTerrainRequired ~= nil then sText = sText.."[NEWLINE][ICON_BULLET]Requires [COLOR_CYAN]"..Locale.Lookup(GameInfo.Terrains[thisBuilding.NearbyTerrainRequired].Description).."[ENDCOLOR]"; end
 		--AnalyzeBuilding("ProhibitedCityTerrain");
 		if thisBuilding.ProhibitedCityTerrain ~= nil then sText = sText.."[NEWLINE][ICON_BULLET]Prohibited [COLOR_NEGATIVE_TEXT]"..Locale.Lookup(GameInfo.Terrains[thisBuilding.ProhibitedCityTerrain].Description).."[ENDCOLOR]"; end
-		AnalyzeBuilding("FoundsReligion");
-		AnalyzeBuilding("IsReligious");
 		AnalyzeBuilding("BorderObstacle", "");
 		AnalyzeBuilding("PlayerBorderObstacle", "");
 		AnalyzeBuilding("Capital");
 		AnalyzeBuilding("GoldenAge");
 		AnalyzeBuilding("MapCentering");
 		AnalyzeBuilding("AllowsWaterRoutes");
+		AnalyzeBuilding("AllowsIndustrialWaterRoutes");
+		AnalyzeBuilding("AllowsAirRoutes");
 		AnalyzeBuilding("ExtraLuxuries");
 		AnalyzeBuilding("DiplomaticVoting");
 		AnalyzeBuilding("AffectSpiesNow");
@@ -4479,7 +4518,7 @@ function SelectBuildingOrWonderArticle( buildingID )
 		AnalyzeBuilding("FinishLandTRTourism", "[ICON_TOURISM]");
 		AnalyzeBuilding("FinishSeaTRTourism", "[ICON_TOURISM]");
 		AnalyzeBuilding("VotesPerGPT", "[COLOR_POSITIVE_TEXT]votes[ENDCOLOR]");
-		AnalyzeBuilding("RequiresRail", "");
+		AnalyzeBuilding("RequiresIndustrialCityConnection", "");
 		AnalyzeBuilding("CivilizationRequired");
 		AnalyzeBuilding("PurchaseCooldown");
 		AnalyzeBuilding("CityAirStrikeDefense", "[ICON_STRENGTH]");
@@ -8976,7 +9015,6 @@ function ClearArticle()
 	Controls.FaithFrame:SetHide( true );
 	Controls.DefenseFrame:SetHide( true );
 	Controls.FoodFrame:SetHide( true );
-	Controls.GoldChangeFrame:SetHide( true );
 	Controls.GoldFrame:SetHide( true );
 	Controls.ScienceFrame:SetHide( true );
 	Controls.ProductionFrame:SetHide( true );

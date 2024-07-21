@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -46,7 +46,11 @@ public:
 		CONNECTION_RAILROAD = 2,
 		CONNECTION_ANY_LAND = 3,
 		CONNECTION_HARBOR = 4,
-		CONNECTION_ANY = 7
+		CONNECTION_INDUSTRIAL_HARBOR = 8,
+		CONNECTION_ANY_WATER = 12,
+		CONNECTION_AIRPORT = 16,
+		CONNECTION_ANY_INDIRECT = 28,
+		CONNECTION_ANY = 31
 	};
 
 	//cities may be connected to other players as well, so we store a pair of owner and id
@@ -62,14 +66,17 @@ protected:
 
 	void UpdatePlotsToConnect(void);
 	void UpdateRouteInfo(void);
-	void CheckPlotRouteStateChanges(PlotIndexStore& lastState, PlotIndexStore& newState);
+	void CheckPlotRouteStateChanges(PlotIndexStore& lastState, PlotIndexStore& newState, bool bIndustrial);
 	CityConnectionTypes GetConnectionState( const CvCity* pCityA, const CvCity* pCityB ) const;
 	bool ShouldConnectToOtherPlayer(PlayerTypes eOtherPlayer);
 
 	AllCityConnectionStore m_connectionState;
 	PlotIndexStore m_plotsWithConnectionToCapital;
+	PlotIndexStore m_plotsWithIndustrialConnectionToCapital;
 	PlotIndexStore m_plotIdsToConnect;
 	std::vector<BuildingTypes> m_aBuildingsAllowWaterRoutes; //this is not about trade routes but city connections
+	std::vector<BuildingTypes> m_aBuildingsAllowIndustrialWaterRoutes; //this is not about trade routes but city connections
+	std::vector<BuildingTypes> m_aBuildingsAllowAirRoutes;
 	CvPlayer* m_pPlayer;
 	bool m_bDirty;
 	SingleCityConnectionStore dummy;

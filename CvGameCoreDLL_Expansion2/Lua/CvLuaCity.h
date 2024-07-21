@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	� 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -58,8 +58,8 @@ protected:
 	static int lCanTrain(lua_State* L);
 	static int lCanConstructTooltip(lua_State* L);
 	static int lCanConstruct(lua_State* L);
+	static int lCanCreateTooltip(lua_State* L);
 	static int lCanCreate(lua_State* L);
-	static int lCanPrepare(lua_State* L);
 	static int lCanMaintain(lua_State* L);
 
 	static int lGetPurchaseUnitTooltip(lua_State* L);
@@ -87,7 +87,6 @@ protected:
 	static int lIsProductionUnit(lua_State* L);
 	static int lIsProductionBuilding(lua_State* L);
 	static int lIsProductionProject(lua_State* L);
-	static int lIsProductionSpecialist(lua_State* L);
 	static int lIsProductionProcess(lua_State* L);
 
 	static int lCanContinueProduction(lua_State* L);
@@ -98,7 +97,6 @@ protected:
 	static int lGetProductionUnitAI(lua_State* L);
 	static int lGetProductionBuilding(lua_State* L);
 	static int lGetProductionProject(lua_State* L);
-	static int lGetProductionSpecialist(lua_State* L);
 	static int lGetProductionProcess(lua_State* L);
 	static int lGetProductionName(lua_State* L);
 	static int lGetProductionNameKey(lua_State* L);
@@ -106,7 +104,6 @@ protected:
 	static int lIsFoodProduction(lua_State* L);
 	static int lGetFirstUnitOrder(lua_State* L);
 	static int lGetFirstProjectOrder(lua_State* L);
-	static int lGetFirstSpecialistOrder(lua_State* L);
 
 	static int lGetNumTrainUnitAI(lua_State* L);
 	static int lGetFirstBuildingOrder(lua_State* L);
@@ -128,7 +125,6 @@ protected:
 	static int lGetUnitProductionTurnsLeft(lua_State* L);
 	static int lGetBuildingProductionTurnsLeft(lua_State* L);
 	static int lGetProjectProductionTurnsLeft(lua_State* L);
-	static int lGetSpecialistProductionTurnsLeft(lua_State* L);
 #if defined(MOD_PROCESS_STOCKPILE)
 	LUAAPIEXTN(GetProcessProductionTurnsLeft, int);
 #endif
@@ -155,17 +151,9 @@ protected:
 	static int lGetUnitProductionModifier(lua_State* L);
 	static int lGetBuildingProductionModifier(lua_State* L);
 	static int lGetProjectProductionModifier(lua_State* L);
-	static int lGetSpecialistProductionModifier(lua_State* L);
 
 	static int lGetExtraProductionDifference(lua_State* L);
 
-	static int lCanHurry(lua_State* L);
-	static int lHurry(lua_State* L);
-	static int lGetConscriptUnit(lua_State* L);
-	static int lGetConscriptPopulation(lua_State* L);
-	static int lConscriptMinCityPopulation(lua_State* L);
-	static int lCanConscript(lua_State* L);
-	static int lConscript(lua_State* L);
 	static int lGetResourceYieldRateModifier(lua_State* L);
 	static int lGetHandicapType(lua_State* L);
 	static int lGetCivilizationType(lua_State* L);
@@ -190,11 +178,6 @@ protected:
 	static int lFoodDifferenceTimes100(lua_State* L);
 	static int lGrowthThreshold(lua_State* L);
 	static int lProductionLeft(lua_State* L);
-	static int lHurryCost(lua_State* L);
-	static int lHurryGold(lua_State* L);
-	static int lHurryPopulation(lua_State* L);
-	static int lHurryProduction(lua_State* L);
-	static int lMaxHurryPopulation(lua_State* L);
 
 	static int lGetNumBuilding(lua_State* L);
 	static int lIsHasBuilding(lua_State* L);
@@ -241,7 +224,6 @@ protected:
 	static int lSetHighestPopulation(lua_State* L);
 	//static int lGetWorkingPopulation(lua_State* L);
 	//static int lGetSpecialistPopulation(lua_State* L);
-	static int lGetNumGreatPeople(lua_State* L);
 	static int lGetBaseGreatPeopleRate(lua_State* L);
 	static int lGetGreatPeopleRate(lua_State* L);
 	static int lGetEventGPPFromSpecialists(lua_State* L);
@@ -554,6 +536,7 @@ protected:
 	static int lRangeCombatDamage(lua_State* L);
 	static int lGetAirStrikeDefenseDamage(lua_State* L);
 	static int lGetMultiAttackBonusCity(lua_State* L);
+	static int lGetRangeStrikeModifierFromEspionage(lua_State* L);
 
 	static int lIsWorkingPlot(lua_State* L);
 	static int lAlterWorkingPlot(lua_State* L);
@@ -650,7 +633,9 @@ protected:
 	LUAAPIEXTN(HasResource, bool, iResourceType);
 	LUAAPIEXTN(HasWorkedResource, bool, iResourceType);
 	LUAAPIEXTN(IsConnectedToCapital, bool);
+	LUAAPIEXTN(IsIndustrialConnectedToCapital, bool);
 	LUAAPIEXTN(IsConnectedTo, bool, pCity);
+	LUAAPIEXTN(GetConnectionGoldTimes100, int);
 	LUAAPIEXTN(HasSpecialistSlot, bool, iSpecialistType);
 	LUAAPIEXTN(HasSpecialist, bool, iSpecialistType);
 	LUAAPIEXTN(HasTerrain, bool, iTerrainType);

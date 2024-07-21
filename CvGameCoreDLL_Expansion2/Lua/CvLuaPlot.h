@@ -84,6 +84,7 @@ protected:
 	static int lIsRiverSide(lua_State* L);
 	static int lIsRiverConnection(lua_State* L);
 	static int lIsRiverCrossingFlowClockwise(lua_State* L);
+	static int lGetRiverID(lua_State* L);
 
 	static int lGetInlandCorner(lua_State* L);
 	static int lGetNearestLandArea(lua_State* L);
@@ -158,6 +159,7 @@ protected:
 
 	static int lIsRoute(lua_State* L);
 	static int lIsTradeRoute(lua_State* L);
+	LUAAPIEXTN(IsCityConnection, bool, ePlayer = NO_PLAYER, bIndustrial = false);
 	static int lIsImpassable(lua_State* L);
 
 	static int lGetX(lua_State* L);
@@ -321,8 +323,15 @@ protected:
 
 	static int lGetAirUnitsTooltip(lua_State* L);
 
+	static int lIsMainRoutePlan(lua_State* L);
+	static int lIsShortcutRoutePlan(lua_State* L);
+	static int lIsStrategicRoutePlan(lua_State* L);
+
+	static int lGetPlannedRouteState(lua_State* L);
+	static int lSetPlannedRouteState(lua_State* L);
+
 	LUAAPIEXTN(AddMessage, void, sMessage, iNotifyPlayer);
-	LUAAPIEXTN(AddPopupMessage, void, sMessage, fDelay, iNotifyPlayer);
+	LUAAPIEXTN(AddPopupMessage, void, sMessage, fDelay /*unused*/, iNotifyPlayer);
 
 	LUAAPIEXTN(IsCivilization, bool, iCivilizationType);
 	LUAAPIEXTN(HasFeature, bool, iFeatureType);

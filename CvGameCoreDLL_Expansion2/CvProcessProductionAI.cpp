@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -169,7 +169,7 @@ int CvProcessProductionAI::CheckProcessBuildSanity(ProcessTypes eProcess, int iT
 		if (!CityStrategyAIHelpers::IsTestCityStrategy_IsPuppetAndAnnexable(m_pCity))
 		{
 			//don't need this if no damage
-			if (m_pCity->getDamage() == 0)
+			if (m_pCity->getDamage()==0 && m_pCity->getDamageTakenLastTurn()==0)
 				return SR_USELESS;
 
 			if (m_pCity->isInDangerOfFalling())
@@ -219,7 +219,7 @@ int CvProcessProductionAI::CheckProcessBuildSanity(ProcessTypes eProcess, int iT
 		if(eYield == NO_YIELD)
 			continue;
 
-		if(pProcess->getProductionToYieldModifier(eYield) > 0)
+		if(pProcess->getProductionToYieldModifier(eYield) > 0) 
 		{
 			if (m_pCity->GetCityStrategyAI()->GetMostDeficientYield() == eYield)
 				iModifier += 150;
@@ -266,6 +266,9 @@ int CvProcessProductionAI::CheckProcessBuildSanity(ProcessTypes eProcess, int iT
 				break;
 				case YIELD_SCIENCE:
 				{
+					if (GET_TEAM(kPlayer.getTeam()).GetTeamTechs()->HasResearchedAllTechs())
+						return 0;
+					
 					if (MOD_BALANCE_VP)
 					{
 						int iIlliteracy = m_pCity->GetIlliteracy(false);
@@ -443,17 +446,12 @@ int CvProcessProductionAI::CheckProcessBuildSanity(ProcessTypes eProcess, int iT
 						UnitTypes eUnit = kPlayer.GetSpecificUnitType(pRewardInfo->GetFreeUnitClass());
 						if (eUnit != NO_UNIT)
 						{
-							CvUnitEntry* pkUnitInfo = GC.getUnitInfo(eUnit);
-							if(pkUnitInfo)
-							{
-								int iValue = 1500;
-								if(kPlayer.getCapitalCity() != NULL)
-								{
-									iValue = kPlayer.getCapitalCity()->GetCityStrategyAI()->GetUnitProductionAI()->CheckUnitBuildSanity(eUnit, false, iValue);
-								}
-								if (iValue > 0)
-									iModifier += iValue;
-							}
+							int iValue = 1500;
+							if(kPlayer.getCapitalCity())
+								iValue = kPlayer.getCapitalCity()->GetCityStrategyAI()->GetUnitProductionAI()->CheckUnitBuildSanity(eUnit, false, iValue);
+
+							if (iValue > 0)
+								iModifier += iValue;
 						}
 					}
 					EconomicAIStrategyTypes eStrategyConquest = (EconomicAIStrategyTypes) GC.getInfoTypeForString("ECONOMICAISTRATEGY_GS_CONQUEST");

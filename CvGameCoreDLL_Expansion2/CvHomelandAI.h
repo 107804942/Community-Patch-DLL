@@ -10,13 +10,9 @@
 #ifndef CIV5_HOMELAND_AI_H
 #define CIV5_HOMELAND_AI_H
 
-#if defined(MOD_BALANCE_CORE_MILITARY)
 #define UPGRADE_THIS_TURN_PRIORITY_BOOST 5000
 #define UPGRADE_IN_TERRITORY_PRIORITY_BOOST 2000
-#else
-#define UPGRADE_THIS_TURN_PRIORITY_BOOST 1000
-#define UPGRADE_IN_TERRITORY_PRIORITY_BOOST 500
-#endif
+
 enum AIHomelandTargetType
 {
     AI_HOMELAND_TARGET_NONE,
@@ -208,7 +204,9 @@ public:
 	// Public turn update routines
 	void RecruitUnits();
 	void FindAutomatedUnits();
-	void Update();
+	void Update(bool bUpdateImprovements);
+	void Invalidate();
+	bool NeedsUpdate();
 
 	// Public exploration routines
 	CvPlot* GetBestExploreTarget(const CvUnit* pUnit, int nMinCandidatesToCheck, int iMaxTurns) const;
@@ -221,6 +219,8 @@ public:
 	bool MoveCivilianToGarrison(CvUnit* pUnit);
 	bool MoveCivilianToSafety(CvUnit* pUnit);
 
+	set<int> GetWorkedPlots();
+
 private:
 	// Internal turn update routines - commandeered unit processing
 	void FindHomelandTargets();
@@ -230,7 +230,6 @@ private:
 	void PlotExplorerMoves();
 	void PlotFirstTurnSettlerMoves();
 	void PlotHealMoves();
-	void PlotMovesToSafety();
 
 	void PlotOpportunisticSettlementMoves();
 
@@ -258,8 +257,8 @@ private:
 #endif
 //-------------------------------------
 
-	void PlotWorkerMoves(bool bSecondary = false);
-	void PlotWorkerSeaMoves(bool bSecondary = false);
+	void PlanImprovements();
+	void PlotWorkerMoves();
 	void PlotWriterMoves();
 	void PlotArtistMoves();
 	void PlotMusicianMoves();
@@ -313,8 +312,6 @@ private:
 	CvPlot* FindArchaeologistTarget(CvUnit *pUnit);
 
 	void UnitProcessed(int iID);
-	CvPlot* ExecuteWorkerMove(CvUnit* pUnit);
-	CvPlot* ExecuteWorkerMove(CvUnit* pUnit, const map<int,ReachablePlots>& allWorkersReachablePlots);
 	bool ExecuteCultureBlast(CvUnit* pUnit);
 	bool ExecuteGoldenAgeMove(CvUnit* pUnit);
 	bool IsValidExplorerEndTurnPlot(const CvUnit* pUnit, CvPlot* pPlot) const;
@@ -326,13 +323,15 @@ private:
 	// Class data
 	CvPlayer* m_pPlayer;
 	std::list<int> m_CurrentTurnUnits;
+	set<int> m_workedPlots;
+	list<int> m_greatPeopleForImprovements;
 	std::map<UnitAITypes,std::vector<std::pair<int,int>>> m_automatedTargetPlots; //for human units
+	bool m_bNeedsUpdate;
 
 	CHomelandUnitArray m_CurrentMoveUnits;
 
 	// Lists of targets for the turn
 	std::vector<CvHomelandTarget> m_TargetedCities;
-	std::vector<CvHomelandTarget> m_TargetedNavalResources;
 	std::vector<CvHomelandTarget> m_TargetedAntiquitySites;
 };
 
@@ -353,6 +352,20 @@ struct SPatrolTarget {
 	SPatrolTarget(CvPlot* target, CvPlot* neighbor, int iThreat);
 	bool operator<(const SPatrolTarget& rhs) const;
 	bool operator==(const SPatrolTarget& rhs) const;
+};
+
+struct SBuilderState {
+	map<ResourceTypes, int> mExtraResources;
+	map<int, FeatureTypes> mChangedPlotFeatures;
+	map<int, ImprovementTypes> mChangedPlotImprovements;
+	map<int, int> mExtraDefense;
+	map<int, int> mExtraDamageToAdjacent;
+
+	SBuilderState(){};
+	static const SBuilderState& DefaultInstance() {
+		static SBuilderState defaultInstance;
+		return defaultInstance;
+	}
 };
 
 namespace HomelandAIHelpers

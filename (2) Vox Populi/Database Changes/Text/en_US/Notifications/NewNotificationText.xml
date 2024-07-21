@@ -113,7 +113,7 @@
 			<Text>Global Monopoly on [COLOR_POSITIVE_TEXT]{1_ResourceNames}[ENDCOLOR]!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_OTHER_PLAYER_MONOPOLY_GAINED">
-			<Text>{3_CivName} {3_CivName: plural 1?controls; other?control;} over 50% of the World's [COLOR_POSITIVE_TEXT]{1_ResourceNames}[ENDCOLOR], and therefore has a Global Monopoly![NEWLINE][NEWLINE]{2_ResourceHelp}</Text>
+			<Text>{3_CivName} {3_CivName: plural 1?controls; other?control;} over 50% of the World's [COLOR_POSITIVE_TEXT]{1_ResourceNames}[ENDCOLOR], and therefore {3_CivName: plural 1?has; other?have;} a Global Monopoly![NEWLINE][NEWLINE]{2_ResourceHelp}</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_OTHER_PLAYER_MONOPOLY_GAINED">
 			<Text>{2_CivName} {2_CivName: plural 1?has; other?have;} a Global Monopoly on [COLOR_POSITIVE_TEXT]{1_ResourceNames}[ENDCOLOR]!</Text>
@@ -220,7 +220,7 @@
 			<Text>Vassal Tribute!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_VASSAL_LEVY">
-			<Text>Because you have entered a new Era, your Vassals have sent you {1_Num} {1_Num: plural 1?Unit; other?Units;} as part of their tribute.</Text>
+			<Text>Because you have entered a new Era, your Vassal {1_TeamName} has sent {2_Num} {2_Num: plural 1?Unit; other?Units;} to {3_CityName} as part of their tribute.</Text>
 		</Row>
 		<!-- Resurrection -->
 		<Row Tag="TXT_KEY_NOTIFICATION_CIV_RESURRECTED_VOLUNTARY_VASSAL">
@@ -288,7 +288,7 @@
 			<Text>Mandate of Heaven</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_CITY_WLTKD_UA_RESOURCE">
-			<Text>The acquisition of {1_Resource:textkey} causes the city of {2_CityName:textkey} to enter "We Love the Empress Day" for {3_Num} Turns, increasing their [ICON_FOOD] Growth by +{4_Num}%!</Text>
+			<Text>Because {1_Resource:textkey} is connected to your trade network, the City of {2_CityName:textkey} enters "We Love the Empress Day" for {3_Num} Turns, increasing its [ICON_FOOD] Growth by +{4_Num}%!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_CITY_SUMMARY_WLTKD_UA_ERA_CHANGE">
 			<Text>Dynastic Transition...</Text>
@@ -445,7 +445,7 @@
 			<Text>A barbarian horde is assaulting {1_MinorCivName:textkey}!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_QUEST_HORDE">
-			<Text>A horde of barbarians has emerged near {2_MinorCivName:textkey}! If the barbarians maintain their siege at the end of [COLOR_POSITIVE_TEXT]{1_TurnsRemaining}[ENDCOLOR] turns, [COLOR_NEGATIVE_TEXT]the city will be sacked[ENDCOLOR]!</Text>
+			<Text>A horde of barbarians has emerged near {2_MinorCivName:textkey}! If there are barbarians next to the city at the end of [COLOR_POSITIVE_TEXT]{1_TurnsRemaining}[ENDCOLOR] turns, [COLOR_NEGATIVE_TEXT]the city will be sacked[ENDCOLOR]!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_QUEST_COMPLETE_HORDE">
 			<Text>Horde near {1_MinorCivName:textkey} dispersed!</Text>
@@ -457,7 +457,7 @@
 			<Text>Barbarians swarming {1_MinorCivName:textkey}!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_QUEST_ENDED_HORDE">
-			<Text>Barbarians have established themselves near {1_CityStateName:textkey} and [COLOR_NEGATIVE_TEXT]may take it over[ENDCOLOR]!</Text>
+			<Text>Barbarians have established themselves near {1_CityStateName:textkey} and [COLOR_NEGATIVE_TEXT]are taking it over[ENDCOLOR]!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_QUEST_REBELLION">
 			<Text>Revolution against {1_TargetName:textkey} in {2_MinorCivName:textkey}</Text>
@@ -657,23 +657,29 @@
 		<Row Tag="TXT_KEY_NOTIFICATION_EVENT_SUCCEEDED_ESPIONAGE_UNKNOWN">
 			<Text>Unknown foreign spies conducted a [COLOR_NEGATIVE_TEXT]Spy Mission[ENDCOLOR] in {1_City}: {2_MissionResult}</Text>
 		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_SPY_WAS_IDENTIFIED_AND_CAUGHT_S">
-			<Text>{1_SpyRank} {2_SpyName} caught and identified!</Text>
+		<Row Tag="TXT_KEY_NOTIFICATION_SPY_WAS_IDENTIFIED_AND_KILLED_S">
+			<Text>{1_SpyRank} {2_SpyName} identified and killed!</Text>
 		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_SPY_WAS_IDENTIFIED_AND_CAUGHT">
-			<Text>{1_SpyRank} {2_SpyName} was [COLOR_NEGATIVE_TEXT]caught and identified[ENDCOLOR] while conducting their mission! Diplomatic Relations with {3_CivName} have worsened and {1_SpyRank} {2_SpyName} has been imprisoned. It will take some time until they are released and can be sent on a mission again.</Text>
+		<Row Tag="TXT_KEY_NOTIFICATION_SPY_WAS_IDENTIFIED_AND_KILLED">
+			<Text>{1_SpyRank} {2_SpyName} was [COLOR_NEGATIVE_TEXT]identified and killed[ENDCOLOR] while conducting their mission! Diplomatic relations with {3_CivName} have worsened. It will take some time until a replacement spy is recruited for {1_SpyRank} {2_SpyName}.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_KILLED_A_SPY_VP">
+			<Text>{TXT_KEY_GRAMMAR_UPPER_A_AN &lt;&lt; {1_CivAdj}} spy was killed in {2_CityName} after they completed a [COLOR_NEGATIVE_TEXT]Spy Mission[ENDCOLOR]: {3_MissionText}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_KILLED_A_SPY_VP_S">
+			<Text>Killed {TXT_KEY_GRAMMAR_A_AN &lt;&lt; {1_CivAdj}} spy!</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_KILLED_A_SPY_NOT_IDENTIFIED">
+			<Text>An unidentified foreign spy was killed in {1_CityName} after they completed a [COLOR_NEGATIVE_TEXT]Spy Mission[ENDCOLOR]: {2_MissionText}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_KILLED_A_SPY_NOT_IDENTIFIED_S">
+			<Text>Killed a foreign spy!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_SPY_WAS_IDENTIFIED_S">
 			<Text>{1_SpyRank} {2_SpyName} identified!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_SPY_WAS_IDENTIFIED">
-			<Text>{1_SpyRank} {2_SpyName} was [COLOR_NEGATIVE_TEXT]identified[ENDCOLOR] while conducting their mission! Diplomatic Relations with {3_CivName} have worsened. {1_SpyRank} {2_SpyName} may stay in the city and gather intelligence for another mission.</Text>
-		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_SPY_WAS_CAUGHT_S">
-			<Text>{1_SpyRank} {2_SpyName} caught!</Text>
-		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_SPY_WAS_CAUGHT">
-			<Text>{1_SpyRank} {2_SpyName} was [COLOR_NEGATIVE_TEXT]caught[ENDCOLOR] while conducting their mission! It will take some time until they are released and can be sent on a mission again.</Text>
+			<Text>{1_SpyRank} {2_SpyName} was [COLOR_NEGATIVE_TEXT]identified[ENDCOLOR] while conducting their mission! Diplomatic relations with {3_CivName} have worsened. {1_SpyRank} {2_SpyName} may stay in the city and gather intelligence for another mission.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_SPY_WAS_NOT_DETECTED_S">
 			<Text>{1_SpyRank} {2_SpyName} not detected!</Text>
@@ -681,17 +687,17 @@
 		<Row Tag="TXT_KEY_NOTIFICATION_SPY_WAS_NOT_DETECTED">
 			<Text>{1_SpyRank} {2_SpyName} has completed their mission and was [COLOR_POSITIVE_TEXT]not detected[ENDCOLOR]. They may stay in the city and gather intelligence for another mission.</Text>
 		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_SPY_RELEASED_PRISON_S">
-			<Text>{1_SpyRank} {2_SpyName} released!</Text>
-		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_SPY_RELEASED_PRISON">
-			<Text>{1_SpyRank} {2_SpyName} has been released from prison. You may now send the spy on a mission again.</Text>
-		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_NO_TOURISM_EVENT_ENDED_S">
 			<Text>{1_City} generates Tourism again</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_NO_TOURISM_EVENT_ENDED">
 			<Text>The rebellion in {1_City} caused by foreign Spies has ended. The city now generates Tourism again.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_GPP_EVENT_ENDED_S">
+			<Text>Espionage Effect ended</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_GPP_EVENT_ENDED">
+			<Text>The effects of a Spy Mission have ended: Specialists in your Capital produce +1 [ICON_GREAT_PEOPLE] GPP per turn.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_COUNTERSPY_DETECTED_S">
 			<Text>Counterspy in {1_City}!</Text>
@@ -717,11 +723,23 @@
 		<Row Tag="TXT_KEY_NOTIFICATION_NEW_MISSIONS_AVAILABLE">
 			<Text>{1_SpyRank} {2_SpyName} has collected enough Network Points in {3_City} to conduct the following {4_Num: plural 1?Spy Mission; other?Spy Missions;}, if the other mission conditions are fulfilled:[NEWLINE]{5_Missions}</Text>
 		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_SPY_CREATED_VASSAL_DIPLOMAT">
+			<Text>A diplomat has been recruited!</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_SPY_CREATED_VASSAL_DIPLOMAT">
+			<Text>{1_SpyName} has been recruited to serve as a Diplomat in the Capital of your newly acquired Vassal {2_CivName}.</Text>
+		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_NEW_PASSIVE_BONUS_S">
 			<Text>New Passive Spy Bonus unlocked</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_NEW_PASSIVE_BONUS">
 			<Text>{1_SpyRank} {2_SpyName} has collected enough Network Points in {3_City} to unlock the following passive bonuses:[NEWLINE][NEWLINE] {4_Missions}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_NEW_PASSIVE_BONUS_DIPLOMAT_S">
+			<Text>New Diplomat Bonus unlocked</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_NEW_PASSIVE_BONUS_DIPLOMAT">
+			<Text>Diplomat {2_SpyName} has collected enough Network Points in {3_City} to unlock the following bonuses:[NEWLINE][NEWLINE] {4_Missions}</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_CHOOSE_EVENT">
 			<Text>MAKE EVENT CHOICE</Text>

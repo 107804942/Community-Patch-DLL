@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	� 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -90,6 +90,34 @@ protected:
 FDataStream& operator<<(FDataStream&, const CvLandmass&);
 FDataStream& operator>>(FDataStream&, CvLandmass&);
 
+class CvRiver
+{
+public:
+	CvRiver();
+	virtual ~CvRiver();
+
+	void init(int iID);
+	int GetID() const;
+	void SetID(int iID);
+
+	void AddPlot(CvPlot* pPlot);
+	vector<CvPlot*> GetPlots() const;
+
+	// for serialization
+	template<typename River, typename Visitor>
+	static void Serialize(River& landmass, Visitor& visitor);
+	virtual void read(FDataStream& kStream);
+	virtual void write(FDataStream& kStream) const;
+
+protected:
+
+	int m_iID;
+	vector<CvPlot*> m_vPlots;
+};
+
+FDataStream& operator<<(FDataStream&, const CvRiver&);
+FDataStream& operator>>(FDataStream&, CvRiver&);
+
 inline int coordRange(int iCoord, int iRange, bool bWrap)
 {
 	if(bWrap)
@@ -148,7 +176,7 @@ public:
 	void updateYield();
 	void updateAdjacency();
 
-	void verifyUnitValidPlot();
+	void verifyUnitValidPlot(PlayerTypes eForSpecificPlayer = NO_PLAYER);
 
 	CvPlot* syncRandPlot(int iFlags = 0, int iArea = -1, int iMinUnitDistance = -1, int iTimeout = 100);
 
@@ -313,6 +341,18 @@ public:
 	void recalculateLandmasses();
 	void calculateLandmasses();
 
+	// Rivers
+	int GetNumRivers();
+	CvRiver* GetRiverById(int iID);
+	CvRiver* GetRiverByIndex(int iIndex);
+	CvRiver* AddRiver();
+	void DeleteRiver(int iID);
+	CvRiver* FirstRiver(int* pIterIdx, bool bRev = false);
+	CvRiver* NextRiver(int* pIterIdx, bool bRev = false);
+	void RecalculateRivers();
+	void CalculateRivers();
+	void CreateRiverFrom(CvPlot* pPlot, DirectionTypes eDirection, CvRiver* pRiver);
+
 	/// this is the default "continent stamper" a given lua map script can use it or not
 	void DefaultContinentStamper();
 
@@ -346,12 +386,10 @@ public:
 	int GetPopupCount(int iPlotIndex);
 	void IncreasePopupCount(int iPlotIndex);
 
-#if defined(MOD_UNIT_KILL_STATS)
 	int GetUnitKillCount(PlayerTypes ePlayer, int iPlotIndex);
 	void IncrementUnitKillCount(PlayerTypes ePlayer, int iPlotIndex);
 	void ExportUnitKillCount(PlayerTypes ePlayer);
 	void DoKillCountDecay(float fDecayFactor = 0.98f);
-#endif
 
 protected:
 
@@ -394,9 +432,11 @@ protected:
 	char* m_pRevealedImprovementType;
 	char* m_pRevealedRouteType;
 	bool* m_pResourceForceReveal;
+	char* m_pHumanPlannedRouteState;
 
 	TContainer<CvArea> m_areas;
 	TContainer<CvLandmass> m_landmasses;
+	TContainer<CvRiver> m_rivers;
 
 	//store non-zero values outside of CvPlot because it will be zero almost all the time
 	typedef map<int, vector<unsigned char>> PlotInvisibleVisibilityLookup;
@@ -420,10 +460,8 @@ protected:
 
 	map<int, int> m_plotPopupCount; //not serialized
 
-#if defined(MOD_UNIT_KILL_STATS)
 	// player -> plot index -> number of owned units killed
 	UnitKillCount killCount;
-#endif
 };
 
 #endif

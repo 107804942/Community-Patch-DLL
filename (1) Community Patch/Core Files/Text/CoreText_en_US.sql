@@ -10,7 +10,8 @@ VALUES		('TXT_KEY_PRODMOD_WONDER_UNITPROMOTION',						'[NEWLINE][ICON_BULLET]Uni
 			('TXT_KEY_PRODMOD_WONDER_TO_BUILDING_FROM_PLAYER_TRAIT',		'[NEWLINE][ICON_BULLET]Trait Wonder Production Modifier for Buildings from Player Traits: {1_Num}%'),
 			('TXT_KEY_PRODMOD_WONDER_TO_BUILDING_FROM_CITY_TRAIT',			'[NEWLINE][ICON_BULLET]Trait Wonder Production Modifier for Buildings from City: {1_Num}%'),
 			('TXT_KEY_PRODMOD_WONDER_IMPROVEMENT',							'[NEWLINE][ICON_BULLET]Improvement Modifier for Wonders: {1_Num}%'),
-			('TXT_KEY_RELIGION_TOOLTIP_EXTENDED',							'{1_ReligionIcon} {2_NumFollowers} {2_NumFollowers: plural 1?Follower; other?Followers;} ({3_TotalPressure} + {4_PressurePerTurn} Pressure from {5_Num} Source Cities)'),
+			('TXT_KEY_RELIGIOUS_PRESSURE_STRING_EXTENDED',					'({1_Pressure} Pressure, +{2_PressurePerTurn} per Turn)'),
+			('TXT_KEY_RELIGION_TOOLTIP_EXTENDED',							'{1_ReligionIcon} {2_NumFollowers} {2_NumFollowers: plural 1?Follower; other?Followers;} ({3_TotalPressure} + {4_PressurePerTurn} Pressure from {5_Num} {5_Num:plural 1?Source City; other?Source Cities;})'),
 			('TXT_KEY_EUPANEL_EMBARKATION_DEFENSE',							'Embarkation Defense'),
 			('TXT_KEY_EUPANEL_UNITCLASS_NEAR',								'Near Unit'),
 			('TXT_KEY_EUPANEL_NEARBYPROMOTION_COMBAT_BONUS',				'Bonus from Nearby Unit'),
@@ -46,6 +47,15 @@ WHERE EXISTS (SELECT * FROM CustomModOptions WHERE Name='ALTERNATE_ASSYRIA_TRAIT
 
 
 -- Cities
+
+UPDATE Language_en_US	
+SET Text = 'Do you want to annex the puppet of {@1_CityName} into your empire? It will allow you to choose Production, but will increase your [ICON_HAPPINESS_4] Unhappiness and slow your acquisition of new Policies and Technologies. You will not be able to reverse this.'
+WHERE Tag = 'TXT_KEY_POPUP_ANNEX_PUPPET';
+
+
+UPDATE Language_en_US	
+SET Text = '[NEWLINE]Requires {TXT_KEY_GRAMMAR_A_AN << {1_BuildingName:textkey}} in this City.'
+WHERE Tag = 'TXT_KEY_NO_ACTION_UNIT_REQUIRES_BUILDING';
 
 -- Razing
 UPDATE Language_en_US	
@@ -478,7 +488,7 @@ WHERE Tag = 'TXT_KEY_SPY_NAME_BRAZIL_8';
 
 -- Trade Deals
 UPDATE Language_en_US
-SET Text = 'Ends after: [NEWLINE]Turn {1_turn}'
+SET Text = 'Ends after:[NEWLINE]Turn {1_turn}'
 WHERE Tag = 'TXT_KEY_DO_ENDS_ON';
 
 UPDATE Language_en_US
@@ -706,11 +716,6 @@ WHERE Tag = 'TXT_KEY_ECONOMICAISTRATEGY_TOO_MANY_UNITS';
 UPDATE Language_en_US
 SET Text = 'We''re having issues with our growing population, so we needn''t build growth buildings in our cities.'
 WHERE Tag = 'TXT_KEY_ECONOMICAISTRATEGY_HALT_GROWTH_BUILDINGS';
-
--- Reversed Tourism for Open Borders
-UPDATE Language_en_US
-SET Text = '+{1_Num}% Bonus for Open Borders from:[NEWLINE]   '
-WHERE Tag = 'TXT_KEY_CO_CITY_TOURISM_OPEN_BORDERS_BONUS';
 
 -- Barbarians
 UPDATE Language_en_US
@@ -1967,8 +1972,16 @@ UPDATE Language_en_US
 SET Text = '{TXT_KEY_CITY_STATE_QUEST_CONTEST_TECHS_FORMAL} So far, the leader has {1_LeaderScore}  {1_LeaderScore: plural 1?Technology; other?Technologies;} and you have [COLOR_POSITIVE_TEXT]{2_PlayerScore}[ENDCOLOR].'
 WHERE Tag = 'TXT_KEY_CITY_STATE_QUEST_CONTEST_TECHS_LOSING_FORMAL';
 
+UPDATE Language_en_US
+SET Text = '{1_Num} [ICON_TOURISM] Tourism from {2_Num} [ICON_GREAT_WORK] {2_Num: plural 1?Great Work; other?Great Works;}'
+WHERE Tag = 'TXT_KEY_CO_CITY_TOURISM_GREAT_WORKS';
 
+UPDATE Language_en_US
+SET Text = '{1_Num} [ICON_TOURISM] Tourism from buildings purchased with [ICON_PEACE] Faith'
+WHERE Tag = 'TXT_KEY_CO_CITY_TOURISM_FAITH_BUILDINGS';
 
-
+UPDATE Language_en_US
+SET Text = '+{1_Num}% Bonus from Trade Route between Empires[NEWLINE]'
+WHERE Tag = 'TXT_KEY_CO_PLAYER_TOURISM_TRADE_ROUTE';
 
 

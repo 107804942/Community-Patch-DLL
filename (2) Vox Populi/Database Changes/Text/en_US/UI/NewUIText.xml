@@ -6,6 +6,9 @@
 		</Row>
 
 		<!-- Espionage -->
+		<Row Tag="TXT_KEY_SPY_MISSIONS_DISABLED">
+			<Text>[NEWLINE] [ICON_BULLET]Advanced Spy Missions are disabled.</Text>
+		</Row>
 		<Row Tag="TXT_KEY_SPY_POINTS_TT">
 			<Text>Your Current [ICON_VP_SPY_POINTS] Spy Points: {1_Num}/{2_Threshold}[NEWLINE][NEWLINE]You gain a new Spy whenever the number of [ICON_VP_SPY_POINTS] Spy Points exceeds the threshold of {2_Threshold}. The threshold value scales on the number of Civilizations and City-States existing at the start of the game. When the first Civilization reaches Renaissance, or when you reach any later Era, you gain 100 [ICON_VP_SPY_POINTS] Spy Points. Some Buildings and Policies also provide [ICON_VP_SPY_POINTS] Spy Points.[NEWLINE][NEWLINE]Total Number of [ICON_VP_SPY_POINTS] Spy Points ever accumulated: {3_NumTotal}</Text>
 		</Row>
@@ -77,20 +80,11 @@
 			<Text>You need to have collected at least {1_Num} Network Points to view the city screen.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_EO_MISSIONS_HELP">
-			<Text>You can have your spy conduct a Spy Mission if the mission requirements are met. Conducting a mission [COLOR_NEGATIVE_TEXT]costs Network Points[ENDCOLOR], and there is a chance that your spy is [COLOR_NEGATIVE_TEXT]identified[ENDCOLOR], resulting in worsened diplomatic relations. The spy can also be [COLOR_NEGATIVE_TEXT]caught[ENDCOLOR], in which case the mission is still carried out, but the spy is then imprisoned for some time before returning to the hideout.</Text>
+			<Text>You can have your spy conduct a Spy Mission if the mission requirements are met. Conducting a mission [COLOR_NEGATIVE_TEXT]costs Network Points[ENDCOLOR], and there is a chance that your spy is [COLOR_NEGATIVE_TEXT]identified[ENDCOLOR], resulting in worsened diplomatic relations. The spy can also be [COLOR_NEGATIVE_TEXT]killed[ENDCOLOR], in which case the mission is still carried out, but it will take some time before a replacement spy is recruited.</Text>
 		</Row>
-		<Row Tag="TXT_KEY_EO_SPY_IMPRISONED_TT">
-			<Text>{1_RankName} {2_SpyName} is currently imprisoned.[NEWLINE][NEWLINE]When they are released, they will return to the hideout and can be send on missions again.</Text>
-		</Row>
-		<Row Tag="TXT_KEY_SPY_STATE_IMPRISONED">
-			<Text>Imprisoned</Text>
-		</Row>
-		<Row Tag="TXT_KEY_EO_IMPRISONED">
-			<Text>Imprisoned for {1_Turns} {1_Turns: plural 1?turn; other?turns;}.</Text>
-		</Row>
-		<Row Tag="TXT_KEY_EO_ID_CAPTURE_CHANCE">
+		<Row Tag="TXT_KEY_EO_ID_KILL_CHANCE">
 			<Text>Chance to be [COLOR_NEGATIVE_TEXT]identified[ENDCOLOR]: {1_IDChance}%
-			[NEWLINE]Chance to be [COLOR_NEGATIVE_TEXT]caught[ENDCOLOR]: {2_CaptureChance}%</Text>
+			[NEWLINE]Chance to be [COLOR_NEGATIVE_TEXT]killed[ENDCOLOR]: {2_KillChance}%</Text>
 		</Row>
 		<!-- Counterspies -->
 		<Row Tag="TXT_KEY_EO_COUNTERSPY">
@@ -104,6 +98,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_EO_COUNTERSPY_TRAVELING_TOOLTIP">
 			<Text>Once {1_Rank} {2_Spy} has arrived in {3_City}, you can select a counterspy focus.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EO_VASSAL_DIPLOMAT_CANNOT_MOVE_TT">
+			<Text>{1_Rank} {2_Spy} is permanently assigned as a diplomat to the capital of {3_Civ} and cannot be moved anywhere else.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_EO_COUNTERSPY_CANNOT_MOVE_TT">
 			<Text>Because you recently selected a new counterspy focus, {1_Rank} {2_Spy} cannot move for {3_NumTurns} more {3_NumTurns: plural 1?turn; other?turns;}.</Text>
@@ -166,9 +163,6 @@
 		<Row Tag="TXT_KEY_EO_ACTIVE_TRADE_DEALS">
 			<Text>Active Trade Deals</Text>
 		</Row>
-		<Row Tag="TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_TT_DIPLOMAT_MODIFIER">
-			<Text>Diplomat present: +{1_Num}%</Text>
-		</Row>
 		<!-- City Security -->
 		<Row Tag="TXT_KEY_EO_CITY_SECURITY_BASE_TT">
 			<Text>[NEWLINE][ICON_BULLET]Base Security: [COLOR_POSITIVE_TEXT]{1_Num}[ENDCOLOR]</Text>
@@ -221,6 +215,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_EO_NETWORK_POINTS_POLICYMOD_FASTER_TT">
 			<Text>[NEWLINE][ICON_BULLET]Policy Modifier: [COLOR_POSITIVE_TEXT]+{1_Num}%[ENDCOLOR]</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EO_NETWORK_POINTS_TRAIT_MOD_TT">
+			<Text>[NEWLINE][ICON_BULLET]Player Traits Modifier: [COLOR_POSITIVE_TEXT]+{1_Num}%[ENDCOLOR]</Text>
 		</Row>
 		<Row Tag="TXT_KEY_EO_NETWORK_POINTS_BEFORE_SECURITY_TT">
 			<Text>[NEWLINE]Total NP per Turn before Modifiers: [COLOR_POSITIVE_TEXT]{1_Num}[ENDCOLOR]</Text>
@@ -365,7 +362,7 @@
 			<Text>They want you to liberate the city of {1_CityName:textkey}.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CITY_STATE_QUEST_HORDE_FORMAL">
-			<Text>Protect them from a barbarian horde!</Text>
+			<Text>Protect them from a barbarian horde! If there are barbarians next to the city when the quest ends, the city will be [COLOR_NEGATIVE_TEXT]sacked[ENDCOLOR]!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CITY_STATE_QUEST_REBELLION_FORMAL">
 			<Text>A revolution against their ally is occurring!</Text>
@@ -710,11 +707,17 @@
 		<Row Tag="TXT_KEY_TECH_SUPPLY">
 			<Text>Tech Reduction</Text>
 		</Row>
+		<Row Tag="TXT_KEY_EMPIRE_SIZE_SUPPLY_TT">
+			<Text>Reduced from number of Cities</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EMPIRE_SIZE_SUPPLY">
+			<Text>Empire Size Reduction</Text>
+		</Row>
 		<Row Tag="TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP_NOT_WEARY">
-			<Text>Number of Military Units: {11_Num} ({2_Num} Military Supply Used)[NEWLINE]Total Military Supply: {1_Num}[NEWLINE][COLOR_NEGATIVE_TEXT]War Weariness Supply Cap Reduction: {6_Num}%[ENDCOLOR][NEWLINE][NEWLINE]Military Supply Values:[NEWLINE]  [ICON_BULLET]+{4_Num} from [ICON_CITY_STATE] Cities ([ICON_WAR] {12_Num} - {13_Num} from [ICON_RESEARCH] Tech Maintenance)[NEWLINE]  [ICON_BULLET]+{3_Num} from [ICON_CITIZEN] Population ([ICON_SILVER_FIST] {14_Num} - {15_Num} from [ICON_RESEARCH] Tech Maintenance)[NEWLINE]  [ICON_BULLET]+{5_Num} from [ICON_CHECKBOX] Difficulty Level ([ICON_CAPITAL] {16_Num} - {17_Num} from [ICON_RESEARCH] Era Level)[NEWLINE]  [ICON_BULLET]+{10_Num} from [ICON_GREAT_GENERAL]/[ICON_GREAT_ADMIRAL] Great People[NEWLINE][NEWLINE][NEWLINE]Military Supply Reductions:[NEWLINE]  [ICON_BULLET] -{8_Num} from [ICON_RESEARCH] Total Tech Level[NEWLINE]  [ICON_BULLET] -{7_Num} from [ICON_WAR] War Weariness[NEWLINE][NEWLINE]Military Unit [ICON_GOLD]/[ICON_PEACE] Costs increased by {9_Num}% due to [ICON_WAR] War Weariness.</Text>
+			<Text>Number of Military Units: {12_Num} ({2_Num} Military Supply Used)[NEWLINE]Total Military Supply: {1_Num}[NEWLINE][COLOR_NEGATIVE_TEXT]War Weariness Supply Cap Reduction: {6_Num}%[ENDCOLOR][NEWLINE][NEWLINE]Military Supply Values:[NEWLINE]  [ICON_BULLET]+{4_Num} from [ICON_CITY_STATE] Cities ([ICON_WAR] {13_Num} - {14_Num} from [ICON_RESEARCH] Tech Maintenance)[NEWLINE]  [ICON_BULLET]+{3_Num} from [ICON_CITIZEN] Population ([ICON_SILVER_FIST] {15_Num} - {16_Num} from [ICON_RESEARCH] Tech Maintenance)[NEWLINE]  [ICON_BULLET]+{5_Num} from [ICON_CHECKBOX] Difficulty Level ([ICON_CAPITAL] {17_Num} - {18_Num} from [ICON_RESEARCH] Era Level)[NEWLINE]  [ICON_BULLET]+{11_Num} from [ICON_GREAT_GENERAL]/[ICON_GREAT_ADMIRAL] Great People[NEWLINE][NEWLINE][NEWLINE]Military Supply Reductions:[NEWLINE]  [ICON_BULLET] -{8_Num} from [ICON_RESEARCH] Total Tech Level[NEWLINE]  [ICON_BULLET] -{9_Num} from [ICON_CITY_STATE] Empire Size[NEWLINE]  [ICON_BULLET] -{7_Num} from [ICON_WAR] War Weariness[NEWLINE][NEWLINE]Military Unit [ICON_GOLD]/[ICON_PEACE] Costs increased by {10_Num}% due to [ICON_WAR] War Weariness.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP">
-			<Text>{TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP_NOT_WEARY}[NEWLINE]Highest War Weariness: {18_CivName} {19_Num}%</Text>
+			<Text>{TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP_NOT_WEARY}[NEWLINE]Highest War Weariness: {19_CivName} {20_Num}%</Text>
 		</Row>
 
 		<!-- Trade Route picker -->
@@ -804,6 +807,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_CHOOSE_INTERNAL_TRADE_ROUTE_ITEM_TT_YIELD_MODIFIER_FOOD">
 			<Text>+{1_Num}% [ICON_FOOD] Food from Policies</Text>
+		</Row>
+		<Row Tag="TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_TT_DIPLOMAT_MODIFIER">
+			<Text>Diplomat present: +{1_Num}%</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_TT_CORPORATION_MODIFIER_SCIENCE">
 			<Text>Corporation [ICON_RESEARCH] Science Bonus: +{1_Num}%</Text>
@@ -952,9 +958,6 @@
 		</Row>
 
 		<!-- Combat simulator -->
-		<Row Tag="TXT_KEY_EUPANEL_BONUS_VS_CLASS_CBP">
-			<Text>Bonus VS Mounted Units</Text>
-		</Row>
 		<Row Tag="TXT_KEY_EUPANEL_CITY_BLOCKADED">
 			<Text>Blockaded</Text>
 		</Row>
@@ -985,9 +988,6 @@
 		<Row Tag="TXT_KEY_EUPANEL_ENEMY_CITY_BELIEF_BONUS_CBP">
 			<Text>Crusader Zeal</Text>
 		</Row>
-		<Row Tag="TXT_KEY_EUPANEL_TRAIT_LOW_POP_BONUS">
-			<Text>Lower Population than Enemy</Text>
-		</Row>
 		<Row Tag="TXT_KEY_EUPANEL_BONUS_PER_ADJACENT_UNIT_COMBAT">
 			<Text>Bonus from Adjacent Units</Text>
 		</Row>
@@ -996,6 +996,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_EUPANEL_MONOPOLY_POWER_DEFENSE">
 			<Text>Resource Monopoly</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EUPANEL_COUNTERSPY_DEFENSE">
+			<Text>Counterspy Bonus</Text>
 		</Row>
 
 		<!-- Unit panel -->
@@ -1028,6 +1031,12 @@
 		</Row>
 		<Row Tag="TXT_KEY_UPGRADE_HELP_DISABLED_PLAYER_UNITCLASS_LIMIT">
 			<Text>Only {1_Num} allowed per player.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_UNIT_DELETE_DISABLED_GAME_OPTION">
+			<Text>Deleting units is disabled in this game.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_UNIT_DELETE_DISABLED_ENEMIES">
+			<Text>You cannot delete a unit when there are enemies nearby.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_UPGRADE_HELP_DISABLED_TEAM_UNITCLASS_LIMIT">
 			<Text>Only {1_Num} allowed per team.</Text>
@@ -1214,7 +1223,10 @@
 			<Text>{1_Num} {2_IconString} from City-States</Text>
 		</Row>
 		<Row Tag="TXT_KEY_YIELD_FROM_CONNECTION">
-			<Text>{1_Num} {2_IconString} from [ICON_CONNECTED] City Connections</Text>
+			<Text>{1_Num} {2_IconString} from [ICON_CONNECTED] City Connection</Text>
+		</Row>
+		<Row Tag="TXT_KEY_YIELD_FROM_INDUSTRIAL_CITY_CONNECTION">
+			<Text>{1_Num} {2_IconString} from [ICON_INDUSTRIAL_CONNECTED] Industrial City Connection</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CITYVIEW_CORPORATIONS_TEXT">
 			<Text>Corporations</Text>
@@ -1249,8 +1261,17 @@
 		<Row Tag="TXT_KEY_CITY_MINED">
 			<Text>Enemy Naval Units and Embarked Units expend all [ICON_MOVES] Movement when entering water territory owned by this City. Units ending their turn in Ocean tiles owned by this City take [COLOR_NEGATIVE_TEXT]5 Damage[ENDCOLOR].</Text>
 		</Row>
+		<Row Tag="TXT_KEY_CITY_HAS_OBSTACLE">
+			<Text>Enemy Land Units expend all [ICON_MOVES] Movement when entering land territory owned by this City.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_CITY_HAS_OBSTACLE_WATER">
+			<Text>Enemy Naval Units and Embarked Units expend all [ICON_MOVES] Movement when entering water territory owned by this City.</Text>
+		</Row>
 		<Row Tag="TXT_KEY_CITY_HAS_AIRPORT">
 			<Text>Allows [COLOR_POSITIVE_TEXT]Airlifts[ENDCOLOR] to or from this City. Increased Air Unit Capacity of the City. +10 [ICON_STRENGTH] Damage to Enemy Air Units during Air Strikes on the City.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_CITY_INDUSTRIAL_CONNECTED">
+			<Text>City has an [ICON_INDUSTRIAL_CONNECTED] Industrial City Connection with the [ICON_CAPITAL] Capital!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CORPORATION_OFFICEHQ_TT">
 			<Text>[ICON_CAPITAL] Headquarters of [COLOR_POSITIVE_TEXT]{1_Name}[ENDCOLOR]</Text>
@@ -1284,6 +1305,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_NO_ACTION_BUILDING_ONE_CORP_ONLY">
 			<Text>[NEWLINE]{1_BuildingName:textkey} cannot be constructed while you are constructing {2_BuildingName:textkey} elsewhere in your Empire.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NO_ACTION_PRODUCTION_SPY_BLOCKED">
+			<Text>[NEWLINE]Blocked because of recent Spy Mission ({1_Num} {1_Num: plural 1?Turn; other?Turns;} remaining).</Text>
 		</Row>
 		<Row Tag="TXT_KEY_AUTOMATE_PRODUCTION_TT">
 			<Text>Automate production for this city.</Text>
@@ -1449,7 +1473,7 @@
 			<Text>[ICON_BULLET] [COLOR_NEGATIVE_TEXT]{1_Num}[ENDCOLOR] from Religious Unrest[NEWLINE]          Reduction: {3_Num}, Needs {2_Icon} Followers</Text>
 		</Row>
 		<Row Tag="TXT_KEY_ISOLATION_UNHAPPINESS">
-			<Text>[ICON_BULLET] [COLOR_NEGATIVE_TEXT]{1_Num}[ENDCOLOR] from Isolation. [NEWLINE]          ([ICON_BLOCKADED] Blockaded / no [ICON_CONNECTED] Connection /[NEWLINE]          no [ICON_CAPITAL] Capital [ICON_INTERNATIONAL_TRADE] Trade Route)</Text>
+			<Text>[ICON_BULLET] [COLOR_NEGATIVE_TEXT]{1_Num}[ENDCOLOR] from Isolation.[NEWLINE]          ([ICON_BLOCKADED] Blockaded / no [ICON_CONNECTED] Connection /[NEWLINE]          no [ICON_CAPITAL] Capital [ICON_INTERNATIONAL_TRADE] Trade Route)</Text>
 		</Row>
 		<Row Tag="TXT_KEY_PILLAGED_UNHAPPINESS">
 			<Text>[ICON_BULLET] [COLOR_NEGATIVE_TEXT]{1_Num}[ENDCOLOR] from [ICON_RAZING] Pillaged Tiles.</Text>
@@ -1858,19 +1882,10 @@
 			<Text>[ICON_BULLET] [COLOR_POSITIVE_TEXT][ICON_WAR] Weariness:[ENDCOLOR] They are utterly exhausted.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_WAR_WEARINESS_US_PERCENT">
-			<Text>[COLOR_NEGATIVE_TEXT]Our War Weariness: {1_Num}%[ENDCOLOR]</Text>
+			<Text>[COLOR_NEGATIVE_TEXT]Our War Weariness: {1_Num}% after {2_Num} turns[ENDCOLOR]</Text>
 		</Row>
 
 		<!-- Discussion/Dialogue options -->
-		<Row Tag="TXT_KEY_DIPLO_DISCUSS_MESSAGE_MOVE_TROOPS_TT">
-			<Text>Ask the leader to remove their troops from your border. If the leader rejects your request, they may choose to declare war on you, so be careful!</Text>
-		</Row>
-		<Row Tag="TXT_KEY_DIPLO_DISCUSS_MESSAGE_MOVE_TROOPS">
-			<Text>Please move your troops from our borders.</Text>
-		</Row>
-		<Row Tag="TXT_KEY_DIPLO_DISCUSS_MESSAGE_MOVE_TROOPS_HOSTILE">
-			<Text>Going to attack us, swine?</Text>
-		</Row>
 		<Row Tag="TXT_KEY_DIPLO_DISCUSS_DONT_ALLOW_VASSAL_INDEPENDENCE">
 			<Text>It's time you learned some respect. (DECLARE WAR!)</Text>
 		</Row>
@@ -2143,6 +2158,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_PLOTROLL_EMBASSY_UNMET">
 			<Text>of Unmet Player</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PLOTROLL_INDUSTRIAL_CITY_CONNECTION">
+			<Text>Industrial City Connection</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CITY_STATE_ARCHAEOLOGY_QUEST_LONG">
 			<Text>The City-State of {1_CivName:textkey} wants you to send an archaeologist to study this tile.</Text>
@@ -3102,9 +3120,6 @@
 		<Row Tag="TXT_KEY_NEED_PRODUCTION_NO_PROCESS">
 			<Text>[NEWLINE] [ICON_BULLET] City must not be working a Process</Text>
 		</Row>
-		<Row Tag="TXT_KEY_NEED_PRODUCE_SOMETHING">
-			<Text>[NEWLINE] [ICON_BULLET] City must be producing something</Text>
-		</Row>
 		<Row Tag="TXT_KEY_NEED_RESOURCE_IMPROVEMENT">
 			<Text>[NEWLINE] [ICON_BULLET] City must have an improved resource tile</Text>
 		</Row>
@@ -3174,6 +3189,9 @@
 		<Row Tag="TXT_KEY_NEED_BE_PUPPET">
 			<Text>[NEWLINE] [ICON_BULLET] City must be a Puppet</Text>
 		</Row>
+		<Row Tag="TXT_KEY_MUST_NOT_BE_PUPPET">
+			<Text>[NEWLINE] [ICON_BULLET] City must not be a Puppet</Text>
+		</Row>
 		<Row Tag="TXT_KEY_NEED_BE_WLTKD">
 			<Text>[NEWLINE] [ICON_BULLET] City must be experiencing [COLOR_POSITIVE_TEXT]We Love the King Day[ENDCOLOR]</Text>
 		</Row>
@@ -3205,13 +3223,13 @@
 			<Text>[NEWLINE] [ICON_BULLET] Event choice already active</Text>
 		</Row>
 		<Row Tag="TXT_KEY_ESPIONAGE_EVENT_ACTIVE">
-			<Text>[NEWLINE] [ICON_BULLET] Mission recently conducted here</Text>
+			<Text>[NEWLINE] [ICON_BULLET] Mission recently conducted here (blocked for {1_Num} more {1_Num: plural 1?turn; other?turns;})</Text>
 		</Row>
 		<Row Tag="TXT_KEY_EVENT_ACTIVE_RELATED">
 			<Text>[NEWLINE] [ICON_BULLET] Related event choice already active</Text>
 		</Row>
 		<Row Tag="TXT_KEY_ESPIONAGE_EVENT_ACTIVE_RELATED">
-			<Text>[NEWLINE] [ICON_BULLET] Related mission recently conducted here</Text>
+			<Text>[NEWLINE] [ICON_BULLET] Related mission recently conducted here (blocked for {1_Num} more {1_Num: plural 1?turn; other?turns;})</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NEED_ACTIVE_CITY_EVENT">
 			<Text>[NEWLINE] [ICON_BULLET] Requires City Event that is not currently active</Text>

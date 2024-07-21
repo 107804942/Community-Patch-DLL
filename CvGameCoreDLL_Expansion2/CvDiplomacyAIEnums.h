@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -59,8 +59,6 @@ enum CLOSED_ENUM WarStateTypes
 
 enum CLOSED_ENUM StrengthTypes
 {
-	NO_STRENGTH_VALUE = -1,
-
 	STRENGTH_PATHETIC,
 	STRENGTH_WEAK,
 	STRENGTH_POOR,
@@ -74,8 +72,6 @@ enum CLOSED_ENUM StrengthTypes
 
 enum CLOSED_ENUM TargetValueTypes
 {
-	NO_TARGET_VALUE = -1,
-
 	TARGET_VALUE_IMPOSSIBLE,
 	TARGET_VALUE_BAD,
 	TARGET_VALUE_DIFFICULT,
@@ -168,8 +164,6 @@ enum CLOSED_ENUM TimedModifierTypes
 	TIMED_MODIFIER_STANDARD,
 	TIMED_MODIFIER_STACKED,
 	TIMED_MODIFIER_DIMINISHING,
-
-	NUM_TIMED_MODIFIER_TYPES ENUM_META_VALUE,
 };
 
 enum CLOSED_ENUM TheftTypes
@@ -208,13 +202,13 @@ enum CLOSED_ENUM PeaceBlockReasons
 
 	PEACE_BLOCK_REASON_ALWAYS_WAR,
 	PEACE_BLOCK_REASON_VASSALAGE,
-	PEACE_BLOCK_REASON_TOO_SOON,
 	PEACE_BLOCK_REASON_AT_WAR_WITH_ALLY,
-	PEACE_BLOCK_REASON_CITY_JUST_CAPTURED,
-	PEACE_BLOCK_REASON_WAR_DEAL,
-	PEACE_BLOCK_REASON_NO_ENEMY_CAPITAL,
-	PEACE_BLOCK_REASON_COOP_WAR_AGAINST_DEFENSIVE_PACT,
 	PEACE_BLOCK_REASON_SCENARIO,
+	PEACE_BLOCK_REASON_WAR_DEAL,
+	PEACE_BLOCK_REASON_TOO_SOON,
+	PEACE_BLOCK_REASON_COOP_WAR_AGAINST_DEFENSIVE_PACT,
+	PEACE_BLOCK_REASON_NO_ENEMY_CITIES,
+	PEACE_BLOCK_REASON_CITY_JUST_CAPTURED,
 
 	NUM_PEACE_BLOCK_REASONS ENUM_META_VALUE,
 };

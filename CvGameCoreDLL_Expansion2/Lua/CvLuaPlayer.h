@@ -73,6 +73,9 @@ protected:
 	static int lIsResourceCityTradeable(lua_State* L);
 	static int lIsResourceImproveable(lua_State* L);
 	static int lIsResourceRevealed(lua_State* L);
+	static int lGetSpecialistValueCity(lua_State* L);
+	static int lGetCombinedChangeValue(lua_State* L);
+	static int lGetPlotValueCity(lua_State* L);
 	static int lDisbandUnit(lua_State* L);
 	static int lAddFreeUnit(lua_State* L);
 
@@ -109,6 +112,7 @@ protected:
 	static int lSetNumWondersBeatenTo(lua_State* L);
 
 	static int lIsCapitalConnectedToCity(lua_State* L);
+	static int lIsCapitalIndustrialConnectedToCity(lua_State* L);
 	static int lIsPlotConnectedToPlot(lua_State* L);
 
 	static int lIsTurnActive(lua_State* L);
@@ -128,7 +132,6 @@ protected:
 	static int lCanTrain(lua_State* L);
 	static int lCanConstruct(lua_State* L);
 	static int lCanCreate(lua_State* L);
-	static int lCanPrepare(lua_State* L);
 	static int lCanMaintain(lua_State* L);
 
 	static int lIsCanPurchaseAnyCity(lua_State* L);
@@ -327,6 +330,7 @@ protected:
 	static int lCanCreatePantheon(lua_State* L);
 	static int lHasCreatedReligion(lua_State* L);
 	static int lGetOwnedReligion(lua_State* L);
+	static int lOwnsReligion(lua_State* L);
 	static int lGetReligionCreatedByPlayer(lua_State* L);
 	static int lGetOriginalReligionCreatedByPlayer(lua_State* L);
 	static int lGetFoundedReligionEnemyCityCombatMod(lua_State* L);
@@ -402,6 +406,10 @@ protected:
 	LUAAPIEXTN(GetUnitCostIncreaseFromWarWeariness, int);
 	LUAAPIEXTN(GetUnhappinessFromWarWeariness, int);
 	LUAAPIEXTN(GetTechSupplyReduction, int);
+	LUAAPIEXTN(GetEmpireSizeSupplyReduction, int);
+
+	LUAAPIEXTN(GetWarDuration, int);
+	LUAAPIEXTN(GetLongestWarDuration, int);
 
 	static int lGetUnitSupplyFromExpendedGreatPeople(lua_State* L);
 	static int lChangeUnitSupplyFromExpendedGreatPeople(lua_State* L);
@@ -543,8 +551,6 @@ protected:
 	static int lIsPolicyBranchUnlocked(lua_State* L);
 	static int lSetPolicyBranchUnlocked(lua_State* L);
 	static int lGetNumPolicyBranchesUnlocked(lua_State* L);
-	static int lGetPolicyBranchChosen(lua_State* L);
-	static int lGetNumPolicyBranchesAllowed(lua_State* L);
 	static int lGetNumPolicies(lua_State* L);
 	static int lGetNumPoliciesInBranch(lua_State* L);
 	static int lGetNumPoliciesPurchasedInBranch(lua_State* L);
@@ -577,18 +583,6 @@ protected:
 	static int lGetAnarchyNumTurns(lua_State* L);
 	static int lSetAnarchyNumTurns(lua_State* L);
 	static int lChangeAnarchyNumTurns(lua_State* L);
-
-	static int lGetAdvancedStartPoints(lua_State* L);
-	static int lSetAdvancedStartPoints(lua_State* L);
-	static int lChangeAdvancedStartPoints(lua_State* L);
-	static int lGetAdvancedStartUnitCost(lua_State* L);
-	static int lGetAdvancedStartCityCost(lua_State* L);
-	static int lGetAdvancedStartPopCost(lua_State* L);
-	static int lGetAdvancedStartBuildingCost(lua_State* L);
-	static int lGetAdvancedStartImprovementCost(lua_State* L);
-	static int lGetAdvancedStartRouteCost(lua_State* L);
-	static int lGetAdvancedStartTechCost(lua_State* L);
-	static int lGetAdvancedStartVisibilityCost(lua_State* L);
 
 	static int lGetAttackBonusTurns(lua_State* L);
 	static int lGetCultureBonusTurns(lua_State* L);
@@ -661,7 +655,6 @@ protected:
 	static int lGetUnitProductionModifier(lua_State* L);
 	static int lGetBuildingProductionModifier(lua_State* L);
 	static int lGetProjectProductionModifier(lua_State* L);
-	static int lGetSpecialistProductionModifier(lua_State* L);
 
 	static int lGetMaxGlobalBuildingProductionModifier(lua_State* L);
 	static int lGetMaxTeamBuildingProductionModifier(lua_State* L);
@@ -699,11 +692,6 @@ protected:
 	static int lIsMilitaryFoodProduction(lua_State* L);
 	static int lGetHighestUnitLevel(lua_State* L);
 
-	static int lGetConscriptCount(lua_State* L);
-	static int lSetConscriptCount(lua_State* L);
-	static int lChangeConscriptCount(lua_State* L);
-
-	static int lGetMaxConscript(lua_State* L);
 	static int lGetOverflowResearch(lua_State* L);
 	LUAAPIEXTN(SetOverflowResearch, void, iResearch);
 	LUAAPIEXTN(ChangeOverflowResearch, void, iResearch);
@@ -792,6 +780,7 @@ protected:
 	static int lGetMinorCivFriendshipLevelWithMajor(lua_State* L);
 	static int lGetRestingPointChange(lua_State* L);
 	static int lChangeRestingPointChange(lua_State* L);
+	static int lSetRestingPointChange(lua_State* L);
 	static int lGetActiveQuestForPlayer(lua_State* L); // DEPRECATED
 	static int lIsMinorCivActiveQuestForPlayer(lua_State* L);
 	static int lSetMinorCivActiveQuestForPlayer(lua_State* L);
@@ -965,10 +954,6 @@ protected:
 	static int lIsBuildingClassMaxedOut(lua_State* L);
 	static int lGetBuildingClassMaking(lua_State* L);
 	static int lGetBuildingClassCountPlusMaking(lua_State* L);
-	static int lGetHurryCount(lua_State* L);
-	static int lIsHasAccessToHurry(lua_State* L);
-	static int lIsCanHurry(lua_State* L);
-	static int lGetHurryGoldCost(lua_State* L);
 
 	static int lIsResearchingTech(lua_State* L);
 	static int lSetResearchingTech(lua_State* L);
@@ -984,6 +969,7 @@ protected:
 	static int lGetSpecialistExtraYield(lua_State* L);
 
 	static int lFindPathLength(lua_State* L);
+	static int lFindTechPathLength(lua_State* L);
 
 	static int lGetQueuePosition(lua_State* L);
 	static int lClearResearchQueue(lua_State* L);
@@ -1294,7 +1280,6 @@ protected:
 	static int lCanSpyStageCoup(lua_State* L);
 	static int lGetAvailableSpyRelocationCities(lua_State* L);
 	static int lCanMoveSpyTo(lua_State* L);
-	static int lChangeCounterspyMission(lua_State* L);
 	static int lGetNumTechsToSteal(lua_State* L);
 	static int lGetIntrigueMessages(lua_State* L);
 	static int lHasRecentIntrigueAbout(lua_State* L);
@@ -1399,7 +1384,6 @@ protected:
 	LUAAPIEXTN(GetMilitaryAggressivePosture, int, iOtherPlayer);
 	LUAAPIEXTN(CountAggressiveMilitaryScore, int, iOtherPlayer);
 	LUAAPIEXTN(MoveRequestTooSoon, bool, iOtherPlayer);
-	LUAAPIEXTN(GetPlayerMoveTroopsRequestCounter, int, iOtherPlayer);
 	LUAAPIEXTN(GetExpensePerTurnFromVassalTaxes, int);
 	LUAAPIEXTN(GetMyShareOfVassalTaxes, int);
 	LUAAPIEXTN(GetVassalTaxContribution, int);
@@ -1510,10 +1494,6 @@ protected:
 	static int lGetMilitaryAirMight(lua_State* L);
 	static int lGetMilitaryLandMight(lua_State* L);
 #endif
-
-	static int lGetMainRouteTiles(lua_State* L);
-	static int lGetShortcutRouteTiles(lua_State* L);
-	static int lGetStrategicRouteTiles(lua_State* L);
 
 	LUAAPIEXTN(IsResourceNotForSale, bool, eResource);
 	LUAAPIEXTN(SetResourceAvailable, void, eResource);

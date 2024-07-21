@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -117,7 +117,7 @@ ICvCity1* CvDllMap::FindCity(int iX,
 	CvCity* pkSkipCity = NULL;
 	if(pSkipCity)
 	{
-		pkSkipCity = dynamic_cast<CvDllCity*>(pSkipCity)->GetInstance();
+		pkSkipCity = static_cast<CvDllCity*>(pSkipCity)->GetInstance();
 	}
 
 	CvCity* pkCity = m_pMap->findCity(iX, iY, eOwner, eTeam, bSameArea, bCoastalOnly, eTeamAtWarWith, eDirection, pkSkipCity);

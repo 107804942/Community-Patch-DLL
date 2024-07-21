@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	� 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -186,6 +186,7 @@ public:
 	bool IsContestLeader(PlayerTypes ePlayer = NO_PLAYER);
 	bool IsComplete();
 	bool IsRevoked(bool bWar = false, bool bHeavyTribute = false);
+	bool IsExpiredGlobal();
 	bool IsExpired();
 	bool IsObsolete(bool bWar = false, bool bHeavyTribute = false);
 	bool IsHandled() const;
@@ -399,7 +400,7 @@ public:
 	bool IsThreateningBarbariansEventActiveForPlayer(PlayerTypes ePlayer);
 	int GetNumThreateningBarbarians();
 	int GetNumThreateningMajors();
-	int GetNumBarbariansInBorders(bool bOnlyAdjacentToCity);
+	bool IsAnyBarbarianInBorders();
 
 	void DoTestThreatenedAnnouncement();
 	int GetTurnsSinceThreatenedAnnouncement() const;
@@ -433,11 +434,7 @@ public:
 
 	void DoTestStartGlobalQuest();
 	void DoTestStartPersonalQuest(PlayerTypes ePlayer);
-#if defined(MOD_BALANCE_CORE)
 	void AddQuestForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes eType, int iStartTurn, PlayerTypes pCallingPlayer = NO_PLAYER);
-#else
-	void AddQuestForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes eType, int iStartTurn);
-#endif
 	void AddQuestCopyForPlayer(PlayerTypes ePlayer, CvMinorCivQuest* pQuest);
 	void DoTestQuestsOnFirstContact(PlayerTypes eMajor);
 
@@ -568,19 +565,19 @@ public:
 	// ***** Friendship *****
 	// ******************************
 
-	void DoFriendship();
+	void DoFriendshipDecay();
 
 	int GetFriendshipChangePerTurnTimes100(PlayerTypes ePlayer);
 
 	int GetEffectiveFriendshipWithMajorTimes100(PlayerTypes ePlayer, bool bIgnoreWar = false);
 	int GetBaseFriendshipWithMajorTimes100(PlayerTypes ePlayer) const;
-	void SetFriendshipWithMajorTimes100(PlayerTypes ePlayer, int iNum, bool bFromQuest = false, bool bFromCoup = false, bool bFromWar = false);
-	void ChangeFriendshipWithMajorTimes100(PlayerTypes ePlayer, int iChange, bool bFromQuest = false);
+	void SetFriendshipWithMajorTimes100(PlayerTypes ePlayer, int iNum, bool bFromQuest = false, bool bFromCoup = false, bool bFromWar = false, bool bUpdateStatus = true);
+	void ChangeFriendshipWithMajorTimes100(PlayerTypes ePlayer, int iChange, bool bFromQuest = false, bool bUpdateStatus = true);
 
 	int GetEffectiveFriendshipWithMajor(PlayerTypes ePlayer);
 	int GetBaseFriendshipWithMajor(PlayerTypes ePlayer) const;
-	void SetFriendshipWithMajor(PlayerTypes ePlayer, int iNum, bool bFromQuest = false, bool bFromWar = false);
-	void ChangeFriendshipWithMajor(PlayerTypes ePlayer, int iChange, bool bFromQuest = false);
+	void SetFriendshipWithMajor(PlayerTypes ePlayer, int iNum, bool bFromQuest = false, bool bFromWar = false, bool bUpdateStatus = true);
+	void ChangeFriendshipWithMajor(PlayerTypes ePlayer, int iChange, bool bFromQuest = false, bool bUpdateStatus = true);
 
 	int GetFriendshipAnchorWithMajor(PlayerTypes eMajor);
 	
@@ -590,7 +587,7 @@ public:
 
 	int GetMostFriendshipWithAnyMajor(PlayerTypes& eBestPlayer);
 	PlayerTypes GetAlly() const;
-	void SetAlly(PlayerTypes eNewAlly);
+	void SetAlly(PlayerTypes eNewAlly, bool bSuppressNotification);
 	int GetAlliedTurns() const;
 
 	bool IsAllies(PlayerTypes ePlayer) const;
@@ -613,8 +610,6 @@ public:
 	int GetFriendsThreshold(PlayerTypes ePlayer) const;
 	bool IsFriendshipAboveAlliesThreshold(PlayerTypes ePlayer, int iFriendship) const;
 	int GetAlliesThreshold(PlayerTypes ePlayer) const;
-
-	void DoSetBonus(PlayerTypes ePlayer, bool bAdd, bool bFriends, bool bAllies, bool bSuppressNotifications = false, bool bPassedBySomeone = false, PlayerTypes eNewAlly = NO_PLAYER);
 
 	void DoUpdateNumThreateningBarbarians();
 	void DoIntrusion();
@@ -838,6 +833,7 @@ public:
 
 	int GetRestingPointChange(PlayerTypes ePlayer) const;
 	void ChangeRestingPointChange(PlayerTypes ePlayer, int iChange);
+	void SetRestingPointChange(PlayerTypes ePlayer, int iValue);
 
 	const CvMinorCivIncomingUnitGift& getIncomingUnitGift(PlayerTypes eMajor) const;
 	CvMinorCivIncomingUnitGift& getIncomingUnitGift(PlayerTypes eMajor);
@@ -856,6 +852,7 @@ public:
 
 	bool IsSameReligionAsMajor(PlayerTypes eMajor);
 
+	//horrible API but too lazy to fix
 	CvString GetStatusChangeDetails(PlayerTypes ePlayer, bool bAdd, bool bFriends, bool bAllies);
 	pair<CvString, CvString> GetStatusChangeNotificationStrings(PlayerTypes ePlayer, bool bAdd, bool bFriends, bool bAllies, PlayerTypes eOldAlly, PlayerTypes eNewAlly);
 	CvString GetNamesListAsString(CivsList veNames);
@@ -865,6 +862,11 @@ public:
 
 	QuestListForAllPlayers m_QuestsGiven;
 private:
+	//return true if an actual change occurred
+	bool SetAllyInternal(PlayerTypes eNewAlly);
+	void ProcessAllyChangeNotifications(PlayerTypes eOldAlly, PlayerTypes eNewAlly, bool bSuppressDirectNotification);
+	void DoSetBonus(PlayerTypes ePlayer, bool bAdd, bool bFriendChange, bool bAllyChange);
+
 	CvPlayer* m_pPlayer;
 	MinorCivTypes m_minorCivType;
 	MinorCivPersonalityTypes m_ePersonality;

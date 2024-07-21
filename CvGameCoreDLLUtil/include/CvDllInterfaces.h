@@ -47,7 +47,7 @@
 
 // {D89BA82F-9FA3-4696-B3F4-52BDB101CFB2}
 static const GUID guidICvUnknown =
-{0xd89ba82f, 0x9fa3, 0x4696, 0xb3, 0xf4, 0x52, 0xbd, 0xb1, 0x1, 0xcf, 0xb2};
+{0xd89ba82f, 0x9fa3, 0x4696, { 0xb3, 0xf4, 0x52, 0xbd, 0xb1, 0x1, 0xcf, 0xb2 } };
 
 // {579A12E9-3C70-4276-8460-C941A5F9585F}
 static const GUID guidICvEnumerator = 
@@ -63,7 +63,7 @@ static const GUID guidICvScriptSystemUtility1 =
 
 // {A309FA38-CF60-4239-A162-8586C0D1C7D3}
 static const GUID guidICvGameContext1 =
-{ 0xa309fa38, 0xcf60, 0x4239, 0xa1, 0x62, 0x85, 0x86, 0xc0, 0xd1, 0xc7, 0xd3};
+{ 0xa309fa38, 0xcf60, 0x4239, { 0xa1, 0x62, 0x85, 0x86, 0xc0, 0xd1, 0xc7, 0xd3 } };
 
 // {E75BA944-05DB-4D6C-96A6-A07B71CDBE77}
 static const GUID guidICvCity1 =
@@ -135,7 +135,7 @@ static const GUID guidICvTeam1 =
 
 // {9F157E04-4B2D-4797-9AA5-1325DE221607}
 static const GUID guidICvUnit1 =
-{0x9f157e04, 0x4b2d, 0x4797, 0x9a, 0xa5, 0x13, 0x25, 0xde, 0x22, 0x16, 0x7};
+{0x9f157e04, 0x4b2d, 0x4797, { 0x9a, 0xa5, 0x13, 0x25, 0xde, 0x22, 0x16, 0x7 } };
 
 // {78F0497A-7A44-49a0-8D14-58AAB8C128B8}
 static const GUID guidICvUnitInfo1 = 
@@ -1846,16 +1846,15 @@ public:
 		: m_ptr(ptr)
 	{}
 
-	// FIXME: This is rather horrendous as it violates the constness of `other`.
-	// This has been done because it mimics the interface of Microsoft's `auto_ptr`
-	// which avoids a cascade of complex changes being necessary.
+	// FIXME: This still violates the constness of `other` due to the need to nullify
+	// `other.m_ptr`. This approach mimics the behavior of Microsoft's `auto_ptr` to avoid 
+	// a cascade of complex changes being necessary.
 	// 
-	// Specifically there are numerous instances where an interface pointer is
-	// constructed from an rvalue reference which cannot be easily made correct
-	// without modifying the callsite rather dastically.
+	// Specifically, numerous instances construct an interface pointer from an rvalue reference
+	// which cannot be easily made correct without modifying the callsite drastically.
 	//
-	// With C++11 this would just be a move constructor but we still want to
-	// support VC90 so this'll do for now.
+	// Ideally, C++11 move semantics would be used here, but we must support VC90.
+	// The current solution minimizes side effects but does not completely resolve the issue.
 	CvInterfacePtr(CvInterfacePtr<T> const& other)
 		: m_ptr(other.m_ptr)
 	{
@@ -1865,8 +1864,12 @@ public:
 	// Same issues from CvInterfacePtr copy constructor apply here. See comment.
 	CvInterfacePtr<T>& operator=(CvInterfacePtr<T> const& rhs)
 	{
-		reset(rhs.m_ptr);
-		rhs.m_ptr = NULL;
+		if (this != &rhs) // Avoid self-assignment
+		{
+			T* tempPtr = rhs.m_ptr; // Temporarily store the rhs pointer
+			rhs.m_ptr = NULL; // Nullify rhs.m_ptr
+			reset(tempPtr); // Reset current object's pointer with tempPtr
+		}
 		return *this;
 	}
 

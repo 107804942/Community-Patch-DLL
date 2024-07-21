@@ -76,7 +76,6 @@ CvImprovementEntry::CvImprovementEntry(void):
 #endif
 	m_iCultureAdjacentSameType(0),
 	m_iTilesPerGoody(0),
-	m_iGoodyUniqueRange(0),
 	m_iFeatureGrowthProbability(0),
 	m_iUpgradeTime(0),
 	m_iRiverSideUpgradeMod(0),
@@ -146,6 +145,7 @@ CvImprovementEntry::CvImprovementEntry(void):
 	m_bAdjacentCity(false),
 	m_iGrantsVision(0),
 	m_iMovesChange(0),
+	m_bRestoreMoves(false),
 #endif
 	m_bNoTwoAdjacent(false),
 	m_iXSameAdjacentMakesValid(0),
@@ -308,7 +308,6 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	m_bGoody = kResults.GetBool("Goody");
 	m_bPermanent = kResults.GetBool("Permanent");
 	m_iTilesPerGoody = kResults.GetInt("TilesPerGoody");
-	m_iGoodyUniqueRange = kResults.GetInt("GoodyRange");
 	m_iFeatureGrowthProbability = kResults.GetInt("FeatureGrowth");
 	m_iUpgradeTime = kResults.GetInt("UpgradeTime");
 	m_iRiverSideUpgradeMod = kResults.GetInt("RiverSideUpgradeMod");
@@ -338,6 +337,7 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	m_bNewOwner = kResults.GetBool("NewOwner");
 	m_bOwnerOnly = kResults.GetBool("OwnerOnly");
 	m_iMovesChange = kResults.GetInt("MovesChange");
+	m_bRestoreMoves = kResults.GetBool("RestoreMoves");
 #endif
 	m_bNoTwoAdjacent = kResults.GetBool("NoTwoAdjacent");
 	m_iXSameAdjacentMakesValid = kResults.GetInt("XSameAdjacentMakesValid");
@@ -822,12 +822,6 @@ int CvImprovementEntry::GetTilesPerGoody() const
 	return m_iTilesPerGoody;
 }
 
-/// How far goody huts need to be away from each other
-int CvImprovementEntry::GetGoodyUniqueRange() const
-{
-	return m_iGoodyUniqueRange;
-}
-
 /// How likely this improvement is to expand into an adjacent tile
 int CvImprovementEntry::GetFeatureGrowthProbability() const
 {
@@ -930,6 +924,10 @@ int CvImprovementEntry::GetUnitPlotExperience() const
 int CvImprovementEntry::GetMovesChange() const
 {
 	return m_iMovesChange;
+}
+bool CvImprovementEntry::IsRestoreMoves() const
+{
+	return m_bRestoreMoves;
 }
 int CvImprovementEntry::GetGAUnitPlotExperience() const
 {
@@ -1461,6 +1459,7 @@ int* CvImprovementEntry::GetAdjacentResourceYieldChangesArray(int i)
 	return m_ppiAdjacentResourceYieldChanges[i];
 }
 
+/// How much bonus yields an improvement gives to adjacent tiles with a certain terrain
 int CvImprovementEntry::GetAdjacentTerrainYieldChanges(int i, int j) const
 {
 	CvAssertMsg(i < GC.getNumTerrainInfos(), "Index out of bounds");
@@ -1475,6 +1474,7 @@ int* CvImprovementEntry::GetAdjacentTerrainYieldChangesArray(int i)
 	return m_ppiAdjacentTerrainYieldChanges[i];
 }
 
+/// How much an improvement yields if built next to a feature
 int CvImprovementEntry::GetAdjacentFeatureYieldChanges(int i, int j) const
 {
 	CvAssertMsg(i < GC.getNumPlotInfos(), "Index out of bounds");
@@ -1657,11 +1657,7 @@ int CvImprovementXMLEntries::GetNumImprovements()
 /// Get a specific entry
 CvImprovementEntry* CvImprovementXMLEntries::GetEntry(int index)
 {
-#if defined(MOD_BALANCE_CORE)
-	return (index!=NO_IMPROVEMENT) ? m_paImprovementEntries[index] : NULL;
-#else
-	return m_paImprovementEntries[index];
-#endif
+	return (index != NO_IMPROVEMENT) ? m_paImprovementEntries[index] : NULL;
 }
 
 /// Tell which improvement unlocks a resource
@@ -1755,7 +1751,7 @@ void ImprovementArrayHelpers::ReadYieldArray(FDataStream& kStream, int** ppaaiIm
 	{
 		int iHash = 0;
 		kStream >> iHash;
-		if(iHash != (int)0)
+		if(iHash != 0)
 		{
 			int iType = GC.getInfoTypeForHash(iHash);
 			if(iType != -1)
@@ -1801,7 +1797,7 @@ void ImprovementArrayHelpers::WriteYieldArray(FDataStream& kStream, int** ppaaiI
 		}
 		else
 		{
-			kStream << (int)0;
+			kStream << 0;
 		}
 	}
 }
