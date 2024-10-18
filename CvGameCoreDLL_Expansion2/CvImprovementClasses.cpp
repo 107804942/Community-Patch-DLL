@@ -74,7 +74,6 @@ CvImprovementEntry::CvImprovementEntry(void):
 #if defined(MOD_GLOBAL_STACKING_RULES)
 	m_iAdditionalUnits(0),
 #endif
-	m_iCultureAdjacentSameType(0),
 	m_iTilesPerGoody(0),
 	m_iFeatureGrowthProbability(0),
 	m_iUpgradeTime(0),
@@ -141,8 +140,9 @@ CvImprovementEntry::CvImprovementEntry(void):
 	m_bIsEmbassy(false),
 #if defined(MOD_BALANCE_CORE)
 	m_iGetObsoleteTech(NO_TECH),
-	m_bAdjacentLake(false),
+	m_bNoAdjacentCity(false),
 	m_bAdjacentCity(false),
+	m_bAdjacentLake(false),
 	m_iGrantsVision(0),
 	m_iMovesChange(0),
 	m_bRestoreMoves(false),
@@ -153,6 +153,7 @@ CvImprovementEntry::CvImprovementEntry(void):
 	m_bAllowsWalkWater(false),
 	m_bCreatedByGreatPerson(false),
 	m_bSpecificCivRequired(false),
+	m_bConnectsAllResources(false),
 	m_eImprovementUsageType(IMPROVEMENTUSAGE_BASIC),
 	m_eRequiredCivilization(NO_CIVILIZATION),
 	m_iWorldSoundscapeScriptId(0),
@@ -161,6 +162,7 @@ CvImprovementEntry::CvImprovementEntry(void):
 	m_piYieldChange(NULL),
 	m_piYieldPerEra(NULL),
 	m_piWLTKDYieldChange(NULL),
+	m_piGoldenAgeYieldChange(NULL),
 	m_piRiverSideYieldChange(NULL),
 	m_piCoastalLandYieldChange(NULL),
 	m_piHillsYieldChange(NULL),
@@ -171,6 +173,7 @@ CvImprovementEntry::CvImprovementEntry(void):
 	m_pbTerrainMakesValid(NULL),
 	m_pbFeatureMakesValid(NULL),
 	m_pbImprovementMakesValid(NULL),
+	m_YieldPerXAdjacentImprovement(),
 	m_piAdjacentSameTypeYield(NULL),
 	m_piAdjacentTwoSameTypeYield(NULL),
 	m_ppiAdjacentImprovementYieldChanges(NULL),
@@ -182,7 +185,8 @@ CvImprovementEntry::CvImprovementEntry(void):
 	m_ppiTechNoFreshWaterYieldChanges(NULL),
 	m_ppiTechFreshWaterYieldChanges(NULL),
 	m_ppiRouteYieldChanges(NULL),
-	m_paImprovementResource(NULL)
+	m_paImprovementResource(NULL),
+	m_eSpawnsAdjacentResource(NO_RESOURCE)
 {
 }
 
@@ -194,6 +198,7 @@ CvImprovementEntry::~CvImprovementEntry(void)
 	SAFE_DELETE_ARRAY(m_piYieldChange);
 	SAFE_DELETE_ARRAY(m_piYieldPerEra);
 	SAFE_DELETE_ARRAY(m_piWLTKDYieldChange);
+	SAFE_DELETE_ARRAY(m_piGoldenAgeYieldChange);
 	SAFE_DELETE_ARRAY(m_piRiverSideYieldChange);
 	SAFE_DELETE_ARRAY(m_piCoastalLandYieldChange);
 	SAFE_DELETE_ARRAY(m_piHillsYieldChange);
@@ -204,6 +209,7 @@ CvImprovementEntry::~CvImprovementEntry(void)
 	SAFE_DELETE_ARRAY(m_pbTerrainMakesValid);
 	SAFE_DELETE_ARRAY(m_pbFeatureMakesValid);
 	SAFE_DELETE_ARRAY(m_pbImprovementMakesValid);
+	m_YieldPerXAdjacentImprovement.clear();
 	SAFE_DELETE_ARRAY(m_piAdjacentSameTypeYield);
 	SAFE_DELETE_ARRAY(m_piAdjacentTwoSameTypeYield);
 	if(m_ppiAdjacentImprovementYieldChanges != NULL)
@@ -273,7 +279,6 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 #if defined(MOD_GLOBAL_STACKING_RULES)
 	m_iAdditionalUnits = kResults.GetInt("AdditionalUnits");
 #endif
-	m_iCultureAdjacentSameType = kResults.GetInt("CultureAdjacentSameType");
 #if defined(MOD_GLOBAL_RELOCATION)
 	m_bAllowsRebaseTo = kResults.GetBool("AllowsRebaseTo");
 	m_bAllowsAirliftFrom = kResults.GetBool("AllowsAirliftFrom");
@@ -325,8 +330,9 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 #if defined(MOD_BALANCE_CORE)
 	const char* szObsoleteTech = kResults.GetText("ObsoleteTech");
 	m_iGetObsoleteTech = GC.getInfoTypeForString(szObsoleteTech, true);
-	m_bAdjacentLake = kResults.GetBool("Lakeside");
+	m_bNoAdjacentCity = kResults.GetBool("NoAdjacentCity");
 	m_bAdjacentCity = kResults.GetBool("Cityside");
+	m_bAdjacentLake = kResults.GetBool("Lakeside");
 	m_iGrantsVision = kResults.GetInt("GrantsVisionXTiles");
 	m_iUnitPlotExperience = kResults.GetInt("UnitPlotExperience");
 	m_iGAUnitPlotExperience = kResults.GetInt("GAUnitPlotExperience");
@@ -345,6 +351,7 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	m_bAllowsWalkWater = kResults.GetBool("AllowsWalkWater");
 	m_bCreatedByGreatPerson = kResults.GetBool("CreatedByGreatPerson");
 	m_bSpecificCivRequired = kResults.GetBool("SpecificCivRequired");
+	m_bConnectsAllResources = kResults.GetBool("ConnectsAllResources");
 	m_iResourceExtractionMod = kResults.GetInt("ResourceExtractionMod");
 	m_iLuxuryCopiesSiphonedFromMinor = kResults.GetInt("LuxuryCopiesSiphonedFromMinor");
 	m_iImprovementLeagueVotes = kResults.GetInt("ImprovementLeagueVotes");
@@ -382,6 +389,9 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	const char* szImprovementUpgrade = kResults.GetText("ImprovementUpgrade");
 	m_iImprovementUpgrade = GC.getInfoTypeForString(szImprovementUpgrade, true);
 
+	const char* szSpawnsAdjacentResource = kResults.GetText("SpawnsAdjacentResource");
+	m_eSpawnsAdjacentResource = (ResourceTypes)GC.getInfoTypeForString(szSpawnsAdjacentResource, true);
+
 	//Arrays
 	const char* szImprovementType = GetType();
 	const size_t lenImprovementType = strlen(szImprovementType);
@@ -418,6 +428,7 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	kUtility.SetYields(m_piFreshWaterChange, "Improvement_FreshWaterYields", "ImprovementType", szImprovementType);
 	kUtility.SetYields(m_piHillsYieldChange, "Improvement_HillsYields", "ImprovementType", szImprovementType);
 	kUtility.SetYields(m_piWLTKDYieldChange, "Improvement_WLTKDYields", "ImprovementType", szImprovementType);
+	kUtility.SetYields(m_piGoldenAgeYieldChange, "Improvement_GoldenAgeYields", "ImprovementType", szImprovementType);
 	kUtility.SetYields(m_piRiverSideYieldChange, "Improvement_RiverSideYields", "ImprovementType", szImprovementType);
 	kUtility.SetYields(m_piPrereqNatureYield, "Improvement_PrereqNatureYields", "ImprovementType", szImprovementType);
 
@@ -478,10 +489,47 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 
 	const int iNumYields = kUtility.MaxRows("Yields");
 #if defined(MOD_BALANCE_CORE)
+	const int iNumImprovements = kUtility.MaxRows("Improvements");
+	CvAssertMsg(iNumImprovements > 0, "Num Improvement Infos <= 0");
+	//YieldPerXAdjacentImprovement
+	{
+		// add the vanilla adjacent culture column here
+		int iCultureAdjacent = kResults.GetInt("CultureAdjacentSameType");
+		if (iCultureAdjacent > 0)
+		{
+			m_YieldPerXAdjacentImprovement[YIELD_CULTURE][static_cast<ImprovementTypes>(GetID())] += iCultureAdjacent;
+		}
+
+		std::string strKey("Improvements - YieldPerXAdjacentImprovement");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select Yields.ID as YieldID, Improvements.ID as ImprovementID, Yield, NumRequired from Improvement_YieldPerXAdjacentImprovement inner join Yields on YieldType = Yields.Type inner join Improvements on OtherImprovementType = Improvements.Type where ImprovementType = ?");
+		}
+
+		pResults->Bind(1, szImprovementType);
+
+		while (pResults->Step())
+		{
+			const YieldTypes yield_idx = YieldTypes(pResults->GetInt(0));
+			CvAssert(yield_idx > -1);
+
+			const ImprovementTypes improvement_idx = ImprovementTypes(pResults->GetInt(1));
+			CvAssert(improvement_idx > -1);
+
+			const int yield = pResults->GetInt(2);
+			
+			const int nRequired = pResults->GetInt(3);
+			CvAssert(nRequired > 0);
+
+			m_YieldPerXAdjacentImprovement[yield_idx][improvement_idx] += fraction(yield, nRequired);
+		}
+
+		//Trim extra memory off container since this is mostly read-only.
+		map<YieldTypes, map<ImprovementTypes, fraction>>(m_YieldPerXAdjacentImprovement).swap(m_YieldPerXAdjacentImprovement);
+	}
 	//AdjacentImprovementYieldChanges
 	{
-		const int iNumImprovements = kUtility.MaxRows("Improvements");
-		CvAssertMsg(iNumImprovements > 0, "Num Improvement Infos <= 0");
 		kUtility.Initialize2DArray(m_ppiAdjacentImprovementYieldChanges, iNumImprovements, iNumYields);
 
 		std::string strKey = "Improvements - AdjacentImprovementYieldChanges";
@@ -796,15 +844,42 @@ int CvImprovementEntry::GetAdditionalUnits() const
 }
 #endif
 
+/// Bonus yield if another improvement is adjacent
+fraction CvImprovementEntry::GetYieldPerXAdjacentImprovement(YieldTypes eYield, ImprovementTypes eImprovement) const
+{
+	CvAssertMsg(eImprovement < GC.getNumImprovementInfos(), "Index out of bounds");
+	CvAssertMsg(eImprovement > -1, "Index out of Bounds");
+	CvAssertMsg(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(eYield > -1, "Index out of bounds");
+
+	fraction fYield = 0;
+	map<YieldTypes, map<ImprovementTypes, fraction>>::const_iterator itImprovement = m_YieldPerXAdjacentImprovement.find(eYield);
+	if (itImprovement != m_YieldPerXAdjacentImprovement.end())
+	{
+		map<ImprovementTypes, fraction>::const_iterator itYield = itImprovement->second.find(eImprovement);
+		if (itYield != itImprovement->second.end())
+		{
+			fYield = itYield->second;
+		}
+	}
+	return fYield;
+}
+bool CvImprovementEntry::IsYieldPerXAdjacentImprovement(YieldTypes eYield) const
+{
+	CvAssertMsg(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(eYield >= -1, "Index out of bounds");
+	
+	if (eYield == NO_YIELD)
+		return !m_YieldPerXAdjacentImprovement.empty();
+
+	map<YieldTypes, map<ImprovementTypes, fraction>>::const_iterator itImprovement = m_YieldPerXAdjacentImprovement.find(eYield);
+
+	return itImprovement != m_YieldPerXAdjacentImprovement.end();
+}
 /// Bonus yield if another Improvement of same type is adjacent
 int CvImprovementEntry::GetYieldAdjacentSameType(YieldTypes eYield) const
 {
 	int iYield = GetAdjacentSameTypeYield(eYield);
-	
-	// Special case for culture
-	if (eYield == YIELD_CULTURE) {
-		iYield += m_iCultureAdjacentSameType;
-	}
 	
 	return iYield;
 }
@@ -1165,13 +1240,17 @@ int CvImprovementEntry::GetObsoleteTech() const
 {
 	return m_iGetObsoleteTech;
 }
-bool CvImprovementEntry::IsAdjacentLake() const
+bool CvImprovementEntry::IsNoAdjacentCity() const
 {
-	return m_bAdjacentLake;
+	return m_bNoAdjacentCity;
 }
 bool CvImprovementEntry::IsAdjacentCity() const
 {
 	return m_bAdjacentCity;
+}
+bool CvImprovementEntry::IsAdjacentLake() const
+{
+	return m_bAdjacentLake;
 }
 int CvImprovementEntry::GetGrantsVision() const
 {
@@ -1215,6 +1294,11 @@ bool CvImprovementEntry::IsCreatedByGreatPerson() const
 bool CvImprovementEntry::IsSpecificCivRequired() const
 {
 	return m_bSpecificCivRequired;
+}
+
+bool CvImprovementEntry::ConnectsAllResources() const
+{
+	return m_bConnectsAllResources;
 }
 
 CivilizationTypes CvImprovementEntry::GetRequiredCivilization() const
@@ -1303,6 +1387,19 @@ int CvImprovementEntry::GetWLTKDYieldChange(int i) const
 int* CvImprovementEntry::GetWLTKDYieldChangeArray()
 {
 	return m_piWLTKDYieldChange;
+}
+
+// How much the city having a Golden Age improves the yield of this improvement
+int CvImprovementEntry::GetGoldenAgeYieldChange(int i) const
+{
+	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piGoldenAgeYieldChange ? m_piGoldenAgeYieldChange[i] : 0;
+}
+
+int* CvImprovementEntry::GetGoldenAgeYieldChangeArray()
+{
+	return m_piGoldenAgeYieldChange;
 }
 
 /// How much being next to a river improves the yield of this improvement
@@ -1429,7 +1526,8 @@ int* CvImprovementEntry::GetAdjacentTwoSameTypeYieldArray()
 {
 	return m_piAdjacentTwoSameTypeYield;
 }
-/// How much a tech improves the yield of this improvement if it has fresh water
+
+/// How this improvement changes the yields of an adjacent improvement
 int CvImprovementEntry::GetAdjacentImprovementYieldChanges(int i, int j) const
 {
 	CvAssertMsg(i < GC.getNumImprovementInfos(), "Index out of bounds");
@@ -1438,7 +1536,6 @@ int CvImprovementEntry::GetAdjacentImprovementYieldChanges(int i, int j) const
 	CvAssertMsg(j > -1, "Index out of bounds");
 	return m_ppiAdjacentImprovementYieldChanges[i][j];
 }
-
 int* CvImprovementEntry::GetAdjacentImprovementYieldChangesArray(int i)
 {
 	return m_ppiAdjacentImprovementYieldChanges[i];
@@ -1600,14 +1697,13 @@ bool CvImprovementEntry::IsConnectsResource(int i) const
 	else
 		return false;
 
-	if (MOD_BALANCE_CORE)
-	{
-		if (IsCreatedByGreatPerson() || IsAdjacentCity())
-			return true;
-	}
+	return ConnectsAllResources();
+}
 
-	return false;
-
+// Spawns a resource in one of the available adjacent tiles (if possible)
+ResourceTypes CvImprovementEntry::SpawnsAdjacentResource() const
+{
+	return m_eSpawnsAdjacentResource;
 }
 
 /// the chance of the specified Resource appearing randomly when the Improvement is present with no current Resource

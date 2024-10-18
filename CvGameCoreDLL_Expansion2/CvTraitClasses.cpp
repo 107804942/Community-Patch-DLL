@@ -3888,7 +3888,11 @@ void CvPlayerTraits::SetIsWarmonger()
 		GetBullyYieldMultiplierAnnex() > 0 ||
 		(GetPuppetPenaltyReduction() > 0 && !IsNoAnnexing()) || // puppet & annexing - Warmonger, puppet & no annexing - Smaller
 		GetGoldenAgeFromGreatPersonBirth(static_cast<GreatPersonTypes>(GC.getInfoTypeForString("GREATPERSON_GENERAL"))) > 0 ||
-		GetGoldenAgeFromGreatPersonBirth(static_cast<GreatPersonTypes>(GC.getInfoTypeForString("GREATPERSON_ADMIRAL"))) > 0)
+		GetGoldenAgeFromGreatPersonBirth(static_cast<GreatPersonTypes>(GC.getInfoTypeForString("GREATPERSON_ADMIRAL"))) > 0 ||
+		GetGreatPersonGWAM(static_cast<GreatPersonTypes>(GC.getInfoTypeForString("GREATPERSON_GENERAL"))) > 0 ||
+		GetGreatPersonGWAM(static_cast<GreatPersonTypes>(GC.getInfoTypeForString("GREATPERSON_ADMIRAL"))) > 0 ||
+		IsTechFromCityConquer())
+
 	{
 		m_bIsWarmonger = true;
 		return;
@@ -3938,8 +3942,12 @@ void CvPlayerTraits::SetIsWarmonger()
 		for (int iNumUnits = 0; iNumUnits < GC.getNumUnitCombatClassInfos(); iNumUnits++)
 		{
 			UnitCombatTypes eUClass = (UnitCombatTypes)iNumUnits;
+			if (eUClass == (UnitCombatTypes)GC.getInfoTypeForString("UNITCOMBAT_RECON", true))
+				continue;
+
 			if (HasFreePromotionUnitCombat((PromotionTypes)iNumPromos, eUClass))
 			{
+
 				m_bIsWarmonger = true;
 				return;
 			}
@@ -6544,19 +6552,16 @@ bool CvPlayerTraits::AddUniqueLuxuriesAround(CvCity *pCity, int iNumResourceToGi
 	for(int iCityPlotLoop = 0; iCityPlotLoop < pCity->GetNumWorkablePlots(); iCityPlotLoop++)
 	{
 		pLoopPlot = iterateRingPlots(pCity->getX(), pCity->getY(), iCityPlotLoop);
-		if( pLoopPlot != NULL && pLoopPlot->getOwner() == m_pPlayer->GetID() && !pLoopPlot->isCity() && 
-			pLoopPlot->isValidMovePlot(pCity->getOwner()) && !pLoopPlot->isWater() && !pLoopPlot->IsNaturalWonder() && !pLoopPlot->isMountain() && (pLoopPlot->getFeatureType() == NO_FEATURE))
+		if (pLoopPlot != NULL && pLoopPlot->getOwner() == m_pPlayer->GetID() && pLoopPlot->CanSpawnResource(pCity->getOwner())
+			&& pLoopPlot->getFeatureType() == NO_FEATURE && pLoopPlot->getImprovementType() == NO_IMPROVEMENT)
 		{
-			if(pLoopPlot->getResourceType() == NO_RESOURCE && pLoopPlot->getImprovementType() == NO_IMPROVEMENT)
-			{
-				pLoopPlot->setResourceType(eResourceToGive, 1, false);
-				iNumResourceGiven++;
+			pLoopPlot->setResourceType(eResourceToGive, 1, false);
+			iNumResourceGiven++;
 
-				if(iNumResourceGiven >= iNumResourceToGive)
-				{
-					bResult = true;
-					break;
-				}
+			if (iNumResourceGiven >= iNumResourceToGive)
+			{
+				bResult = true;
+				break;
 			}
 		}
 	}
@@ -6567,22 +6572,18 @@ bool CvPlayerTraits::AddUniqueLuxuriesAround(CvCity *pCity, int iNumResourceToGi
 		for(int iCityPlotLoop = 0; iCityPlotLoop < pCity->GetNumWorkablePlots(); iCityPlotLoop++)
 		{
 			pLoopPlot = iterateRingPlots(pCity->getX(), pCity->getY(), iCityPlotLoop);
-			if( pLoopPlot != NULL && (pLoopPlot->getOwner() == NO_PLAYER) && pLoopPlot->isValidMovePlot(pCity->getOwner()) && 
-				!pLoopPlot->isWater() && !pLoopPlot->IsNaturalWonder() && pLoopPlot->getFeatureType() != FEATURE_OASIS)
+			if (pLoopPlot != NULL && pLoopPlot->getOwner() == NO_PLAYER && pLoopPlot->CanSpawnResource(pCity->getOwner()))
 			{
-				if(pLoopPlot->getResourceType() == NO_RESOURCE)
+				if (pLoopPlot->getImprovementType() != NO_IMPROVEMENT)
+					pLoopPlot->setImprovementType(NO_IMPROVEMENT);
+
+				pLoopPlot->setResourceType(eResourceToGive, 1, false);
+				iNumResourceGiven++;
+
+				if(iNumResourceGiven >= iNumResourceToGive)
 				{
-					if (pLoopPlot->getImprovementType() != NO_IMPROVEMENT)
-						pLoopPlot->setImprovementType(NO_IMPROVEMENT);
-
-					pLoopPlot->setResourceType(eResourceToGive, 1, false);
-					iNumResourceGiven++;
-
-					if(iNumResourceGiven >= iNumResourceToGive)
-					{
-						bResult = true;
-						break;
-					}
+					bResult = true;
+					break;
 				}
 			}
 		}

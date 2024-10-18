@@ -309,7 +309,6 @@ CvPlayer::CvPlayer() :
 	, m_iScenarioScore3()
 	, m_iScenarioScore4()
 	, m_iScoreFromFutureTech()
-	, m_iTurnLastAttackedMinorCiv() // Delete this before releasing v. 4.15+ or later
 	, m_iCombatExperienceTimes100()
 	, m_iLifetimeCombatExperienceTimes100()
 	, m_iNavalCombatExperienceTimes100()
@@ -1615,7 +1614,6 @@ void CvPlayer::uninit()
 	m_iScenarioScore3 = 0;
 	m_iScenarioScore4 = 0;
 	m_iScoreFromFutureTech = 0;
-	m_iTurnLastAttackedMinorCiv = -1; // Delete this before releasing v. 4.15+ or later
 	m_iCombatExperienceTimes100 = 0;
 	m_iLifetimeCombatExperienceTimes100 = 0;
 	m_iNavalCombatExperienceTimes100 = 0;
@@ -3184,19 +3182,6 @@ CvCity* CvPlayer::acquireCity(CvCity* pCity, bool bConquest, bool bGift, bool bO
 					pNotify->Add(NOTIFICATION_CITY_LOST, locString.toUTF8(), locSummary.toUTF8(), iCityX, iCityY, -1);
 			}
 		}
-		// Normal city - only notify the conquered player
-		else
-		{
-			CvNotifications* pNotify = GET_PLAYER(eOldOwner).GetNotifications();
-			if (pNotify)
-			{
-				Localization::String locString = Localization::Lookup("TXT_KEY_NOTIFICATION_CITY_LOST");
-				Localization::String locSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_CITY_LOST");
-				locString << pCity->getNameKey() << getNameKey();
-				locSummary << pCity->getNameKey();
-				pNotify->Add(NOTIFICATION_CITY_LOST, locString.toUTF8(), locSummary.toUTF8(), iCityX, iCityY, -1);
-			}
-		}
 
 		// War damage calculations
 		if (!pCity->isBarbarian())
@@ -3996,6 +3981,9 @@ CvCity* CvPlayer::acquireCity(CvCity* pCity, bool bConquest, bool bGift, bool bO
 	GET_PLAYER(eOldOwner).deleteCity(pCity->GetID());
 	pCity = NULL; // Do not use this pointer anymore!
 
+	// update list of cities for spaceship production
+	GET_PLAYER(eOldOwner).DoUpdateCoreCitiesForSpaceshipProduction();
+
 	// Trigger a few things if the capital was captured
 	if (bCapital)
 	{
@@ -4440,6 +4428,7 @@ CvCity* CvPlayer::acquireCity(CvCity* pCity, bool bConquest, bool bGift, bool bO
 
 	// New owner should update city specializations
 	GetCitySpecializationAI()->SetSpecializationsDirty(SPECIALIZATION_UPDATE_ENEMY_CITY_CAPTURED);
+	pNewCity->GetCityCitizens()->DoReallocateCitizens(true);
 
 	// Display the notification for the spoils of plundering
 	if (GC.getGame().getActivePlayer() == GetID())
@@ -10577,49 +10566,51 @@ void CvPlayer::DoUnitReset()
 	int iLoop = 0;
 	for (CvUnit* pLoopUnit = firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = nextUnit(&iLoop))
 	{
-		// First heal the unit
-		pLoopUnit->doHeal();
-
-		//collect some stats
-		gTactMovesCount[pLoopUnit->getTacticalMove()]++;
-		gHomeMovesCount[pLoopUnit->getHomelandMove()]++;
-
-		CvPlot* pUnitPlot = pLoopUnit->plot();
-
-		// Sanity check
-		if (pLoopUnit->IsGreatGeneral() && pLoopUnit->GetDanger() == INT_MAX && pUnitPlot->getNumUnits() == 1)
-			OutputDebugString( CvString::format("ouch, general %d about to be captured at %d:%d!\n",pLoopUnit->GetID(), pLoopUnit->getX(), pLoopUnit->getY()).c_str());
-
-		// then damage it again
-		int iCitadelDamage = pUnitPlot->GetDamageFromAdjacentPlots(pLoopUnit->getOwner());
-		if (iCitadelDamage != 0 && !pLoopUnit->isInvisible(NO_TEAM, false, false))
+		// Trade units don't heal, take plot damage or fortify
+		if (!pLoopUnit->isTrade())
 		{
+			// First heal the unit
+			pLoopUnit->doHeal();
 
-			pLoopUnit->changeDamage(iCitadelDamage, pUnitPlot->getOwner(), /*fAdditionalTextDelay*/ 0.5f);
-			pLoopUnit->addDamageReceivedThisTurn(iCitadelDamage);
-		}
+			//collect some stats
+			gTactMovesCount[pLoopUnit->getTacticalMove()]++;
+			gHomeMovesCount[pLoopUnit->getHomelandMove()]++;
 
-		if (pUnitPlot->isDeepWater())
-		{
-			CvCity* pOwner = pUnitPlot->getEffectiveOwningCity();
-			if (pOwner != NULL && GET_TEAM(pOwner->getTeam()).isAtWar(getTeam()))
+			CvPlot* pUnitPlot = pLoopUnit->plot();
+
+			// Sanity check
+			if (pLoopUnit->IsGreatGeneral() && pLoopUnit->GetDanger() == INT_MAX && pUnitPlot->getNumUnits() == 1)
+				OutputDebugString( CvString::format("ouch, general %d about to be captured at %d:%d!\n",pLoopUnit->GetID(), pLoopUnit->getX(), pLoopUnit->getY()).c_str());
+
+			// then damage it again
+			int iCitadelDamage = pUnitPlot->GetDamageFromAdjacentPlots(pLoopUnit->getOwner());
+			if (iCitadelDamage != 0 && !pLoopUnit->isInvisible(NO_TEAM, false, false))
 			{
+				pLoopUnit->changeDamage(iCitadelDamage, pUnitPlot->getOwner(), /*fAdditionalTextDelay*/ 0.5f);
+				pLoopUnit->addDamageReceivedThisTurn(iCitadelDamage);
+			}
 
-				int iTempDamage = pUnitPlot->getEffectiveOwningCity()->GetDeepWaterTileDamage();
-				if (iTempDamage > 0)
+			if (pUnitPlot->isDeepWater())
+			{
+				CvCity* pOwner = pUnitPlot->getEffectiveOwningCity();
+				if (pOwner != NULL && GET_TEAM(pOwner->getTeam()).isAtWar(getTeam()))
 				{
-					if (pLoopUnit->getDomainType() == DOMAIN_SEA || pLoopUnit->isEmbarked())
+					int iTempDamage = pUnitPlot->getEffectiveOwningCity()->GetDeepWaterTileDamage();
+					if (iTempDamage > 0)
 					{
-						pLoopUnit->changeDamage(iTempDamage, pUnitPlot->getOwner(), /*fAdditionalTextDelay*/ 0.5f);
-						pLoopUnit->addDamageReceivedThisTurn(iTempDamage);
+						if (pLoopUnit->getDomainType() == DOMAIN_SEA || pLoopUnit->isEmbarked())
+						{
+							pLoopUnit->changeDamage(iTempDamage, pUnitPlot->getOwner(), /*fAdditionalTextDelay*/ 0.5f);
+							pLoopUnit->addDamageReceivedThisTurn(iTempDamage);
+						}
 					}
 				}
 			}
-		}
 
-		// Bonus for entrenched units
-		if (!pLoopUnit->hasMoved() && pLoopUnit->canFortify(pLoopUnit->plot()))
-			pLoopUnit->SetFortified(true);
+			// Bonus for entrenched units
+			if (!pLoopUnit->hasMoved() && pLoopUnit->canFortify(pLoopUnit->plot()))
+				pLoopUnit->SetFortified(true);
+		}
 
 		// Finally (now that healing is done), restore movement points
 		pLoopUnit->restoreFullMoves();
@@ -11333,7 +11324,7 @@ bool CvPlayer::IsCityConnectedToCity(CvCity* pCity1, CvCity* pCity2, RouteTypes 
 	if (!pCity1 || !pCity2)
 		return false;
 
-	return IsPlotConnectedToPlot(m_eID, pCity1->plot(), pCity2->plot(), eRestrictRoute, !bIgnoreHarbors, false, pPathOut);
+	return IsPlotConnectedToPlot(m_eID, pCity1->plot(), pCity2->plot(), eRestrictRoute, !bIgnoreHarbors, true, false, pPathOut);
 }
 
 bool CvPlayer::IsCapitalConnectedToPlayer(PlayerTypes ePlayer)
@@ -16019,7 +16010,7 @@ bool CvPlayer::IsBuildBlockedByFeature(BuildTypes eBuild, FeatureTypes eFeature,
 		return false;
 	}
 
-	if (bTestEra && ((GetCurrentEra() + 1) >= GC.getTechInfo((TechTypes)GC.getBuildInfo(eBuild)->getTechPrereq())->GetEra()))
+	if (bTestEra && (TechTypes)GC.getBuildInfo(eBuild)->getTechPrereq() != NO_TECH && ((GetCurrentEra() + 1) >= GC.getTechInfo((TechTypes)GC.getBuildInfo(eBuild)->getTechPrereq())->GetEra()))
 	{
 		return false;
 	}
@@ -19682,13 +19673,16 @@ void CvPlayer::DistributeHappinessToCities()
 		CitiesSortedByPopulation.push_back(pLoopCity, iPopulation);
 	}
 
+	if (CitiesSortedByPopulation.empty())
+		return;
+
 	CitiesSortedByNeed.StableSortItems();
 	CitiesSortedByPopulation.StableSortItems();
 
 	// Distribute happiness to cities in descending order of Need until all cities are full
-	bool bAllCitiesFull = false;
+	bool bAllCitiesFull = CitiesSortedByNeed.empty();
 
-	while (iHappiness > 0 && !bAllCitiesFull && CitiesSortedByNeed.size() > 0)
+	while (!bAllCitiesFull)
 	{
 		for (int i = 0; i < CitiesSortedByNeed.size(); i++)
 		{
@@ -19713,12 +19707,15 @@ void CvPlayer::DistributeHappinessToCities()
 		for (int i = 0; i < CitiesSortedByNeed.size(); i++)
 		{
 			if (CitiesSortedByNeed.GetWeight(i) > 0)
+			{
 				bAllCitiesFull = false;
+				break;
+			}
 		}
 	}
 
 	// If there's any happiness left over, distribute it in descending order of population until there's none left
-	while (iHappiness > 0 && CitiesSortedByPopulation.size() > 0)
+	while (true)
 	{
 		for (int i = 0; i < CitiesSortedByPopulation.size(); i++)
 		{
@@ -23065,7 +23062,7 @@ int CvPlayer::CalculateReligionVotesFromImprovements(const CvReligion *pReligion
 {
 	int iNumImprovementInfos = GC.getNumImprovementInfos();
 
-	std::pair<int, int> fTotalVotes = std::make_pair(0, 1);
+	fraction fTotalVotes = 0;
 
 	for (int jJ = 0; jJ < iNumImprovementInfos; jJ++)
 	{
@@ -23073,14 +23070,11 @@ int CvPlayer::CalculateReligionVotesFromImprovements(const CvReligion *pReligion
 		if (iNumImprovements > 0)
 		{
 			// number of votes per improvement (a fraction less than one)
-			std::pair<int, int> fPotentialVotes = pReligion->m_Beliefs.GetVoteFromOwnedImprovement((ImprovementTypes)jJ, m_eID); // more likely to be zero
-			if (fPotentialVotes.first > 0)
-			{
-				AddFractionToReference(fTotalVotes, std::make_pair(iNumImprovements * fPotentialVotes.first, fPotentialVotes.second));
-			}
+			fraction fPotentialVotes = pReligion->m_Beliefs.GetVoteFromOwnedImprovement((ImprovementTypes)jJ, m_eID); // more likely to be zero
+			fTotalVotes += fPotentialVotes * iNumImprovements;
 		}
 	}
-	return fTotalVotes.first / fTotalVotes.second;
+	return fTotalVotes.Truncate();
 }
 
 /// Extra influence from GPs
@@ -27252,11 +27246,7 @@ void CvPlayer::doInstantYield(InstantYieldType iType, bool bCityFaith, GreatPers
 			}
 			if(pCity == NULL)
 			{
-				CvCity* pCapitalCity = getCapitalCity();
-				if(pCapitalCity != NULL)
-				{
-					pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), pCapitalCity->getX(), pCapitalCity->getY(), pCapitalCity->GetID());
-				}
+				pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), -1, -1 ,-1);
 			}
 			else
 			{
@@ -34850,7 +34840,7 @@ int CvPlayer::GetScienceFromOtherPlayersTimes100() const
 /// Where is our Science coming from?
 int CvPlayer::GetScienceFromHappinessTimes100() const
 {
-	if (MOD_BALANCE_VP || GC.getGame().isOption(GAMEOPTION_NO_HAPPINESS))
+	if (GC.getGame().isOption(GAMEOPTION_NO_HAPPINESS))
 		return 0;
 
 	int iScience = 0;
@@ -35216,6 +35206,22 @@ void CvPlayer::DoUpdateWarDamageAndWeariness(bool bDamageOnly)
 	for (CvCity* pLoopCity = firstCity(&iValueLoop); pLoopCity != NULL; pLoopCity = nextCity(&iValueLoop))
 	{
 		iCurrentValue += pLoopCity->GetWarValue();
+		if (GC.getGame().isReallyNetworkMultiPlayer() && IsAtWarAnyMajor())
+		{
+			CvString strOutBuf;
+			CvString strBaseString;
+			CvString strTemp;
+
+			CvString strPlayerName = getCivilizationShortDescription();
+			strPlayerName.Replace(' ', '_'); //no spaces
+			FILogFile* pLog = LOGFILEMGR.GetLog("net_message_debug.log", FILogFile::kDontTimeStamp);
+
+			// Get the leading info for this line
+			strBaseString.Format("%03d, %s, %d, ", GC.getGame().getElapsedGameTurns(), strPlayerName.c_str(), GetID());
+			strTemp.Format("Current Value City %d: %d", pLoopCity->GetID(), pLoopCity->GetWarValue());
+			strOutBuf = strBaseString + strTemp;
+			pLog->Msg(strOutBuf);
+		}
 	}
 
 	// Unit value
@@ -35267,6 +35273,22 @@ void CvPlayer::DoUpdateWarDamageAndWeariness(bool bDamageOnly)
 				}
 
 				iCurrentValue += iUnitValue;
+				if (GC.getGame().isReallyNetworkMultiPlayer() && IsAtWarAnyMajor())
+				{
+					CvString strOutBuf;
+					CvString strBaseString;
+					CvString strTemp;
+
+					CvString strPlayerName = getCivilizationShortDescription();
+					strPlayerName.Replace(' ', '_'); //no spaces
+					FILogFile* pLog = LOGFILEMGR.GetLog("net_message_debug.log", FILogFile::kDontTimeStamp);
+
+					// Get the leading info for this line
+					strBaseString.Format("%03d, %s, %d, ", GC.getGame().getElapsedGameTurns(), strPlayerName.c_str(), GetID());
+					strTemp.Format("Current Value Unit %d: %d", pLoopUnit->GetID(), iUnitValue);
+					strOutBuf = strBaseString + strTemp;
+					pLog->Msg(strOutBuf);
+				}
 			}
 		}
 	}
@@ -35305,6 +35327,25 @@ void CvPlayer::DoUpdateWarDamageAndWeariness(bool bDamageOnly)
 		}
 
 		SetWarDamageValue(eLoopPlayer, iValueLostRatio);
+		if (GC.getGame().isReallyNetworkMultiPlayer() && IsAtWarAnyMajor())
+		{
+			if (GetWarDamageValue(eLoopPlayer) != iValueLostRatio || iWarValueLost > 0)
+			{
+				CvString strOutBuf;
+				CvString strBaseString;
+				CvString strTemp;
+
+				CvString strPlayerName = getCivilizationShortDescription();
+				strPlayerName.Replace(' ', '_'); //no spaces
+				FILogFile* pLog = LOGFILEMGR.GetLog("net_message_debug.log", FILogFile::kDontTimeStamp);
+
+				// Get the leading info for this line
+				strBaseString.Format("%03d, %s, %d, ", GC.getGame().getElapsedGameTurns(), strPlayerName.c_str(), GetID());
+				strTemp.Format("New War Damage for Player %d: %d. iWarValueLost: %d. iCurrentValue: %d", (int)eLoopPlayer, iValueLostRatio, iWarValueLost, iCurrentValue);
+				strOutBuf = strBaseString + strTemp;
+				pLog->Msg(strOutBuf);
+			}
+		}
 
 		// Only update war weariness between major civs (and only on the once-per-turn update)
 		if (bDamageOnly || !isMajorCiv() || !GET_PLAYER(eLoopPlayer).isMajorCiv())
@@ -42680,7 +42721,6 @@ void CvPlayer::Serialize(Player& player, Visitor& visitor)
 	visitor(player.m_iScenarioScore3);
 	visitor(player.m_iScenarioScore4);
 	visitor(player.m_iScoreFromFutureTech);
-	visitor(player.m_iTurnLastAttackedMinorCiv); // Delete this before releasing v. 4.15+ or later
 	visitor(player.m_iCombatExperienceTimes100);
 	visitor(player.m_iLifetimeCombatExperienceTimes100);
 	visitor(player.m_iNavalCombatExperienceTimes100);
@@ -44746,7 +44786,7 @@ ostream& operator<<(ostream& os, const CvPlot* pPlot)
 	return os;
 }
 
-CvPlot* CvPlayer::GetBestSettlePlot(const CvUnit* pUnit, CvAIOperation* pOpToIgnore, bool bForceLogging) const
+CvPlot* CvPlayer::GetBestSettlePlot(CvUnit* pUnit, CvAIOperation* pOpToIgnore, bool bForceLogging) const
 {
 	std::vector<SPlotWithScore> vSettlePlots;
 
@@ -44950,7 +44990,15 @@ CvPlot* CvPlayer::GetBestSettlePlot(const CvUnit* pUnit, CvAIOperation* pOpToIgn
 
 	//order by increasing score
 	std::stable_sort( vSettlePlots.begin(), vSettlePlots.end() );
-	return vSettlePlots.back().pPlot;
+	int iFlags = CvUnit::MOVEFLAG_NO_ENEMY_TERRITORY | CvUnit::MOVEFLAG_PRETEND_ALL_REVEALED;
+	for (vector<SPlotWithScore>::reverse_iterator it = vSettlePlots.rbegin(); it != vSettlePlots.rend(); ++it)
+	{
+		if (pUnit && !pUnit->GeneratePath(it->pPlot, iFlags, 23))
+			continue;
+
+		return it->pPlot;
+	}
+	return NULL;
 }
 
 PlayerTypes CvPlayer::GetPlayerWhoStoleMyFavoriteCitySite()
@@ -47801,6 +47849,10 @@ void CvPlayer::updatePlotFoundValues()
 				ignoreYieldPlots[iI] = 1;
 		}
 		else if (pPlot->IsAdjacentOwnedByTeamOtherThan(getTeam()) && GC.getGame().GetClosestCityDistanceInPlots(pPlot) < /*3*/ GD_INT_GET(MIN_CITY_RANGE))
+		{
+			ignoreYieldPlots[iI] = 1;
+		}
+		else if (!pPlot->isRevealed(getTeam()))
 		{
 			ignoreYieldPlots[iI] = 1;
 		}

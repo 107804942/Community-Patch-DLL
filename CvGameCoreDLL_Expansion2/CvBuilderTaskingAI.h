@@ -76,7 +76,7 @@ struct BuilderDirective
 
 	int GetPotentialScore() const
 	{
-		return m_iScore + m_iPotentialBonusScore - m_iScorePenalty;
+		return m_iScore + m_iPotentialBonusScore;
 	}
 };
 FDataStream& operator<<(FDataStream&, const BuilderDirective&);
@@ -108,7 +108,6 @@ public:
 	void UpdateImprovementPlots(void);
 
 	bool CanUnitPerformDirective(CvUnit* pUnit, BuilderDirective eDirective, bool bTestEra = false);
-	int GetBuilderNumTurnsAway(CvUnit* pUnit, BuilderDirective eDirective, int iMaxDistance=INT_MAX);
 	int GetTurnsToBuild(const CvUnit* pUnit, BuildTypes eBuild, const CvPlot* pPlot) const;
 	vector<BuilderDirective> GetDirectives();
 	bool ExecuteWorkerMove(CvUnit* pUnit, BuilderDirective aDirective);
@@ -153,6 +152,8 @@ public:
 	bool IsShortcutRoutePlot(const CvPlot* pPlot) const;
 	bool IsStrategicRoutePlot(const CvPlot* pPlot) const;
 
+	int GetResourceSpawnWorkableChance(CvPlot* pPlot, int& iTileClaimChance);
+
 	//---------------------------------------PROTECTED MEMBER VARIABLES---------------------------------
 protected:
 
@@ -178,14 +179,13 @@ protected:
 	bool IsPlannedRouteForPurpose(const CvPlot* pPlot, RoutePurpose ePurpose) const;
 	void AddRoutePlots(CvPlot* pStartPlot, CvPlot* pTargetPlot, RouteTypes eRoute, int iValue, const SPath& path, RoutePurpose ePurpose, bool bUseRivers);
 	int GetMoveCostWithRoute(const CvPlot* pFromPlot, const CvPlot* pToPlot, RouteTypes eFromPlotRoute, RouteTypes eToPlotRoute);
-	int GetPlotYieldModifierTimes100(CvPlot* pPlot, YieldTypes eYield);
 	void GetPathValues(const SPath& path, RouteTypes eRoute, int& iVillageBonusesIfCityConnected, int& iMovementBonus, int& iNumRoadsNeededToBuild);
 
 	int GetRouteBuildTime(PlannedRoute plannedRoute, const CvUnit* pUnit = (CvUnit*)NULL) const;
 	int GetRouteMissingTiles(PlannedRoute plannedRoute) const;
 
 	void SetupExtraXAdjacentPlots();
-	bool SetupExtraXAdjacentBuildPlot(const CvPlot* pPlot, BuildTypes eBuild, ImprovementTypes eImprovement, int iAdjacencyRequirement, std::tr1::unordered_set<const CvPlot*> sIgnoredPlots = std::tr1::unordered_set<const CvPlot*>());
+	void SetupExtraXAdjacentPlotsForBuild(BuildTypes eBuild, ImprovementTypes eImprovement, int iAdjacencyRequirement);
 
 	void UpdateCanalPlots();
 

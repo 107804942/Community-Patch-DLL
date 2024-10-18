@@ -228,6 +228,9 @@
 		<Row Tag="TXT_KEY_EO_NETWORK_POINTS_FINAL_TT">
 			<Text>[NEWLINE][COLOR_POSITIVE_TEXT]Total Network Points gained per Turn: {1_Num}[ENDCOLOR]</Text>
 		</Row>
+		<Row Tag="TXT_KEY_EO_NO_ACTIONS_POSSIBLE">
+			<Text>No Spy Actions Possible</Text>
+		</Row>
 
 		<!-- City-State screen/tooltip -->
 		<Row Tag="TXT_KEY_CSTATE_CAN_PROTECT">
@@ -410,6 +413,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_CO_PUBLIC_OPINION_UNHAPPINESS_FLAT">
 			<Text>[COLOR_NEGATIVE_TEXT]{1_Num}[ENDCOLOR]</Text>
+		</Row>
+		<Row Tag="TXT_KEY_TOURISM_MOD_HOLY_CITY">
+			<Text>[NEWLINE][ICON_BULLET]Modifier for Holy City of the World Religion: {1_Num}%</Text>
 		</Row>
 		<!-- CV progress screen -->
 		<Row Tag="TXT_KEY_CO_TAB_PLAYER_INFLUENCE2">

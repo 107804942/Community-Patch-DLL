@@ -1297,6 +1297,18 @@ bool CvDeal::IsPossibleToTradeItem(PlayerTypes ePlayer, PlayerTypes eToPlayer, T
 			if (ContainsItemType(TRADE_ITEM_DEFENSIVE_PACT) || ContainsItemType(TRADE_ITEM_VASSALAGE_REVOKE))
 				return false;
 
+			// Voluntary Vassalage only: the would-be master needs to be able to go to war with everyone currently at war with the vassal
+			if (!bPeaceDeal)
+			{
+				for (int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
+				{
+					PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
+					TeamTypes eLoopTeam = GET_PLAYER(eLoopPlayer).getTeam();
+					if (pFromTeam->isAtWar(eLoopTeam) && !pToTeam->isAtWar(eLoopTeam) && !pToTeam->canDeclareWar(eLoopTeam, eToPlayer))
+						return false;
+				}
+			}
+
 			break;
 		}
 
@@ -2399,6 +2411,32 @@ CvString CvDeal::GetReasonsItemUntradeable(PlayerTypes ePlayer, PlayerTypes eToP
 				strReason = GetLocalizedText("TXT_KEY_DIPLO_VASSALAGE_AND_INVALID_ITEM");
 				strTooltip += strDivider;
 				strTooltip += strReason;
+			}
+
+			// Voluntary Vassalage only: the would-be master needs to be able to go to war with everyone currently at war with the vassal
+			if (!bPeaceDeal)
+			{
+				for (int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
+				{
+					PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
+					TeamTypes eLoopTeam = GET_PLAYER(eLoopPlayer).getTeam();
+					if (pFromTeam->isAtWar(eLoopTeam) && !pToTeam->isAtWar(eLoopTeam) && !pToTeam->canDeclareWar(eLoopTeam, eToPlayer))
+					{
+						if (bFromHuman)
+						{
+							strReason = GetLocalizedText("TXT_KEY_DIPLO_VASSALAGE_YOU_DECLARE_WAR_REQUIRED");
+							strTooltip += strDivider;
+							strTooltip += strReason;
+						}
+						else if (bToHuman)
+						{
+							strReason = GetLocalizedText("TXT_KEY_DIPLO_VASSALAGE_THEM_DECLARE_WAR_REQUIRED");
+							strTooltip += strDivider;
+							strTooltip += strReason;
+						}
+						break;
+					}
+				}
 			}
 
 			break;
@@ -4915,7 +4953,7 @@ void CvGameDeals::ActivateDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, C
 			}
 
 			// If AI, adjust opinion of the broker and the warrior, if appropriate.
-			for (std::vector<PlayerTypes>::iterator iter = vPlayersWithSurveillance.begin(); iter != vPlayersWithSurveillance.end(); iter++)
+			for (std::vector<PlayerTypes>::iterator iter = vPlayersWithSurveillance.begin(); iter != vPlayersWithSurveillance.end(); ++iter)
 			{
 				TeamTypes eTeam = GET_PLAYER(*iter).getTeam();
 				if (!GET_PLAYER(*iter).isHuman())
@@ -4989,7 +5027,7 @@ void CvGameDeals::ActivateDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, C
 				}
 			}
 			// Notify any humans who have debug mode enabled
-			for (std::vector<PlayerTypes>::iterator iter = vDebugModePlayers.begin(); iter != vDebugModePlayers.end(); iter++)
+			for (std::vector<PlayerTypes>::iterator iter = vDebugModePlayers.begin(); iter != vDebugModePlayers.end(); ++iter)
 			{
 				if (std::find(vNotifiedPlayers.begin(), vNotifiedPlayers.end(), *iter) != vNotifiedPlayers.end())
 					continue;
@@ -5009,7 +5047,7 @@ void CvGameDeals::ActivateDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, C
 			}
 
 			// Negate warmongering penalties for the team that made the purchase
-			for (std::vector<PlayerTypes>::iterator iter = vReceivingTeam.begin(); iter != vReceivingTeam.end(); iter++)
+			for (std::vector<PlayerTypes>::iterator iter = vReceivingTeam.begin(); iter != vReceivingTeam.end(); ++iter)
 			{
 				if (!GET_PLAYER(*iter).isAlive() || !GET_PLAYER(*iter).isMajorCiv())
 					continue;
@@ -5041,7 +5079,7 @@ void CvGameDeals::ActivateDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, C
 				}
 
 				// Notified players reevaluate the broker!
-				for (std::vector<PlayerTypes>::iterator iter = vNotifiedPlayers.begin(); iter != vNotifiedPlayers.end(); iter++)
+				for (std::vector<PlayerTypes>::iterator iter = vNotifiedPlayers.begin(); iter != vNotifiedPlayers.end(); ++iter)
 				{
 					if (!GET_PLAYER(*iter).isHuman())
 					{
@@ -5051,7 +5089,7 @@ void CvGameDeals::ActivateDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, C
 			}
 
 			// Cancel the previous negation
-			for (std::vector<PlayerTypes>::iterator iter = vReceivingTeam.begin(); iter != vReceivingTeam.end(); iter++)
+			for (std::vector<PlayerTypes>::iterator iter = vReceivingTeam.begin(); iter != vReceivingTeam.end(); ++iter)
 			{
 				if (!GET_PLAYER(*iter).isAlive() || !GET_PLAYER(*iter).isMajorCiv())
 					continue;

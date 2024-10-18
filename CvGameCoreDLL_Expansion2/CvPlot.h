@@ -171,6 +171,8 @@ public:
 	bool canHaveImprovement(ImprovementTypes eImprovement, PlayerTypes ePlayer = NO_PLAYER, bool bOnlyTestVisible = false, bool bCheckAdjacency = false, bool bTestXAdjacent = false) const;
 	BuildTypes GetBuildTypeFromImprovement(ImprovementTypes eImprovement) const;
 
+	bool CanSpawnResource(PlayerTypes ePlayer, bool bIgnoreTech = true, bool bIsLand=true) const;
+
 	bool canBuild(BuildTypes eBuild, PlayerTypes ePlayer = NO_PLAYER, bool bTestVisible = false, bool bTestPlotOwner = true, bool bTestXAdjacent = false) const;
 	int getBuildTime(BuildTypes eBuild, PlayerTypes ePlayer) const;
 	int getBuildTurnsTotal(BuildTypes eBuild, PlayerTypes ePlayer) const;
@@ -188,7 +190,6 @@ public:
 
 	CvCity* GetNukeInterceptor(PlayerTypes eAttackingPlayer) const;
 
-	bool isRevealedFortification(TeamTypes eTeam) const;
 	int defenseModifier(TeamTypes eDefender, bool bIgnoreImprovement, bool bIgnoreFeature, bool bForHelp = false) const;
 	int movementCost(const CvUnit* pUnit, const CvPlot* pFromPlot, int iMovesRemaining) const;
 	int MovementCostNoZOC(const CvUnit* pUnit, const CvPlot* pFromPlot, int iMovesRemaining) const;
@@ -216,7 +217,7 @@ public:
 
 	bool isAdjacentOwned() const;
 	bool isAdjacentPlayer(PlayerTypes ePlayer, bool bLandOnly = false) const;
-	bool IsAdjacentOwnedByTeamOtherThan(TeamTypes eTeam, bool bAllowNoTeam=false, bool bIgnoreImpassable=false, bool bIgnoreMinor=false, bool bIgnoreVassal=false) const;
+	bool IsAdjacentOwnedByTeamOtherThan(TeamTypes eTeam, bool bAllowNoTeam = false, bool bIgnoreImpassable = false, bool bIgnoreMinor = false, bool bIgnoreVassal = false) const;
 	bool IsAdjacentOwnedByUnfriendly(PlayerTypes ePlayer, vector<PlayerTypes>& vUnfriendlyMajors) const;
 	bool IsAdjacentOwnedByEnemy(TeamTypes eTeam) const;
 	bool isAdjacentOwnedByVassal(TeamTypes eTeam, bool bLandOnly = false) const;
@@ -364,9 +365,10 @@ public:
 	void setUpgradeProgress(int iNewValue);
 	void changeUpgradeProgress(int iChange);
 
-	int ComputeYieldFromAdjacentImprovement(CvImprovementEntry& kImprovement, ImprovementTypes eValue, YieldTypes eYield) const;
-	int ComputeYieldFromTwoAdjacentImprovement(CvImprovementEntry& kImprovement, ImprovementTypes eValue, YieldTypes eYield) const;
-	int ComputeYieldFromOtherAdjacentImprovement(CvImprovementEntry& kImprovement, YieldTypes eYield) const;
+	fraction ComputeFractionalYieldFromAdjacentImprovement(CvImprovementEntry& kImprovement, YieldTypes eYield) const;
+	int ComputeYieldFromAdjacentImprovement(CvImprovementEntry& kImprovement, ImprovementTypes eValue, YieldTypes eYield) const; // to be removed
+	int ComputeYieldFromTwoAdjacentImprovement(CvImprovementEntry& kImprovement, ImprovementTypes eValue, YieldTypes eYield) const; // to be removed
+	int ComputeYieldFromOtherAdjacentImprovement(CvImprovementEntry& kImprovement, YieldTypes eYield) const; // to be removed
 	int ComputeYieldFromAdjacentTerrain(CvImprovementEntry& kImprovement, YieldTypes eYield) const;
 	int ComputeYieldFromAdjacentResource(CvImprovementEntry& kImprovement, YieldTypes eYield, TeamTypes eTeam) const;
 	int ComputeYieldFromAdjacentFeature(CvImprovementEntry& kImprovement, YieldTypes eYield) const;
@@ -626,6 +628,10 @@ public:
 	bool isRiverCrossing(DirectionTypes eIndex) const;
 	void updateRiverCrossing(DirectionTypes eIndex);
 	void updateRiverCrossing();
+
+	CvPlot* GetAdjacentResourceSpawnPlot(PlayerTypes ePlayer) const;
+	void SetSpawnedResourcePlot(const CvPlot* pPlot);
+	CvPlot* GetSpawnedResourcePlot() const;
 
 	bool isRevealed(TeamTypes eTeam, bool bDebug) const
 	{
@@ -914,6 +920,9 @@ protected:
 	char /*PlotTypes*/    m_ePlotType;
 	char /*TerrainTypes*/ m_eTerrainType;
 	bool m_bIsCity;
+
+	short m_sSpawnedResourceX;
+	short m_sSpawnedResourceY;
 
 	PlotBoolField m_bfRevealed;
 

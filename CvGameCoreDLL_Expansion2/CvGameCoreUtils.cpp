@@ -1502,55 +1502,167 @@ int MapToPercent(int iValue, int iZeroAt, int iHundredAt)
 		return 50;
 }
 
-// add a fraction to a referenced fraction without losing information; the referenced fraction is assumed to have the larger dividend & divisor
-void AddFractionToReference(pair<int,int>& A, const pair<int,int>& B)
+//------------------------------------------------------------------------------
+fraction& fraction::operator+=(const fraction &rhs)
 {
-	// protect from integer overflow (safe, simple max that will probably never be hit)
-	if (A.first >= (INT_MAX / B.first / B.second) - A.second)
-	{
-		// Divisor or Dividend is too large! Start fresh
-		if (A.first > A.second)
-		{
-			A.first /= A.second;
-			A.second = 1;
-		}
-		else
-		{
-			A.second /= A.first;
-			A.first = 1;
-		}
-	}
-
-	// N / D = nA / dA + nB / dB
+	// N / D = nA/dA + nB/dB
 	//       = (nA*dB + nB*dA) / (dB*dA)
-	A.first *= B.second;
-	A.first += B.first * A.second;
-
-	A.second *= B.second;
-}
-
-// add two fractions together without losing information; A is assumed to have the larger dividend & divisor
-pair<int,int> AddFractions(pair<int,int>& A, pair<int,int>& B)
-{
-	AddFractionToReference(A, B);
-	return A;
-}
-
-// add a list of fractions together (separated numerators and denominators)
-pair<int,int> AddFractions(vector<int>& aDividendList, vector<int>& aDivisorList)
-{
-	CvAssert(aDividendList.size() == aDivisorList.size());
-
-	pair<int,int> result = make_pair(0, 1);
-
-	for (size_t jJ = 0, jlen = aDividendList.size(); jJ < jlen; ++jJ)
+	if (den == rhs.den)
 	{
-		AddFractionToReference(result, make_pair(aDividendList[jJ], aDivisorList[jJ]));
+		num += rhs.num;
 	}
-	return result;
+	else
+	{
+		num *= rhs.den;
+		num += rhs.num * den;
+		den *= rhs.den;
+	}
+
+	return *this;
+}
+fraction& fraction::operator-=(const fraction &rhs)
+{
+	// N / D = nA/dA - nB/dB
+	//       = (nA*dB + -nB*dA) / (dB*dA)
+	fraction neg(-rhs.num, rhs.den);
+	return *this += neg;
+}
+fraction& fraction::operator*=(const fraction &rhs)
+{
+	// N / D = nA/dA * nB/dB
+	//       = (nA*nB) / (dA*dB)
+	num *= rhs.num;
+	den *= rhs.den;
+	return *this;
+}
+fraction& fraction::operator/=(const fraction &rhs)
+{
+	// N / D = nA/dA / nB/dB
+	//       = (nA*dB) / (dA*nB)
+	CvAssert(rhs.num != 0);
+	num *= rhs.den;
+	den *= rhs.num;
+	return *this;
+}
+
+fraction fraction::operator+(const fraction &rhs)
+{
+	fraction lhs = *this;
+	return lhs += rhs;
+}
+fraction fraction::operator-(const fraction &rhs)
+{
+	fraction lhs = *this;
+	return lhs -= rhs;
+}
+fraction fraction::operator*(const fraction &rhs)
+{
+	fraction lhs = *this;
+	return lhs *= rhs;
+}
+fraction fraction::operator/(const fraction &rhs)
+{
+	fraction lhs = *this;
+	return lhs /= rhs;
+}
+
+bool fraction::operator==(const fraction &rhs) const
+{
+	fraction lhs = *this;
+	return lhs.num * rhs.den == rhs.num * lhs.den;
+}
+bool fraction::operator<(const fraction &rhs) const
+{
+	fraction lhs = *this;
+	return lhs.num * rhs.den < rhs.num * lhs.den;
+}
+
+fraction abs(const fraction &lhs)
+{
+	return fraction(abs(lhs.num), abs(lhs.den));
+}
+bool operator==(const int lhs, const fraction &rhs)
+{
+	return lhs * rhs.den == rhs.num;
+}
+bool operator!=(const int lhs, const fraction &rhs)
+{
+	return !operator==(lhs, rhs);
+}
+
+// checks to see if an operation will put the above the max, and if so, reduce the divisor & dividend
+fraction fraction::checkOperands(const fraction &rhs)
+{
+	if(abs(num) >= abs(INT_MAX / rhs.num / rhs.den - den))
+	{
+		fraction lhsN = *this;
+		fraction rhsN = rhs;fraction lhsO = *this;
+		fraction rhsO = rhs;
+		if (lhsN < rhsN)
+		{
+			lhsN = rhsO;
+			rhsN = lhsO;
+		}
+		
+		lhsN.Reduce();
+		rhsN.Reduce();
+		// if reduce failed, start fresh
+		if (lhsN.isIdentical(lhsO) && rhsN.isIdentical(rhsO))
+		{
+			if (lhsN.num >= lhsN.den)
+			{
+				lhsN.num /= lhsN.den;
+				lhsN.den = 1;
+			}
+			else
+			{
+				lhsN.num = 1;
+				lhsN.den /= lhsN.num;
+			}
+			*this = lhsN;
+			return rhsN;
+		}
+		rhsN = lhsN.checkOperands(rhsN);
+		*this = lhsN;
+		return rhsN;
+	}
+	return rhs;
+}
+bool fraction::isIdentical(const fraction &rhs) const
+{
+	return num == rhs.num && den == rhs.den;
+}
+// find the greatest common denominator and reduce the fraction
+fraction& fraction::Reduce()
+{
+	int cd = gcd(num, den);
+	num /= cd;
+	den /= cd;
+	return *this;
+}
+int fraction::gcd(int a, int b)
+{
+	if (b == 0)
+		return a;
+
+	return gcd(b, a % b);
+}
+
+FDataStream& operator<<(FDataStream& saveTo, const fraction& readFrom)
+{
+	saveTo << readFrom.num;
+	saveTo << readFrom.den;
+	return saveTo;
+}
+FDataStream& operator>>(FDataStream& loadFrom, fraction& writeTo)
+{
+	loadFrom >> writeTo.num;
+	loadFrom >> writeTo.den;
+	return loadFrom;
 }
 #endif
 
+//------------------------------------------------------------------------------
 void PrintMemoryInfo(const char* hint)
 {
 	DWORD processID = GetCurrentProcessId();

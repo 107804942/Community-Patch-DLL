@@ -123,6 +123,7 @@ public:
 	int GetCityScalerLimiter() const;
 	int GetFollowerScalerLimiter() const;
 	int GetPolicyReductionWonderXFollowerCities() const;
+	bool IsAIGoodStartingPantheon() const;
 	int GetMaxYieldPerFollower(int i) const;
 	int GetMaxYieldPerFollowerPercent(int i) const;
 	int GetIgnorePolicyRequirementsAmount() const;
@@ -366,6 +367,7 @@ protected:
 	int m_iCityScalerLimiter;
 	int m_iFollowerScalerLimiter;
 	int m_iPolicyReductionWonderXFollowerCities;
+	bool m_bAIGoodStartingPantheon;
 #endif
 #if defined(MOD_BALANCE_CORE)
 	CivilizationTypes m_eRequiredCivilization;
@@ -586,7 +588,7 @@ public:
 	CivilizationTypes GetUniqueCiv(PlayerTypes ePlayer = NO_PLAYER, bool bHolyCityOnly = false) const;
 	int GetIgnorePolicyRequirementsAmount(EraTypes eEra, PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
 	int GetCSYieldBonus(PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
-	std::pair<int, int> GetVoteFromOwnedImprovement(ImprovementTypes eImprovement, PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
+	fraction GetVoteFromOwnedImprovement(ImprovementTypes eImprovement, PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
 
 	const BeliefList& GetBeliefList() const { return m_ReligionBeliefs; }
 #endif

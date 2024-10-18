@@ -3282,6 +3282,12 @@
 		<Row Tag="TXT_KEY_DIPLO_VASSALAGE_AND_INVALID_ITEM">
 			<Text>Not allowed if deal contains a Defensive Pact or Liberation.</Text>
 		</Row>
+		<Row Tag="TXT_KEY_DIPLO_VASSALAGE_YOU_DECLARE_WAR_REQUIRED">
+			<Text>They must be able to declare war on everyone you are at war with.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_DIPLO_VASSALAGE_THEM_DECLARE_WAR_REQUIRED">
+			<Text>You must be able to declare war on everyone they are at war with.</Text>
+		</Row>
 		<Row Tag="TXT_KEY_DIPLO_VASSAL_REVOKE_US_NO_VASSALS">
 			<Text>We have no vassals to liberate!</Text>
 		</Row>
@@ -3914,13 +3920,13 @@
 			<Text>They know you are competing with them, and they hate it!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_DIPLO_VICTORY_BLOCK_FIERCE">
-			<Text>Your behavior infuriates them.</Text>
+			<Text>Your success infuriates them.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_DIPLO_VICTORY_BLOCK_STRONG">
-			<Text>Your behavior angers them.</Text>
+			<Text>Your success angers them.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_DIPLO_VICTORY_BLOCK_WEAK">
-			<Text>Your behavior worries them.</Text>
+			<Text>Your success worries them.</Text>
 		</Row>
 		<!-- END DOF Texts -->
 		<Row Tag="TXT_KEY_END_WORK_WITH_US_BLOCK_1">
@@ -6478,6 +6484,12 @@
 		</Row>
 		<Row Tag="TXT_KEY_DIPLO_DISCUSS_MESSAGE_DECLARE_WAR_TT">
 			<Text>Choosing this option may alert the targeted player and their allies to your war preparations if the leader refuses to help and decides to warn the targeted player. This may have diplomatic repercussions![NEWLINE][NEWLINE]Depending on the leader's response, a cooperative war could begin immediately, after 10 turns have passed, or as soon as one of you goes to war with the target.[NEWLINE][NEWLINE]Cooperative wars are cancelled if you prematurely end your friendship with this leader (including through denouncements or war).[NEWLINE][NEWLINE]If you befriend the target, form a Defensive Pact with them, or become unable to declare war on them, your agreement with this leader will also be cancelled.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_DIPLO_DISCUSS_MESSAGE_DECLARE_WAR_NOT_FRIENDS_TT">
+			<Text>A Declaration of Friendship is needed in order to discuss this.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_DIPLO_DISCUSS_MESSAGE_DECLARE_WAR_NO_TARGET_TT">
+			<Text>There must be at least one civilization that you can both declare war on. NOTE: The target civilization must have at least one city.</Text>
 		</Row>
 
 		<!-- Tourism and League Stuff -->

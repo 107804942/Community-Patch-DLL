@@ -115,6 +115,7 @@ CvBeliefEntry::CvBeliefEntry() :
 	m_iCityScalerLimiter(0),
 	m_iFollowerScalerLimiter(0),
 	m_iPolicyReductionWonderXFollowerCities(0),
+	m_bAIGoodStartingPantheon(false),
 	m_piMaxYieldPerFollower(NULL),
 	m_piMaxYieldPerFollowerPercent(NULL),
 	m_piImprovementVoteChange(NULL),
@@ -806,6 +807,10 @@ int CvBeliefEntry::GetPolicyReductionWonderXFollowerCities() const
 {
 	return m_iPolicyReductionWonderXFollowerCities;
 }
+bool CvBeliefEntry::IsAIGoodStartingPantheon() const
+{
+	return m_bAIGoodStartingPantheon;
+}
 #endif
 #if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
@@ -1315,6 +1320,7 @@ bool CvBeliefEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_iFollowerScalerLimiter = kResults.GetInt("FollowerScalerLimiter");
 	m_iPolicyReductionWonderXFollowerCities = kResults.GetInt("PolicyReductionWonderXFollowerCities");
 #endif
+	m_bAIGoodStartingPantheon = kResults.GetBool("AI_GoodStartingPantheon");
 #if defined(MOD_BALANCE_CORE)
 	const char* szCivilizationType = kResults.GetText("CivilizationType");
 	m_eRequiredCivilization = (CivilizationTypes)GC.getInfoTypeForString(szCivilizationType, true);
@@ -4591,11 +4597,11 @@ int CvReligionBeliefs::GetCSYieldBonus(PlayerTypes ePlayer, const CvCity* pCity,
 }
 
 /// Get votes per improvement (fractional) from belief
-std::pair<int, int> CvReligionBeliefs::GetVoteFromOwnedImprovement(ImprovementTypes eImprovement, PlayerTypes ePlayer, const CvCity* pCity, bool bHolyCityOnly) const
+fraction CvReligionBeliefs::GetVoteFromOwnedImprovement(ImprovementTypes eImprovement, PlayerTypes ePlayer, const CvCity* pCity, bool bHolyCityOnly) const
 {
 	CvBeliefXMLEntries* pBeliefs = GC.GetGameBeliefs();
 	
-	std::pair<int, int> fVotes = std::make_pair(0, 1);
+	fraction fVotes = 0;
 	
 	// if two beliefs give fractional votes for the same improvement, then the fractional vote gets larger (1/2 + 1/3 = 5/6)
 	for (BeliefList::const_iterator it = m_ReligionBeliefs.begin(); it != m_ReligionBeliefs.end(); ++it)
@@ -4604,7 +4610,7 @@ std::pair<int, int> CvReligionBeliefs::GetVoteFromOwnedImprovement(ImprovementTy
 		int iValue = pBeliefs->GetEntry(*it)->GetImprovementVoteChange(eImprovement);
 		if (iValue != 0 && IsBeliefValid((BeliefTypes)*it, GetReligion(), ePlayer, pCity, bHolyCityOnly))
 		{
-			AddFractionToReference(fVotes, std::make_pair(1, iValue));
+			fVotes += fraction(1, iValue);
    		}
 	}
 

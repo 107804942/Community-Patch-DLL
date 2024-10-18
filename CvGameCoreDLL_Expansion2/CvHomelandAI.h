@@ -13,6 +13,8 @@
 #define UPGRADE_THIS_TURN_PRIORITY_BOOST 5000
 #define UPGRADE_IN_TERRITORY_PRIORITY_BOOST 2000
 
+struct BuilderDirective;
+
 enum AIHomelandTargetType
 {
     AI_HOMELAND_TARGET_NONE,
@@ -230,6 +232,7 @@ private:
 	void PlotExplorerMoves();
 	void PlotFirstTurnSettlerMoves();
 	void PlotHealMoves();
+	void PlotMovesToSafety();
 
 	void PlotOpportunisticSettlementMoves();
 
@@ -310,6 +313,8 @@ private:
 	bool MoveToTargetButDontEndTurn(CvUnit* pUnit, CvPlot* pTargetPlot, int iFlags);
 
 	CvPlot* FindArchaeologistTarget(CvUnit *pUnit);
+	vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> GetWeightedDirectives(const vector<BuilderDirective> aDirectives, const set<BuilderDirective> ignoredDirectives, const list<int> allWorkers, const set<int> ignoredWorkers, map<pair<int, int>, int>& plotDistanceCache);
+	int GetBuilderNumTurnsAway(CvUnit* pUnit, BuilderDirective eDirective, int iMaxDistance = INT_MAX);
 
 	void UnitProcessed(int iID);
 	bool ExecuteCultureBlast(CvUnit* pUnit);
@@ -358,8 +363,6 @@ struct SBuilderState {
 	map<ResourceTypes, int> mExtraResources;
 	map<int, FeatureTypes> mChangedPlotFeatures;
 	map<int, ImprovementTypes> mChangedPlotImprovements;
-	map<int, int> mExtraDefense;
-	map<int, int> mExtraDamageToAdjacent;
 
 	SBuilderState(){};
 	static const SBuilderState& DefaultInstance() {

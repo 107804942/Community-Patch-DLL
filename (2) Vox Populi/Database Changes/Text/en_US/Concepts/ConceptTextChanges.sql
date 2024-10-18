@@ -250,7 +250,7 @@ SET Text = '[COLOR_YELLOW]City Connections[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_GOLD_TRADE_ROUTES_HEADING3_TITLE';
 
 UPDATE Language_en_US
-SET Text = 'If a City is connected by a road and/or [COLOR_YELLOW]Lighthouse[ENDCOLOR] to your Capital City (i.e. both cities have a Lighthouse), that City has a City Connection with the Capital. Each City Connection is worth a certain amount of gold each turn, the amount determined by the size of the two cities.[NEWLINE][NEWLINE][COLOR_GREEN]If a City is connected by a railroad and/or Seaport to your Capital City (i.e. both cities have a Seaport), that City has an Industrial City Connection with the Capital. An Industrial City Connection gives a production bonus to the targeted city, the amount determined by the size of the two cities. An Industrial City Connection also allows the construction of the Coaling Station, an industrial era building which gives a massive production boost to the city.[ENDCOLOR]'
+SET Text = 'If a City is connected by a road and/or [COLOR_YELLOW]along the same river (including via a Lake) and/or by a Lighthouse (i.e. both cities have a Lighthouse)[ENDCOLOR] to your Capital City, that City has a City Connection with the Capital. Each City Connection is worth a certain amount of Gold each turn, the amount determined by the size of the two cities.[NEWLINE][NEWLINE][COLOR_GREEN]If a City is connected by a railroad and/or Seaport to your Capital City (i.e. both cities have a Seaport), that City has an Industrial City Connection with the Capital. An Industrial City Connection gives a production bonus to the targeted city, the amount determined by the size of the two cities. An Industrial City Connection also allows the construction of the Coaling Station, an industrial era building which gives a massive Production boost to the city.[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_GOLD_TRADE_ROUTES_HEADING3_BODY';
 
 UPDATE Language_en_US
@@ -288,7 +288,7 @@ UPDATE Language_en_US
 SET Text = '[COLOR_YELLOW]Buying Units, Buildings or Wonders[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_GOLD_PURCHASEUNITS_HEADING3_TITLE';
 UPDATE Language_en_US
-SET Text = 'You can spend gold to purchase units [COLOR_YELLOW]or invest in a building[ENDCOLOR] in a city. Click on a unit (if you can afford it!) and it will be immediately trained in the city, and the amount deducted from your treasury. [COLOR_YELLOW]If you click on a building, you will invest in it, reducing the production cost of the building by 50%.[ENDCOLOR][NEWLINE][NEWLINE]Note that "projects" - the Manhattan Project, etc. - cannot be purchased.'
+SET Text = 'You can spend gold to purchase units [COLOR_YELLOW]or invest in a building[ENDCOLOR] in a city. Click on a unit (if you can afford it!) and it will be immediately trained in the city, and the amount deducted from your treasury. [COLOR_YELLOW]If you click on a building, you will invest in it, reducing the production cost of the building by 50%, or 25% if it is a wonder.[ENDCOLOR][NEWLINE][NEWLINE]Note that "projects" - the Manhattan Project, etc. - cannot be purchased.[NEWLINE][NEWLINE][COLOR_YELLOW]The purchase costs of units and buildings increase slightly with the number of technologies you have researched.[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_GOLD_PURCHASEUNITS_HEADING3_BODY';
 
 UPDATE Language_en_US

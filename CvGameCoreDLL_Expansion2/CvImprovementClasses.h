@@ -55,8 +55,8 @@ public:
 	int GetGoldMaintenance() const;
 	int GetCultureBombRadius() const;
 
-	int GetYieldAdjacentSameType(YieldTypes eYield) const;
-	int GetYieldAdjacentTwoSameType(YieldTypes eYield) const;
+	int GetYieldAdjacentSameType(YieldTypes eYield) const; // to be removed
+	int GetYieldAdjacentTwoSameType(YieldTypes eYield) const; // to be removed
 
 #if defined(MOD_GLOBAL_STACKING_RULES)
 	int GetAdditionalUnits() const;
@@ -142,8 +142,9 @@ public:
 	bool IsEmbassy() const;
 #if defined(MOD_BALANCE_CORE)
 	int GetObsoleteTech() const;
-	bool IsAdjacentLake() const;
+	bool IsNoAdjacentCity() const;
 	bool IsAdjacentCity() const;
+	bool IsAdjacentLake() const;
 	int GetGrantsVision() const;
 #endif
 	bool IsNoTwoAdjacent() const;
@@ -152,6 +153,7 @@ public:
 	bool IsAllowsWalkWater() const;
 	bool IsCreatedByGreatPerson() const;
 	bool IsSpecificCivRequired() const;
+	bool ConnectsAllResources() const;
 
 	CivilizationTypes GetRequiredCivilization() const;
 
@@ -174,6 +176,8 @@ public:
 	int GetYieldChangePerEra(int i) const;
 	int GetWLTKDYieldChange(int i) const;
 	int* GetWLTKDYieldChangeArray();
+	int GetGoldenAgeYieldChange(int i) const;
+	int* GetGoldenAgeYieldChangeArray();
 	int GetRiverSideYieldChange(int i) const;
 	int* GetRiverSideYieldChangeArray();
 	int GetCoastalLandYieldChange(int i) const;
@@ -193,12 +197,14 @@ public:
 	bool GetFeatureMakesValid(int i) const;
 	bool GetImprovementMakesValid(int i) const;
 
-	int GetAdjacentSameTypeYield(int i) const;
-	int* GetAdjacentSameTypeYieldArray();
-	int GetAdjacentTwoSameTypeYield(int i) const;
-	int* GetAdjacentTwoSameTypeYieldArray();
-	int GetAdjacentImprovementYieldChanges(int i, int j) const;
-	int* GetAdjacentImprovementYieldChangesArray(int i);
+	fraction GetYieldPerXAdjacentImprovement(YieldTypes eYield, ImprovementTypes eImprovement) const;
+	bool IsYieldPerXAdjacentImprovement(YieldTypes eYield = NO_YIELD) const;
+	int GetAdjacentSameTypeYield(int i) const; // to be removed
+	int* GetAdjacentSameTypeYieldArray(); // to be removed
+	int GetAdjacentTwoSameTypeYield(int i) const; // to be removed
+	int* GetAdjacentTwoSameTypeYieldArray(); // to be removed
+	int GetAdjacentImprovementYieldChanges(int i, int j) const; // to be removed
+	int* GetAdjacentImprovementYieldChangesArray(int i); // to be removed
 	int GetAdjacentResourceYieldChanges(int i, int j) const;
 	int* GetAdjacentResourceYieldChangesArray (int i);
 	int GetAdjacentTerrainYieldChanges(int i, int j) const;
@@ -222,6 +228,8 @@ public:
 	bool IsImprovementResourceMakesValid(int i) const;
 	bool IsImprovementResourceTrade(int i) const;
 	bool IsConnectsResource(int i) const;
+
+	ResourceTypes SpawnsAdjacentResource() const;
 
 	int  GetImprovementResourceDiscoverRand(int i) const;
 	int  GetFlavorValue(int i) const;
@@ -313,8 +321,9 @@ protected:
 	bool m_bIsEmbassy;
 #if defined(MOD_BALANCE_CORE)
 	int m_iGetObsoleteTech;
-	bool m_bAdjacentLake;
+	bool m_bNoAdjacentCity;
 	bool m_bAdjacentCity;
+	bool m_bAdjacentLake;
 	int m_iGrantsVision;
 #endif
 	bool m_bNoTwoAdjacent;
@@ -323,6 +332,7 @@ protected:
 	bool m_bAllowsWalkWater;
 	bool m_bCreatedByGreatPerson;
 	bool m_bSpecificCivRequired;
+	bool m_bConnectsAllResources;
 
 	CvString m_strArtDefineTag;
 	ImprovementUsageTypes m_eImprovementUsageType;
@@ -337,6 +347,7 @@ protected:
 	int* m_piYieldChange;
 	int* m_piYieldPerEra;
 	int* m_piWLTKDYieldChange;
+	int* m_piGoldenAgeYieldChange;
 	int* m_piRiverSideYieldChange;
 	int* m_piCoastalLandYieldChange;
 	int* m_piHillsYieldChange;
@@ -348,10 +359,10 @@ protected:
 	bool* m_pbTerrainMakesValid;
 	bool* m_pbFeatureMakesValid;
 	bool* m_pbImprovementMakesValid;
-
-	int* m_piAdjacentSameTypeYield;
-	int* m_piAdjacentTwoSameTypeYield;
-	int** m_ppiAdjacentImprovementYieldChanges;
+	map<YieldTypes, map<ImprovementTypes, fraction>> m_YieldPerXAdjacentImprovement;
+	int* m_piAdjacentSameTypeYield; // to be removed
+	int* m_piAdjacentTwoSameTypeYield; // to be removed
+	int** m_ppiAdjacentImprovementYieldChanges; // to be removed
 	int** m_ppiAdjacentTerrainYieldChanges;
 	int** m_ppiAdjacentResourceYieldChanges;
 	int** m_ppiAdjacentFeatureYieldChanges;
@@ -363,6 +374,8 @@ protected:
 	int** m_ppiRouteYieldChanges;
 
 	CvImprovementResourceInfo* m_paImprovementResource;
+
+	ResourceTypes m_eSpawnsAdjacentResource;
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -2354,11 +2354,20 @@ void CvCity::doTurn()
 	setMadeAttack(false);
 	GetCityBuildings()->SetSoldBuildingThisTurn(false);
 
-	//not a full re-allocation but see if we can shift some citizens around
-	//DoReallocateCitizens() will be called less frequently when a building is added, a plot is claimed, population changes etc
-	GetCityCitizens()->DoVerifyWorkingPlots();
-	GetCityCitizens()->OptimizeWorkedPlots(false);
-	updateNetHappiness();
+	
+	if (foodDifferenceTimes100(true) < 0)
+	{
+		// avoid starvation if possible
+		GetCityCitizens()->DoReallocateCitizens(true);
+	}
+	else
+	{
+		//not a full re-allocation but see if we can shift some citizens around
+		//DoReallocateCitizens() will be called less frequently when a building is added, a plot is claimed, population changes etc
+		GetCityCitizens()->DoVerifyWorkingPlots();
+		GetCityCitizens()->OptimizeWorkedPlots(false);
+		updateNetHappiness();
+	}
 	UpdateTerrainImprovementNeed();
 
 	GetCityStrategyAI()->DoTurn();
@@ -2710,7 +2719,7 @@ void CvCity::UpdateAllNonPlotYields(bool bIncludePlayerHappiness)
 			continue;
 
 		//Simplification - errata yields not worth considering.
-		if ((YieldTypes)iI > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
+		if ((YieldTypes)iI > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
 			break;
 
 		UpdateCityYields(eYield);
@@ -12636,7 +12645,7 @@ void CvCity::changeProductionTimes100(int iChange)
 										for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
 										{
 											//Simplification - errata yields not worth considering.
-											if ((YieldTypes)iI > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
+											if ((YieldTypes)iI > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
 												break;
 
 											int iYield = ((getBasicYieldRateTimes100(YIELD_PRODUCTION) + GET_PLAYER(m_eOwner).GetTrade()->GetTradeValuesAtCityTimes100(this, YIELD_PRODUCTION)) / 100) * getProductionToYieldModifier((YieldTypes)iI) / 100;
@@ -13966,7 +13975,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 								if (pLoopPlot != NULL && pLoopPlot->getOwner() == owningPlayer.GetID() && !pLoopPlot->isCity() &&
 									pLoopPlot->isValidMovePlot(getOwner()) && !pLoopPlot->isWater() && !pLoopPlot->IsNaturalWonder() && !pLoopPlot->isMountain() && (pLoopPlot->getFeatureType() == NO_FEATURE))
 								{
-									if (pLoopPlot->getResourceType(getTeam()) == NO_RESOURCE && pLoopPlot->getImprovementType() == NO_IMPROVEMENT)
+									if (pLoopPlot->getResourceType() == NO_RESOURCE && pLoopPlot->getImprovementType() == NO_IMPROVEMENT)
 									{
 										pLoopPlot->setResourceType(NO_RESOURCE, 0, false);
 										pLoopPlot->setResourceType(eResourceToGive, 1, false);
@@ -13986,7 +13995,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 									if (pLoopPlot != NULL && (pLoopPlot->getOwner() == NO_PLAYER) && pLoopPlot->isValidMovePlot(getOwner()) &&
 										!pLoopPlot->isWater() && !pLoopPlot->IsNaturalWonder() && (pLoopPlot->getFeatureType() != FEATURE_OASIS))
 									{
-										if (pLoopPlot->getResourceType(getTeam()) == NO_RESOURCE && pLoopPlot->getImprovementType() == NO_IMPROVEMENT)
+										if (pLoopPlot->getResourceType() == NO_RESOURCE && pLoopPlot->getImprovementType() == NO_IMPROVEMENT)
 										{
 											pLoopPlot->setResourceType(NO_RESOURCE, 0, false);
 											pLoopPlot->setResourceType(eResourceToGive, 1, false);
@@ -17621,17 +17630,6 @@ int CvCity::GetYieldPerTurnFromTraits(YieldTypes eYield) const
 		}
 	}
 
-	if (eYield == YIELD_SCIENCE && MOD_BALANCE_VP)
-	{
-		if (GET_PLAYER(m_eOwner).getHappinessToScience() != 0)
-		{
-			int iFreeScience = getYieldRateTimes100(YIELD_SCIENCE, false) * GET_PLAYER(m_eOwner).getHappinessToScience();
-			iFreeScience /= 100;
-			if (iFreeScience > 0)
-				iYield += iFreeScience;
-		}
-	}
-
 	//Currently only used by Arabian CBP UA.
 	if (isCapital())
 	{
@@ -18036,7 +18034,7 @@ void CvCity::ChangeNumTerrainWorked(TerrainTypes eTerrain, int iChange)
 	for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
 	{
 		//Simplification - errata yields not worth considering.
-		if ((YieldTypes)iI > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
+		if ((YieldTypes)iI > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
 			break;
 
 		UpdateYieldPerXTerrain(((YieldTypes)iI), eTerrain);
@@ -18062,7 +18060,7 @@ void CvCity::ChangeNumFeaturelessTerrainWorked(TerrainTypes eTerrain, int iChang
 	for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
 	{
 		//Simplification - errata yields not worth considering.
-		if ((YieldTypes)iI > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
+		if ((YieldTypes)iI > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
 			break;
 
 		UpdateYieldPerXTerrain(((YieldTypes)iI), eTerrain);
@@ -18088,7 +18086,7 @@ void CvCity::ChangeNumFeatureWorked(FeatureTypes eFeature, int iChange)
 	for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
 	{
 		//Simplification - errata yields not worth considering.
-		if ((YieldTypes)iI > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
+		if ((YieldTypes)iI > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
 			break;
 
 		UpdateYieldPerXFeature(((YieldTypes)iI), eFeature);
@@ -27042,7 +27040,7 @@ void CvCity::GetBuyablePlotList(std::vector<int>& aiPlotList, bool bForPurchase,
 						YieldTypes eYield = static_cast<YieldTypes>(iYieldLoop);
 
 						// Skip errata yields
-						if (!MOD_BALANCE_CORE_JFD && eYield > YIELD_GOLDEN_AGE_POINTS)
+						if (!MOD_BALANCE_CORE_JFD && eYield > YIELD_CULTURE_LOCAL)
 							break;
 
 						int iWeight = (eYield == GetCityStrategyAI()->GetMostDeficientYield()) ? 3 : 1;
@@ -27151,7 +27149,7 @@ void CvCity::GetBuyablePlotList(std::vector<int>& aiPlotList, bool bForPurchase,
 									YieldTypes eYield = static_cast<YieldTypes>(iYieldLoop);
 
 									// Skip errata yields
-									if (!MOD_BALANCE_CORE_JFD && eYield > YIELD_GOLDEN_AGE_POINTS)
+									if (!MOD_BALANCE_CORE_JFD && eYield > YIELD_CULTURE_LOCAL)
 										break;
 
 									int iWeight = (eYield == GetCityStrategyAI()->GetMostDeficientYield()) ? 3 : 1;
@@ -27359,35 +27357,34 @@ void CvCity::BuyPlot(int iPlotX, int iPlotY)
 					}
 				}
 			}
-			CvImprovementEntry* pkImprovement = GC.getImprovementInfo(pPlot->getImprovementType());
-			if (pPlot->IsChokePoint())
+
+			bool bChokePoint = pPlot->IsChokePoint();
+			if (bChokePoint)
 			{
 				iValueMultiplier += 50;
 				bStoleHighValueTile = true;
-
-				if (pkImprovement)
-				{
-					static const ImprovementTypes eCitadel = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_CITADEL");
-					static const ImprovementTypes eFort = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_FORT");
-
-					if (eCitadel != NO_IMPROVEMENT && pPlot->getImprovementType() == eCitadel)
-					{
-						iValueMultiplier += 100;
-					}
-					else if (eFort != NO_IMPROVEMENT && pPlot->getImprovementType() == eFort)
-					{
-						iValueMultiplier += 50;
-					}
-				}
 			}
-			if (pkImprovement)
+
+			ImprovementTypes eImprovement = pPlot->getImprovementType();
+			if (eImprovement != NO_IMPROVEMENT)
 			{
-				if (pkImprovement->IsCreatedByGreatPerson())
+				CvImprovementEntry* pkImprovementInfo = GC.getImprovementInfo(eImprovement);
+				CvAssert(pkImprovementInfo);
+
+				if (bChokePoint)
+				{
+					iValueMultiplier += pkImprovementInfo->GetDefenseModifier();
+					if (pkImprovementInfo->IsNoFollowUp())
+						iValueMultiplier += 20;
+				}
+
+				if (pkImprovementInfo->IsCreatedByGreatPerson())
 				{
 					iValueMultiplier += 100;
 					bStoleHighValueTile = true;
 				}
 			}
+
 			// Stole a major civ's embassy from a City-State?
 			if (pPlot->IsImprovementEmbassy() && GET_PLAYER(ePlotOwner).isMinorCiv())
 			{

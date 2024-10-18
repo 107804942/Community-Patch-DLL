@@ -1,4 +1,4 @@
-/*	-------------------------------------------------------------------------------------------------------
+﻿/*	-------------------------------------------------------------------------------------------------------
 	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
@@ -231,6 +231,9 @@ void CvPlot::reset()
 	m_bIsCity = false;
 	m_owningCity.reset();
 	m_owningCityOverride.reset();
+
+	m_sSpawnedResourceX = -1;
+	m_sSpawnedResourceY = -1;
 
 	m_vExtraYields.clear();
 	m_vRivers.clear();
@@ -2469,6 +2472,38 @@ bool CvPlot::canHaveResource(ResourceTypes eResource, bool bIgnoreLatitude, bool
 	return true;
 }
 
+//	--------------------------------------------------------------------------------
+bool CvPlot::CanSpawnResource(PlayerTypes ePlayer, bool bIgnoreTech, bool bIsLand) const
+{
+	if (isCity())
+		return false;
+
+	if (!isValidMovePlot(ePlayer))
+		return false;
+
+	if (bIsLand && isWater())
+		return false;
+
+	if (!bIsLand && !isWater())
+		return false;
+
+	if (IsNaturalWonder())
+		return false;
+
+	if (isMountain())
+		return false;
+
+	if (getFeatureType() == FEATURE_OASIS)
+		return false;
+
+	if (bIgnoreTech && getResourceType() != NO_RESOURCE)
+		return false;
+
+	if (!bIgnoreTech && getResourceType(GET_PLAYER(ePlayer).getTeam()) != NO_RESOURCE)
+		return false;
+
+	return true;
+}
 
 //	--------------------------------------------------------------------------------
 bool CvPlot::canHaveImprovement(ImprovementTypes eImprovement, PlayerTypes ePlayer, bool, bool bCheckAdjacency, bool bTestXAdjacent) const
@@ -2541,6 +2576,11 @@ bool CvPlot::canHaveImprovement(ImprovementTypes eImprovement, PlayerTypes ePlay
 		{
 			return false;
 		}
+	}
+
+	if(pkImprovementInfo->IsNoAdjacentCity() && IsAdjacentCity())
+	{
+		return false;
 	}
 
 	if(pkImprovementInfo->IsNoFreshWater() && isFreshWater())
@@ -2777,7 +2817,7 @@ bool CvPlot::canHaveImprovement(ImprovementTypes eImprovement, PlayerTypes ePlay
 	for(iI = 0; iI < NUM_YIELD_TYPES; ++iI)
 	{
 		//Simplification - errata yields not worth considering.
-		if ((YieldTypes)iI > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
+		if ((YieldTypes)iI > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
 			break;
 
 		if (pkImprovementInfo->GetPrereqNatureYield(iI) > 0 && calculateNatureYield(((YieldTypes)iI), ePlayer, getFeatureType(), getResourceType(GET_PLAYER(ePlayer).getTeam()), NULL) < pkImprovementInfo->GetPrereqNatureYield(iI))
@@ -3098,6 +3138,10 @@ bool CvPlot::canBuild(BuildTypes eBuild, PlayerTypes ePlayer, bool bTestVisible,
 	// Route
 	if(eRoute != NO_ROUTE)
 	{
+		// can't build roads in cities
+		if (isCity())
+			return false;
+
 		if(getRouteType() != NO_ROUTE)
 		{
 			if (isWater() && !thisBuildInfo.IsWater())
@@ -3688,16 +3732,6 @@ int CvPlot::GetEffectiveFlankingBonusAtRange(const CvUnit* pAttackingUnit, const
 	return (pAttackingUnit->GetFlankAttackModifier() + /*10*/ GD_INT_GET(BONUS_PER_ADJACENT_FRIEND)) * (iNumUnitsAdjacentToHere);
 }
 
-
-bool CvPlot::isRevealedFortification(TeamTypes eTeam) const
-{
-	static const ImprovementTypes eFort = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_FORT");
-	static const ImprovementTypes eCitadel = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_CITADEL");
-
-	return (eFort != NO_IMPROVEMENT && getRevealedImprovementType(eTeam) == eFort) ||
-		(eCitadel != NO_IMPROVEMENT && getRevealedImprovementType(eTeam) == eCitadel);
-}
-
 //	--------------------------------------------------------------------------------
 int CvPlot::defenseModifier(TeamTypes eDefender, bool bIgnoreImprovement, bool bIgnoreFeature, bool bForHelp) const
 {
@@ -3856,10 +3890,10 @@ bool CvPlot::isAdjacentPlayer(PlayerTypes ePlayer, bool bLandOnly) const
 bool CvPlot::IsAdjacentOwnedByTeamOtherThan(TeamTypes eTeam, bool bAllowNoTeam, bool bIgnoreImpassable, bool bIgnoreMinor, bool bIgnoreVassal) const
 {
 	CvPlot** aPlotsToCheck = GC.getMap().getNeighborsUnchecked(this);
-	for(int iI=0; iI<NUM_DIRECTION_TYPES; iI++)
+	for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
 	{
 		CvPlot* pAdjacentPlot = aPlotsToCheck[iI];
-		if(pAdjacentPlot == NULL)
+		if (!pAdjacentPlot)
 			continue;
 
 		if (bIgnoreImpassable && pAdjacentPlot->isImpassable(pAdjacentPlot->getTeam()))
@@ -3872,9 +3906,7 @@ bool CvPlot::IsAdjacentOwnedByTeamOtherThan(TeamTypes eTeam, bool bAllowNoTeam, 
 			continue;
 
 		if (pAdjacentPlot->getTeam() != eTeam && (pAdjacentPlot->getTeam() != NO_TEAM || bAllowNoTeam))
-		{
-			return true; 
-		}
+			return true;
 	}
 
 	return false;
@@ -5862,6 +5894,30 @@ void CvPlot::changeUpgradeProgress(int iChange)
 }
 
 //	--------------------------------------------------------------------------------
+fraction CvPlot::ComputeFractionalYieldFromAdjacentImprovement(CvImprovementEntry& kImprovement, YieldTypes eYield) const
+{
+	CvPlot* pAdjacentPlot = NULL;
+	fraction fRtnValue = 0;
+
+	if (kImprovement.IsYieldPerXAdjacentImprovement(eYield))
+	{
+		for(int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
+		{
+			pAdjacentPlot = plotDirection(getX(), getY(), static_cast<DirectionTypes>(iI));
+			if(pAdjacentPlot && !pAdjacentPlot->IsImprovementPillaged())
+			{
+				ImprovementTypes eAdjacentImprovement = pAdjacentPlot->getImprovementType();
+				if (eAdjacentImprovement != NO_IMPROVEMENT)
+				{
+					fRtnValue += kImprovement.GetYieldPerXAdjacentImprovement(eYield, eAdjacentImprovement);
+				}
+			}
+		}
+	}
+
+	return fRtnValue;
+}
+
 int CvPlot::ComputeYieldFromAdjacentImprovement(CvImprovementEntry& kImprovement, ImprovementTypes eValue, YieldTypes eYield) const
 {
 	CvPlot* pAdjacentPlot = NULL;
@@ -7306,7 +7362,7 @@ void CvPlot::setTerrainType(TerrainTypes eNewValue, bool bRecalculate, bool bReb
 			for(int iI = 0; iI < NUM_YIELD_TYPES; ++iI)
 			{
 				//Simplification - errata yields not worth considering.
-				if ((YieldTypes)iI > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
+				if ((YieldTypes)iI > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
 					break;
 
 				pOwningCity->UpdateYieldPerXTerrain((YieldTypes)iI, getTerrainType());
@@ -7400,7 +7456,7 @@ void CvPlot::setFeatureType(FeatureTypes eNewValue)
 			for(int iI = 0; iI < NUM_YIELD_TYPES; ++iI)
 			{
 				//Simplification - errata yields not worth considering.
-				if ((YieldTypes)iI > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
+				if ((YieldTypes)iI > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
 					break;
 
 				pOwningCity->UpdateYieldPerXFeature((YieldTypes)iI, eNewValue);
@@ -8145,24 +8201,37 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 		if (eOldImprovement != NO_IMPROVEMENT)
 		{
 			CvImprovementEntry& oldImprovementEntry = *GC.getImprovementInfo(eOldImprovement);
-			for (iI = 0; iI < NUM_YIELD_TYPES; iI++)
-			{
-				//Simplification - errata yields not worth considering.
-				if ((YieldTypes)iI > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
-					break;
 
-				if (oldImprovementEntry.GetYieldAdjacentSameType((YieldTypes)iI) > 0 || oldImprovementEntry.GetYieldAdjacentTwoSameType((YieldTypes)iI) > 0)
+			// reset yields to adjacent plots
+			for (int iJ = 0; iJ < NUM_DIRECTION_TYPES; ++iJ)
+			{
+				CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), static_cast<DirectionTypes>(iJ));
+				if (pAdjacentPlot && pAdjacentPlot->getImprovementType() != NO_IMPROVEMENT )
 				{
-					for (int iJ = 0; iJ < NUM_DIRECTION_TYPES; iJ++)
+					ImprovementTypes eAdjacentImprovement = pAdjacentPlot->getImprovementType();
+					CvImprovementEntry& adjacentImprovementEntry = *GC.getImprovementInfo(eAdjacentImprovement);
+					bool bCheckAdjacentSame = eAdjacentImprovement == eOldImprovement;
+					bool bCheckAdjacentAny = adjacentImprovementEntry.IsYieldPerXAdjacentImprovement();
+					bool bCheckAdjacentOther = pAdjacentPlot->getOwner() == getOwner();
+					for (int iK = 0; iK < NUM_YIELD_TYPES; ++iK)
 					{
-						CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iJ));
-						if (pAdjacentPlot && pAdjacentPlot->getImprovementType() == eOldImprovement)
+						YieldTypes eYield = static_cast<YieldTypes>(iK);
+						// Simplification - errata yields not worth considering.
+						if (eYield > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
+							break;
+
+						if	(	( bCheckAdjacentSame && ( adjacentImprovementEntry.GetYieldAdjacentSameType(eYield) > 0 || adjacentImprovementEntry.GetYieldAdjacentTwoSameType(eYield) > 0 ) )
+							||	( bCheckAdjacentAny && adjacentImprovementEntry.GetYieldPerXAdjacentImprovement(eYield, eOldImprovement) > 0)
+							||	( bCheckAdjacentOther && oldImprovementEntry.GetAdjacentImprovementYieldChanges(eAdjacentImprovement, eYield) > 0 )
+							)
 						{
 							pAdjacentPlot->updateYield();
+							break;
 						}
 					}
 				}
 			}
+
 			if (oldImprovementEntry.IsEmbassy())
 				SetImprovementEmbassy(false);
 		}
@@ -8289,21 +8358,31 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 			//remember this to improve pathfinding performance
 			SetImprovementPassable(newImprovementEntry.IsMakesPassable());
 
-			// If this improvement can add culture to nearby improvements, update them as well
-			for(int iYield = 0; iYield < NUM_YIELD_TYPES; iYield++)
+			// update yields to adjacent plots
+			for (int iJ = 0; iJ < NUM_DIRECTION_TYPES; ++iJ)
 			{
-				//Simplification - errata yields not worth considering.
-				if ((YieldTypes)iYield > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
-					break;
-
-				if (newImprovementEntry.GetYieldAdjacentSameType((YieldTypes)iYield) > 0 || newImprovementEntry.GetYieldAdjacentTwoSameType((YieldTypes)iYield) > 0)
+				CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), static_cast<DirectionTypes>(iJ));
+				if (pAdjacentPlot && pAdjacentPlot->getImprovementType() != NO_IMPROVEMENT )
 				{
-					for (int iJ = 0; iJ < NUM_DIRECTION_TYPES; iJ++)
+					ImprovementTypes eAdjacentImprovement = pAdjacentPlot->getImprovementType();
+					CvImprovementEntry& adjacentImprovementEntry = *GC.getImprovementInfo(eAdjacentImprovement);
+					bool bCheckAdjacentSame = eAdjacentImprovement == eNewValue;
+					bool bCheckAdjacentAny = adjacentImprovementEntry.IsYieldPerXAdjacentImprovement();
+					bool bCheckAdjacentOther = pAdjacentPlot->getOwner() == getOwner();
+					for (int iK = 0; iK < NUM_YIELD_TYPES; ++iK)
 					{
-						CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iJ));
-						if(pAdjacentPlot && pAdjacentPlot->getImprovementType() == eNewValue)
+						YieldTypes eYield = static_cast<YieldTypes>(iK);
+						//Simplification - errata yields not worth considering.
+						if (eYield > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
+							break;
+
+						if	(	( bCheckAdjacentSame && ( adjacentImprovementEntry.GetYieldAdjacentSameType(eYield) > 0 || adjacentImprovementEntry.GetYieldAdjacentTwoSameType(eYield) > 0 ) )
+							||	( bCheckAdjacentAny && adjacentImprovementEntry.GetYieldPerXAdjacentImprovement(eYield, eNewValue) > 0)
+							||	( bCheckAdjacentOther && newImprovementEntry.GetAdjacentImprovementYieldChanges(eAdjacentImprovement, eYield) > 0 )
+							)
 						{
 							pAdjacentPlot->updateYield();
+							break;
 						}
 					}
 				}
@@ -8576,6 +8655,57 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 					GET_PLAYER(eBuilder).doInstantYield(INSTANT_YIELD_TYPE_IMPROVEMENT_BUILD, false, NO_GREATPERSON, NO_BUILDING, 0, false, NO_PLAYER, NULL, false, pTargetCity);
 				}
 			}
+
+			ResourceTypes eSpawnedResource = newImprovementEntry.SpawnsAdjacentResource();
+			if (eSpawnedResource != NO_RESOURCE)
+			{
+				CvPlot* pSpawnPlot = GetAdjacentResourceSpawnPlot(eBuilder);
+				if (pSpawnPlot)
+				{
+					pSpawnPlot->setResourceType(eSpawnedResource, 1);
+					SetSpawnedResourcePlot(pSpawnPlot);
+
+					if (pSpawnPlot->getOwner() == NO_PLAYER)
+					{
+						int iBestCityID = -1;
+						int iBestCityDistance = -1;
+						int iDistance = 0;
+						CvCity* pLoopCity = NULL;
+						int iLoop = 0;
+						for (pLoopCity = GET_PLAYER(eBuilder).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER(eBuilder).nextCity(&iLoop))
+						{
+							CvPlot* pPlot = pLoopCity->plot();
+							if (pPlot)
+							{
+								iDistance = plotDistance(getX(), getY(), pLoopCity->getX(), pLoopCity->getY());
+								if (iBestCityDistance == -1 || iDistance < iBestCityDistance)
+								{
+									iBestCityID = pLoopCity->GetID();
+									iBestCityDistance = iDistance;
+								}
+							}
+						}
+						pSpawnPlot->setOwner(eBuilder, iBestCityID);
+					}
+				}
+			}
+		}
+
+		if (eOldImprovement != NO_IMPROVEMENT)
+		{
+			ResourceTypes eSpawnedResource = GC.getImprovementInfo(eOldImprovement)->SpawnsAdjacentResource();
+			if (eSpawnedResource != NO_RESOURCE)
+			{
+				CvPlot* pSpawnedPlot = GetSpawnedResourcePlot();
+				if (pSpawnedPlot)
+				{
+					pSpawnedPlot->setResourceType(NO_RESOURCE, 0);
+					CvImprovementEntry* pkOldImprovementInfo = GC.getImprovementInfo(eOldImprovement);
+					if (pkOldImprovementInfo && pkOldImprovementInfo->IsImprovementResourceMakesValid(eSpawnedResource))
+						pSpawnedPlot->setImprovementType(NO_IMPROVEMENT);
+					SetSpawnedResourcePlot(NULL);
+				}
+			}
 		}
 
 		// If we're removing an Improvement that hooked up a resource then we need to take away the bonus
@@ -8624,234 +8754,30 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 		}
 
 		updateYield();
-		if(eBuilder != NO_PLAYER && eNewValue != NO_IMPROVEMENT && getOwner() == eBuilder)
+		if(eBuilder != NO_PLAYER && getOwner() == eBuilder)
 		{
-			CvImprovementEntry* pImprovement2 = GC.getImprovementInfo(eNewValue);
-			if(pImprovement2)
+			CvImprovementEntry* pOldImprovement = GC.getImprovementInfo(eOldImprovement);
+			CvImprovementEntry* pNewImprovement = GC.getImprovementInfo(eNewValue);
+			if(pOldImprovement || pNewImprovement)
 			{
 				for(int iJ = 0; iJ < NUM_DIRECTION_TYPES; ++iJ)
 				{
 					CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iJ));
-
-					if(pAdjacentPlot != NULL && pAdjacentPlot->getImprovementType() != NO_IMPROVEMENT && pAdjacentPlot->getOwner() == eBuilder)
-					{	
-						bool bUp = false;
+					if (pAdjacentPlot && pAdjacentPlot->getTerrainType() != NO_TERRAIN && pAdjacentPlot->getOwner() == eBuilder)
+					{
 						for(int iK = 0; iK < NUM_YIELD_TYPES; ++iK)
 						{
 							//Simplification - errata yields not worth considering.
-							if ((YieldTypes)iK > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
+							if (static_cast<YieldTypes>(iK) > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
 								break;
 
-							if(pImprovement2->GetAdjacentImprovementYieldChanges(pAdjacentPlot->getImprovementType(), (YieldTypes)iK) > 0)
+							if	(	( pOldImprovement && pOldImprovement->GetAdjacentTerrainYieldChanges(pAdjacentPlot->getTerrainType(), iK) > 0 )
+								||	( pNewImprovement && pNewImprovement->GetAdjacentTerrainYieldChanges(pAdjacentPlot->getTerrainType(), iK) > 0 )
+								)
 							{
-								bUp = true;								
+								pAdjacentPlot->updateYield();
 								break;
 							}
-						}
-						if(bUp)
-						{
-							pAdjacentPlot->updateYield();
-						}
-					}
-				}
-			}
-		}
-		if(eBuilder != NO_PLAYER && eOldImprovement != NO_IMPROVEMENT && getOwner() == eBuilder)
-		{
-			CvImprovementEntry* pImprovement2 = GC.getImprovementInfo(eOldImprovement);
-			if(pImprovement2)
-			{
-				for(int iJ = 0; iJ < NUM_DIRECTION_TYPES; ++iJ)
-				{
-					CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iJ));
-
-					if(pAdjacentPlot != NULL && pAdjacentPlot->getImprovementType() != NO_IMPROVEMENT && pAdjacentPlot->getOwner() == eBuilder)
-					{	
-						bool bUp = false;
-						for(int iK = 0; iK < NUM_YIELD_TYPES; ++iK)
-						{
-							//Simplification - errata yields not worth considering.
-							if ((YieldTypes)iK > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
-								break;
-
-							if(pImprovement2->GetAdjacentImprovementYieldChanges(pAdjacentPlot->getImprovementType(), (YieldTypes)iK) > 0)
-							{
-								bUp = true;								
-								break;
-							}
-						}
-						if(bUp)
-						{
-							pAdjacentPlot->updateYield();
-						}
-					}
-				}
-			}
-		}
-		if(eBuilder != NO_PLAYER && eNewValue != NO_IMPROVEMENT && getOwner() == eBuilder)
-		{
-			CvImprovementEntry* pImprovement2 = GC.getImprovementInfo(eNewValue);
-			if(pImprovement2)
-			{
-				for(int iJ = 0; iJ < NUM_DIRECTION_TYPES; ++iJ)
-				{
-					CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iJ));
-					// Do not change!!
-					if(pAdjacentPlot != NULL && pAdjacentPlot->getResourceType() != NO_RESOURCE)
-					{	
-						bool bUp = false;
-						for(int iK = 0; iK < NUM_YIELD_TYPES; ++iK)
-						{
-							//Simplification - errata yields not worth considering.
-							if ((YieldTypes)iK > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
-								break;
-
-							ResourceTypes eResource = pAdjacentPlot->getResourceType(GET_PLAYER(eBuilder).getTeam());
-							if(eResource != NO_RESOURCE && pImprovement2->GetAdjacentResourceYieldChanges(eResource, (YieldTypes)iK) > 0)
-							{
-								bUp = true;								
-								break;
-							}
-						}
-						if(bUp)
-						{
-							pAdjacentPlot->updateYield();
-						}
-					}
-				}
-			}
-		}
-		if(eBuilder != NO_PLAYER && eOldImprovement != NO_IMPROVEMENT && getOwner() == eBuilder)
-		{
-			CvImprovementEntry* pImprovement2 = GC.getImprovementInfo(eOldImprovement);
-			if(pImprovement2)
-			{
-				for(int iJ = 0; iJ < NUM_DIRECTION_TYPES; ++iJ)
-				{
-					CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iJ));
-
-					if(pAdjacentPlot != NULL && pAdjacentPlot->getResourceType() != NO_RESOURCE)
-					{	
-						bool bUp = false;
-						for(int iK = 0; iK < NUM_YIELD_TYPES; ++iK)
-						{
-							//Simplification - errata yields not worth considering.
-							if ((YieldTypes)iK > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
-								break;
-
-							if(pImprovement2->GetAdjacentResourceYieldChanges(pAdjacentPlot->getResourceType(), (YieldTypes)iK) > 0)
-							{
-								bUp = true;								
-								break;
-							}
-						}
-						if(bUp)
-						{
-							pAdjacentPlot->updateYield();
-						}
-					}
-				}
-			}
-		}
-		if(eBuilder != NO_PLAYER && eNewValue != NO_IMPROVEMENT && getOwner() == eBuilder)
-		{
-			CvImprovementEntry* pImprovement2 = GC.getImprovementInfo(eNewValue);
-			if(pImprovement2)
-			{
-				for(int iJ = 0; iJ < NUM_DIRECTION_TYPES; ++iJ)
-				{
-					CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iJ));
-
-					if(pAdjacentPlot != NULL && pAdjacentPlot->getTerrainType() != NO_TERRAIN && pAdjacentPlot->getOwner() == eBuilder)
-					{	
-						bool bUp = false;
-						for(int iK = 0; iK < NUM_YIELD_TYPES; ++iK)
-						{
-							//Simplification - errata yields not worth considering.
-							if ((YieldTypes)iK > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
-								break;
-
-							if(pImprovement2->GetAdjacentTerrainYieldChanges(pAdjacentPlot->getTerrainType(), (YieldTypes)iK) > 0)
-							{
-								bUp = true;								
-								break;
-							}
-						}
-						if(bUp)
-						{
-							pAdjacentPlot->updateYield();
-						}
-					}
-					if(pAdjacentPlot != NULL && pAdjacentPlot->getFeatureType() != NO_FEATURE && pAdjacentPlot->getOwner() == eBuilder)
-					{	
-						bool bUp2 = false;
-						for(int iK = 0; iK < NUM_YIELD_TYPES; ++iK)
-						{
-							//Simplification - errata yields not worth considering.
-							if ((YieldTypes)iK > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
-								break;
-
-							if (pImprovement2->GetAdjacentFeatureYieldChanges(pAdjacentPlot->getFeatureType(), (YieldTypes)iK) > 0)
-							{
-								bUp2 = true;								
-								break;
-							}
-						}
-						if(bUp2)
-						{
-							pAdjacentPlot->updateYield();
-						}
-					}
-				}
-			}
-		}
-		if(eBuilder != NO_PLAYER && eOldImprovement != NO_IMPROVEMENT && getOwner() == eBuilder)
-		{
-			CvImprovementEntry* pImprovement2 = GC.getImprovementInfo(eOldImprovement);
-			if(pImprovement2)
-			{
-				for(int iJ = 0; iJ < NUM_DIRECTION_TYPES; ++iJ)
-				{
-					CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iJ));
-
-					if(pAdjacentPlot != NULL && pAdjacentPlot->getTerrainType() != NO_TERRAIN && pAdjacentPlot->getOwner() == eBuilder)
-					{	
-						bool bUp = false;
-						for(int iK = 0; iK < NUM_YIELD_TYPES; ++iK)
-						{
-							//Simplification - errata yields not worth considering.
-							if ((YieldTypes)iK > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
-								break;
-
-							if(pImprovement2->GetAdjacentTerrainYieldChanges(pAdjacentPlot->getTerrainType(), (YieldTypes)iK) > 0)
-							{
-								bUp = true;								
-								break;
-							}
-						}
-						if(bUp)
-						{
-							pAdjacentPlot->updateYield();
-						}
-					}
-					if(pAdjacentPlot != NULL && pAdjacentPlot->getFeatureType() != NO_FEATURE && pAdjacentPlot->getOwner() == eBuilder)
-					{	
-						bool bUp2 = false;
-						for(int iK = 0; iK < NUM_YIELD_TYPES; ++iK)
-						{
-							//Simplification - errata yields not worth considering.
-							if ((YieldTypes)iK > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
-								break;
-
-							if (pImprovement2->GetAdjacentFeatureYieldChanges(pAdjacentPlot->getFeatureType(), (YieldTypes)iK) > 0)
-							{
-								bUp2 = true;								
-								break;
-							}
-						}
-						if(bUp2)
-						{
-							pAdjacentPlot->updateYield();
 						}
 					}
 				}
@@ -8889,6 +8815,52 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 			}
 		}
 	}
+}
+
+CvPlot* CvPlot::GetAdjacentResourceSpawnPlot(PlayerTypes ePlayer) const
+{
+	vector<CvPlot*> aSpawnPlots;
+
+	for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
+	{
+		CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), (DirectionTypes)iI);
+		if (!pAdjacentPlot)
+			continue;
+
+		if (!pAdjacentPlot->CanSpawnResource(ePlayer))
+			continue;
+
+		aSpawnPlots.push_back(pAdjacentPlot);
+	}
+
+	if (aSpawnPlots.empty())
+		return NULL;
+
+	int iRandomIndex = GC.getGame().urandLimitExclusive(aSpawnPlots.size(), GET_PLAYER(getOwner()).GetPseudoRandomSeed().mix(GetPseudoRandomSeed()));
+
+	return aSpawnPlots[iRandomIndex];
+}
+
+void CvPlot::SetSpawnedResourcePlot(const CvPlot* pPlot)
+{
+	if (pPlot)
+	{
+		m_sSpawnedResourceX = pPlot->getX();
+		m_sSpawnedResourceY = pPlot->getY();
+	}
+	else
+	{
+		m_sSpawnedResourceX = -1;
+		m_sSpawnedResourceY = -1;
+	}
+}
+
+CvPlot* CvPlot::GetSpawnedResourcePlot() const
+{
+	if (m_sSpawnedResourceX != -1 && m_sSpawnedResourceY != -1)
+		return GC.getMap().plot(m_sSpawnedResourceX, m_sSpawnedResourceY);
+
+	return NULL;
 }
 
 //	--------------------------------------------------------------------------------
@@ -9011,22 +8983,36 @@ void CvPlot::SetImprovementPillaged(bool bPillaged, bool bEvents)
 				ChangeRestoreMovesCount(iChange);
 			}
 
-			for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
+			CvImprovementEntry& improvementEntry = *GC.getImprovementInfo(getImprovementType());
+			ImprovementTypes eImprovement = getImprovementType();
+			// update yields to adjacent plots
+			for (int iJ = 0; iJ < NUM_DIRECTION_TYPES; ++iJ)
 			{
-				YieldTypes eYield = static_cast<YieldTypes>(iI);
-
-				// Simplification - errata yields not worth considering.
-				if (eYield > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
-					break;
-
-				if (pImprovementInfo->GetYieldAdjacentSameType(eYield) > 0 || pImprovementInfo->GetYieldAdjacentTwoSameType(eYield) > 0)
+				CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), static_cast<DirectionTypes>(iJ));
+				bool bAdjacentImprovement = pAdjacentPlot && pAdjacentPlot->getImprovementType() != NO_IMPROVEMENT;
+				bool bCheckAdjacentTerrain = pAdjacentPlot && pAdjacentPlot->getTerrainType() != NO_TERRAIN && pAdjacentPlot->getOwner() == getOwner();;
+				if (bAdjacentImprovement || bCheckAdjacentTerrain)
 				{
-					for (int iJ = 0; iJ < NUM_DIRECTION_TYPES; iJ++)
+					ImprovementTypes eAdjacentImprovement = pAdjacentPlot->getImprovementType();
+					CvImprovementEntry& adjacentImprovementEntry = *GC.getImprovementInfo(eAdjacentImprovement);
+					bool bCheckAdjacentSame = bAdjacentImprovement && eAdjacentImprovement == eImprovement;
+					bool bCheckAdjacentAny = bAdjacentImprovement && adjacentImprovementEntry.IsYieldPerXAdjacentImprovement();
+					bool bCheckAdjacentOther = bAdjacentImprovement && pAdjacentPlot->getOwner() == getOwner();
+					for (int iK = 0; iK < NUM_YIELD_TYPES; ++iK)
 					{
-						CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), static_cast<DirectionTypes>(iJ));
-						if (pAdjacentPlot && pAdjacentPlot->getImprovementType() == getImprovementType())
+						YieldTypes eYield = static_cast<YieldTypes>(iK);
+						// Simplification - errata yields not worth considering.
+						if (eYield > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
+							break;
+
+						if	(	( bCheckAdjacentSame && ( adjacentImprovementEntry.GetYieldAdjacentSameType(eYield) > 0 || adjacentImprovementEntry.GetYieldAdjacentTwoSameType(eYield) > 0 ) )
+							||	( bCheckAdjacentAny && adjacentImprovementEntry.GetYieldPerXAdjacentImprovement(eYield, eImprovement) > 0)
+							||	( bCheckAdjacentOther && improvementEntry.GetAdjacentImprovementYieldChanges(eAdjacentImprovement, eYield) > 0 )
+							||	( bCheckAdjacentTerrain && improvementEntry.GetAdjacentTerrainYieldChanges(pAdjacentPlot->getTerrainType(), eYield) > 0 )
+							)
 						{
 							pAdjacentPlot->updateYield();
+							break;
 						}
 					}
 				}
@@ -9807,259 +9793,246 @@ void CvPlot::changeYield(YieldTypes eYield, int iChange)
 int CvPlot::calculateNatureYield(YieldTypes eYield, PlayerTypes ePlayer, FeatureTypes eFeature, ResourceTypes eResource, const CvCity* pOwningCity, bool bDisplay) const
 {
 	int iYield = 0;
-	TeamTypes eTeam = (ePlayer!=NO_PLAYER) ? GET_PLAYER(ePlayer).getTeam() : NO_TEAM;
+	TeamTypes eTeam = (ePlayer != NO_PLAYER) ? GET_PLAYER(ePlayer).getTeam() : NO_TEAM;
 
-	//performance critical ...
-	static const ImprovementTypes eFort = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_FORT");
-	static const ImprovementTypes eCitadel = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_CITADEL");
-
-	const CvYieldInfo& kYield = *GC.getYieldInfo(eYield);
-	CvAssertMsg(getTerrainType() != NO_TERRAIN, "TerrainType is not assigned a valid value");
+	const TerrainTypes eTerrain = getTerrainType();
+	const ImprovementTypes eImprovement = getImprovementType();
+	const CvYieldInfo* pkYieldInfo = GC.getYieldInfo(eYield);
+	const CvTerrainInfo* pkTerrainInfo = GC.getTerrainInfo(eTerrain);
 
 	// impassable terrain has no base yield (but do allow coast)
 	// if worked by a city, it should have a yield.
-	if( ((!isValidMovePlot(ePlayer) && getOwner()!=ePlayer && (!isShallowWater())) || getTerrainType()==NO_TERRAIN))
+	if (!isValidMovePlot(ePlayer) && getOwner() != ePlayer && !isShallowWater())
 	{
 		iYield = 0;
 	} 
 	else
 	{
-		iYield = GC.getTerrainInfo(getTerrainType())->getYield(eYield);
-		if (eYield == YIELD_PRODUCTION && /*0*/ GD_INT_GET(BALANCE_CORE_PRODUCTION_DESERT_IMPROVEMENT) > 0 && getTerrainType() == TERRAIN_DESERT && !isHills() && eFeature == NO_FEATURE)
+		iYield = pkTerrainInfo->getYield(eYield);
+		if (eYield == YIELD_PRODUCTION && eTerrain == TERRAIN_DESERT && !isHills() && eFeature == NO_FEATURE)
 		{
-			if (eResource != NO_RESOURCE && getImprovementType() != NO_IMPROVEMENT)
-				iYield += GD_INT_GET(BALANCE_CORE_PRODUCTION_DESERT_IMPROVEMENT);
+			if (eResource != NO_RESOURCE && eImprovement != NO_IMPROVEMENT)
+				iYield += /*0*/ GD_INT_GET(BALANCE_CORE_PRODUCTION_DESERT_IMPROVEMENT);
 		}
 	}
 
 	iYield += GC.getPlotInfo(getPlotType())->getYield(eYield);
 	iYield += GC.getGame().getPlotExtraYield(m_iX, m_iY, eYield);
 
-	if(isHills())
-	{
-		iYield += kYield.getHillsChange();
-	}
+	if (isHills())
+		iYield += pkYieldInfo->getHillsChange();
 
-	if(isMountain())
-	{
-		iYield += kYield.getMountainChange();
-	}
+	if (isMountain())
+		iYield += pkYieldInfo->getMountainChange();
 
-	if(isLake())
+	if (isLake())
+		iYield += pkYieldInfo->getLakeChange();
+
+	if (eFeature != NO_FEATURE)
 	{
-		iYield += kYield.getLakeChange();
-	}
-	if(eFeature != NO_FEATURE)
-	{
-		CvFeatureInfo* pFeatureInfo = GC.getFeatureInfo(eFeature);
+		CvFeatureInfo* pkFeatureInfo = GC.getFeatureInfo(eFeature);
+		int iYieldChange = pkFeatureInfo->getYieldChange(eYield);
 
 		// Some Features REPLACE the Yield of the Plot instead of adding to it
-		int iYieldChange = pFeatureInfo->getYieldChange(eYield);
-
-		if(pFeatureInfo->isYieldNotAdditive())
-		{
+		if (pkFeatureInfo->isYieldNotAdditive())
 			iYield = iYieldChange;
-		}
 		else
-		{
 			iYield += iYieldChange;
+
+		if (isRiver())
+		{
+			iYield += pkFeatureInfo->getRiverYieldChange(eYield);
+		}
+
+		if (isHills())
+		{
+			iYield += pkFeatureInfo->getHillsYieldChange(eYield);
+		}
+
+		if (isFreshWater())
+		{
+			iYield += pkFeatureInfo->getFreshWaterYieldChange(eYield);
+		}
+
+		if (isCoastalLand())
+		{
+			iYield += pkFeatureInfo->getCoastalLandYieldChange(eYield);
+		}
+	}
+	else
+	{
+		if (isRiver())
+		{
+			iYield += pkTerrainInfo->getRiverYieldChange(eYield);
+		}
+
+		if (isHills())
+		{
+			iYield += pkTerrainInfo->getHillsYieldChange(eYield);
+		}
+
+		if (isFreshWater())
+		{
+			iYield += pkTerrainInfo->getFreshWaterYieldChange(eYield);
+		}
+
+		if (isCoastalLand())
+		{
+			iYield += pkTerrainInfo->getCoastalLandYieldChange(eYield);
 		}
 	}
 
-	if(eTeam != NO_TEAM)
+	if (eTeam != NO_TEAM && eResource != NO_RESOURCE)
 	{
 		CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
-
-		if(eResource != NO_RESOURCE && pkResourceInfo)
-		{
+		if (pkResourceInfo)
 			iYield += pkResourceInfo->getYieldChange(eYield);
-		}
 	}
 
-	if(isRiver())
-	{
-		iYield += eFeature == NO_FEATURE ? GC.getTerrainInfo(getTerrainType())->getRiverYieldChange(eYield) : GC.getFeatureInfo(eFeature)->getRiverYieldChange(eYield);
-	}
-
-	if(isHills())
-	{
-		iYield += eFeature == NO_FEATURE ? GC.getTerrainInfo(getTerrainType())->getHillsYieldChange(eYield) : GC.getFeatureInfo(eFeature)->getHillsYieldChange(eYield);
-	}
-
-	if(isFreshWater())
-	{
-		iYield += eFeature == NO_FEATURE ? GC.getTerrainInfo(getTerrainType())->getFreshWaterYieldChange(eYield) : GC.getFeatureInfo(eFeature)->getFreshWaterYieldChange(eYield);
-	}
-
-	if(isCoastalLand())
-	{
-		iYield += eFeature == NO_FEATURE ? GC.getTerrainInfo(getTerrainType())->getCoastalLandYieldChange(eYield) : GC.getFeatureInfo(eFeature)->getCoastalLandYieldChange(eYield);
-	}
-
-#if defined(MOD_PLOTS_EXTENSIONS)
 	if (MOD_PLOTS_EXTENSIONS)
 	{
 		PlotTypes ePlot = getPlotType();
-		if (ePlot != NO_PLOT && GC.getPlotInfo(ePlot)->IsAdjacentFeatureYieldChange())
+		CvPlotInfo* pkPlotInfo = GC.getPlotInfo(ePlot);
+		if (pkPlotInfo->IsAdjacentFeatureYieldChange())
 		{
-			// yield from adjacent features
+			// Yield from adjacent features
 			bool bNaturalWonderPlot = IsNaturalWonder();
 			for (int iI = 0; iI < NUM_DIRECTION_TYPES; ++iI)
 			{
-				CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iI));
-
-				if (pAdjacentPlot == NULL)
+				DirectionTypes eDirection = static_cast<DirectionTypes>(iI);
+				CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), eDirection);
+				if (!pAdjacentPlot)
 					continue;
 
-				if (pAdjacentPlot->getFeatureType() != NO_FEATURE)
+				FeatureTypes eAdjacentFeature = pAdjacentPlot->getFeatureType();
+				if (eAdjacentFeature != NO_FEATURE)
 				{
-					iYield += GC.getPlotInfo(ePlot)->GetAdjacentFeatureYieldChange(pAdjacentPlot->getFeatureType(), eYield, bNaturalWonderPlot);
+					iYield += pkPlotInfo->GetAdjacentFeatureYieldChange(eAdjacentFeature, eYield, bNaturalWonderPlot);
 				}
 			}
 		}
 	}
-#endif
 
-	if (pOwningCity != NULL && pOwningCity->plot() == this && ePlayer != NO_PLAYER)
+	if (pOwningCity && pOwningCity->plot() == this)
 	{
 		// VP: Set natural tile yields to 2 Food, 1 Production + resource yields + increases below, ignore everything above
 		if (MOD_BALANCE_VP)
 		{
-			iYield = kYield.getMinCity();
-			if (eTeam != NO_TEAM)
-			{
-				CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
+			iYield = pkYieldInfo->getMinCity();
 
-				if (eResource != NO_RESOURCE && pkResourceInfo)
-				{
-					iYield += pkResourceInfo->getYieldChange(eYield);
-				}
+			CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
+			if (eResource != NO_RESOURCE && pkResourceInfo)
+			{
+				iYield += pkResourceInfo->getYieldChange(eYield);
+			}
+
+			if (isHills())
+			{
+				if (isFreshWater())
+					iYield += pkYieldInfo->getMinCityHillFreshWater();
+				else
+					iYield += pkYieldInfo->getMinCityHillNoFreshWater();
+			}
+			else if (isMountain())
+			{
+				if (isFreshWater())
+					iYield += pkYieldInfo->getMinCityMountainFreshWater();
+				else
+					iYield += pkYieldInfo->getMinCityMountainNoFreshWater();
+			}
+			else
+			{
+				if (isFreshWater())
+					iYield += pkYieldInfo->getMinCityFlatFreshWater();
+				else
+					iYield += pkYieldInfo->getMinCityFlatNoFreshWater();
 			}
 		}
 		// Community Patch only: Min. 2 Food & 1 Production for city center tile yields
 		else
 		{
-			iYield = std::max(iYield, kYield.getMinCity());
+			iYield = std::max(iYield, pkYieldInfo->getMinCity());
+		}
+
+		// Yields from garrison
+		if (pOwningCity->HasGarrison())
+		{
+			CvUnit* pUnit = pOwningCity->GetGarrisonedUnit();
+			iYield += pUnit->GetGarrisonYieldChange(eYield) * pUnit->GetBaseCombatStrength() / 8;
 		}
 
 		if (!bDisplay || pOwningCity->isRevealed(GC.getGame().getActiveTeam(), false, false))
 		{
-			iYield += kYield.getCityChange();
-
-			if (kYield.getPopulationChangeDivisor() != 0)
+			iYield += pkYieldInfo->getCityChange();
+			if (pkYieldInfo->getPopulationChangeDivisor() != 0)
 			{
-				iYield += (pOwningCity->getPopulation() + kYield.getPopulationChangeOffset()) / kYield.getPopulationChangeDivisor();
+				iYield += (pOwningCity->getPopulation() + pkYieldInfo->getPopulationChangeOffset()) / pkYieldInfo->getPopulationChangeDivisor();
 			}
 		}
 
-		// GetYieldFromXMilitaryUnits (France UA)
-		iYield += GET_PLAYER(ePlayer).GetYieldFromMilitaryUnits(eYield);
-
-		// Mod for Player; used for Policies and such
-		iYield += GET_PLAYER(ePlayer).GetPlayerTraits()->GetCityYieldChanges(eYield);
-
-		// Coastal City Mod
-		if (pOwningCity->isCoastal())
+		if (ePlayer != NO_PLAYER)
 		{
-			iYield += GET_PLAYER(ePlayer).GetCoastalCityYieldChange(eYield);
+			CvPlayer& kPlayer = GET_PLAYER(ePlayer);
 
-			iYield += GET_PLAYER(ePlayer).GetPlayerTraits()->GetCoastalCityYieldChanges(eYield);
+			// GetYieldFromXMilitaryUnits (France UA)
+			iYield += kPlayer.GetYieldFromMilitaryUnits(eYield);
 
-		}
+			// Mod for Player; used for Policies and such
+			iYield += kPlayer.GetPlayerTraits()->GetCityYieldChanges(eYield);
 
-		if (pOwningCity->getStrengthValue() >= GD_INT_GET(CITY_STRENGTH_THRESHOLD_FOR_BONUSES) * 100)
-		{
-			iYield += GET_PLAYER(ePlayer).getYieldPerCityOverStrengthThreshold(eYield);
-		}
-
-		if (MOD_BALANCE_YIELD_SCALE_ERA)
-		{
-			//Flatland City Fresh Water yields
-			if (!isHills() && !isMountain() && isFreshWater())
+			// Coastal City Mod
+			if (pOwningCity->isCoastal())
 			{
-				iYield += kYield.getMinCityFlatFreshWater();
+				iYield += kPlayer.GetCoastalCityYieldChange(eYield);
+				iYield += kPlayer.GetPlayerTraits()->GetCoastalCityYieldChanges(eYield);
 			}
-			//Flatland City No Fresh Water yields
-			if (!isHills() && !isMountain() && !isFreshWater())
-			{
-				iYield += kYield.getMinCityFlatNoFreshWater();
-			}
-			// Hill City Fresh Water yields
-			if (isHills() && isFreshWater())
-			{
-				iYield += kYield.getMinCityHillFreshWater();
-			}
-			// Hill City No Fresh Water yields
-			if (isHills() && !isFreshWater())
-			{
-				iYield += kYield.getMinCityHillNoFreshWater();
-			}
-			// Mountain City Fresh Water yields
-			if (isMountain() && isFreshWater())
-			{
-				iYield += kYield.getMinCityMountainFreshWater();
-			}
-			// Mountain City No Fresh Water yields
-			if (isMountain() && !isFreshWater())
-			{
-				iYield += kYield.getMinCityMountainNoFreshWater();
-			}
-			if (pOwningCity->HasGarrison())
-			{
-				CvUnit* pUnit = pOwningCity->GetGarrisonedUnit();
-				if (pUnit != NULL && pUnit->GetGarrisonYieldChange(eYield) > 0)
-				{
-					int iGarrisonStrength = pUnit->GetBaseCombatStrength();
-					iYield += ((pUnit->GetGarrisonYieldChange(eYield) * iGarrisonStrength) / 8);
-				}
-			}
-			//fixme: this code looks broken? How can a city have a fort or citadel on the city center tile?
-			if (pOwningCity->plot()->getImprovementType() == eFort || pOwningCity->plot()->getImprovementType() == eCitadel)
-			{
-			// Don't provide yield if tile is pillaged
-				if (!pOwningCity->plot()->IsImprovementPillaged())
-				{
-					// If there are any Units here, meet their owners
-					for (int iUnitLoop = 0; iUnitLoop < getNumUnits(); iUnitLoop++)
-					{
-						// If the AI spots a human Unit, don't meet - wait for the human to find the AI
-						CvUnit* loopUnit = getUnitByIndex(iUnitLoop);
-						if (!loopUnit)
-							continue;
-	
-						if (loopUnit->GetFortificationYieldChange(eYield) > 0)
-						{
-							int iUnitStrength = loopUnit->GetBaseCombatStrength();
-							iYield += ((loopUnit->GetFortificationYieldChange(eYield) * iUnitStrength) / 8);
-						}
-					}
-				}
-			}
-		}
 
-		int iTemp = GET_PLAYER(ePlayer).GetCityYieldChangeTimes100(eYield);	// In hundreds - will be added to capitalYieldChange below
-
-																				// Capital Mod
-		if (pOwningCity->isCapital())
-		{
-			iTemp += GET_PLAYER(ePlayer).GetCapitalYieldChangeTimes100(eYield);
-
-			iYield += GET_PLAYER(ePlayer).GetPlayerTraits()->GetCapitalYieldChanges(eYield);
-
-			int iPerPopYield = pOwningCity->getPopulation() * GET_PLAYER(getOwner()).GetCapitalYieldPerPopChange(eYield);
-			iPerPopYield /= 100;
-			iYield += iPerPopYield;
-
-			if (GET_PLAYER(ePlayer).GetCapitalYieldPerPopChangeEmpire(eYield) != 0)
+			// Yields from strong city
+			if (pOwningCity->getStrengthValue() >= GD_INT_GET(CITY_STRENGTH_THRESHOLD_FOR_BONUSES) * 100)
 			{
-				int iPerPopYieldEmpire = GET_PLAYER(ePlayer).getTotalPopulation() * GET_PLAYER(ePlayer).GetCapitalYieldPerPopChangeEmpire(eYield);
-				//Implied 100x, see ChangeCapitalYieldPerPopChangeEmpire.
+				iYield += kPlayer.getYieldPerCityOverStrengthThreshold(eYield);
+			}
+
+			int iTemp = kPlayer.GetCityYieldChangeTimes100(eYield); // In hundreds - will be added to capitalYieldChange below
+
+			// Capital Mod
+			if (pOwningCity->isCapital())
+			{
+				iTemp += kPlayer.GetCapitalYieldChangeTimes100(eYield);
+
+				iYield += kPlayer.GetPlayerTraits()->GetCapitalYieldChanges(eYield);
+
+				// Unfortunately these need to be rounded down individually until we rework all yields to have 2 decimals
+				int iPerPopYield = pOwningCity->getPopulation() * kPlayer.GetCapitalYieldPerPopChange(eYield);
+				iPerPopYield /= 100;
+				iYield += iPerPopYield;
+
+				int iPerPopYieldEmpire = kPlayer.getTotalPopulation() * kPlayer.GetCapitalYieldPerPopChangeEmpire(eYield);
 				iPerPopYieldEmpire /= 100;
 				iYield += iPerPopYieldEmpire;
 			}
-		}
 
-		iYield += (iTemp / 100);
+			iYield += iTemp / 100;
+		}
+	}
+
+	// Yields from units on fortifications
+	if (eImprovement != NO_IMPROVEMENT)
+	{
+		CvImprovementEntry* pkImprovementEntry = GC.getImprovementInfo(eImprovement);
+		CvAssert(pkImprovementEntry);
+
+		if (pkImprovementEntry->IsNoFollowUp() && !IsImprovementPillaged())
+		{
+			for (int iUnitLoop = 0; iUnitLoop < getNumUnits(); iUnitLoop++)
+			{
+				CvUnit* pUnit = getUnitByIndex(iUnitLoop);
+				if (!pUnit)
+					continue;
+
+				iYield += pUnit->GetFortificationYieldChange(eYield) * pUnit->GetBaseCombatStrength() / 8;
+			}
+		}
 	}
 
 	return std::max(0, iYield);
@@ -10375,6 +10348,7 @@ int CvPlot::calculateImprovementYield(YieldTypes eYield, PlayerTypes ePlayer, Im
 {
 	int iBestYield = 0;
 	int iYield = 0;
+	fraction fFractionalYield = 0;
 	int iI = 0;
 
 	if (eImprovement == NO_IMPROVEMENT)
@@ -10391,6 +10365,11 @@ int CvPlot::calculateImprovementYield(YieldTypes eYield, PlayerTypes ePlayer, Im
 	if (ePlayer != NO_PLAYER)
 	{
 		CvPlayerAI& kPlayer = GET_PLAYER(ePlayer);
+
+		if (pkImprovementInfo->IsYieldPerXAdjacentImprovement(eYield))
+		{
+			fFractionalYield += ComputeFractionalYieldFromAdjacentImprovement(*pkImprovementInfo, eYield);
+		}
 
 		int iAdjacentYield = pkImprovementInfo->GetYieldAdjacentSameType(eYield);
 		if (iAdjacentYield > 0)
@@ -10450,6 +10429,11 @@ int CvPlot::calculateImprovementYield(YieldTypes eYield, PlayerTypes ePlayer, Im
 		{
 			iYield += pkImprovementInfo->GetImprovementResourceYield(eResource, eYield);
 		}
+
+		if (kPlayer.getGoldenAgeTurns() > 0)
+		{
+			iYield += pkImprovementInfo->GetGoldenAgeYieldChange(eYield);
+		}
 	}
 
 	if (pOwningCity != NULL)
@@ -10481,8 +10465,9 @@ int CvPlot::calculateImprovementYield(YieldTypes eYield, PlayerTypes ePlayer, Im
 	}
 
 	// Check to see if there's a bonus to apply before doing any looping
-	if(pkImprovementInfo->GetAdjacentCityYieldChange(eYield) > 0 ||
-	        pkImprovementInfo->GetAdjacentMountainYieldChange(eYield) > 0)
+	if	(	pkImprovementInfo->GetAdjacentCityYieldChange(eYield) > 0
+		||	pkImprovementInfo->GetAdjacentMountainYieldChange(eYield) > 0
+		)
 	{
 		for(iI = 0; iI < NUM_DIRECTION_TYPES; ++iI)
 		{
@@ -10587,6 +10572,9 @@ int CvPlot::calculateImprovementYield(YieldTypes eYield, PlayerTypes ePlayer, Im
 			}
 		}
 	}
+
+	// add fractional yields
+	iYield += fFractionalYield.Truncate();
 
 	return iYield;
 }
@@ -11128,7 +11116,7 @@ bool CvPlot::hasYield() const
 	for(int iI = 0; iI < NUM_YIELD_TYPES; ++iI)
 	{
 		//Simplification - errata yields not worth considering.
-		if ((YieldTypes)iI > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
+		if ((YieldTypes)iI > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
 			return false;
 
 		if(getYield((YieldTypes)iI) > 0)
@@ -12415,9 +12403,10 @@ void CvPlot::SilentlyResetAllBuildProgress(BuildTypes eBuild)
 		bool bIterRoute = pkIterInfo->getRoute() != NO_ROUTE;
 
 		// Two groupings: Improvement (build or repair), Route(build, repair or remove)
-		if ((bBuildImprovement && (bIterImprovement || (pkIterInfo->isRepair() && !IsRoutePillaged()))) ||
-			(bBuildRoute && (bIterRoute || (pkIterInfo->isRepair() && !IsImprovementPillaged()) || pkIterInfo->IsRemoveRoute())) ||
-			(pkBuildInfo->IsRemoveRoute() && (bIterRoute || (pkIterInfo->isRepair() && !IsImprovementPillaged()))))
+		if	(	( bBuildImprovement && ( bIterImprovement || ( pkIterInfo->isRepair() && !IsRoutePillaged() ) ) )
+			||	( bBuildRoute && ( bIterRoute || ( pkIterInfo->isRepair() && !IsImprovementPillaged() ) || pkIterInfo->IsRemoveRoute() ) )
+			||	( pkBuildInfo->IsRemoveRoute() && ( bIterRoute || ( pkIterInfo->isRepair() && !IsImprovementPillaged() ) ) )
+			)
 		{
 			m_buildProgress.erase(it);
 		}
@@ -13284,7 +13273,7 @@ void CvPlot::processArea(CvArea* pArea, int iChange)
 					for(iJ = 0; iJ < NUM_YIELD_TYPES; iJ++)
 					{
 						//Simplification - errata yields not worth considering.
-						if ((YieldTypes)iJ > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
+						if ((YieldTypes)iJ > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
 							break;
 
 						pArea->changeYieldRateModifier(pCity->getOwner(), ((YieldTypes)iJ), (pkBuildingInfo->GetAreaYieldModifier(iJ) * iChange * pCity->GetCityBuildings()->GetNumActiveBuilding(eBuilding)));
@@ -13495,6 +13484,9 @@ void CvPlot::Serialize(Plot& plot, Visitor& visitor)
 	visitor(plot.m_kArchaeologyData);
 	visitor(plot.m_bIsTradeUnitRoute);
 	visitor(plot.m_iLastTurnBuildChanged);
+
+	visitor(plot.m_sSpawnedResourceX);
+	visitor(plot.m_sSpawnedResourceY);
 }
 
 //	--------------------------------------------------------------------------------
@@ -15592,79 +15584,88 @@ int CvPlot::GetNumSpecificPlayerUnitsAdjacent(PlayerTypes ePlayer, const CvUnit*
 ///-------------------------------------
 
 #if defined(MOD_BALANCE_CORE)
-static int GetDefensiveApproachMultiplier(CivApproachTypes eApproach)
+static int GetDefensiveApproachMultiplierTimes100(CivApproachTypes eApproach)
 {
 	switch (eApproach)
 	{
 	case CIV_APPROACH_FRIENDLY:
 		return 0;
 	case CIV_APPROACH_NEUTRAL:
-		return 1;
+		return 100;
 	case CIV_APPROACH_AFRAID:
 	case CIV_APPROACH_GUARDED:
+		return 200;
 	case CIV_APPROACH_DECEPTIVE:
 	case CIV_APPROACH_HOSTILE:
 	case CIV_APPROACH_WAR:
-		return 4;
+		return 150;
 	default:
 		return 0;
 	}
 }
 
-static int GetDefensiveStrengthMultiplier(StrengthTypes eStrength)
+static int GetDefensiveStrengthMultiplierTimes100(StrengthTypes eStrength)
 {
 	switch (eStrength)
 	{
 	case STRENGTH_PATHETIC:
+		return 10;
 	case STRENGTH_WEAK:
+		return 25;
 	case STRENGTH_POOR:
+		return 50;
 	case STRENGTH_AVERAGE:
-		return 1;
+		return 100;
 	case STRENGTH_STRONG:
-		return 2;
+		return 125;
 	case STRENGTH_POWERFUL:
-		return 4;
+		return 150;
 	case STRENGTH_IMMENSE:
-		return 8;
+		return 200;
 	default:
 		return 0;
 	}
 }
 
-static int GetOffensiveApproachMultiplier(CivApproachTypes eApproach)
+static int GetOffensiveApproachMultiplierTimes100(CivApproachTypes eApproach)
 {
 	switch (eApproach)
 	{
 	case CIV_APPROACH_FRIENDLY:
-	case CIV_APPROACH_NEUTRAL:
 	case CIV_APPROACH_AFRAID:
 		return 0;
+	case CIV_APPROACH_NEUTRAL:
+		return 50;
 	case CIV_APPROACH_GUARDED:
+		return 100;
 	case CIV_APPROACH_DECEPTIVE:
-		return 1;
+		return 150;
 	case CIV_APPROACH_HOSTILE:
-		return 2;
 	case CIV_APPROACH_WAR:
-		return 4;
+		return 200;
 	default:
 		return 0;
 	}
 }
 
-static int GetOffensiveStrengthMultiplier(StrengthTypes eStrength)
+static int GetOffensiveStrengthMultiplierTimes100(StrengthTypes eStrength)
 {
 	switch (eStrength)
 	{
 	case STRENGTH_PATHETIC:
+		return 200;
 	case STRENGTH_WEAK:
-		return 4;
+		return 150;
 	case STRENGTH_POOR:
-		return 2;
+		return 125;
 	case STRENGTH_AVERAGE:
+		return 100;
 	case STRENGTH_STRONG:
+		return 50;
 	case STRENGTH_POWERFUL:
+		return 25;
 	case STRENGTH_IMMENSE:
-		return 1;
+		return 10;
 	default:
 		return 0;
 	}
@@ -15679,48 +15680,10 @@ int CvPlot::GetStrategicValue(PlayerTypes ePlayer) const
 	CvDiplomacyAI* pDiplomacyAI = GET_PLAYER(ePlayer).GetDiplomacyAI();
 
 	// Evaluate based on surrounding plots
-	int iAdjacentThreat = 0;
 	int iNearbyThreat = 0;
-
-	int iAdjacentTarget = 0;
 	int iNearbyTarget = 0;
 
-	int iAdjacentUnowned = 0;
-
-	// Directly adjacent tiles
-	for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
-	{
-		CvPlot* pLoopAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iI));
-
-		if (pLoopAdjacentPlot != NULL)
-		{
-
-			//impassable is uninteresting
-			if (!pLoopAdjacentPlot->isValidMovePlot(pLoopAdjacentPlot->getOwner()))
-				continue;
-
-			//coasts are easy avenues of attack
-			if (pLoopAdjacentPlot->isWater())
-				continue;
-
-			if (pLoopAdjacentPlot->getOwner() != ePlayer)
-			{
-				iAdjacentUnowned++;
-			}
-
-			if (pLoopAdjacentPlot->isOwned() && pLoopAdjacentPlot->getOwner() != ePlayer && GET_PLAYER(pLoopAdjacentPlot->getOwner()).isMajorCiv())
-			{
-				CivApproachTypes eApproach = pDiplomacyAI->GetCivApproach(pLoopAdjacentPlot->getOwner());
-				StrengthTypes eStrength = pDiplomacyAI->GetMilitaryStrengthComparedToUs(pLoopAdjacentPlot->getOwner());
-
-				iAdjacentThreat = max(iAdjacentThreat, GetDefensiveApproachMultiplier(eApproach) * GetDefensiveStrengthMultiplier(eStrength));
-				iAdjacentTarget = max(iAdjacentTarget, GetOffensiveApproachMultiplier(eApproach) * GetOffensiveStrengthMultiplier(eStrength));
-			}
-		}
-	}
-
-	// Wider area
-	for (int i = RING1_PLOTS; i < RING2_PLOTS; i++)
+	for (int i = RING0_PLOTS; i < RING2_PLOTS; i++)
 	{
 		CvPlot* pLoopNearbyPlot = iterateRingPlots(this, i);
 
@@ -15742,36 +15705,16 @@ int CvPlot::GetStrategicValue(PlayerTypes ePlayer) const
 			CivApproachTypes eApproach = pDiplomacyAI->GetCivApproach(pLoopNearbyPlot->getOwner());
 			StrengthTypes eStrength = pDiplomacyAI->GetMilitaryStrengthComparedToUs(pLoopNearbyPlot->getOwner());
 
-			iNearbyThreat = max(iNearbyThreat, GetDefensiveApproachMultiplier(eApproach) * GetDefensiveStrengthMultiplier(eStrength));
-			iNearbyTarget = max(iNearbyTarget, GetOffensiveApproachMultiplier(eApproach) * GetOffensiveStrengthMultiplier(eStrength));
+			iNearbyThreat = max(iNearbyThreat, GetDefensiveApproachMultiplierTimes100(eApproach) * GetDefensiveStrengthMultiplierTimes100(eStrength) / 100);
+			iNearbyTarget = max(iNearbyTarget, GetOffensiveApproachMultiplierTimes100(eApproach) * GetOffensiveStrengthMultiplierTimes100(eStrength) / 100);
 		}
 	}
-
-	//Get score for this fortification
 	
 	// Threatening civs (unfriendly and/or powerful)
-	int iDefensiveValue = max(iNearbyThreat, iAdjacentThreat);
+	int iStrategicValue = max(iNearbyThreat, iNearbyTarget);
 
-	ImprovementTypes eImprovement = getImprovementType();
-	if (eImprovement != NO_IMPROVEMENT)
-	{
-		CvImprovementEntry* pkImprovementInfo = GC.getImprovementInfo(eImprovement);
-		if (pkImprovementInfo && (pkImprovementInfo->GetDefenseModifier() > 0 || pkImprovementInfo->GetNearbyEnemyDamage() > 0))
-		{
-			iDefensiveValue *= 10;
-		}
-	}
-
-	// Targeted civs
-	int iOffensiveValue = iAdjacentUnowned > 1 ? max(iNearbyTarget, iAdjacentTarget) : 0;
-
-	int iStrategicValue = max(iDefensiveValue, iOffensiveValue);
-
-	// No defensive utility from building here
-	if (iStrategicValue == 0)
-		return 0;
-
-	return iStrategicValue * 100;
+	// range: [0,400]
+	return iStrategicValue;
 }
 
 int CvPlot::GetDefenseBuildValue(PlayerTypes eOwner, BuildTypes eBuild, ImprovementTypes eImprovement, const SBuilderState& sState) const
@@ -15784,170 +15727,141 @@ int CvPlot::GetDefenseBuildValue(PlayerTypes eOwner, BuildTypes eBuild, Improvem
 	if (eImprovement == NO_IMPROVEMENT)
 		return 0;
 
-	CvBuildInfo* pkBuild = GC.getBuildInfo(eBuild);
 	CvImprovementEntry* pkImprovementInfo = GC.getImprovementInfo(eImprovement);
 	int iImprovementDefenseModifier = pkImprovementInfo->GetDefenseModifier();
 	int iImprovementDamage = pkImprovementInfo->GetNearbyEnemyDamage();
+	int iCultureBombRadius = pkImprovementInfo->GetCultureBombRadius();
 
 	CvDiplomacyAI* pDiplomacyAI = kPlayer.GetDiplomacyAI();
 
 	// Evaluate based on surrounding plots
 	int iMaxAdjacentThreat = 0;
-	int iMaxNearbyThreat = 0;
 
-	bool bAdjacentCity = false;
-	bool bNearbyCity = false;
+	int iNearestCityDistance = 0;
 
 	int iAdjacentOwnedLand = 0;
-	int iMaxAdjacentDamage = 0;
-	int iMaxAdjacentDefenseModifier = 0;
-	int iMaxNearbyDefenseModifier = 0;
+	int iNearbyDefensiveStructures = 0;
 
-	// Directly adjacent tiles
-	for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
+	int iTotalAdjacentDamage = 0;
+
+	// Adjacent tiles
+	for (int iRingID = 1; iRingID < 3; iRingID++)
 	{
-		CvPlot* pLoopAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iI));
-
-		if (pLoopAdjacentPlot == NULL)
-			continue;
-
-		//impassable is uninteresting
-		if(!pLoopAdjacentPlot->isValidMovePlot(pLoopAdjacentPlot->getOwner(),false))
-			continue;
-
-		//coasts are easy avenues of attack
-		if (pLoopAdjacentPlot->isWater())
-			continue;
-
-		if(pLoopAdjacentPlot->getOwner() == eOwner)
+		for (int iI = RING_PLOTS[iRingID - 1]; iI < RING_PLOTS[iRingID]; iI++)
 		{
-			iAdjacentOwnedLand++;
+			CvPlot* pAdjacentPlot = iterateRingPlots(getX(), getY(), iI);
 
-			// Avoid building next to cities
-			if (pLoopAdjacentPlot->isCity())
-				bAdjacentCity = true;
+			if (pAdjacentPlot == NULL)
+				continue;
 
-			// try to leave room around improvements that damage adjacent units
-			CvImprovementEntry* pkAdjacentImprovement = GC.getImprovementInfo(pLoopAdjacentPlot->getImprovementType());
-			int iNearbyDamage = pkAdjacentImprovement ? pkAdjacentImprovement->GetNearbyEnemyDamage() : 0;
-			map<int, int>::const_iterator it = sState.mExtraDamageToAdjacent.find(pLoopAdjacentPlot->GetPlotIndex());
-			if (it != sState.mExtraDamageToAdjacent.end())
-				iNearbyDamage += it->second;
-			if (iNearbyDamage > 0)
-				iMaxAdjacentDamage = max(iMaxAdjacentDamage, iNearbyDamage);
+			//impassable is uninteresting
+			if (!pAdjacentPlot->isValidMovePlot(pAdjacentPlot->getOwner(), false))
+				continue;
 
-			int iDefenseModifier = pkAdjacentImprovement ? pkAdjacentImprovement->GetDefenseModifier() : 0;
-			it = sState.mExtraDefense.find(pLoopAdjacentPlot->GetPlotIndex());
-			if (it != sState.mExtraDefense.end())
-				iDefenseModifier += it->second;
-			if (iDefenseModifier > 0)
-				iMaxAdjacentDefenseModifier = max(iMaxAdjacentDefenseModifier, iDefenseModifier);
-		}
-		else if(pLoopAdjacentPlot->isOwned() && pLoopAdjacentPlot->getOwner() != eOwner && GET_PLAYER(pLoopAdjacentPlot->getOwner()).isMajorCiv())
-		{
-			CivApproachTypes eApproach = pDiplomacyAI->GetCivApproach(pLoopAdjacentPlot->getOwner());
-			StrengthTypes eStrength = pDiplomacyAI->GetMilitaryStrengthComparedToUs(pLoopAdjacentPlot->getOwner());
+			//coasts are easy avenues of attack
+			if (pAdjacentPlot->isWater())
+				continue;
 
-			iMaxAdjacentThreat = max(iMaxAdjacentThreat, GetDefensiveApproachMultiplier(eApproach) * GetDefensiveStrengthMultiplier(eStrength));
+			if (pAdjacentPlot->getOwner() == eOwner || (iCultureBombRadius >= iRingID && eBuild != NO_BUILD && !pAdjacentPlot->isCity()))
+			{
+				if (iRingID == 1)
+					iAdjacentOwnedLand++;
+
+				// Avoid building next to cities
+				if (pAdjacentPlot->isCity())
+					iNearestCityDistance = iRingID;
+
+				if (iImprovementDamage > 0 && iRingID == 1)
+				{
+					int iMaxDamageAlreadyInPlot = 0;
+					for (int iJ = 0; iJ < NUM_DIRECTION_TYPES; iJ++)
+					{
+						CvPlot* pLoopAdjacentAdjacentPlot = plotDirection(pAdjacentPlot->getX(), pAdjacentPlot->getY(), ((DirectionTypes)iJ));
+
+						if (!pLoopAdjacentAdjacentPlot)
+							continue;
+
+						if (pLoopAdjacentAdjacentPlot == this)
+							continue;
+
+						if (pLoopAdjacentAdjacentPlot->getOwner() != eOwner)
+							continue;
+
+						map<int, ImprovementTypes>::const_iterator it = sState.mChangedPlotImprovements.find(pLoopAdjacentAdjacentPlot->GetPlotIndex());
+						ImprovementTypes eAdjacentImprovement = it != sState.mChangedPlotImprovements.end() ? it->second : NO_IMPROVEMENT;
+
+						// If we are not planning on building an improvement here, use the one that exists already
+						if (eAdjacentImprovement == NO_IMPROVEMENT && !pLoopAdjacentAdjacentPlot->IsImprovementPillaged())
+							eAdjacentImprovement = pLoopAdjacentAdjacentPlot->getImprovementType();
+
+						if (eAdjacentImprovement == NO_IMPROVEMENT)
+							continue;
+
+						CvImprovementEntry* pkAdjacentImprovementInfo = GC.getImprovementInfo(eAdjacentImprovement);
+						if (pkAdjacentImprovementInfo)
+						{
+							int iImprovementDamage = pkAdjacentImprovementInfo->GetNearbyEnemyDamage();
+							if (iImprovementDamage > iMaxDamageAlreadyInPlot)
+								iMaxDamageAlreadyInPlot = iImprovementDamage;
+						}
+					}
+
+					if (iImprovementDamage > iMaxDamageAlreadyInPlot)
+						iTotalAdjacentDamage += iImprovementDamage - iMaxDamageAlreadyInPlot;
+				}
+
+				map<int, ImprovementTypes>::const_iterator it = sState.mChangedPlotImprovements.find(pAdjacentPlot->GetPlotIndex());
+				ImprovementTypes eAdjacentImprovement = it != sState.mChangedPlotImprovements.end() ? it->second : NO_IMPROVEMENT;
+
+				// If we are not planning on building an improvement here, use the one that exists already
+				if (eAdjacentImprovement == NO_IMPROVEMENT && !pAdjacentPlot->IsImprovementPillaged())
+					eAdjacentImprovement = pAdjacentPlot->getImprovementType();
+
+				CvImprovementEntry* pkAdjacentImprovementInfo = GC.getImprovementInfo(eAdjacentImprovement);
+
+				if (pkAdjacentImprovementInfo && pkAdjacentImprovementInfo->GetDefenseModifier() > 0)
+					iNearbyDefensiveStructures++;
+			}
+			else if (pAdjacentPlot->isOwned() && pAdjacentPlot->getOwner() != eOwner && GET_PLAYER(pAdjacentPlot->getOwner()).isMajorCiv())
+			{
+				CivApproachTypes eApproach = pDiplomacyAI->GetCivApproach(pAdjacentPlot->getOwner());
+				StrengthTypes eStrength = pDiplomacyAI->GetMilitaryStrengthComparedToUs(pAdjacentPlot->getOwner());
+
+				iMaxAdjacentThreat = max(iMaxAdjacentThreat, GetDefensiveApproachMultiplierTimes100(eApproach) * GetDefensiveStrengthMultiplierTimes100(eStrength) / 100);
+			}
 		}
 	}
-
-	// Wider area
-	for (int i=RING1_PLOTS; i<RING2_PLOTS; i++)
-	{
-		CvPlot* pLoopNearbyPlot = iterateRingPlots(this, i);
-		if (pLoopNearbyPlot == NULL)
-			continue;
-
-		if (!pLoopNearbyPlot->isRevealed(eTeam))
-			continue;
-
-		//impassable is uninteresting
-		if (!pLoopNearbyPlot->isValidMovePlot(pLoopNearbyPlot->getOwner(),false))
-			continue;
-
-		else if (pLoopNearbyPlot->isOwned() && pLoopNearbyPlot->getOwner() != eOwner && GET_PLAYER(pLoopNearbyPlot->getOwner()).isMajorCiv())
-		{
-			CivApproachTypes eApproach = pDiplomacyAI->GetCivApproach(pLoopNearbyPlot->getOwner());
-			StrengthTypes eStrength = pDiplomacyAI->GetMilitaryStrengthComparedToUs(pLoopNearbyPlot->getOwner());
-
-			iMaxNearbyThreat = max(iMaxNearbyThreat, GetDefensiveApproachMultiplier(eApproach) * GetDefensiveStrengthMultiplier(eStrength));
-		}
-	}
-
-	//Get score for this fortification
-
-	// Threatening civs (unfriendly and/or powerful)
-	int iDefensiveValue = max(iMaxNearbyThreat, iMaxAdjacentThreat) * 100;
 
 	// No defensive utility from building here
-	if (iDefensiveValue == 0)
+	if (iMaxAdjacentThreat == 0)
 		return 0;
+
+	CvBuildInfo* pkBuild = GC.getBuildInfo(eBuild);
+	bool bIgnoreFeature = getFeatureType() != NO_FEATURE && pkBuild && pkBuild->isFeatureRemove(getFeatureType());
+
+	int iDefenseModifier = defenseModifier(eTeam, true, bIgnoreFeature) + iImprovementDefenseModifier;
+
+	// range of iMaxAdjacentThreat is [0,400]
+	// max value for a fort (50 defense, 0 damage): 400
+	// max value for a citadel (100 defense, 30 damage): 1520
+	int iDefensiveValueTimes100 = iMaxAdjacentThreat * (iDefenseModifier * 2 + iTotalAdjacentDamage / 2) / 100;
 
 	//Avoid fort spam
-	iDefensiveValue -= max(iMaxNearbyDefenseModifier * 8, iMaxAdjacentDefenseModifier * 16);
-
-	//Leave room around improvements that deal damage
-	iDefensiveValue -= iMaxAdjacentDamage * 30;
+	iDefensiveValueTimes100 -= 50 * iNearbyDefensiveStructures;
 
 	//Avoid building next to cities
-	if (bAdjacentCity)
-		iDefensiveValue -= 400;
-	else if (bNearbyCity)
-		iDefensiveValue -= 200;
+	if (iNearestCityDistance > 0)
+		iDefensiveValueTimes100 -= 150 * (3 - iNearestCityDistance);
 
-	if (iDefensiveValue <= 0)
+	if (iDefensiveValueTimes100 <= 0)
 		return 0;
 
-	int iBaseDefenseModifier = defenseModifier(eTeam, true, true);
-	int iOldDefenseModifier = defenseModifier(eTeam, false, false);
+	// Bonus for plots that are not too exposed (range=[0,420])
+	int iDefensibilityTimes100 = iAdjacentOwnedLand * 70;
 
-	ImprovementTypes eOldImprovement = getImprovementType();
-	CvImprovementEntry* pkOldImprovementInfo = GC.getImprovementInfo(eOldImprovement);
-
-	int iOldImprovementDamage = eOldImprovement != NO_IMPROVEMENT && pkOldImprovementInfo ? pkOldImprovementInfo->GetNearbyEnemyDamage() : 0;
-
-	int iNewDefenseModifier = defenseModifier(eTeam, true, pkBuild && pkBuild->isFeatureRemove(getFeatureType())) + iImprovementDefenseModifier;
-
-	CvPlayerTraits* pTraits = kPlayer.GetPlayerTraits();
-	if (pTraits->GetCombatBonusImprovementType() == eImprovement)
-	{
-		int iBonusRange = pTraits->GetNearbyImprovementBonusRange();
-		int iCombatBonusValue = pTraits->GetNearbyImprovementCombatBonus();
-		if (iBonusRange > 0)
-		{
-			iNewDefenseModifier += iCombatBonusValue * (iAdjacentOwnedLand + 1);
-		}
-		else if (iBonusRange == 0)
-		{
-			iNewDefenseModifier += iCombatBonusValue;
-		}
-	}
-
-	if (eOldImprovement != NO_IMPROVEMENT && pTraits->GetCombatBonusImprovementType() == eOldImprovement)
-	{
-		int iBonusRange = pTraits->GetNearbyImprovementBonusRange();
-		int iCombatBonusValue = pTraits->GetNearbyImprovementCombatBonus();
-		if (iBonusRange > 0)
-		{
-			iOldDefenseModifier += iCombatBonusValue * (iAdjacentOwnedLand + 1);
-		}
-		else if (iBonusRange == 0)
-		{
-			iOldDefenseModifier += iCombatBonusValue;
-		}
-	}
-
-	// Scale defensive value by how much this fortification will increase the defense of the tile (and how much damage it will deal to enemy units)
-	// This can be negative, if we are replacing a better defensive improvement
-	int iDefenseMultiplier = (iNewDefenseModifier + iImprovementDamage * 2) - (iOldDefenseModifier + iOldImprovementDamage * 2);
-
-	// Bonus for plots that are not too exposed
-	int iDefensibilityTimes10 = ((iAdjacentOwnedLand / 2) + 2) * 5;
-
-	if (iDefenseMultiplier > 0)
-		return ((iDefensiveValue + iBaseDefenseModifier) * iDefenseMultiplier * iDefensibilityTimes10) / 500;
-	return (iDefensiveValue * iDefenseMultiplier * iDefensibilityTimes10) / 500;
+	// max value for a fort (50 defense, 0 damage): 1680
+	// max value for a citadel (100 defense, 30 damage): 4872
+	return (iDefensiveValueTimes100 * iDefensibilityTimes100) / 100;
 }
 
 #endif

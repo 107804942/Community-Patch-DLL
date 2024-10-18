@@ -5279,7 +5279,8 @@ bool CvUnit::canMoveInto(const CvPlot& plot, int iMoveFlags) const
 					}
 
 					//check for combat units only! enemy civilians are captured en passant, there is no downside ...
-					if (plot.isEnemyUnit(getOwner(),true,true) || (bEmbarkedAndAdjacent && bEnemyUnitPresent))
+					// don't capture enemy civilians if embarked
+					if (plot.isEnemyUnit(getOwner(),true,true) || ((bEmbarkedAndAdjacent || plot.needsEmbarkation(this)) && bEnemyUnitPresent))
 					{
 						return false;
 					}
@@ -10250,7 +10251,6 @@ bool CvUnit::pillage()
 		{
 			if(pPlot->getTeam() != getTeam())
 			{
-#if defined(MOD_BALANCE_CORE)
 				CvCity* pOriginCity = getOriginCity();
 				if (pOriginCity == NULL)
 					pOriginCity = GET_PLAYER(getOwner()).getCapitalCity();
@@ -10294,18 +10294,15 @@ bool CvUnit::pillage()
 						}
 					}
 
-					static const ImprovementTypes eCitadel = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_CITADEL");
-					static const ImprovementTypes eFort = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_FORT");
-					if (eCitadel != NO_IMPROVEMENT && pPlot->getImprovementType() == eCitadel)
+					if (pkImprovement->GetDefenseModifier() > 0)
 					{
-						iValueMultiplier += 100;
-						bPillagedHighValueTile = true;
-					}
-					else if (eFort != NO_IMPROVEMENT && pPlot->getImprovementType() == eFort)
-					{
-						iValueMultiplier += 50;
+						iValueMultiplier += pkImprovement->GetDefenseModifier();
 						if (pPlot->IsChokePoint())
+						{
 							bPillagedHighValueTile = true;
+							if (pkImprovement->IsNoFollowUp())
+								iValueMultiplier += 20;
+						}
 					}
 
 					if (pkImprovement->IsCreatedByGreatPerson())
@@ -10353,19 +10350,20 @@ bool CvUnit::pillage()
 						GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->ChangeWarProgressScore(getOwner(), iWarProgressValue);
 					}
 				}
-#endif
+
 				int iPillageGold = 0;
 
 				// TODO: add scripting support for "doPillageGold"
-#if defined(MOD_EVENTS_UNIT_ACTIONS)
-				if (MOD_EVENTS_UNIT_ACTIONS) {
+
+				if (MOD_EVENTS_UNIT_ACTIONS)
+				{
 					int iValue = 0;
-					if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_UnitPillageGold, getOwner(), GetID(), eTempImprovement, pkImprovement->GetPillageGold()) == GAMEEVENTRETURN_VALUE) {
+					if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_UnitPillageGold, getOwner(), GetID(), eTempImprovement, pkImprovement->GetPillageGold()) == GAMEEVENTRETURN_VALUE)
+					{
 						iPillageGold = iValue;
 						CUSTOMLOG("Pillage gold is %i", iPillageGold);
 					}
 				}
-#endif
 				if (MOD_BALANCE_CORE_MILITARY_PROMOTION_ADVANCED)
 				{
 					int iEra = GET_PLAYER(getOwner()).GetCurrentEra();
@@ -10380,13 +10378,14 @@ bool CvUnit::pillage()
 					iPillageGold += GC.getGame().randRangeInclusive(0, pkImprovement->GetPillageGold(), CvSeeder(plot()->GetPseudoRandomSeed()));
 					iPillageGold += getPillageChange() * iPillageGold / 100;
 				}
-#if defined(HH_MOD_BUILDINGS_FRUITLESS_PILLAGE)
+
 				if (pPlot->getOwner() != NO_PLAYER)
 				{
 					if (GET_PLAYER(pPlot->getOwner()).isBorderGainlessPillage())
 					{
 						iPillageGold = 0;
-					} else
+					}
+					else
 					{
 						CvCity* pCityOfThisOtherTeamsPlot = pPlot->getEffectiveOwningCity();
 						if (pCityOfThisOtherTeamsPlot != NULL && pCityOfThisOtherTeamsPlot->IsLocalGainlessPillage())
@@ -10395,13 +10394,11 @@ bool CvUnit::pillage()
 						}
 					}
 				}
-#endif
-				if(iPillageGold > 0)
+
+				if (iPillageGold > 0)
 				{
-#if defined(MOD_BALANCE_CORE)
 					iPillageGold *= GC.getGame().getGameSpeedInfo().getInstantYieldPercent();
 					iPillageGold /= 100;
-#endif
 					GET_PLAYER(getOwner()).GetTreasury()->ChangeGold(iPillageGold);
 
 					if(getOwner() == GC.getGame().getActivePlayer())
@@ -10430,7 +10427,6 @@ bool CvUnit::pillage()
 			bSuccessfulNonRoadPillage = true;
 			if(pkImprovement->IsDestroyedWhenPillaged())
 			{
-#if defined(MOD_GLOBAL_ALPINE_PASSES)
 				// If this improvement auto-added a route, we also need to remove the route
 				ImprovementTypes eOldImprovement = pPlot->getImprovementType();
 				
@@ -10449,7 +10445,6 @@ bool CvUnit::pillage()
 						break;
 					}
 				}
-#endif
 
 				pPlot->setImprovementType(NO_IMPROVEMENT);
 			}
@@ -12036,7 +12031,11 @@ bool CvUnit::trade()
 
 	bool bGreatDiplomat = MOD_BALANCE_VP && m_pUnitInfo->GetNumInfPerEra() > 0 && m_pUnitInfo->GetRestingPointChange() != 0;
 
-	if (MOD_BALANCE_VP) 
+	// Save the original influence of every major civ for ally status change
+	vector<int> viOriginalInfluence;
+	viOriginalInfluence.reserve(MAX_MAJOR_CIVS);
+
+	if (MOD_BALANCE_VP)
 	{
 		int iRestingPointChange = m_pUnitInfo->GetRestingPointChange();
 		
@@ -12050,9 +12049,13 @@ bool CvUnit::trade()
 		{
 			for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 			{
-				PlayerTypes eLoopPlayer = (PlayerTypes) iPlayerLoop;
+				PlayerTypes eLoopPlayer = static_cast<PlayerTypes>(iPlayerLoop);
+				viOriginalInfluence.push_back(0);
 				if (GET_PLAYER(eLoopPlayer).isMajorCiv() && GET_PLAYER(eLoopPlayer).getTeam() != getTeam() && GET_TEAM(GET_PLAYER(eLoopPlayer).getTeam()).isHasMet(GET_PLAYER(eMinor).getTeam()))
 				{
+					// Save the original influence
+					viOriginalInfluence[iPlayerLoop] = GET_PLAYER(eMinor).GetMinorCivAI()->GetBaseFriendshipWithMajorTimes100(eLoopPlayer);
+
 					// only reduce influence, but don't update ally status here. it could lead to unintended war declarations by the minor civ if their ally changes temporarily while looping through the players
 					GET_PLAYER(eMinor).GetMinorCivAI()->ChangeFriendshipWithMajor(eLoopPlayer, -iInfluence, false, /*bUpdateStatus*/ false);
 					GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->ChangeNumTimesTheyLoweredOurInfluence(getOwner(), 1);
@@ -12116,12 +12119,11 @@ bool CvUnit::trade()
 	{
 		for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 		{
-			PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
+			PlayerTypes eLoopPlayer = static_cast<PlayerTypes>(iPlayerLoop);
 			if (GET_PLAYER(eLoopPlayer).isMajorCiv() && GET_PLAYER(eLoopPlayer).getTeam() != getTeam() && GET_TEAM(GET_PLAYER(eLoopPlayer).getTeam()).isHasMet(GET_PLAYER(eMinor).getTeam()))
 			{
-				// Friendship amount doesn't change
 				int iFriendship = GET_PLAYER(eMinor).GetMinorCivAI()->GetBaseFriendshipWithMajor(eLoopPlayer);
-				GET_PLAYER(eMinor).GetMinorCivAI()->DoFriendshipChangeEffects(eLoopPlayer, iFriendship, iFriendship);
+				GET_PLAYER(eMinor).GetMinorCivAI()->DoFriendshipChangeEffects(eLoopPlayer, viOriginalInfluence[iPlayerLoop], iFriendship);
 			}
 		}
 	}
@@ -12598,35 +12600,34 @@ void CvUnit::PerformCultureBomb(int iRadius)
 							}
 						}
 					}
-					CvImprovementEntry* pkImprovement = GC.getImprovementInfo(pLoopPlot->getImprovementType());
-					if (pLoopPlot->IsChokePoint())
+
+					bool bChokePoint = pLoopPlot->IsChokePoint();
+					if (bChokePoint)
 					{
 						iValueMultiplier += 50;
 						vePlayersStoleHighValueTileFrom[ePlotOwner] = true;
-
-						if (pkImprovement)
-						{
-							static const ImprovementTypes eCitadel = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_CITADEL");
-							static const ImprovementTypes eFort = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_FORT");
-
-							if (eCitadel != NO_IMPROVEMENT && pLoopPlot->getImprovementType() == eCitadel)
-							{
-								iValueMultiplier += 100;
-							}
-							else if (eFort != NO_IMPROVEMENT && pLoopPlot->getImprovementType() == eFort)
-							{
-								iValueMultiplier += 50;
-							}
-						}
 					}
-					if (pkImprovement)
+
+					ImprovementTypes eImprovement = pLoopPlot->getImprovementType();
+					if (eImprovement != NO_IMPROVEMENT)
 					{
-						if (pkImprovement->IsCreatedByGreatPerson())
+						CvImprovementEntry* pkImprovementInfo = GC.getImprovementInfo(eImprovement);
+						CvAssert(pkImprovementInfo);
+
+						if (bChokePoint)
+						{
+							iValueMultiplier += pkImprovementInfo->GetDefenseModifier();
+							if (pkImprovementInfo->IsNoFollowUp())
+								iValueMultiplier += 20;
+						}
+
+						if (pkImprovementInfo->IsCreatedByGreatPerson())
 						{
 							iValueMultiplier += 100;
 							vePlayersStoleHighValueTileFrom[ePlotOwner] = true;
 						}
 					}
+
 					// Stole a major civ's embassy from a City-State?
 					if (pLoopPlot->IsImprovementEmbassy() && GET_PLAYER(ePlotOwner).isMinorCiv())
 					{
@@ -13410,7 +13411,7 @@ bool CvUnit::canBuild(const CvPlot* pPlot, BuildTypes eBuild, bool bTestVisible,
 
 			if(pLoopUnit && pLoopUnit != this)
 			{
-				if(pLoopUnit->IsWork() && pLoopUnit->getBuildType() != NO_BUILD)
+				if(pLoopUnit->IsWork() && pLoopUnit->IsWorking())
 				{
 					return false;
 				}
@@ -15605,24 +15606,9 @@ BuildTypes CvUnit::getBuildType() const
 	{
 		if(pkMissionNode->eMissionType == CvTypes::getMISSION_ROUTE_TO())
 		{
-			RouteTypes eBestRoute = GET_PLAYER(m_eOwner).getBestRoute(plot());
-			if(eBestRoute != NO_ROUTE)
-			{
-				for(int iI = 0; iI < GC.getNumBuildInfos(); iI++)
-				{
-					BuildTypes eBuild = (BuildTypes)iI;
-					CvBuildInfo* pkBuildInfo = GC.getBuildInfo(eBuild);
-
-					if(pkBuildInfo)
-					{
-						RouteTypes eRoute = ((RouteTypes)(pkBuildInfo->getRoute()));
-						if(eRoute == eBestRoute)
-						{
-							return eBuild;
-						}
-					}
-				}
-			}
+			BuildTypes eBestBuild = NO_BUILD;
+			GetBestBuildRouteForRoadTo(plot(), &eBestBuild);
+			return eBestBuild;
 		}
 		else if(pkMissionNode->eMissionType == CvTypes::getMISSION_BUILD())
 		{
@@ -15633,6 +15619,13 @@ BuildTypes CvUnit::getBuildType() const
 	return NO_BUILD;
 }
 
+//	----------------------------------------------------------------------------
+bool CvUnit::IsWorking() const
+{
+	VALIDATE_OBJECT
+	const MissionData* pkMissionNode = HeadMissionData();
+	return pkMissionNode && (pkMissionNode->eMissionType == CvTypes::getMISSION_ROUTE_TO() || pkMissionNode->eMissionType == CvTypes::getMISSION_BUILD());
+}
 
 //	--------------------------------------------------------------------------------
 int CvUnit::workRate(bool bMax, BuildTypes /*eBuild*/) const
@@ -21624,7 +21617,7 @@ int CvUnit::DoAdjacentPlotDamage(CvPlot* pWhere, int iValue, const char* chTextK
 		{
 			CvUnit* pEnemyUnit = pSplashPlot->getUnitByIndex(iJ);
 			//logically we should damage non-enemy units as well? but that is too complex to consider ... 
-			if (pEnemyUnit != NULL && pEnemyUnit->isEnemy(getTeam()))
+			if (pEnemyUnit != NULL && pEnemyUnit->isEnemy(getTeam()) && !pEnemyUnit->isTrade())
 			{
 				//no splash damage in cities/forts
 				if (pSplashPlot->isFortification(pEnemyUnit->getTeam()))
@@ -24065,7 +24058,7 @@ void CvUnit::DoConvertReligiousUnitsToMilitary(const CvPlot* pPlot)
 //finish improvements (mostly roads) at the beginning of the turn so we can use them immediately
 void CvUnit::DoFinishBuildIfSafe()
 {
-	if (isHuman())
+	if (isHuman() && !IsAutomated())
 		return;
 
 	BuildTypes eBuild = getBuildType();
@@ -28944,7 +28937,7 @@ bool CvUnit::SentryAlert(bool bAllowAttacks) const
 }
 
 //	--------------------------------------------------------------------------------
-RouteTypes CvUnit::GetBestBuildRoute(CvPlot* pPlot, BuildTypes* peBestBuild) const
+RouteTypes CvUnit::GetBestBuildRouteForRoadTo(CvPlot* pPlot, BuildTypes* peBestBuild) const
 {
 	VALIDATE_OBJECT
 
@@ -28954,19 +28947,16 @@ RouteTypes CvUnit::GetBestBuildRoute(CvPlot* pPlot, BuildTypes* peBestBuild) con
 	}
 
 	int iBestValue = 0;
+	if (pPlot->getRouteType() != NO_ROUTE && !pPlot->IsRoutePillaged())
+		iBestValue = GC.getRouteInfo(pPlot->getRouteType())->getValue();
 	RouteTypes eBestRoute = NO_ROUTE;
 	
-#if defined(MOD_GLOBAL_QUICK_ROUTES)
-	CvPlayer& kPlayer = GET_PLAYER(getOwner());
-	const MissionData* pkMissionNode = HeadMissionData();
-	bool bOnlyRoad = MOD_GLOBAL_QUICK_ROUTES && kPlayer.isHuman() && (pkMissionNode != NULL && pkMissionNode->eMissionType == CvTypes::getMISSION_ROUTE_TO());
-	
-	if (bOnlyRoad) {
+	bool bOnlyRoad = false;
+	if (MOD_GLOBAL_QUICK_ROUTES && GET_PLAYER(getOwner()).isHuman())
+	{
 		// If there is no road to the mission end plot, bOnlyRoad is true
-		CvUnit* me = kPlayer.getUnit(m_iID); // God I truely hate "const" - we're in a const method, but LastMissionPlot() isn't so we can't call it!!!
-		bOnlyRoad = !IsPlotConnectedToPlot(getOwner(), pPlot, me->LastMissionPlot(), ROUTE_ROAD);
+		bOnlyRoad = !IsPlotConnectedToPlot(getOwner(), pPlot, LastMissionPlot(), ROUTE_ROAD, false, false);
 	}
-#endif
 
 	for(int iI = 0; iI < GC.getNumBuildInfos(); iI++)
 	{
@@ -28984,11 +28974,9 @@ RouteTypes CvUnit::GetBestBuildRoute(CvPlot* pPlot, BuildTypes* peBestBuild) con
 					{
 						int iValue = pkRouteInfo->getValue();
 						
-#if defined(MOD_GLOBAL_QUICK_ROUTES)
 						if (bOnlyRoad && eRoute != ROUTE_ROAD) {
 							iValue = 0;
 						}
-#endif
 
 						if(iValue > iBestValue)
 						{
@@ -29511,30 +29499,39 @@ int CvUnit::UnitPathTo(int iX, int iY, int iFlags)
 // Returns true if we want to continue next turn or false if we are done
 bool CvUnit::UnitRoadTo(int iX, int iY, int iFlags)
 {
+	//do we have movement points left?
+	if (!canMove())
+		return true; //continue next turn
+
 	//first check if we can continue building on the current plot
-	BuildTypes eBestBuild = NO_BUILD;
-	GetBestBuildRoute(plot(), &eBestBuild);
-	RouteTypes eBestRoute = GET_PLAYER(getOwner()).getBestRoute(plot());
-	CvPlayer& kPlayer = GET_PLAYER(getOwner());
-	bool bGetSameBenefitFromTrait = kPlayer.GetSameRouteBenefitFromTrait(plot(), eBestRoute);
-	if(!bGetSameBenefitFromTrait && eBestBuild != NO_BUILD && UnitBuild(eBestBuild))
+	BuildTypes eBestRouteBuildInPlot = NO_BUILD;
+	const RouteTypes eBestRouteInPlot = GetBestBuildRouteForRoadTo(plot(), &eBestRouteBuildInPlot);
+	const CvPlayer& kPlayer = GET_PLAYER(getOwner());
+
+	bool bGetSameBenefitFromTrait = kPlayer.GetSameRouteBenefitFromTrait(plot(), eBestRouteInPlot);
+	if(!bGetSameBenefitFromTrait && eBestRouteBuildInPlot != NO_BUILD && UnitBuild(eBestRouteBuildInPlot))
 		return true;
 
 	//are we at the target plot? then there's nothing else to do
 	if (at(iX, iY))
 		return false;
 
-	//do we have movement points left?
-	if (!canMove())
-		return true; //continue next turn
+	RouteTypes ePlayerBestRoute = kPlayer.getBestRoute();
+
+	if (MOD_GLOBAL_QUICK_ROUTES && kPlayer.isHuman() && ePlayerBestRoute > ROUTE_ROAD) {
+		if (!IsPlotConnectedToPlot(getOwner(), plot(), LastMissionPlot(), ROUTE_ROAD, false, false))
+			ePlayerBestRoute = ROUTE_ROAD;
+	}
+
+	const BuildTypes ePlayerBestRouteBuild = kPlayer.GetBuilderTaskingAI()->GetBuildRoute(ePlayerBestRoute);
 
 	//ok apparently we both can move and need to move
 	//do not use the path cache here, the step finder tells us where to put the route
-	SPathFinderUserData data(getOwner(),PT_BUILD_ROUTE,NO_BUILD,eBestRoute,NO_ROUTE_PURPOSE,false);
+	SPathFinderUserData data(getOwner(), PT_BUILD_ROUTE, ePlayerBestRouteBuild, ePlayerBestRoute, PURPOSE_MANUAL, false);
 	SPath path = GC.GetStepFinder().GetPath(getX(), getY(), iX, iY, data);
 
 	//index zero is the current plot!
-	CvPlot* pNextPlot = path.vPlots.size()>1 ? path.get(1) : NULL;
+	CvPlot* pNextPlot = path.vPlots.size() > 1 ? path.get(1) : NULL;
 	if(!pNextPlot || !canMoveInto(*pNextPlot, iFlags | MOVEFLAG_DESTINATION))
 	{
 		// add route interrupted notification
@@ -29940,7 +29937,7 @@ void CvUnit::UpdateMission()
 
 //	--------------------------------------------------------------------------------
 /// Where does this mission end?
-CvPlot* CvUnit::LastMissionPlot()
+CvPlot* CvUnit::LastMissionPlot() const
 {
 	VALIDATE_OBJECT
 	return CvUnitMission::LastMissionPlot(this);

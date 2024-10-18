@@ -1513,7 +1513,7 @@ bool CvPlayerEspionage::TriggerSpyFocusSetup(CvCity* pCity, int uiSpyIndex)
 		for (int i = 0; i < GC.getNumCityEventChoiceInfos(); i++)
 		{
 			CvModEventCityChoiceInfo* pkMissionInfo = GC.getCityEventChoiceInfo((CityEventChoiceTypes)i);
-			if (pkMissionInfo->isCounterspyMission())
+			if (pkMissionInfo && pkMissionInfo->isCounterspyMission())
 			{
 				aCounterspyMissionList.push_back(i);
 			}
@@ -8028,7 +8028,7 @@ void CvEspionageAI::PerformSpyMissions()
 	for (int i = 0; i < GC.getNumCityEventChoiceInfos(); i++)
 	{
 		CvModEventCityChoiceInfo* pkMissionInfo = GC.getCityEventChoiceInfo((CityEventChoiceTypes)i);
-		if (pkMissionInfo->isEspionageMission())
+		if (pkMissionInfo && pkMissionInfo->isEspionageMission())
 		{
 			aSpyMissionList.push_back(i);
 		}
@@ -8444,7 +8444,7 @@ int CvEspionageAI::GetMissionScore(CvCity* pCity, CityEventChoiceTypes eMission,
 					for (int i = 0; i < GC.getNumCityEventChoiceInfos(); i++)
 					{
 						CvModEventCityChoiceInfo* pkLoopMissionInfo = GC.getCityEventChoiceInfo((CityEventChoiceTypes)i);
-						if (pkLoopMissionInfo->isEspionageMission())
+						if (pkLoopMissionInfo && pkLoopMissionInfo->isEspionageMission())
 						{
 							bNoOffensiveMissions = false;
 							break;
@@ -8869,6 +8869,12 @@ std::vector<ScoreCityEntry> CvEspionageAI::BuildDiplomatCityList(bool bLogAllCho
 			continue;
 		}
 
+		// can't send a diplomat if we're at war with them
+		if (m_pPlayer->IsAtWarWith(eTargetPlayer))
+		{
+			continue;
+		}
+
 		// if we can't see it, we can't move a diplomat there.
 		if (!pCapitalCity->isRevealed(m_pPlayer->getTeam(), false, false))
 		{
@@ -8908,25 +8914,33 @@ std::vector<ScoreCityEntry> CvEspionageAI::BuildDiplomatCityList(bool bLogAllCho
 				int iTurnsUntilInfluential = m_pPlayer->GetCulture()->GetTurnsToInfluential(eTargetPlayer);
 				if (iTurnsUntilInfluential != 0)
 				{
-					// we are reasonably close to culture victory. give the highest score to the players for which we still need the longest
+					// we are reasonably close to culture victory
+					int iNumPlayersNotInfluential = 0;
 					int iNumWorsePlayers = 0;
 					for (size_t iLoop = 0; iLoop < vTourismTurnsNeeded.size(); iLoop++)
 					{
+
+						if (vTourismTurnsNeeded[iLoop] > 0)
+						{
+							iNumPlayersNotInfluential++;
+						}
 						if (vTourismTurnsNeeded[iLoop] > iTurnsUntilInfluential)
 						{
 							iNumWorsePlayers++;
 						}
 					}
-					iTourismScore += (150 - 150 * iNumWorsePlayers / iNumPlayers);
+					// the less holdouts there are, the higher is the score. if there is more than one option, give the highest score to the players for which we still need the longest
+					iTourismScore += max(100, (500 - 100 * iNumPlayersNotInfluential)) * (100 - 100 * iNumWorsePlayers / iNumPlayers) / 100;
 				}
 			}
 		}
 
-		int iTotalScore = (int)pDiploAI->GetCivApproach(eTargetPlayer) + iLeagueScore + iTourismScore;
+		
 
 		// if we're friendly towards the other player, we are more likely to use a diplomat, so we use the negative diplo modifier here
 		int iDiploMod = -GetPlayerModifier(eTargetPlayer, /*bOnlyDiplo*/ true);
-		iTotalScore *= 100 + iDiploMod;
+		// a high tourism score means the diplomat is important for winning the game, so we don't apply a diplo modifier to it
+		int iTotalScore = ((int)pDiploAI->GetCivApproach(eTargetPlayer) + iLeagueScore) * (100 + iDiploMod) + iTourismScore * 100;
 		iTotalScore /= 100;
 
 		kEntry.m_iScore = iTotalScore;
@@ -8965,7 +8979,7 @@ std::vector<ScoreCityEntry> CvEspionageAI::BuildOffenseCityList(bool bLogAllChoi
 		for (int i = 0; i < GC.getNumCityEventChoiceInfos(); i++)
 		{
 			CvModEventCityChoiceInfo* pkMissionInfo = GC.getCityEventChoiceInfo((CityEventChoiceTypes)i);
-			if (pkMissionInfo->isEspionageMission())
+			if (pkMissionInfo && pkMissionInfo->isEspionageMission())
 			{
 				aSpyMissionList.push_back(i);
 			}
@@ -9126,7 +9140,7 @@ std::vector<ScoreCityEntry> CvEspionageAI::BuildDefenseCityList(bool bLogAllChoi
 		for (int i = 0; i < GC.getNumCityEventChoiceInfos(); i++)
 		{
 			CvModEventCityChoiceInfo* pkMissionInfo = GC.getCityEventChoiceInfo((CityEventChoiceTypes)i);
-			if (pkMissionInfo->isCounterspyMission())
+			if (pkMissionInfo && pkMissionInfo->isCounterspyMission())
 			{
 				aCounterspyMissionList.push_back(i);
 			}
