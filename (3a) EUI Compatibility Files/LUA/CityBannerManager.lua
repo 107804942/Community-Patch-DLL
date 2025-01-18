@@ -196,7 +196,7 @@ local g_cityToolTips = {
 					local resourceID = plot:GetResourceType( g_activeTeamID )
 					local numResource = plot:GetNumResource()
 					if numResource > 0 then
-						if not plot:IsCity() and (plot:IsImprovementPillaged() or not plot:IsResourceConnectedByImprovement( plot:GetImprovementType() )) then
+						if not plot:IsCity() and (plot:IsImprovementPillaged() or not (plot:GetImprovementType() ~= -1 and plot:IsResourceConnectedByImprovement( plot:GetImprovementType() ))) then
 							numResource = numResource / 65536
 						end
 						resources[ resourceID ] = ( resources[ resourceID ] or 0 ) + numResource
@@ -592,11 +592,15 @@ local g_cityToolTips = {
 		else
 			local FranchiseTT = "";
 			for corporation in GameInfo.Corporations() do
-				if Game.GetCorporationFounder(corporation.ID) ~= -1 and city:IsFranchised(Game.GetCorporationFounder(corporation.ID)) then
-					if (FranchiseTT ~= "") then
-						FranchiseTT = FranchiseTT .. "[NEWLINE]"
+				local iFounder = Game.GetCorporationFounder(corporation.ID);
+				if iFounder ~= -1 and city:IsFranchised(iFounder) then
+					local iFranchiseBuilding = Players[iFounder]:GetSpecificBuildingType(corporation.FranchiseBuildingClass)
+					if iFranchiseBuilding ~= -1 then
+						if FranchiseTT ~= "" then
+							FranchiseTT = FranchiseTT .. "[NEWLINE]"
+						end
+						FranchiseTT = FranchiseTT .. "[ICON_BULLET][COLOR_POSITIVE_TEXT]" .. L(GameInfo.Buildings[iFranchiseBuilding].Description) .. "[ENDCOLOR]: " .. L(GameInfo.Buildings[iFranchiseBuilding].Help)
 					end
-					FranchiseTT = FranchiseTT .. "[ICON_BULLET][COLOR_POSITIVE_TEXT]" .. L(GameInfo.Buildings[Players[Game.GetCorporationFounder(corporation.ID)]:GetSpecificBuildingType(corporation.FranchiseBuildingClass)].Description) .. "[ENDCOLOR]: " .. L(GameInfo.Buildings[Players[Game.GetCorporationFounder(corporation.ID)]:GetSpecificBuildingType(corporation.FranchiseBuildingClass)].Help)
 				end
 			end
 			return FranchiseTT

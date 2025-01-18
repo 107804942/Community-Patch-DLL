@@ -44,10 +44,10 @@
 
 static CvEnumMap<PlayerTypes, CvPlayerAI> s_players;
 
-inline CvPlayerAI& CvPlayerAI::getPlayer(PlayerTypes ePlayer)
+CvPlayerAI& CvPlayerAI::getPlayer(PlayerTypes ePlayer)
 {
-	CvAssertMsg(ePlayer != NO_PLAYER, "Player is not assigned a valid value");
-	CvAssertMsg(ePlayer < MAX_PLAYERS, "Player is not assigned a valid value");
+	ASSERT(ePlayer != NO_PLAYER, "Player is not assigned a valid value");
+	ASSERT(ePlayer < MAX_PLAYERS, "Player is not assigned a valid value");
 
 	if (ePlayer <= NO_PLAYER || ePlayer >= MAX_PLAYERS)
 		ePlayer = BARBARIAN_PLAYER;
@@ -101,9 +101,9 @@ void CvPlayerAI::AI_reset()
 
 void CvPlayerAI::AI_doTurnPre()
 {
-	CvAssertMsg(getPersonalityType() != NO_LEADER, "getPersonalityType() is not expected to be equal with NO_LEADER");
-	CvAssertMsg(getLeaderType() != NO_LEADER, "getLeaderType() is not expected to be equal with NO_LEADER");
-	CvAssertMsg(getCivilizationType() != NO_CIVILIZATION, "getCivilizationType() is not expected to be equal with NO_CIVILIZATION");
+	ASSERT(getPersonalityType() != NO_LEADER, "getPersonalityType() is not expected to be equal with NO_LEADER");
+	ASSERT(getLeaderType() != NO_LEADER, "getLeaderType() is not expected to be equal with NO_LEADER");
+	ASSERT(getCivilizationType() != NO_CIVILIZATION, "getCivilizationType() is not expected to be equal with NO_CIVILIZATION");
 
 	if(isHuman())
 	{
@@ -1197,7 +1197,7 @@ void CvPlayerAI::AI_DoEventChoice(EventTypes eChosenEvent)
 
 void CvPlayerAI::AI_doResearch()
 {
-	CvAssertMsg(!isHuman(), "isHuman did not return false as expected");
+	ASSERT(!isHuman(), "isHuman did not return false as expected");
 
 	if(GetPlayerTechs()->GetCurrentResearch() == NO_TECH)
 	{
@@ -1266,10 +1266,10 @@ OperationSlot CvPlayerAI::PeekAtNextUnitToBuildForOperationSlot(CvCity* pCity, b
 			if (!pMusterPlot)
 				continue;
 
-			if (pCity == pMusterPlot->getOwningCity() && pCity->HasAccessToLandmass(pMusterPlot->getLandmass()))
+			if (pCity == pMusterPlot->getOwningCity() && pCity->HasAccessToLandmassOrOcean(pMusterPlot->getLandmass()))
 				bCitySameAsMuster = true;
 
-			if (pThisOperation->IsNavalOperation() && !pCity->HasAccessToLandmass(pMusterPlot->getLandmass()))
+			if (pThisOperation->IsNavalOperation() && !pCity->HasAccessToLandmassOrOcean(pMusterPlot->getLandmass()))
 				continue;
 
 			OperationSlot thisSlot = pThisOperation->PeekAtNextUnitToBuild();
@@ -1339,7 +1339,7 @@ void CvPlayerAI::ProcessGreatPeople(void)
 {
 	SpecialUnitTypes eSpecialUnitGreatPerson = (SpecialUnitTypes) GC.getInfoTypeForString("SPECIALUNIT_PEOPLE");
 
-	CvAssert(isAlive());
+	ASSERT(isAlive());
 
 	if(!isAlive())
 		return;
@@ -1414,13 +1414,13 @@ void CvPlayerAI::ProcessGreatPeople(void)
 
 bool PreparingForWar(CvPlayerAI* pPlayer)
 {
-	CvAssertMsg(pPlayer, "Need a player");
+	ASSERT(pPlayer, "Need a player");
 	if(!pPlayer)
 	{
 		return false;
 	}
 	CvMilitaryAI* pMilitaryAI = pPlayer->GetMilitaryAI();
-	CvAssertMsg(pMilitaryAI, "No military AI");
+	ASSERT(pMilitaryAI, "No military AI");
 	if(!pMilitaryAI)
 	{
 		return false;
@@ -1781,45 +1781,31 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveGeneral(CvUnit* pGreatGeneral)
 	if (!bHasGeneralNegation)
 	{
 		// During war we want field commanders
-		int iWars = static_cast<int>(GetPlayersAtWarWith().size());
+		int iWars = static_cast<int>(GetPlayersAtWarWith().size() + GetPlayersAtWarWithInFuture().size() / 2);
 		// Just a rough estimation
-		int iPotentialArmies = max(1, GetMilitaryAI()->GetNumLandUnits() - getNumCities() * 3) / 13;
+		int iNumPotentialUnits = GetMilitaryAI()->GetNumLandUnits() - getNumCities();
+		int iPotentialArmies = min(3, max(1, iNumPotentialUnits / 12));
 
-		int iDesiredNumCommanders = max(1, (iWars + iPotentialArmies) / 2);
-		if (iCommanders <= iDesiredNumCommanders || pGreatGeneral->getArmyID() != -1 || pGreatGeneral->IsRecentlyDeployedFromOperation())
+		int iDesiredNumCommanders = iWars > 0 ? iPotentialArmies : 0;
+		if (iCommanders < iDesiredNumCommanders || pGreatGeneral->getArmyID() != -1 || pGreatGeneral->IsRecentlyDeployedFromOperation())
 			return GREAT_PEOPLE_DIRECTIVE_FIELD_COMMAND;
 	}
 
-	// Build one citadel at a time
-	if (iCitadels == 0)
-	{
-		CvPlot* pTargetPlot = FindBestCultureBombPlot(pGreatGeneral, vector<CvPlot*>());
-		if (pTargetPlot)
-			return GREAT_PEOPLE_DIRECTIVE_USE_POWER;
-	}
-
-	// Certain generals can build non-culture bomb improvements
+	// Build improvement (citadel or otherwise)
 	for (int iI = 0; iI < GC.getNumBuildInfos(); iI++)
 	{
 		BuildTypes eBuild = static_cast<BuildTypes>(iI);
-		CvBuildInfo* pkBuildInfo = GC.getBuildInfo(eBuild);
-		if (!pkBuildInfo)
+
+		if (!canBuild(NULL, eBuild, true))
 			continue;
 
-		ImprovementTypes eImprovement = static_cast<ImprovementTypes>(pkBuildInfo->getImprovement());
-		if (eImprovement == NO_IMPROVEMENT)
-			continue;
-
-		CvImprovementEntry* pkImprovementInfo = GC.getImprovementInfo(eImprovement);
-		if (!pkImprovementInfo)
-			continue;
-
-		if (pkImprovementInfo->GetCultureBombRadius() <= 0 && pGreatGeneral->canBuild(NULL, eBuild))
+		if (pGreatGeneral->canBuild(NULL, eBuild))
 			return GREAT_PEOPLE_DIRECTIVE_CONSTRUCT_IMPROVEMENT;
 	}
 
 	// Default
 	return bHasGeneralNegation ? NO_GREAT_PEOPLE_DIRECTIVE_TYPE : GREAT_PEOPLE_DIRECTIVE_FIELD_COMMAND;
+	
 }
 
 GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveProphet(CvUnit* pUnit)
@@ -1939,12 +1925,13 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveAdmiral(CvUnit* pGreatAdmiral)
 	if (!bHasAdmiralNegation)
 	{
 		// During war we want field commanders
-		int iWars = IsAtWar() ? 2 : 0;
+		int iWars = static_cast<int>(GetPlayersAtWarWith().size() + GetPlayersAtWarWithInFuture().size() / 2);
 		// Just a rough estimation
-		int iPotentialArmies = max(1, GetMilitaryAI()->GetNumNavalUnits() - getNumCities()) / 5;
+		int iNumPotentialUnits = GetMilitaryAI()->GetNumNavalUnits() - getNumCities();
+		int iPotentialArmies = min(2, max(1, iNumPotentialUnits / 12));
 
-		int iDesiredNumCommanders = max(1, (iWars + iPotentialArmies) / 2);
-		if (iCommanders <= iDesiredNumCommanders || pGreatAdmiral->getArmyID() != -1 || pGreatAdmiral->IsRecentlyDeployedFromOperation())
+		int iDesiredNumCommanders = iWars > 0 ? iPotentialArmies : 0;
+		if (iCommanders < iDesiredNumCommanders || pGreatAdmiral->getArmyID() != -1 || pGreatAdmiral->IsRecentlyDeployedFromOperation())
 			return GREAT_PEOPLE_DIRECTIVE_FIELD_COMMAND;
 	}
 
@@ -1952,6 +1939,18 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveAdmiral(CvUnit* pGreatAdmiral)
 	for (int iI = 0; iI < GC.getNumBuildInfos(); iI++)
 	{
 		BuildTypes eBuild = static_cast<BuildTypes>(iI);
+
+		CvBuildInfo* pkBuildInfo = GC.getBuildInfo(eBuild);
+		if (!pkBuildInfo)
+			continue;
+
+		ImprovementTypes eImprovement = (ImprovementTypes)pkBuildInfo->getImprovement();
+		if (eImprovement == NO_IMPROVEMENT)
+			continue;
+
+		if (!canBuild(NULL, eBuild, true))
+			continue;
+
 		if (pGreatAdmiral->canBuild(NULL, eBuild))
 			return GREAT_PEOPLE_DIRECTIVE_CONSTRUCT_IMPROVEMENT;
 	}
@@ -1964,7 +1963,7 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveAdmiral(CvUnit* pGreatAdmiral)
 			return GREAT_PEOPLE_DIRECTIVE_USE_POWER;
 	}
 
-	return bHasAdmiralNegation ? GREAT_PEOPLE_DIRECTIVE_FIELD_COMMAND : NO_GREAT_PEOPLE_DIRECTIVE_TYPE;
+	return bHasAdmiralNegation ? NO_GREAT_PEOPLE_DIRECTIVE_TYPE : GREAT_PEOPLE_DIRECTIVE_FIELD_COMMAND;
 }
 
 GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveDiplomat(CvUnit* pGreatDiplomat)
@@ -2192,7 +2191,7 @@ const vector<CvCity*> CvPlayerAI::GetBestCitiesForSpaceshipParts()
 		{
 			// rough approximation
 			iTransportTurns = plotDistance(pLoopCity->getX(), pLoopCity->getY(), pCapital->getX(), pCapital->getY()) / 15;
-			if (!pLoopCity->HasAccessToLandmass(pCapital->plot()->getLandmass()))
+			if (!pLoopCity->HasAccessToLandmassOrOcean(pCapital->plot()->getLandmass()))
 			{
 				iTransportTurns += 2;
 			}
@@ -2458,20 +2457,21 @@ CvPlot* CvPlayerAI::FindBestDiplomatTargetPlot(CvUnit* pUnit)
 	{
 		//don't check for cities directly because we cannot enter them ...
 		CvPlot* pPlot = GC.getMap().plotByIndexUnchecked(it->iPlotIndex);
-		if (GET_PLAYER(pPlot->getOwner()).isMinorCiv())
+		PlayerTypes ePlotOwner = pPlot->getOwner();
+		if (ePlotOwner != NO_PLAYER && GET_PLAYER(ePlotOwner).isMinorCiv())
 		{
 			//small performance optimization
-			if (badTargets.find(pPlot->getOwner()) != badTargets.end())
+			if (badTargets.find(ePlotOwner) != badTargets.end())
 				continue;
 
 			//we iterate by distance, so take the first one we find
-			CvCity* pCity = GET_PLAYER(pPlot->getOwner()).getCapitalCity();
+			CvCity* pCity = GET_PLAYER(ePlotOwner).getCapitalCity();
 
 			CvPlot* pBuildPlot = HomelandAIHelpers::GetPlotForEmbassy(pUnit, pCity);
 			if (pBuildPlot)
 				return pBuildPlot;
 			else
-				badTargets.insert(pPlot->getOwner());
+				badTargets.insert(ePlotOwner);
 		}
 	}
 
@@ -2580,7 +2580,7 @@ int CvPlayerAI::ScoreCityForMessenger(CvCity* pCity, CvUnit* pUnit)
 		return 0;
 
 	//Return if we can't embark and they aren't on our landmass.
-	if (!pCity->HasAccessToLandmass(pUnit->plot()->getLandmass()) && !CanEmbark())
+	if (!pCity->HasAccessToLandmassOrOcean(pUnit->plot()->getLandmass()) && !CanEmbark())
 		return 0;
 
 	//Is there a proposal (not resolution) involving a Sphere of Influence or Open Door?
@@ -2927,7 +2927,7 @@ int CvPlayerAI::ScoreCityForMessenger(CvCity* pCity, CvUnit* pUnit)
 		iDistance *= 3;
 
 	//Let's downplay far/distant minors without full embarkation.
-	if(!pCity->HasAccessToLandmass(pUnit->plot()->getLandmass()) && !GET_PLAYER(GetID()).CanCrossOcean())
+	if(!pCity->HasAccessToLandmassOrOcean(pUnit->plot()->getLandmass()) && !GET_PLAYER(GetID()).CanCrossOcean())
 		iDistance *= 3;
 
 	//If this is way too far away, let's not penalize it too much.
@@ -3071,11 +3071,31 @@ priority_queue<SPlotWithScore> CvPlayerAI::GetBestCultureBombPlots(const UnitTyp
 				if (eOwner == GetID())
 					continue;
 
-				// We shouldn't steal from them
-				if (GetDiplomacyAI()->IsBadTheftTarget(eOwner, THEFT_TYPE_CULTURE_BOMB))
+				if (pAdjacentPlot->IsStealBlockedByImprovement())
+					continue;
+
+				if (eOwner != NO_PLAYER)
 				{
-					iStealScore = 0;
-					break;
+					// We shouldn't steal from them
+					if (isMajorCiv() && GetDiplomacyAI()->IsBadTheftTarget(eOwner, THEFT_TYPE_CULTURE_BOMB))
+					{
+						iStealScore = 0;
+						break;
+					}
+					else if (isMinorCiv())
+					{
+						if (GetMinorCivAI()->IsFriends(eOwner) || GetMinorCivAI()->IsProtectedByMajor(eOwner))
+						{
+							iStealScore = 0;
+							break;
+						}
+						PlayerTypes eAlly = GetMinorCivAI()->GetAlly();
+						if (eAlly != NO_PLAYER && GET_PLAYER(eAlly).getTeam() == GET_PLAYER(eOwner).getTeam())
+						{
+							iStealScore = 0;
+							break;
+						}
+					}
 				}
 
 				// It's dangerous to go there - only check radius 1

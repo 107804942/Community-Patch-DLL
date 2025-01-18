@@ -154,7 +154,7 @@ void CvTreasury::SetGoldTimes100(int iNewValue)
 	{
 		if(iNewValue < 0)
 		{
-			CvAssertMsg(false, "GAMEPLAY: Player is being set to a negative Gold value. Please send Jon this with your last 5 autosaves.");
+			ASSERT(false, "GAMEPLAY: Player is being set to a negative Gold value.");
 		}
 
 		m_iGold = max(0,iNewValue);
@@ -183,7 +183,7 @@ void CvTreasury::SetGoldTimes100(int iNewValue)
 /// Modifies current balance in treasury (in hundredths)
 void CvTreasury::ChangeGoldTimes100(int iChange)
 {
-	SetGoldTimes100(GetGoldTimes100() + iChange);
+	SetGoldTimes100(max(GetGoldTimes100() + iChange, 0));
 
 	//track the income for each turn (instant yields and regular)
 	if (iChange > 0)
@@ -246,6 +246,9 @@ int CvTreasury::GetCityConnectionRouteGoldTimes100(const CvCity* pNonCapitalCity
 	iGold += pCapitalCity->getPopulation() * /*15 in CP, 6 in VP*/ GD_INT_GET(TRADE_ROUTE_CAPITAL_POP_GOLD_MULTIPLIER);	// Capital Multiplier
 	iGold += pNonCapitalCity->getPopulation() * /*110 in CP, 50 in VP*/ GD_INT_GET(TRADE_ROUTE_CITY_POP_GOLD_MULTIPLIER);	// City Multiplier
 	iGold += GetCityConnectionTradeRouteGoldChange() * 100;
+
+	if (iGold <= 0)
+		return 0;
 
 	int iMod = GetCityConnectionTradeRouteGoldModifier() + pNonCapitalCity->GetCityConnectionTradeRouteGoldModifier();
 	if (iMod != 0)
@@ -730,7 +733,7 @@ void CvTreasury::ChangeBaseImprovementGoldMaintenance(int iChange)
 /// Average change in gold balance over N turns
 int CvTreasury::AverageIncome100(int iTurns)
 {
-	CvAssertMsg(iTurns > 0, "Invalid number of turns parameter");
+	ASSERT(iTurns > 0, "Invalid number of turns parameter");
 
 	if(m_GoldChangeForTurnTimes100.size() > 0)
 	{
@@ -1044,14 +1047,21 @@ int CvTreasury::GetVassalGoldMaintenance(TeamTypes eTeam, bool bIncludePopulatio
 void CvTreasury::CalculateExpensePerTurnFromVassalTaxes()
 {
 	TeamTypes eMaster = GET_TEAM(m_pPlayer->getTeam()).GetMaster();
-	if(eMaster == NO_TEAM) {
-		if(GetExpensePerTurnFromVassalTaxes() != 0)
-			SetExpensePerTurnFromVassalTaxesTimes100(0);
+	if (eMaster == NO_TEAM)
+	{
+		SetExpensePerTurnFromVassalTaxesTimes100(0);
 		return;
 	}
-	int iNet = CalculateGrossGoldTimes100();
-	int iTax = iNet * GET_TEAM(eMaster).GetVassalTax(m_pPlayer->GetID()) / 100;
 
+	int iNet = CalculateGrossGoldTimes100();
+	if (iNet <= 0)
+	{
+		// Can't tax us if we're broke or in the red!
+		SetExpensePerTurnFromVassalTaxesTimes100(0);
+		return;
+	}
+
+	int iTax = iNet * GET_TEAM(eMaster).GetVassalTax(m_pPlayer->GetID()) / 100;
 	SetExpensePerTurnFromVassalTaxesTimes100(iTax);
 }
 
@@ -1063,6 +1073,12 @@ int CvTreasury::CalculateProjectedExpensePerTurnFromVassalTaxes(int iProjectedTa
 		return 0;
 
 	int iNet = CalculateGrossGoldTimes100();
+	if (iNet <= 0)
+	{
+		// Can't tax us if we're broke or in the red!
+		return 0;
+	}
+
 	int iTax = iNet * iProjectedTaxRate / 100;
 	return iTax;
 }

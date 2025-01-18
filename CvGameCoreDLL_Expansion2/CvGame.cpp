@@ -391,16 +391,16 @@ void CvGame::init(HandicapTypes eHandicap)
 	CvGoodyHuts::Reset();
 
 	doUpdateCacheOnTurn();
-
-	updateGlobalMedians();
-
-	DoBarbCountdown();
 }
 
 //	--------------------------------------------------------------------------------
 bool CvGame::init2()
 {
 	InitPlayers();
+
+	updateGlobalMedians();
+
+	DoBarbCountdown();
 
 	CvGameInitialItemsOverrides kItemOverrides;
 	if(!InitMap(kItemOverrides))
@@ -526,7 +526,7 @@ bool CvGame::InitMap(CvGameInitialItemsOverrides& kGameInitialItemsOverrides)
 		else
 		{
 			// Empty map...
-			FAssertMsg(0, "Empty World Builder Map!");
+			ASSERT(0, "Empty World Builder Map!");
 
 			// Make the map at least 1 x 1 to avoid crashes
 			CvMapInitData kMapInitData;
@@ -1181,7 +1181,7 @@ void CvGame::reset(HandicapTypes eHandicap, bool bConstructorCall)
 	{
 		if(GetLastError() != ERROR_FILE_NOT_FOUND)
 		{
-			CvAssertMsg(false, "Warning! Cannot delete existing Civ5SavedGameDatabase! Does something have it opened?");
+			ASSERT(false, "Warning! Cannot delete existing Civ5SavedGameDatabase! Does something have it opened?");
 		}
 	}
 
@@ -1192,7 +1192,7 @@ void CvGame::reset(HandicapTypes eHandicap, bool bConstructorCall)
 	}
 	else
 	{
-		CvAssertMsg(false, "Warning! Cannot create new Civ5SavedGameDatabase.");
+		ASSERT(false, "Warning! Cannot create new Civ5SavedGameDatabase.");
 	}
 
 
@@ -1217,9 +1217,9 @@ void CvGame::reset(HandicapTypes eHandicap, bool bConstructorCall)
 		m_paiProjectCreatedCount.init(0);
 
 		//antonjs: todo: remove unused UN and voting variables and allocations
-		CvAssertMsg(0 < GC.getNumVoteInfos(), "GC.getNumVoteInfos() is not greater than zero in CvGame::reset");
+		ASSERT(0 < GC.getNumVoteInfos(), "GC.getNumVoteInfos() is not greater than zero in CvGame::reset");
 
-		CvAssertMsg(0 < GC.getNumVoteSourceInfos(), "GC.getNumVoteSourceInfos() is not greater than zero in CvGame::reset");
+		ASSERT(0 < GC.getNumVoteSourceInfos(), "GC.getNumVoteSourceInfos() is not greater than zero in CvGame::reset");
 		m_aiVotesCast.init(NO_TEAM);
 		m_aiPreviousVotesCast.init(NO_TEAM);
 		m_aiNumVotesForTeam.init(0);
@@ -1243,46 +1243,46 @@ void CvGame::reset(HandicapTypes eHandicap, bool bConstructorCall)
 		}
 #endif
 
-		CvAssertMsg(m_pSettlerSiteEvaluator==NULL, "about to leak memory, CvGame::m_pSettlerSiteEvaluator");
+		ASSERT(m_pSettlerSiteEvaluator==NULL, "about to leak memory, CvGame::m_pSettlerSiteEvaluator");
 		m_pSettlerSiteEvaluator = FNEW(CvSiteEvaluatorForSettler, c_eCiv5GameplayDLL, 0);
 
-		CvAssertMsg(m_pStartSiteEvaluator==NULL, "about to leak memory, CvGame::m_pStartSiteEvaluator");
+		ASSERT(m_pStartSiteEvaluator==NULL, "about to leak memory, CvGame::m_pStartSiteEvaluator");
 		m_pStartSiteEvaluator = FNEW(CvCitySiteEvaluator, c_eCiv5GameplayDLL, 0);
 
-		CvAssertMsg(m_pStartPositioner==NULL, "about to leak memory, CvGame::m_pStartPositioner");
+		ASSERT(m_pStartPositioner==NULL, "about to leak memory, CvGame::m_pStartPositioner");
 		m_pStartPositioner = new CvStartPositioner(m_pStartSiteEvaluator);
 
 		m_kGameDeals.Init();
 
-		CvAssertMsg(m_pGameReligions==NULL, "about to leak memory, CvGame::m_pGameReligions");
+		ASSERT(m_pGameReligions==NULL, "about to leak memory, CvGame::m_pGameReligions");
 		m_pGameReligions = FNEW(CvGameReligions, c_eCiv5GameplayDLL, 0);
 		m_pGameReligions->Init();
 
 #if defined(MOD_BALANCE_CORE)
-		CvAssertMsg(m_pGameCorporations==NULL, "about to leak memory, CvGame::m_pGameCorporations");
+		ASSERT(m_pGameCorporations==NULL, "about to leak memory, CvGame::m_pGameCorporations");
 		m_pGameCorporations = FNEW(CvGameCorporations, c_eCiv5GameplayDLL, 0);
 		m_pGameCorporations->Init();
 
-		CvAssertMsg(m_pGameContracts==NULL, "about to leak memory, CvGame::m_pGameContracts");
+		ASSERT(m_pGameContracts==NULL, "about to leak memory, CvGame::m_pGameContracts");
 		m_pGameContracts = FNEW(CvGameContracts, c_eCiv5GameplayDLL, 0);
 		m_pGameContracts->Init();
 #endif
 
-		CvAssertMsg(m_pGameCulture==NULL, "about to leak memory, CvGame::m_pGameCulture");
+		ASSERT(m_pGameCulture==NULL, "about to leak memory, CvGame::m_pGameCulture");
 		m_pGameCulture = FNEW(CvGameCulture, c_eCiv5GameplayDLL, 0);
 
-		CvAssertMsg(m_pGameLeagues==NULL, "about to leak memory, CvGame::m_pGameLeagues");
+		ASSERT(m_pGameLeagues==NULL, "about to leak memory, CvGame::m_pGameLeagues");
 		m_pGameLeagues = FNEW(CvGameLeagues, c_eCiv5GameplayDLL, 0);
 		m_pGameLeagues->Init();
 
-		CvAssertMsg(m_pGameTrade==NULL, "about to leak memory, CvGame::m_pGameTrade");
+		ASSERT(m_pGameTrade==NULL, "about to leak memory, CvGame::m_pGameTrade");
 		m_pGameTrade = FNEW(CvGameTrade, c_eCiv5GameplayDLL, 0);
 		m_pGameTrade->Init();
 
-		CvAssertMsg(m_pAdvisorCounsel==NULL, "about to leak memory, CvGame::m_pAdvisorCounsel");
+		ASSERT(m_pAdvisorCounsel==NULL, "about to leak memory, CvGame::m_pAdvisorCounsel");
 		m_pAdvisorCounsel = FNEW(CvAdvisorCounsel, c_eCiv5GameplayDLL, 0);
 
-		CvAssertMsg(m_pAdvisorRecommender==NULL, "about to leak memory, CvGame::m_pAdvisorRecommender");
+		ASSERT(m_pAdvisorRecommender==NULL, "about to leak memory, CvGame::m_pAdvisorRecommender");
 		m_pAdvisorRecommender = FNEW(CvAdvisorRecommender, c_eCiv5GameplayDLL, 0);
 
 		m_eTechAstronomy = (TechTypes)GC.getInfoTypeForString("TECH_ASTRONOMY");
@@ -1458,7 +1458,7 @@ void CvGame::initFreeUnits(CvGameInitialItemsOverrides& kOverrides)
 //	--------------------------------------------------------------------------------
 void CvGame::assignStartingPlots()
 {
-	 GetStartPositioner()->Run(countMajorCivsAlive());
+	GetStartPositioner()->Run(GetNumMajorCivsAlive());
 }
 
 #if defined(EXTERNAL_PAUSING)
@@ -1844,7 +1844,7 @@ void CvGame::DoCacheMapScoreMod()
 		CvWorldInfo kWorldInfo;
 		const bool bResult = DB.SelectAt(kResult, "Worlds", eStandardWorld);
 		DEBUG_VARIABLE(bResult);
-		CvAssertMsg(bResult, "Cannot find world info.");
+		ASSERT(bResult, "Cannot find world info.");
 		kWorldInfo.CacheResult(kResult);
 
 		iBaseNumTiles = kWorldInfo.getGridWidth();
@@ -2148,7 +2148,7 @@ void CvGame::updateTestEndTurn()
 			else if(activePlayer.hasReadyUnit())
 			{
 				const CvUnit* pUnit = activePlayer.GetFirstReadyUnit();
-				CvAssertMsg(pUnit, "GetFirstReadyUnit is returning null");
+				ASSERT(pUnit, "GetFirstReadyUnit is returning null");
 				if(pUnit)
 				{
 					if(!pUnit->canHold(pUnit->plot()))
@@ -2493,14 +2493,14 @@ void CvGame::cycleUnits(bool bClear, bool bForward, bool bWorkers)
 
 	if(pNextUnit != NULL && !bWrap)
 	{
-		CvAssert(pNextUnit->getOwner() == eActivePlayer);
+		ASSERT(pNextUnit->getOwner() == eActivePlayer);
 		selectUnit(pNextUnit, bClear);
 		bProcessed = true;
 	}
 
 	if(pNextUnit != NULL /*&& bWrap */&& !pCycleCity && !bProcessed)
 	{
-		CvAssert(pNextUnit->getOwner() == eActivePlayer);
+		ASSERT(pNextUnit->getOwner() == eActivePlayer);
 		selectUnit(pNextUnit, bClear);
 	}
 
@@ -2526,7 +2526,7 @@ bool CvGame::cyclePlotUnits(CvPlot* pPlot, bool bForward, bool bAuto, int iCount
 	CvUnit* pSelectedUnit = NULL;
 	CvUnit* pLoopUnit = NULL;
 
-	CvAssertMsg(iCount >= -1, "iCount expected to be >= -1");
+	ASSERT(iCount >= -1, "iCount expected to be >= -1");
 
 	if(iCount == -1)
 	{
@@ -2731,7 +2731,7 @@ void CvGame::selectionListGameNetMessage(int eMessage, int iData2, int iData3, i
 			}
 			else
 			{
-				CvAssert(false);
+				ASSERT(false);
 			}
 		}
 	}
@@ -2750,7 +2750,7 @@ void CvGame::selectedCitiesGameNetMessage(int eMessage, int iData2, int iData3, 
 	{
 		pSelectedCity = ::GetPlayerCity(*pSelectedCityNode);
 		pSelectedCityNode = GC.GetEngineUserInterface()->nextSelectedCitiesNode(pSelectedCityNode);
-		CvAssert(pSelectedCity);
+		ASSERT(pSelectedCity);
 
 		if(pSelectedCity != NULL)
 		{
@@ -2781,7 +2781,7 @@ void CvGame::selectedCitiesGameNetMessage(int eMessage, int iData2, int iData3, 
 					break;
 
 				default:
-					CvAssert(false);
+					ASSERT(false);
 					break;
 				}
 			}
@@ -2793,7 +2793,7 @@ void CvGame::selectedCitiesGameNetMessage(int eMessage, int iData2, int iData3, 
 //	--------------------------------------------------------------------------------
 void CvGame::cityPushOrder(CvCity* pCity, OrderTypes eOrder, int iData, bool bAlt, bool bShift, bool bCtrl)
 {
-	CvAssert(pCity);
+	ASSERT(pCity);
 	if(!pCity) return;
 	gDLL->sendPushOrder(pCity->GetID(), eOrder, iData, bAlt, bShift, bCtrl);
 }
@@ -2801,7 +2801,7 @@ void CvGame::cityPushOrder(CvCity* pCity, OrderTypes eOrder, int iData, bool bAl
 //	--------------------------------------------------------------------------------
 void CvGame::CityPurchase(CvCity* pCity, UnitTypes eUnitType, BuildingTypes eBuildingType, ProjectTypes eProjectType, YieldTypes ePurchaseYield)
 {
-	CvAssert(pCity);
+	ASSERT(pCity);
 	if(!pCity) return;
 
 	// we're trying to buy a unit
@@ -2909,7 +2909,7 @@ void CvGame::selectGroup(CvUnit* pUnit, bool bShift, bool bCtrl, bool bAlt) cons
 	CvPlot* pUnitPlot = NULL;
 	bool bGroup = false;
 
-	CvAssertMsg(pUnit != NULL, "pUnit == NULL unexpectedly");
+	ASSERT(pUnit != NULL, "pUnit == NULL unexpectedly");
 
 	if(bAlt || bCtrl)
 	{
@@ -3052,7 +3052,7 @@ bool CvGame::canHandleAction(int iAction, CvPlot* pPlot, bool bTestVisible)
 	bool bShift = gDLL->shiftKey();
 
 	CvActionInfo* pActionInfo = GC.getActionInfo(iAction);
-	CvAssert(pActionInfo != NULL);
+	ASSERT(pActionInfo != NULL);
 	if(!pActionInfo) return false;
 
 	if(pActionInfo->getControlType() != NO_CONTROL)
@@ -3187,8 +3187,8 @@ void CvGame::handleAction(int iAction)
 					if(pBuildInfo->getRoute() == NO_ROUTE)
 					{
 						// Let them build over an improvement if the new improvement REQUIRES the old one
-						CvImprovementEntry *pImprovementInfo = GC.getImprovementInfo((ImprovementTypes)pBuildInfo->getImprovement());
-						if (!pImprovementInfo || !pImprovementInfo->IsRequiresImprovement())
+						ImprovementTypes eImprovement = (ImprovementTypes)pBuildInfo->getImprovement();
+						if (eImprovement == NO_IMPROVEMENT || !GC.getImprovementInfo(eImprovement)->IsRequiresImprovement())
 						{
 							if(pHeadSelectedUnit)
 							{
@@ -3429,7 +3429,7 @@ bool CvGame::canDoControl(ControlTypes eControl)
 		break;
 
 	default:
-		CvAssertMsg(false, "eControl did not match any valid options");
+		ASSERT(false, "eControl did not match any valid options");
 		break;
 	}
 
@@ -3826,6 +3826,7 @@ void CvGame::doControl(ControlTypes eControl)
 					CvPreGame::VerifyHandicap(ePreviousPlayer);
 					CvPreGame::setSlotStatus(eNextPlayer, SS_TAKEN);
 					GC.getGame().setActivePlayer(eNextPlayer, false /*bForceHotSeat*/, true /*bAutoplaySwitch*/);
+					GET_PLAYER(ePreviousPlayer).SetEndTurnBlocking(NO_ENDTURN_BLOCKING_TYPE, -1);
 					GET_PLAYER(ePreviousPlayer).GetDiplomacyAI()->SlotStateChange();
 					GET_PLAYER(eNextPlayer).GetDiplomacyAI()->SlotStateChange();
 				}
@@ -3951,7 +3952,7 @@ void CvGame::doControl(ControlTypes eControl)
 	break;
 
 	default:
-		CvAssertMsg(false, "eControl did not match any valid options");
+		ASSERT(false, "eControl did not match any valid options");
 		break;
 	}
 }
@@ -4033,6 +4034,64 @@ int CvGame::getAdjustedLandPercent(VictoryTypes eVictory) const
 	iPercent -= (countCivTeamsEverAlive() * 2);
 
 	return std::max(iPercent, pkVictoryInfo->getMinLandPercent());
+}
+
+//	--------------------------------------------------------------------------------
+int CvGame::GetNumMajorCivsEver(bool bOnlyStart) const
+{
+	if (bOnlyStart)
+		return m_iNumMajorCivsAliveAtGameStart;
+
+	int iCount = 0;
+	for (int iMajorLoop = 0; iMajorLoop < MAX_MAJOR_CIVS; iMajorLoop++)
+	{
+		if (GET_PLAYER((PlayerTypes)iMajorLoop).isEverAlive())
+			iCount++;
+	}
+
+	return iCount;
+}
+
+//	--------------------------------------------------------------------------------
+int CvGame::GetNumMajorCivsAlive() const
+{
+	int iCount = 0;
+	for (int iMajorLoop = 0; iMajorLoop < MAX_MAJOR_CIVS; iMajorLoop++)
+	{
+		if (GET_PLAYER((PlayerTypes)iMajorLoop).isAlive())
+			iCount++;
+	}
+
+	return iCount;
+}
+
+//	--------------------------------------------------------------------------------
+int CvGame::GetNumMinorCivsEver(bool bOnlyStart) const
+{
+	if (bOnlyStart)
+		return m_iNumMinorCivsAliveAtGameStart;
+
+	int iCount = 0;
+	for (int iMinorLoop = MAX_MAJOR_CIVS; iMinorLoop < MAX_CIV_PLAYERS; iMinorLoop++)
+	{
+		if (GET_PLAYER((PlayerTypes)iMinorLoop).isEverAlive())
+			iCount++;
+	}
+
+	return iCount;
+}
+
+//	--------------------------------------------------------------------------------
+int CvGame::GetNumMinorCivsAlive() const
+{
+	int iCount = 0;
+	for (int iMinorLoop = MAX_MAJOR_CIVS; iMinorLoop < MAX_CIV_PLAYERS; iMinorLoop++)
+	{
+		if (GET_PLAYER((PlayerTypes)iMinorLoop).isAlive())
+			iCount++;
+	}
+
+	return iCount;
 }
 
 //	--------------------------------------------------------------------------------
@@ -4234,47 +4293,6 @@ int CvGame::countSeqHumanTurnsUntilPlayerTurn( PlayerTypes playerID ) const
 }
 
 //	--------------------------------------------------------------------------------
-int CvGame::countMajorCivsAlive() const
-{
-	int iCount = 0;
-
-	for(int iI = 0; iI < MAX_CIV_PLAYERS; iI++)
-	{
-		if(GET_PLAYER((PlayerTypes)iI).isAlive())
-		{
-			if(!GET_PLAYER((PlayerTypes)iI).isMinorCiv())
-			{
-				iCount++;
-			}
-		}
-	}
-
-	return iCount;
-}
-
-//	--------------------------------------------------------------------------------
-int CvGame::countMajorCivsEverAlive() const
-{
-	int iCount = 0;
-	int iI = 0;
-
-	iCount = 0;
-
-	for(iI = 0; iI < MAX_CIV_PLAYERS; iI++)
-	{
-		if(GET_PLAYER((PlayerTypes)iI).isEverAlive())
-		{
-			if(!GET_PLAYER((PlayerTypes)iI).isMinorCiv())
-			{
-				iCount++;
-			}
-		}
-	}
-
-	return iCount;
-}
-
-//	--------------------------------------------------------------------------------
 int CvGame::countTotalCivPower()
 {
 	int iCount = 0;
@@ -4360,10 +4378,10 @@ int CvGame::goldenAgeLength(int iManualLength) const
 //	--------------------------------------------------------------------------------
 int CvGame::victoryDelay(VictoryTypes eVictory) const
 {
-	CvAssert(eVictory >= 0 && eVictory < GC.getNumVictoryInfos());
+	ASSERT(eVictory >= 0 && eVictory < GC.getNumVictoryInfos());
 
 	CvVictoryInfo* pkVictoryInfo = GC.getVictoryInfo(eVictory);
-	CvAssert(pkVictoryInfo);
+	ASSERT(pkVictoryInfo);
 
 	if(pkVictoryInfo == NULL)
 		return 0;
@@ -4420,7 +4438,7 @@ int CvGame::getImprovementUpgradeTimeMod(ImprovementTypes eImprovement, const Cv
 int CvGame::getImprovementUpgradeTime(ImprovementTypes eImprovement, const CvPlot* pPlot) const
 {
 	CvImprovementEntry* pkImprovementInfo = GC.getImprovementInfo(eImprovement);
-	CvAssert(pkImprovementInfo);
+	ASSERT(pkImprovementInfo);
 
 	if(pkImprovementInfo == NULL)
 		return 0;
@@ -4553,7 +4571,7 @@ bool CvGame::isGameMultiPlayer() const
 //	--------------------------------------------------------------------------------
 bool CvGame::isTeamGame() const
 {
-	CvAssert(countCivPlayersAlive() >= countCivTeamsAlive());
+	ASSERT(countCivPlayersAlive() >= countCivTeamsAlive());
 	return (countCivPlayersAlive() > countCivTeamsAlive());
 }
 
@@ -4571,58 +4589,6 @@ void CvGame::ReviveActivePlayer()
 int CvGame::getNumHumanPlayers()
 {
 	return CvPreGame::numHumans();
-}
-
-//	--------------------------------------------------------------------------------
-int CvGame::GetNumMajorCivsEver(bool bOnlyStart) const
-{
-	if (bOnlyStart)
-		return m_iNumMajorCivsAliveAtGameStart;
-
-	int iNumCivs = 0;
-	for (int iMajorLoop = 0; iMajorLoop < MAX_MAJOR_CIVS; iMajorLoop++)
-	{
-		if (GET_PLAYER((PlayerTypes)iMajorLoop).isEverAlive())
-		{
-			iNumCivs++;
-		}
-	}
-
-	return iNumCivs;
-}
-
-//	--------------------------------------------------------------------------------
-int CvGame::GetNumMinorCivsEver(bool bOnlyStart) const
-{
-	if (bOnlyStart)
-		return m_iNumMinorCivsAliveAtGameStart;
-
-	int iNumCivs = 0;
-	for(int iMinorLoop = MAX_MAJOR_CIVS; iMinorLoop < MAX_CIV_PLAYERS; iMinorLoop++)
-	{
-		if(GET_PLAYER((PlayerTypes) iMinorLoop).isEverAlive())
-		{
-			iNumCivs++;
-		}
-	}
-
-	return iNumCivs;
-}
-
-//	--------------------------------------------------------------------------------
-int CvGame::GetNumMinorCivsAlive()
-{
-	int iNumCivs = 0;
-
-	for(int iMinorLoop = MAX_MAJOR_CIVS; iMinorLoop < MAX_CIV_PLAYERS; iMinorLoop++)
-	{
-		if(GET_PLAYER((PlayerTypes) iMinorLoop).isAlive())
-		{
-			iNumCivs++;
-		}
-	}
-
-	return iNumCivs;
 }
 
 //	--------------------------------------------------------------------------------
@@ -4676,7 +4642,7 @@ void CvGame::setGameTurn(int iNewValue)
 		gDLL->netMessageDebugLog(turnMessage);
 
 		CvPreGame::setGameTurn(iNewValue);
-		CvAssert(getGameTurn() >= 0);
+		ASSERT(getGameTurn() >= 0);
 
 		setScoreDirty(true);
 
@@ -4735,7 +4701,7 @@ int CvGame::getMaxTurns() const
 void CvGame::setMaxTurns(int iNewValue) const
 {
 	CvPreGame::setMaxTurns(iNewValue);
-	CvAssert(getMaxTurns() >= 0);
+	ASSERT(getMaxTurns() >= 0);
 }
 
 
@@ -4757,7 +4723,7 @@ int CvGame::getMaxCityElimination() const
 void CvGame::setMaxCityElimination(int iNewValue) const
 {
 	CvPreGame::setMaxCityElimination(iNewValue);
-	CvAssert(getMaxCityElimination() >= 0);
+	ASSERT(getMaxCityElimination() >= 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -4987,7 +4953,7 @@ int CvGame::getTargetScore() const
 void CvGame::setTargetScore(int iNewValue) const
 {
 	CvPreGame::setTargetScore(iNewValue);
-	CvAssert(getTargetScore() >= 0);
+	ASSERT(getTargetScore() >= 0);
 }
 
 
@@ -5042,7 +5008,7 @@ void CvGame::changeNumGameTurnActive(int iChange, const std::string& why)
 	output += activeBuf;
 	output += " : " + why;
 	gDLL->netMessageDebugLog(output);
-	CvAssert(getNumGameTurnActive() >= 0);
+	ASSERT(getNumGameTurnActive() >= 0);
 }
 
 
@@ -5064,7 +5030,7 @@ int CvGame::getNumCivCities() const
 void CvGame::changeNumCities(int iChange)
 {
 	m_iNumCities = (m_iNumCities + iChange);
-	CvAssert(getNumCities() >= 0);
+	ASSERT(getNumCities() >= 0);
 }
 
 
@@ -5079,7 +5045,7 @@ int CvGame::getTotalPopulation() const
 void CvGame::changeTotalPopulation(int iChange)
 {
 	m_iTotalPopulation = (m_iTotalPopulation + iChange);
-	CvAssert(getTotalPopulation() >= 0);
+	ASSERT(getTotalPopulation() >= 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -5093,7 +5059,7 @@ int CvGame::getTotalEconomicValue() const
 void CvGame::setTotalEconomicValue(int iChange)
 {
 	m_iTotalEconomicValue = iChange;
-	CvAssert(getTotalEconomicValue() >= 0);
+	ASSERT(getTotalEconomicValue() >= 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -5107,7 +5073,7 @@ int CvGame::getHighestEconomicValue() const
 void CvGame::setHighestEconomicValue(int iChange)
 {
 	m_iHighestEconomicValue = iChange;
-	CvAssert(getHighestEconomicValue() >= 0);
+	ASSERT(getHighestEconomicValue() >= 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -5120,7 +5086,7 @@ int CvGame::getMedianEconomicValue() const
 void CvGame::setMedianEconomicValue(int iChange)
 {
 	m_iMedianEconomicValue = iChange;
-	CvAssert(getMedianEconomicValue() >= 0);
+	ASSERT(getMedianEconomicValue() >= 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -5141,7 +5107,7 @@ bool CvGame::isNoNukes() const
 void CvGame::changeNoNukesCount(int iChange)
 {
 	m_iNoNukesCount = (m_iNoNukesCount + iChange);
-	CvAssert(getNoNukesCount() >= 0);
+	ASSERT(getNoNukesCount() >= 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -5346,6 +5312,7 @@ void CvGame::setAIAutoPlay(int iNewValue, PlayerTypes eReturnAsPlayer)
 			}
 			GET_PLAYER(eNewAIPlayer).AI_chooseResearch();
 			GET_PLAYER(eNewAIPlayer).GetPlayerPolicies()->DoPolicyAI();
+			GET_PLAYER(eNewAIPlayer).SetEndTurnBlocking(NO_ENDTURN_BLOCKING_TYPE, -1);
 
 			if (getObserverUIOverridePlayer() == NO_PLAYER)
 			{
@@ -5528,7 +5495,7 @@ void CvGame::DoUpdateDiploVictory()
 	{
 		LeagueSpecialSessionTypes e = (LeagueSpecialSessionTypes)i;
 		CvLeagueSpecialSessionEntry* pInfo = GC.getLeagueSpecialSessionInfo(e);
-		CvAssert(pInfo != NULL);
+		ASSERT(pInfo != NULL);
 		if (pInfo != NULL)
 		{
 			if (pInfo->IsUnitedNations())
@@ -5743,8 +5710,8 @@ void CvGame::SetNumVictoryVotesExpected(int iValue)
 //	--------------------------------------------------------------------------------
 TeamTypes CvGame::GetVoteCast(TeamTypes eVotingTeam) const
 {
-	CvAssertMsg(eVotingTeam >= 0, "eMajor is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eVotingTeam < MAX_CIV_TEAMS, "eMajor is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eVotingTeam >= 0, "eMajor is expected to be non-negative (invalid Index)");
+	PRECONDITION(eVotingTeam < MAX_CIV_TEAMS, "eMajor is expected to be within maximum bounds (invalid Index)");
 
 	return (TeamTypes) m_aiVotesCast[eVotingTeam];
 }
@@ -5754,8 +5721,8 @@ TeamTypes CvGame::GetVoteCast(TeamTypes eVotingTeam) const
 /// Preliminary votes will be counted, but will not trigger victory
 void CvGame::SetVoteCast(TeamTypes eVotingTeam, TeamTypes eVote, bool bPreliminaryVote)
 {
-	CvAssertMsg(eVotingTeam >= 0, "eMajor is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eVotingTeam < MAX_CIV_TEAMS, "eMajor is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eVotingTeam >= 0, "eMajor is expected to be non-negative (invalid Index)");
+	PRECONDITION(eVotingTeam < MAX_CIV_TEAMS, "eMajor is expected to be within maximum bounds (invalid Index)");
 
 	if(eVote != GetVoteCast(eVotingTeam))
 	{
@@ -5778,8 +5745,8 @@ void CvGame::SetVoteCast(TeamTypes eVotingTeam, TeamTypes eVote, bool bPrelimina
 /// Get the last vote this team made, for record keeping
 TeamTypes CvGame::GetPreviousVoteCast(TeamTypes eVotingTeam) const
 {
-	CvAssertMsg(eVotingTeam >= 0, "eVotingTeam is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eVotingTeam < MAX_CIV_TEAMS, "eVotingTeam is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eVotingTeam >= 0, "eVotingTeam is expected to be non-negative (invalid Index)");
+	PRECONDITION(eVotingTeam < MAX_CIV_TEAMS, "eVotingTeam is expected to be within maximum bounds (invalid Index)");
 	if (eVotingTeam < 0 || eVotingTeam >= MAX_CIV_TEAMS) return NO_TEAM;
 
 	return (TeamTypes) m_aiPreviousVotesCast[eVotingTeam];
@@ -5789,8 +5756,8 @@ TeamTypes CvGame::GetPreviousVoteCast(TeamTypes eVotingTeam) const
 /// Set the last vote this team made, for record keeping
 void CvGame::SetPreviousVoteCast(TeamTypes eVotingTeam, TeamTypes eVotingTarget)
 {
-	CvAssertMsg(eVotingTeam >= 0, "eVotingTeam is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eVotingTeam < MAX_CIV_TEAMS, "eVotingTeam is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eVotingTeam >= 0, "eVotingTeam is expected to be non-negative (invalid Index)");
+	PRECONDITION(eVotingTeam < MAX_CIV_TEAMS, "eVotingTeam is expected to be within maximum bounds (invalid Index)");
 	if (eVotingTeam < 0 || eVotingTeam >= MAX_CIV_TEAMS) return;
 
 	if (eVotingTarget != GetPreviousVoteCast(eVotingTeam))
@@ -5802,8 +5769,8 @@ void CvGame::SetPreviousVoteCast(TeamTypes eVotingTeam, TeamTypes eVotingTarget)
 //	--------------------------------------------------------------------------------
 int CvGame::GetNumVotesForTeam(TeamTypes eTeam) const
 {
-	CvAssertMsg(eTeam >= 0, "eMajor is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eTeam < MAX_CIV_TEAMS, "eMajor is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eMajor is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_CIV_TEAMS, "eMajor is expected to be within maximum bounds (invalid Index)");
 
 	return m_aiNumVotesForTeam[eTeam];
 }
@@ -5811,8 +5778,8 @@ int CvGame::GetNumVotesForTeam(TeamTypes eTeam) const
 //	--------------------------------------------------------------------------------
 void CvGame::SetNumVotesForTeam(TeamTypes eTeam, int iValue)
 {
-	CvAssertMsg(eTeam >= 0, "eMajor is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eTeam < MAX_CIV_TEAMS, "eMajor is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eMajor is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_CIV_TEAMS, "eMajor is expected to be within maximum bounds (invalid Index)");
 
 	if(iValue != GetNumVotesForTeam(eTeam))
 	{
@@ -5842,7 +5809,7 @@ Localization::String CvGame::GetDiploResponse(const char* szLeader, const char* 
 		m_pDiploResponseQuery = new Database::Results();
 		if(!GC.GetGameDatabase()->Execute(*m_pDiploResponseQuery, szSQL, strlen(szSQL)))
 		{
-			CvAssertMsg(false, "Failed to generate diplo response query.");
+			ASSERT(false, "Failed to generate diplo response query.");
 		}
 	}
 
@@ -5869,7 +5836,7 @@ Localization::String CvGame::GetDiploResponse(const char* szLeader, const char* 
 		tempDatabase = new Database::Results();
 		if (!GC.GetGameDatabase()->Execute(*tempDatabase, callTemp, strlen(callTemp)))
 		{
-			CvAssertMsg(false, "Failed to generate diplo response query.");
+			ASSERT(false, "Failed to generate diplo response query.");
 		}
 
 		tempDatabase->Bind(1, szLeader);
@@ -5901,9 +5868,9 @@ Localization::String CvGame::GetDiploResponse(const char* szLeader, const char* 
 		}
 	}
 
-	CvAssert(totbias == 0);
-	CvAssert(biasList.empty());
-	CvAssert(probabilities.empty());
+	ASSERT(totbias == 0);
+	ASSERT(biasList.empty());
+	ASSERT(probabilities.empty());
 
 	m_pDiploResponseQuery->Bind(1, szLeader);
 	m_pDiploResponseQuery->Bind(2, szResponse);
@@ -5933,8 +5900,8 @@ Localization::String CvGame::GetDiploResponse(const char* szLeader, const char* 
 	}
 
 	char szMessage[256];
-	sprintf_s(szMessage, "Please send Jon this with your last 5 autosaves and what changelist # you're playing. Could not find diplomacy response. Leader - %s, Response - %s", szLeader, szResponse);
-	CvAssertMsg(false, szMessage);
+	sprintf_s(szMessage, "Could not find diplomacy response. Leader - %s, Response - %s", szLeader, szResponse);
+	ASSERT(false, szMessage);
 
 	// Shouldn't be here
 	return response;
@@ -6232,7 +6199,7 @@ const CvHandicapInfo& CvGame::getHandicapInfo() const
 	{
 		const char* szError = "ERROR: Game does not contain valid handicap!!";
 		GC.LogMessage(szError);
-		CvAssertMsg(false, szError);
+		ASSERT(false, szError);
 		return emptyResult;
 	}
 	else
@@ -6861,7 +6828,7 @@ void CvGame::setWinner(TeamTypes eNewWinner, VictoryTypes eNewVictory)
 		if(getVictory() != NO_VICTORY && !IsStaticTutorialActive())
 		{
 			CvVictoryInfo* pkVictoryInfo = GC.getVictoryInfo(getVictory());
-			CvAssert(pkVictoryInfo);
+			ASSERT(pkVictoryInfo);
 			if(pkVictoryInfo == NULL)
 				return;
 
@@ -7846,8 +7813,8 @@ void CvGame::DoPlaceTeamInVictoryCompetition(VictoryTypes eNewVictory, TeamTypes
 //	--------------------------------------------------------------------------------
 TeamTypes CvGame::getTeamVictoryRank(VictoryTypes eNewVictory, int iRank) const
 {
-	CvAssert(iRank >= 0);
-	CvAssert(iRank < /*5*/ GD_INT_GET(NUM_VICTORY_POINT_AWARDS));
+	ASSERT(iRank >= 0);
+	ASSERT(iRank < /*5*/ GD_INT_GET(NUM_VICTORY_POINT_AWARDS));
 
 	return m_ppaaiTeamVictoryRank[eNewVictory][iRank];
 }
@@ -7856,8 +7823,8 @@ TeamTypes CvGame::getTeamVictoryRank(VictoryTypes eNewVictory, int iRank) const
 //	--------------------------------------------------------------------------------
 void CvGame::setTeamVictoryRank(VictoryTypes eNewVictory, int iRank, TeamTypes eTeam)
 {
-	CvAssert(iRank >= 0);
-	CvAssert(iRank < /*5*/ GD_INT_GET(NUM_VICTORY_POINT_AWARDS));
+	ASSERT(iRank >= 0);
+	ASSERT(iRank < /*5*/ GD_INT_GET(NUM_VICTORY_POINT_AWARDS));
 
 	m_ppaaiTeamVictoryRank[eNewVictory][iRank] = eTeam;
 }
@@ -8034,7 +8001,7 @@ const CvGameSpeedInfo& CvGame::getGameSpeedInfo() const
 	{
 		const char* szError = "ERROR: Game does not contain valid game speed!!";
 		GC.LogMessage(szError);
-		CvAssertMsg(false, szError);
+		ASSERT(false, szError);
 
 		return emptyResult;
 	}
@@ -8058,7 +8025,7 @@ const CvEraInfo& CvGame::getStartEraInfo() const
 	{
 		const char* szError = "ERROR: Game does not contain valid start era!!";
 		GC.LogMessage(szError);
-		CvAssertMsg(false, szError);
+		ASSERT(false, szError);
 
 		return emptyResult;
 	}
@@ -8082,8 +8049,8 @@ CalendarTypes CvGame::getCalendar() const
 //	--------------------------------------------------------------------------------
 int CvGame::getEndTurnMessagesReceived(int iIndex)
 {
-	CvAssertMsg(iIndex >= 0, "iIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(iIndex < MAX_PLAYERS, "iIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(iIndex >= 0, "iIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(iIndex < MAX_PLAYERS, "iIndex is expected to be within maximum bounds (invalid Index)");
 	return m_aiEndTurnMessagesReceived[iIndex];
 }
 
@@ -8091,8 +8058,8 @@ int CvGame::getEndTurnMessagesReceived(int iIndex)
 //	--------------------------------------------------------------------------------
 void CvGame::incrementEndTurnMessagesReceived(int iIndex)
 {
-	CvAssertMsg(iIndex >= 0, "iIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(iIndex < MAX_PLAYERS, "iIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(iIndex >= 0, "iIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(iIndex < MAX_PLAYERS, "iIndex is expected to be within maximum bounds (invalid Index)");
 	m_aiEndTurnMessagesReceived[iIndex]++;
 }
 
@@ -8100,8 +8067,8 @@ void CvGame::incrementEndTurnMessagesReceived(int iIndex)
 //	--------------------------------------------------------------------------------
 PlayerTypes CvGame::getRankPlayer(int iRank)
 {
-	CvAssertMsg(iRank >= 0, "iRank is expected to be non-negative (invalid Rank)");
-	CvAssertMsg(iRank < MAX_PLAYERS, "iRank is expected to be within maximum bounds (invalid Rank)");
+	PRECONDITION(iRank >= 0, "iRank is expected to be non-negative (invalid Rank)");
+	PRECONDITION(iRank < MAX_PLAYERS, "iRank is expected to be within maximum bounds (invalid Rank)");
 	return (PlayerTypes)m_aiRankPlayer[iRank];
 }
 
@@ -8109,8 +8076,8 @@ PlayerTypes CvGame::getRankPlayer(int iRank)
 //	--------------------------------------------------------------------------------
 void CvGame::setRankPlayer(int iRank, PlayerTypes ePlayer)
 {
-	CvAssertMsg(iRank >= 0, "iRank is expected to be non-negative (invalid Rank)");
-	CvAssertMsg(iRank < MAX_PLAYERS, "iRank is expected to be within maximum bounds (invalid Rank)");
+	PRECONDITION(iRank >= 0, "iRank is expected to be non-negative (invalid Rank)");
+	PRECONDITION(iRank < MAX_PLAYERS, "iRank is expected to be within maximum bounds (invalid Rank)");
 
 	if(getRankPlayer(iRank) != ePlayer)
 	{
@@ -8122,8 +8089,8 @@ void CvGame::setRankPlayer(int iRank, PlayerTypes ePlayer)
 //	--------------------------------------------------------------------------------
 int CvGame::getPlayerRank(PlayerTypes ePlayer)
 {
-	CvAssertMsg(ePlayer >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(ePlayer >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
 	return m_aiPlayerRank[ePlayer];
 }
 
@@ -8131,18 +8098,18 @@ int CvGame::getPlayerRank(PlayerTypes ePlayer)
 //	--------------------------------------------------------------------------------
 void CvGame::setPlayerRank(PlayerTypes ePlayer, int iRank)
 {
-	CvAssertMsg(ePlayer >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(ePlayer >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
 	m_aiPlayerRank[ePlayer] = iRank;
-	CvAssert(getPlayerRank(ePlayer) >= 0);
+	ASSERT(getPlayerRank(ePlayer) >= 0);
 }
 
 
 //	--------------------------------------------------------------------------------
 int CvGame::getPlayerScore(PlayerTypes ePlayer)
 {
-	CvAssertMsg(ePlayer >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(ePlayer >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
 	return m_aiPlayerScore[ePlayer];
 }
 
@@ -8150,13 +8117,13 @@ int CvGame::getPlayerScore(PlayerTypes ePlayer)
 //	--------------------------------------------------------------------------------
 void CvGame::setPlayerScore(PlayerTypes ePlayer, int iScore)
 {
-	CvAssertMsg(ePlayer >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(ePlayer >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
 
 	if(getPlayerScore(ePlayer) != iScore)
 	{
 		m_aiPlayerScore[ePlayer] = iScore;
-		CvAssert(getPlayerScore(ePlayer) >= 0);
+		ASSERT(getPlayerScore(ePlayer) >= 0);
 
 		GC.GetEngineUserInterface()->setDirty(Score_DIRTY_BIT, true);
 	}
@@ -8166,8 +8133,8 @@ void CvGame::setPlayerScore(PlayerTypes ePlayer, int iScore)
 //	--------------------------------------------------------------------------------
 TeamTypes CvGame::getRankTeam(int iRank)
 {
-	CvAssertMsg(iRank >= 0, "iRank is expected to be non-negative (invalid Rank)");
-	CvAssertMsg(iRank < MAX_TEAMS, "iRank is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(iRank >= 0, "iRank is expected to be non-negative (invalid Rank)");
+	PRECONDITION(iRank < MAX_TEAMS, "iRank is expected to be within maximum bounds (invalid Index)");
 	return (TeamTypes)m_aiRankTeam[iRank];
 }
 
@@ -8175,8 +8142,8 @@ TeamTypes CvGame::getRankTeam(int iRank)
 //	--------------------------------------------------------------------------------
 void CvGame::setRankTeam(int iRank, TeamTypes eTeam)
 {
-	CvAssertMsg(iRank >= 0, "iRank is expected to be non-negative (invalid Rank)");
-	CvAssertMsg(iRank < MAX_TEAMS, "iRank is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(iRank >= 0, "iRank is expected to be non-negative (invalid Rank)");
+	PRECONDITION(iRank < MAX_TEAMS, "iRank is expected to be within maximum bounds (invalid Index)");
 
 	if(getRankTeam(iRank) != eTeam)
 	{
@@ -8188,8 +8155,8 @@ void CvGame::setRankTeam(int iRank, TeamTypes eTeam)
 //	--------------------------------------------------------------------------------
 int CvGame::getTeamRank(TeamTypes eTeam)
 {
-	CvAssertMsg(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
 	return m_aiTeamRank[eTeam];
 }
 
@@ -8197,18 +8164,18 @@ int CvGame::getTeamRank(TeamTypes eTeam)
 //	--------------------------------------------------------------------------------
 void CvGame::setTeamRank(TeamTypes eTeam, int iRank)
 {
-	CvAssertMsg(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
 	m_aiTeamRank[eTeam] = iRank;
-	CvAssert(getTeamRank(eTeam) >= 0);
+	ASSERT(getTeamRank(eTeam) >= 0);
 }
 
 
 //	--------------------------------------------------------------------------------
 int CvGame::getTeamScore(TeamTypes eTeam) const
 {
-	CvAssertMsg(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
 	return m_aiTeamScore[eTeam];
 }
 
@@ -8216,10 +8183,10 @@ int CvGame::getTeamScore(TeamTypes eTeam) const
 //	--------------------------------------------------------------------------------
 void CvGame::setTeamScore(TeamTypes eTeam, int iScore)
 {
-	CvAssertMsg(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
 	m_aiTeamScore[eTeam] = iScore;
-	CvAssert(getTeamScore(eTeam) >= 0);
+	ASSERT(getTeamScore(eTeam) >= 0);
 }
 
 
@@ -8270,8 +8237,8 @@ void CvGame::setMPOption(MultiplayerOptionTypes eIndex, bool bEnabled)
 //	--------------------------------------------------------------------------------
 int CvGame::getUnitCreatedCount(UnitTypes eIndex)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumUnitInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumUnitInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiUnitCreatedCount[eIndex];
 }
 
@@ -8279,8 +8246,8 @@ int CvGame::getUnitCreatedCount(UnitTypes eIndex)
 //	--------------------------------------------------------------------------------
 void CvGame::incrementUnitCreatedCount(UnitTypes eIndex)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumUnitInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumUnitInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiUnitCreatedCount[eIndex]++;
 }
 
@@ -8288,8 +8255,8 @@ void CvGame::incrementUnitCreatedCount(UnitTypes eIndex)
 //	--------------------------------------------------------------------------------
 int CvGame::getUnitClassCreatedCount(UnitClassTypes eIndex)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumUnitClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumUnitClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiUnitClassCreatedCount[eIndex];
 }
 
@@ -8297,8 +8264,8 @@ int CvGame::getUnitClassCreatedCount(UnitClassTypes eIndex)
 //	--------------------------------------------------------------------------------
 bool CvGame::isUnitClassMaxedOut(UnitClassTypes eIndex, int iExtra)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumUnitClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumUnitClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	CvUnitClassInfo* pkUnitClassInfo = GC.getUnitClassInfo(eIndex);
 	if(pkUnitClassInfo == NULL)
@@ -8311,7 +8278,7 @@ bool CvGame::isUnitClassMaxedOut(UnitClassTypes eIndex, int iExtra)
 		return false;
 	}
 
-	CvAssertMsg(getUnitClassCreatedCount(eIndex) <= pkUnitClassInfo->getMaxGlobalInstances(), "Index is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(getUnitClassCreatedCount(eIndex) <= pkUnitClassInfo->getMaxGlobalInstances(), "Index is expected to be within maximum bounds (invalid Index)");
 
 	return ((getUnitClassCreatedCount(eIndex) + iExtra) >= pkUnitClassInfo->getMaxGlobalInstances());
 }
@@ -8320,8 +8287,8 @@ bool CvGame::isUnitClassMaxedOut(UnitClassTypes eIndex, int iExtra)
 //	--------------------------------------------------------------------------------
 void CvGame::incrementUnitClassCreatedCount(UnitClassTypes eIndex)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumUnitClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumUnitClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiUnitClassCreatedCount[eIndex]++;
 }
 
@@ -8329,8 +8296,8 @@ void CvGame::incrementUnitClassCreatedCount(UnitClassTypes eIndex)
 //	--------------------------------------------------------------------------------
 int CvGame::getBuildingClassCreatedCount(BuildingClassTypes eIndex)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiBuildingClassCreatedCount[eIndex];
 }
 
@@ -8338,13 +8305,13 @@ int CvGame::getBuildingClassCreatedCount(BuildingClassTypes eIndex)
 //	--------------------------------------------------------------------------------
 bool CvGame::isBuildingClassMaxedOut(BuildingClassTypes eIndex, int iExtra)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(eIndex);
 	if(pkBuildingClassInfo == NULL)
 	{
-		CvAssertMsg(false, "BuildingClassInfo does not exist for type.  NOT GOOD");
+		ASSERT(false, "BuildingClassInfo does not exist for type.  NOT GOOD");
 		return false;
 	}
 
@@ -8354,7 +8321,7 @@ bool CvGame::isBuildingClassMaxedOut(BuildingClassTypes eIndex, int iExtra)
 		return false;
 	}
 
-	CvAssertMsg(getBuildingClassCreatedCount(eIndex) <= pkBuildingClassInfo->getMaxGlobalInstances(), "Index is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(getBuildingClassCreatedCount(eIndex) <= pkBuildingClassInfo->getMaxGlobalInstances(), "Index is expected to be within maximum bounds (invalid Index)");
 
 	return ((getBuildingClassCreatedCount(eIndex) + iExtra) >= pkBuildingClassInfo->getMaxGlobalInstances());
 }
@@ -8363,16 +8330,16 @@ bool CvGame::isBuildingClassMaxedOut(BuildingClassTypes eIndex, int iExtra)
 //	--------------------------------------------------------------------------------
 void CvGame::incrementBuildingClassCreatedCount(BuildingClassTypes eIndex)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiBuildingClassCreatedCount[eIndex]++;
 }
 
 //	--------------------------------------------------------------------------------
 void CvGame::decrementBuildingClassCreatedCount(BuildingClassTypes eIndex)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiBuildingClassCreatedCount[eIndex]--;
 }
 
@@ -8380,8 +8347,8 @@ void CvGame::decrementBuildingClassCreatedCount(BuildingClassTypes eIndex)
 //	--------------------------------------------------------------------------------
 int CvGame::getProjectCreatedCount(ProjectTypes eIndex)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiProjectCreatedCount[eIndex];
 }
 
@@ -8389,15 +8356,15 @@ int CvGame::getProjectCreatedCount(ProjectTypes eIndex)
 //	--------------------------------------------------------------------------------
 bool CvGame::isProjectMaxedOut(ProjectTypes eIndex, int iExtra)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	if(!isWorldProject(eIndex))
 	{
 		return false;
 	}
 
-	CvAssertMsg(getProjectCreatedCount(eIndex) <= GC.getProjectInfo(eIndex)->GetMaxGlobalInstances(), "Index is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(getProjectCreatedCount(eIndex) <= GC.getProjectInfo(eIndex)->GetMaxGlobalInstances(), "Index is expected to be within maximum bounds (invalid Index)");
 
 	return ((getProjectCreatedCount(eIndex) + iExtra) >= GC.getProjectInfo(eIndex)->GetMaxGlobalInstances());
 }
@@ -8406,24 +8373,24 @@ bool CvGame::isProjectMaxedOut(ProjectTypes eIndex, int iExtra)
 //	--------------------------------------------------------------------------------
 void CvGame::incrementProjectCreatedCount(ProjectTypes eIndex, int iExtra)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiProjectCreatedCount[eIndex] += iExtra;
 }
 
 //	--------------------------------------------------------------------------------
 bool CvGame::isVictoryValid(VictoryTypes eIndex) const
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumVictoryInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumVictoryInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return CvPreGame::isVictory(eIndex);
 }
 
 //	--------------------------------------------------------------------------------
 void CvGame::setVictoryValid(VictoryTypes eIndex, bool bValid)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumVictoryInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumVictoryInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	CvPreGame::setVictory(eIndex, bValid);
 }
 
@@ -8452,8 +8419,8 @@ bool CvGame::areNoVictoriesValid() const
 //	--------------------------------------------------------------------------------
 bool CvGame::isSpecialUnitValid(SpecialUnitTypes eIndex)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumSpecialUnitInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumSpecialUnitInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_pabSpecialUnitValid[eIndex];
 }
 
@@ -8461,8 +8428,8 @@ bool CvGame::isSpecialUnitValid(SpecialUnitTypes eIndex)
 //	--------------------------------------------------------------------------------
 void CvGame::makeSpecialUnitValid(SpecialUnitTypes eIndex)
 {
-	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eIndex < GC.getNumSpecialUnitInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumSpecialUnitInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_pabSpecialUnitValid[eIndex] = true;
 }
 
@@ -8538,10 +8505,6 @@ void CvGame::doTurn()
 	if (MOD_UNIT_KILL_STATS)
 		GC.getMap().DoKillCountDecay();
 
-	//create an autosave at turn start
-	if(!isNetworkMultiPlayer())
-		gDLL->AutoSave(false, false);
-
 	// END OF TURN
 
 	//We reset the turn timer now so that we know that the turn timer has been reset at least once for
@@ -8563,7 +8526,7 @@ void CvGame::doTurn()
 		for (int iI = 0; iI < MAX_MAJOR_CIVS; iI++)
 		{
 			CvPlayerAI& kPlayer = GET_PLAYER((PlayerTypes)iI);
-			CvAssertMsg((kPlayer.isLocalPlayer() && !kPlayer.GetDiplomacyRequests()->HasPendingRequests()) || !kPlayer.isLocalPlayer(), "Clearing requests, expected local player to be empty.");
+			ASSERT((kPlayer.isLocalPlayer() && !kPlayer.GetDiplomacyRequests()->HasPendingRequests()) || !kPlayer.isLocalPlayer(), "Clearing requests, expected local player to be empty.");
 			kPlayer.GetDiplomacyRequests()->ClearAllRequests();
 
 			if (isNetworkMultiPlayer && !kPlayer.isHuman()) {
@@ -8722,7 +8685,7 @@ void CvGame::doTurn()
 				else
 				{
 					GET_PLAYER((PlayerTypes)iI).setTurnActive(true);
-					CvAssert(getNumGameTurnActive() == 1);
+					ASSERT(getNumGameTurnActive() == 1);
 				}
 
 				break;
@@ -8892,7 +8855,7 @@ UnitTypes CvGame::GetRandomUniqueUnitType(bool bIncludeCivsInGame, bool bInclude
 
 			if(pkUnitClassInfo == NULL)
 			{
-				CvAssertMsg(false, "UnitClassInfo is NULL. Please send Anton your save file and version.");
+				ASSERT(false, "UnitClassInfo is NULL.");
 				continue;
 			}
 			
@@ -8943,7 +8906,7 @@ UnitTypes CvGame::GetRandomUniqueUnitType(bool bIncludeCivsInGame, bool bInclude
 			if (ePrereqTech != NO_TECH)
 			{
 				CvTechEntry* pkTechInfo = GC.getTechInfo(ePrereqTech);
-				CvAssertMsg(pkTechInfo, "Tech info not found when picking unique unit for minor civ. Please send Anton your save file and version!");
+				ASSERT(pkTechInfo, "Tech info not found when picking unique unit for minor civ.");
 				if (pkTechInfo)
 				{
 					ePrereqEra = (EraTypes) pkTechInfo->GetEra();
@@ -9159,9 +9122,9 @@ void CvGame::updateMoves()
 										CvString strTemp = entry->GetDescription();
 										CvString szAssertMessage;
 										szAssertMessage.Format(
-										    "GAME HANG - Please show Ed and send save. Stuck units will have their turn ended so game can advance. [DETAILS: Player %i %s. First stuck unit is %s at (%d, %d)]",
+										    "GAME HANG - Stuck units will have their turn ended so game can advance. [DETAILS: Player %i %s. First stuck unit is %s at (%d, %d)]",
 										    player.GetID(), player.getName(), strTemp.GetCString(), pReadyUnit->getX(), pReadyUnit->getY());
-										CvAssertMsg(false, szAssertMessage);
+										ASSERT(false, szAssertMessage);
 										NET_MESSAGE_DEBUG_OSTR_ALWAYS(szAssertMessage);
 									}
 									player.EndTurnsForReadyUnits();
@@ -9227,7 +9190,7 @@ void CvGame::updateMoves()
 									}
 									else
 									{
-										CvAssertMsg(GC.getGame().getActivePlayer() == player.GetID(), "slewis - We should not need to resolve ambiguous end turns for the AI or remotely.");
+										ASSERT(GC.getGame().getActivePlayer() == player.GetID(), "slewis - We should not need to resolve ambiguous end turns for the AI or remotely.");
 										if(player.isLocalPlayer() && gDLL->sendTurnUnready())
 											player.setEndTurn(false);
 									}
@@ -9366,7 +9329,7 @@ void CvGame::UpdatePlayers()
 			++numActive;
 		}
 	}
-	CvAssert(numActive == getNumGameTurnActive());
+	ASSERT(numActive == getNumGameTurnActive());
 }
 
 //	-----------------------------------------------------------------------------------------------
@@ -9380,9 +9343,9 @@ void CvGame::testAlive()
 
 bool CvGame::testVictory(VictoryTypes eVictory, TeamTypes eTeam, bool* pbEndScore) const
 {
-	CvAssert(eVictory >= 0 && eVictory < GC.getNumVictoryInfos());
-	CvAssert(eTeam >=0 && eTeam < MAX_CIV_TEAMS);
-	CvAssert(GET_TEAM(eTeam).isAlive());
+	ASSERT(eVictory >= 0 && eVictory < GC.getNumVictoryInfos());
+	ASSERT(eTeam >=0 && eTeam < MAX_CIV_TEAMS);
+	ASSERT(GET_TEAM(eTeam).isAlive());
 
 	CvVictoryInfo* pkVictoryInfo = GC.getVictoryInfo(eVictory);
 	if(pkVictoryInfo == NULL)
@@ -10223,7 +10186,7 @@ uint CvGame::randCore(const CvSeeder& extraSeed) const
 
 uint CvGame::urandLimitExclusive(uint limit, const CvSeeder& extraSeed) const
 {
-	ASSERT(limit != 0);
+	PRECONDITION(limit != 0);
 	const uint rand = randCore(extraSeed);
 	return rand % limit;
 }
@@ -10243,25 +10206,25 @@ uint CvGame::urandLimitInclusive(uint limit, const CvSeeder& extraSeed) const
 
 uint CvGame::urandRangeExclusive(uint min, uint max, const CvSeeder& extraSeed) const
 {
-	ASSERT(min < max);
+	PRECONDITION(min < max);
 	return urandLimitExclusive(max - min, extraSeed) + min;
 }
 
 uint CvGame::urandRangeInclusive(uint min, uint max, const CvSeeder& extraSeed) const
 {
-	ASSERT(min <= max);
+	PRECONDITION(min <= max);
 	return urandLimitInclusive(max - min, extraSeed) + min;
 }
 
 int CvGame::randRangeExclusive(int min, int max, const CvSeeder& extraSeed) const
 {
-	ASSERT(min < max);
+	PRECONDITION(min < max);
 	return static_cast<int>(urandLimitExclusive(static_cast<uint>(max) - static_cast<uint>(min), extraSeed) + static_cast<uint>(min));
 }
 
 int CvGame::randRangeInclusive(int min, int max, const CvSeeder& extraSeed) const
 {
-	ASSERT(min <= max);
+	PRECONDITION(min <= max);
 	return static_cast<int>(urandLimitInclusive(static_cast<uint>(max) - static_cast<uint>(min), extraSeed) + static_cast<uint>(min));
 }
 
@@ -10772,14 +10735,35 @@ int CvGame::GetCultureMedian() const
 	return m_iCultureMedian;
 }
 
-
 void CvGame::initSpyThreshold()
 {
 	if (!MOD_BALANCE_CORE_SPIES)
 		return;
 
-	int iThreshold = 100 * /* 20 */ GD_INT_GET(BALANCE_SPY_TO_PLAYER_RATIO) / (GetNumMinorCivsEver(true) + /* 2 */ GD_INT_GET(BALANCE_SPY_POINT_MAJOR_PLAYER_MULTIPLIER) * GetNumMajorCivsEver(true));
-	m_iSpyThreshold = range(iThreshold, /* 33 */ GD_INT_GET(BALANCE_SPY_POINT_THRESHOLD_MIN), /* 100 */ GD_INT_GET(BALANCE_SPY_POINT_THRESHOLD_MAX));
+	int iSpyRatio = /*20*/ GD_INT_GET(BALANCE_SPY_TO_PLAYER_RATIO);
+	int iMajorMultiplier = /*2*/ GD_INT_GET(BALANCE_SPY_POINT_MAJOR_PLAYER_MULTIPLIER);
+	int iMinThreshold = /*33*/ GD_INT_GET(BALANCE_SPY_POINT_THRESHOLD_MIN);
+	int iMaxThreshold = /*100*/ GD_INT_GET(BALANCE_SPY_POINT_THRESHOLD_MAX);
+
+	// Avoid division by zero
+	int iNumMinors = max(1, GetNumMinorCivsEver(true));
+	int iNumMajors = max(1, GetNumMajorCivsEver(true));
+
+#if defined(VPDEBUG)
+	CUSTOMLOG("Spy Threshold Config: Ratio=%d, MajorMult=%d, Min=%d, Max=%d",
+		iSpyRatio, iMajorMultiplier, iMinThreshold, iMaxThreshold);
+	CUSTOMLOG("Spy Threshold Civs: Minors=%d, Majors=%d", iNumMinors, iNumMajors);
+#endif
+
+	// iThreshold = (100 * 20) / (numMinors + 2 * numMajors)
+	int iThreshold = 100 * iSpyRatio / (iNumMinors + iMajorMultiplier * iNumMajors);
+
+	// Clamp the result between 33 and 100
+	m_iSpyThreshold = range(iThreshold, iMinThreshold, iMaxThreshold);
+
+#if defined(VPDEBUG)
+	CUSTOMLOG("Spy Threshold Result: %d", m_iSpyThreshold);
+#endif
 }
 
 int CvGame::GetSpyThreshold() const
@@ -10787,8 +10771,8 @@ int CvGame::GetSpyThreshold() const
 	// failsafe: if initSpyThreshold has not been called yet for some reason, calculate the threshold based on the number of players ever alive
 	if (m_iSpyThreshold == 0)
 	{
-		int iTempThreshold = 100 * /* 20 */ GD_INT_GET(BALANCE_SPY_TO_PLAYER_RATIO) / (GetNumMinorCivsEver(false) + /* 2 */ GD_INT_GET(BALANCE_SPY_POINT_MAJOR_PLAYER_MULTIPLIER) * GetNumMajorCivsEver(false));
-		iTempThreshold = range(iTempThreshold, /* 33 */ GD_INT_GET(BALANCE_SPY_POINT_THRESHOLD_MIN), /* 100 */ GD_INT_GET(BALANCE_SPY_POINT_THRESHOLD_MAX));
+		int iTempThreshold = 100 * /*20*/ GD_INT_GET(BALANCE_SPY_TO_PLAYER_RATIO) / (GetNumMinorCivsEver(false) + /*2*/ GD_INT_GET(BALANCE_SPY_POINT_MAJOR_PLAYER_MULTIPLIER) * GetNumMajorCivsEver());
+		iTempThreshold = range(iTempThreshold, /*33*/ GD_INT_GET(BALANCE_SPY_POINT_THRESHOLD_MIN), /*100*/ GD_INT_GET(BALANCE_SPY_POINT_THRESHOLD_MAX));
 		return iTempThreshold;
 	}
 
@@ -11158,7 +11142,7 @@ void CvGame::readSaveGameDB(FDataStream& kStream)
 		}
 		else
 		{
-			CvAssertMsg(false, "Cannot open Civ5SavedGameDatabase.db for write! Does something have this opened?");
+			ASSERT(false, "Cannot open Civ5SavedGameDatabase.db for write! Does something have this opened?");
 		}
 	}
 }
@@ -11194,12 +11178,12 @@ void CvGame::writeSaveGameDB(FDataStream& kStream) const
 		}
 		else
 		{
-			CvAssertMsg(false, "Saved game database exists, but could not get file size???");
+			ASSERT(false, "Saved game database exists, but could not get file size???");
 		}
 
 		if (CloseHandle(hFile) == FALSE)
 		{
-			CvAssertMsg(false, "Could not close file handle to saved game database!");
+			ASSERT(false, "Could not close file handle to saved game database!");
 		}
 	}
 	else
@@ -11207,7 +11191,7 @@ void CvGame::writeSaveGameDB(FDataStream& kStream) const
 		WIN32_FILE_ATTRIBUTE_DATA fileAttributes;
 		if (GetFileAttributesExW(savePath, GetFileExInfoStandard, &fileAttributes) != INVALID_FILE_ATTRIBUTES)
 		{
-			CvAssertMsg(false, "Saved game database exists, but could not open it!");
+			ASSERT(false, "Saved game database exists, but could not open it!");
 		}
 
 		DWORD nilSize = 0;
@@ -11270,7 +11254,7 @@ void CvGame::addPlayer(PlayerTypes eNewPlayer, LeaderHeadTypes eLeader, Civiliza
 	if(pkCivilizationInfo == NULL || pkBarbarianCivInfo == NULL)
 	{
 		//Should never happen.
-		CvAssert(false);
+		ASSERT(false);
 		return;
 	}
 
@@ -11813,14 +11797,14 @@ void CvGame::endTurnTimerReset()
 /// Called when a major changes its protection status towards a minor
 void CvGame::DoMinorPledgeProtection(PlayerTypes eMajor, PlayerTypes eMinor, bool bProtect, bool bPledgeNowBroken)
 {
-	CvAssertMsg(eMajor >= 0, "eMajor is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eMajor < MAX_MAJOR_CIVS, "eMajor is expected to be within maximum bounds (invalid Index)");
-	CvAssertMsg(eMinor >= MAX_MAJOR_CIVS, "eMinor is not in expected range (invalid Index)");
-	CvAssertMsg(eMinor < MAX_CIV_PLAYERS, "eMinor is not in expected range (invalid Index)");
+	PRECONDITION(eMajor >= 0, "eMajor is expected to be non-negative (invalid Index)");
+	PRECONDITION(eMajor < MAX_MAJOR_CIVS, "eMajor is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eMinor >= MAX_MAJOR_CIVS, "eMinor is not in expected range (invalid Index)");
+	PRECONDITION(eMinor < MAX_CIV_PLAYERS, "eMinor is not in expected range (invalid Index)");
 
 	if (bProtect)
 	{
-		CvAssertMsg(GET_PLAYER(eMinor).GetMinorCivAI()->CanMajorProtect(eMajor, false), "eMajor is not allowed to protect this minor! Please send Anton your save file and version.");
+		ASSERT(GET_PLAYER(eMinor).GetMinorCivAI()->CanMajorProtect(eMajor, false), "eMajor is not allowed to protect this minor!");
 	}
 
 	gDLL->sendMinorPledgeProtection(eMajor, eMinor, bProtect, bPledgeNowBroken);
@@ -11830,8 +11814,8 @@ void CvGame::DoMinorPledgeProtection(PlayerTypes eMajor, PlayerTypes eMinor, boo
 /// Amount of Gold being gifted to the Minor by the active player
 void CvGame::DoMinorGiftGold(PlayerTypes eMinor, int iNumGold)
 {
-	CvAssertMsg(eMinor >= MAX_MAJOR_CIVS, "eMinor is not in expected range (invalid Index)");
-	CvAssertMsg(eMinor < MAX_CIV_PLAYERS, "eMinor is not in expected range (invalid Index)");
+	PRECONDITION(eMinor >= MAX_MAJOR_CIVS, "eMinor is not in expected range (invalid Index)");
+	PRECONDITION(eMinor < MAX_CIV_PLAYERS, "eMinor is not in expected range (invalid Index)");
 
 	gDLL->sendMinorGiftGold(eMinor, iNumGold);
 }
@@ -11840,10 +11824,10 @@ void CvGame::DoMinorGiftGold(PlayerTypes eMinor, int iNumGold)
 /// Do the action of a major gifting a tile improvement to a minor's plot, to improve its resource
 void CvGame::DoMinorGiftTileImprovement(PlayerTypes eMajor, PlayerTypes eMinor, int iPlotX, int iPlotY)
 {
-	CvAssertMsg(eMajor >= 0, "eMajor is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eMajor < MAX_MAJOR_CIVS, "eMajor is expected to be within maximum bounds (invalid Index)");
-	CvAssertMsg(eMinor >= MAX_MAJOR_CIVS, "eMinor is not in expected range (invalid Index)");
-	CvAssertMsg(eMinor < MAX_CIV_PLAYERS, "eMinor is not in expected range (invalid Index)");
+	PRECONDITION(eMajor >= 0, "eMajor is expected to be non-negative (invalid Index)");
+	PRECONDITION(eMajor < MAX_MAJOR_CIVS, "eMajor is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eMinor >= MAX_MAJOR_CIVS, "eMinor is not in expected range (invalid Index)");
+	PRECONDITION(eMinor < MAX_CIV_PLAYERS, "eMinor is not in expected range (invalid Index)");
 
 	gDLL->sendMinorGiftTileImprovement(eMajor, eMinor, iPlotX, iPlotY);
 }
@@ -11853,10 +11837,10 @@ void CvGame::DoMinorGiftTileImprovement(PlayerTypes eMajor, PlayerTypes eMinor, 
 /// Demanded gold and a calculated bully metric are not provided (ex. from Lua, Player UI), so calculate them here
 void CvGame::DoMinorBullyGold(PlayerTypes eBully, PlayerTypes eMinor)
 {
-	CvAssertMsg(eBully >= 0, "eBully is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eBully < MAX_MAJOR_CIVS, "eBully is expected to be within maximum bounds (invalid Index)");
-	CvAssertMsg(eMinor >= MAX_MAJOR_CIVS, "eMinor is not in expected range (invalid Index)");
-	CvAssertMsg(eMinor < MAX_CIV_PLAYERS, "eMinor is not in expected range (invalid Index)");
+	PRECONDITION(eBully >= 0, "eBully is expected to be non-negative (invalid Index)");
+	PRECONDITION(eBully < MAX_MAJOR_CIVS, "eBully is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eMinor >= MAX_MAJOR_CIVS, "eMinor is not in expected range (invalid Index)");
+	PRECONDITION(eMinor < MAX_CIV_PLAYERS, "eMinor is not in expected range (invalid Index)");
 
 	int iGold = GET_PLAYER(eMinor).GetMinorCivAI()->GetBullyGoldAmount(eBully);
 	if (iGold <= 0)
@@ -11869,10 +11853,10 @@ void CvGame::DoMinorBullyGold(PlayerTypes eBully, PlayerTypes eMinor)
 /// Do the action of a major bullying a unit from a minor
 void CvGame::DoMinorBullyUnit(PlayerTypes eBully, PlayerTypes eMinor)
 {
-	CvAssertMsg(eBully >= 0, "eBully is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eBully < MAX_MAJOR_CIVS, "eBully is expected to be within maximum bounds (invalid Index)");
-	CvAssertMsg(eMinor >= MAX_MAJOR_CIVS, "eMinor is not in expected range (invalid Index)");
-	CvAssertMsg(eMinor < MAX_CIV_PLAYERS, "eMinor is not in expected range (invalid Index)");
+	PRECONDITION(eBully >= 0, "eBully is expected to be non-negative (invalid Index)");
+	PRECONDITION(eBully < MAX_MAJOR_CIVS, "eBully is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eMinor >= MAX_MAJOR_CIVS, "eMinor is not in expected range (invalid Index)");
+	PRECONDITION(eMinor < MAX_CIV_PLAYERS, "eMinor is not in expected range (invalid Index)");
 
 	UnitClassTypes eUnitClassType = GET_PLAYER(eMinor).GetMinorCivAI()->GetBullyUnit();
 	UnitTypes eUnitType = GET_PLAYER(eBully).GetSpecificUnitType(eUnitClassType);
@@ -11981,10 +11965,10 @@ void CvGame::DoResearchAgreementNotification(PlayerTypes eFirstPlayer, PlayerTyp
 //	--------------------------------------------------------------------------------
 int CvGame::GetResearchAgreementCost(PlayerTypes ePlayer1, PlayerTypes ePlayer2) const
 {
-	CvAssertMsg(ePlayer1 > NO_PLAYER, "Invalid player. Please show Jon this.");
-	CvAssertMsg(ePlayer1 <= MAX_MAJOR_CIVS, "Invalid player. Please show Jon this.");
-	CvAssertMsg(ePlayer2 > NO_PLAYER, "Invalid player. Please show Jon this.");
-	CvAssertMsg(ePlayer2 <= MAX_MAJOR_CIVS, "Invalid player. Please show Jon this.");
+	PRECONDITION(ePlayer1 > NO_PLAYER, "Invalid player.");
+	PRECONDITION(ePlayer1 <= MAX_MAJOR_CIVS, "Invalid player.");
+	PRECONDITION(ePlayer2 > NO_PLAYER, "Invalid player.");
+	PRECONDITION(ePlayer2 <= MAX_MAJOR_CIVS, "Invalid player.");
 
 	EraTypes ePlayer1Era = GET_TEAM(GET_PLAYER(ePlayer1).getTeam()).GetCurrentEra();
 	EraTypes ePlayer2Era = GET_TEAM(GET_PLAYER(ePlayer2).getTeam()).GetCurrentEra();
@@ -12578,7 +12562,6 @@ void CvGame::LogGameState(bool bLogHeaders) const
 		int iCompetitor = 0;
 		int iEnemy = 0;
 		int iUnforgivable = 0;
-		int iNoOpinion = 0;
 
 		int iMajorWar = 0;
 		int iMajorHostile = 0;
@@ -12587,13 +12570,11 @@ void CvGame::LogGameState(bool bLogHeaders) const
 		int iMajorAfraid = 0;
 		int iMajorFriendly = 0;
 		int iMajorNeutral = 0;
-		int iMajorNoApproach = 0;
 
 		int iMinorIgnore = 0;
 		int iMinorProtective = 0;
 		int iMinorConquest = 0;
 		int iMinorBully = 0;
-		int iMinorNoApproach = 0;
 
 		// Loop through all Players
 		for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
@@ -12655,9 +12636,6 @@ void CvGame::LogGameState(bool bLogHeaders) const
 							case CIV_OPINION_UNFORGIVABLE:
 								iUnforgivable++;
 								break;
-							case NO_CIV_OPINION:
-								iNoOpinion++;
-								break;
 							}
 
 							switch (pPlayer->GetDiplomacyAI()->GetCivApproach(eLoopPlayer2))
@@ -12683,9 +12661,6 @@ void CvGame::LogGameState(bool bLogHeaders) const
 							case CIV_APPROACH_FRIENDLY:
 								iMajorFriendly++;
 								break;
-							case NO_CIV_APPROACH:
-								iMajorNoApproach++;
-								break;
 							}
 						}
 						// Minor
@@ -12704,9 +12679,6 @@ void CvGame::LogGameState(bool bLogHeaders) const
 								break;
 							case CIV_APPROACH_FRIENDLY:
 								iMinorProtective++;
-								break;
-							case NO_CIV_APPROACH:
-								iMajorNoApproach++;
 								break;
 							case CIV_APPROACH_DECEPTIVE:
 							case CIV_APPROACH_GUARDED:
@@ -12753,7 +12725,6 @@ void CvGame::LogGameState(bool bLogHeaders) const
 			strOutput += ", Competitor";
 			strOutput += ", Enemy";
 			strOutput += ", Unforgivable";
-			strOutput += ", No Opinion";
 		}
 		else
 		{
@@ -12771,8 +12742,6 @@ void CvGame::LogGameState(bool bLogHeaders) const
 			strOutput += ", " + strTemp;
 			strTemp.Format("%d", iUnforgivable);
 			strOutput += ", " + strTemp;
-			strTemp.Format("%d", iNoOpinion);
-			strOutput += ", " + strTemp;
 		}
 
 		// Major Approaches
@@ -12785,7 +12754,6 @@ void CvGame::LogGameState(bool bLogHeaders) const
 			strOutput += ", Afraid";
 			strOutput += ", Friendly";
 			strOutput += ", Neutral";
-			strOutput += ", No Approach (Major)";
 		}
 		else
 		{
@@ -12803,8 +12771,6 @@ void CvGame::LogGameState(bool bLogHeaders) const
 			strOutput += ", " + strTemp;
 			strTemp.Format("%d", iMajorNeutral);
 			strOutput += ", " + strTemp;
-			strTemp.Format("%d", iMajorNoApproach);
-			strOutput += ", " + strTemp;
 		}
 
 		// Minor Approaches
@@ -12814,7 +12780,6 @@ void CvGame::LogGameState(bool bLogHeaders) const
 			strOutput += ", Protective";
 			strOutput += ", Conquest";
 			strOutput += ", Bully";
-			strOutput += ", No Approach (Minor)";
 		}
 		else
 		{
@@ -12825,8 +12790,6 @@ void CvGame::LogGameState(bool bLogHeaders) const
 			strTemp.Format("%d", iMinorConquest);
 			strOutput += ", " + strTemp;
 			strTemp.Format("%d", iMinorBully);
-			strOutput += ", " + strTemp;
-			strTemp.Format("%d", iMinorNoApproach);
 			strOutput += ", " + strTemp;
 		}
 
@@ -13034,7 +12997,6 @@ int CalculateDigSiteWeight(int iIndex, vector<CvArchaeologyData>& inputData, vec
 //	--------------------------------------------------------------------------------
 void CalculateDigSiteWeights(int iGridSize, vector<CvArchaeologyData>& inputData, vector<CvArchaeologyData>& chosenDigSites, vector<int>& currentWeights)
 {
-	CvAssertMsg(NO_GREAT_WORK_ARTIFACT_CLASS == 0, "Value of NO_ARTIFACT has changed");
 	for (int i = 0; i < iGridSize; i++)
 	{
 		currentWeights[i] = CalculateDigSiteWeight(i, inputData, chosenDigSites);
@@ -13216,7 +13178,7 @@ void CvGame::SpawnArchaeologySitesHistorically()
 	};
 
 	// find how many dig sites we need to create
-	const int iNumMajorCivs = countMajorCivsEverAlive();
+	const int iNumMajorCivs = GetNumMajorCivsEver();
 	const int iMinDigSites = iNumMajorCivs * /*5*/ GD_INT_GET(MIN_DIG_SITES_PER_MAJOR_CIV); //todo: parameterize this
 	const int iMaxDigSites = iNumMajorCivs * /*8*/ GD_INT_GET(MAX_DIG_SITES_PER_MAJOR_CIV); //todo: parameterize this
 	const int iIdealNumDigSites = iMinDigSites + getJonRandNum(iMaxDigSites - iMinDigSites, "dig sites");
@@ -13238,16 +13200,25 @@ void CvGame::SpawnArchaeologySitesHistorically()
 		}
 	}
 
+
 	CvWeightedVector<int> eEraWeights;
 	eEraWeights.clear();
 	int iMaxEraWeight = 0;
-	for (int i=0; i < static_cast<int>(eHighestEra); i++)
+	if (eHighestEra > 0)
 	{
-		int iWeight = static_cast<int>(eHighestEra) - i;
-		eEraWeights.push_back(i,iWeight);
-		iMaxEraWeight += iWeight;
+		for (int i = 0; i < static_cast<int>(eHighestEra); i++)
+		{
+			int iWeight = static_cast<int>(eHighestEra) - i;
+			eEraWeights.push_back(i, iWeight);
+			iMaxEraWeight += iWeight;
+		}
+		eEraWeights.StableSortItems();
 	}
-	eEraWeights.StableSortItems();
+	else
+	{
+		// make sure this isn't empty
+		eEraWeights.push_back(0, 1);
+	}
 
 	// find out how many dig sites we have now
 	int iHowManyChosenDigSites = 0;
@@ -13256,7 +13227,7 @@ void CvGame::SpawnArchaeologySitesHistorically()
 	vector<CvArchaeologyData> historicalDigSites;
 	vector<CvArchaeologyData> scratchDigSites;
 	int iGridSize = theMap.numPlots();
-	CvAssertMsg(iGridSize > 0, "iGridSize is zero");
+	ASSERT(iGridSize > 0, "iGridSize is zero");
 	historicalDigSites.resize(iGridSize);
 	scratchDigSites.resize(iGridSize);
 	for (int i = 0; i < iGridSize; i++)
@@ -13997,9 +13968,9 @@ bool CvGame::AnyoneHasUnitClass(UnitClassTypes iUnitClassType) const
 #if defined(MOD_BALANCE_CORE_JFD)	
 void CvGame::SetContractUnits(ContractTypes eContract, UnitTypes eUnit, int iValue)
 {
-	VALIDATE_OBJECT
-	CvAssertMsg(eContract > -1 && eContract < GC.getNumContractInfos(), "Invalid eContract index.");
-	CvAssertMsg(eUnit > -1 && eUnit < GC.getNumUnitInfos(), "Invalid eUnit index.");
+	VALIDATE_OBJECT();
+	PRECONDITION(eContract > -1 && eContract < GC.getNumContractInfos(), "Invalid eContract index.");
+	PRECONDITION(eUnit > -1 && eUnit < GC.getNumUnitInfos(), "Invalid eUnit index.");
 
 	if(m_ppaiContractUnits[eContract][eUnit] != iValue)
 	{
@@ -14008,9 +13979,9 @@ void CvGame::SetContractUnits(ContractTypes eContract, UnitTypes eUnit, int iVal
 }
 int CvGame::GetContractUnits(ContractTypes eContract, UnitTypes eUnit) const
 {
-	VALIDATE_OBJECT
-	CvAssertMsg(eContract > -1 && eContract < GC.getNumContractInfos(), "Invalid eContract index.");
-	CvAssertMsg(eUnit > -1 && eUnit < GC.getNumUnitInfos(), "Invalid eUnit index.");
+	VALIDATE_OBJECT();
+	PRECONDITION(eContract > -1 && eContract < GC.getNumContractInfos(), "Invalid eContract index.");
+	PRECONDITION(eUnit > -1 && eUnit < GC.getNumUnitInfos(), "Invalid eUnit index.");
 
 	return m_ppaiContractUnits[eContract][eUnit];
 }

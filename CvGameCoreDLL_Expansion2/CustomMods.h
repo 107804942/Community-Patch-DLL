@@ -22,12 +22,12 @@
  ****************************************************************************
  ****************************************************************************/
 #define MOD_DLL_GUID {0xbf9bf7f0, 0xe078, 0x4d4e, { 0x8a, 0x3e, 0x84, 0x71, 0x2f, 0x85, 0xaa, 0x2b }} //{BF9BF7F0-E078-4d4e-8A3E-84712F85AA2B}
-#define MOD_DLL_NAME "Community Patch v138 (PNM v51+)"
-#define MOD_DLL_VERSION_NUMBER ((uint) 138)
+#define MOD_DLL_NAME "Community Patch v140 (PNM v51+)"
+#define MOD_DLL_VERSION_NUMBER ((uint) 140)
 #define MOD_DLL_VERSION_STATUS ""			// a (alpha), b (beta) or blank (released)
 #define MOD_DLL_CUSTOM_BUILD_NAME ""
 
-//// TEMPORARY
+// All changes added by VP that aren't covered by another CustomModOption.
 #define MOD_BALANCE_VP	gCustomMods.isBALANCE_VP()
 
 //////////////////////////
@@ -112,6 +112,8 @@
 #define MOD_BALANCE_ENCAMPMENTS_SPAWN_ON_VISIBLE_TILES	gCustomMods.isBALANCE_ENCAMPMENTS_SPAWN_ON_VISIBLE_TILES()
 // Vote Commitments cannot be cancelled by war. If the resolution becomes invalid, the votes are abstained instead of given back.
 #define MOD_BALANCE_PERMANENT_VOTE_COMMITMENTS	gCustomMods.isBALANCE_PERMANENT_VOTE_COMMITMENTS()
+// Make the UI show moves remaining in the form (exact movement points / 60) for the tile currently being moused over.
+#define MOD_UI_DISPLAY_PRECISE_MOVEMENT_POINTS	gCustomMods.isUI_DISPLAY_PRECISE_MOVEMENT_POINTS()
 // Changes difficulty settings and adds more difficulty options
 #define MOD_ALTERNATIVE_DIFFICULTY                  gCustomMods.isALTERNATIVE_DIFFICULTY()
 // Changes the stacking limits based on what the tile is (city, fort, plain, etc) - AFFECTS SAVE GAME DATA FORMAT
@@ -1213,11 +1215,11 @@ void CheckSentinel(uint);
 
 #define MOD_SERIALIZE_INIT_WRITE_NO_SENTINEL(stream) uint uiDllSaveVersion = MOD_DLL_VERSION_NUMBER; (stream) << uiDllSaveVersion;
 #define MOD_SERIALIZE_INIT_WRITE(stream) uint uiDllSaveVersion = MOD_DLL_VERSION_NUMBER; (stream) << uiDllSaveVersion; (stream) << 0xDEADBEEF;
-#define MOD_SERIALIZE_WRITE(stream, member) CvAssert(uiDllSaveVersion == MOD_DLL_VERSION_NUMBER); (stream) << member
-#define MOD_SERIALIZE_WRITE_AUTO(stream, member) CvAssert(uiDllSaveVersion == MOD_DLL_VERSION_NUMBER); (stream) << member
-#define MOD_SERIALIZE_WRITE_ARRAY(stream, member, type, size) CvAssert(uiDllSaveVersion == MOD_DLL_VERSION_NUMBER); (stream) << ArrayWrapper<type>(size, member)
-#define MOD_SERIALIZE_WRITE_CONSTARRAY(stream, member, type, size) CvAssert(uiDllSaveVersion == MOD_DLL_VERSION_NUMBER); (stream) << ArrayWrapperConst<type>(size, member)
-#define MOD_SERIALIZE_WRITE_HASH(stream, member, type, size, obj) CvAssert(uiDllSaveVersion == MOD_DLL_VERSION_NUMBER); CvInfosSerializationHelper::WriteHashedDataArray<obj, type>(stream, member, size)
+#define MOD_SERIALIZE_WRITE(stream, member) ASSERT(uiDllSaveVersion == MOD_DLL_VERSION_NUMBER); (stream) << member
+#define MOD_SERIALIZE_WRITE_AUTO(stream, member) ASSERT(uiDllSaveVersion == MOD_DLL_VERSION_NUMBER); (stream) << member
+#define MOD_SERIALIZE_WRITE_ARRAY(stream, member, type, size) ASSERT(uiDllSaveVersion == MOD_DLL_VERSION_NUMBER); (stream) << ArrayWrapper<type>(size, member)
+#define MOD_SERIALIZE_WRITE_CONSTARRAY(stream, member, type, size) ASSERT(uiDllSaveVersion == MOD_DLL_VERSION_NUMBER); (stream) << ArrayWrapperConst<type>(size, member)
+#define MOD_SERIALIZE_WRITE_HASH(stream, member, type, size, obj) ASSERT(uiDllSaveVersion == MOD_DLL_VERSION_NUMBER); CvInfosSerializationHelper::WriteHashedDataArray<obj, type>(stream, member, size)
 #else
 #define MOD_SERIALIZE_INIT_READ(stream) __noop
 #define MOD_SERIALIZE_READ(version, stream, member, def) __noop
@@ -1276,6 +1278,7 @@ public:
 	MOD_OPT_DECL(BALANCE_CITY_STATE_PERSONALITIES);
 	MOD_OPT_DECL(BALANCE_ENCAMPMENTS_SPAWN_ON_VISIBLE_TILES);
 	MOD_OPT_DECL(BALANCE_PERMANENT_VOTE_COMMITMENTS);
+	MOD_OPT_DECL(UI_DISPLAY_PRECISE_MOVEMENT_POINTS);
 	MOD_OPT_DECL(ALTERNATIVE_DIFFICULTY);
 	MOD_OPT_DECL(GLOBAL_STACKING_RULES);
 	MOD_OPT_DECL(GLOBAL_LOCAL_GENERALS);

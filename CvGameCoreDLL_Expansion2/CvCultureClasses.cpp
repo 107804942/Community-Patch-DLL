@@ -125,14 +125,14 @@ int CvGameCulture::CreateGreatWork(GreatWorkType eType, GreatWorkClass eClass, P
 
 GreatWorkType CvGameCulture::GetGreatWorkType(int iIndex) const
 {
-	CvAssertMsg (iIndex < GetNumGreatWorks(), "Bad Great Work index");
+	ASSERT(iIndex < GetNumGreatWorks(), "Bad Great Work index");
 	const CvGreatWork* pWork = &m_CurrentGreatWorks[iIndex];
 	return pWork->m_eType;
 }
 
 GreatWorkClass CvGameCulture::GetGreatWorkClass(int iIndex) const
 {
-	CvAssertMsg (iIndex < GetNumGreatWorks(), "Bad Great Work index");
+	ASSERT(iIndex < GetNumGreatWorks(), "Bad Great Work index");
 	const CvGreatWork* pWork = &m_CurrentGreatWorks[iIndex];
 	return pWork->m_eClassType;
 }
@@ -140,10 +140,11 @@ GreatWorkClass CvGameCulture::GetGreatWorkClass(int iIndex) const
 /// Returns UI tooltip for this Great Work
 CvString CvGameCulture::GetGreatWorkTooltip(int iIndex, PlayerTypes eOwner) const
 {
-	CvAssertMsg (iIndex < GetNumGreatWorks(), "Bad Great Work index");
+	ASSERT(iIndex < GetNumGreatWorks(), "Bad Great Work index");
 	CvString szTooltip = "";
 
 	const CvGreatWork *pWork = &m_CurrentGreatWorks[iIndex];
+	ASSERT(pWork->m_eClassType != NO_GREAT_WORK_CLASS, "Invalid Great Work Class");
 
 	CvString strYearString;
 	CvGameTextMgr::setDateStr(strYearString,
@@ -213,8 +214,8 @@ CvString CvGameCulture::GetGreatWorkTooltip(int iIndex, PlayerTypes eOwner) cons
 		GreatWorkClass eArtClass = (GreatWorkClass)GC.getInfoTypeForString("GREAT_WORK_ART");
 		GreatWorkClass eArtifactsClass = (GreatWorkClass)GC.getInfoTypeForString("GREAT_WORK_ARTIFACT");
 		GreatWorkClass eMusicClass = (GreatWorkClass)GC.getInfoTypeForString("GREAT_WORK_MUSIC");
-		GreatWorkClass eFilmClass = (GreatWorkClass)GC.getInfoTypeForString("GREAT_WORK_FILM");
-		GreatWorkClass eRelicClass = (GreatWorkClass)GC.getInfoTypeForString("GREAT_WORK_RELIC");
+		GreatWorkClass eFilmClass = (GreatWorkClass)GC.getInfoTypeForString("GREAT_WORK_FILM", true);
+		GreatWorkClass eRelicClass = (GreatWorkClass)GC.getInfoTypeForString("GREAT_WORK_RELIC", true);
 		if(pWork->m_eClassType == eWritingClass)
 		{
 			iAddedValue += GET_PLAYER(eOwner).GetPlayerTraits()->GetLitYieldChanges(eYield);
@@ -310,7 +311,7 @@ CvString CvGameCulture::GetGreatWorkTooltip(int iIndex, PlayerTypes eOwner) cons
 /// Returns name of this Great Work
 CvString CvGameCulture::GetGreatWorkName(int iIndex) const
 {
-	CvAssertMsg (iIndex < GetNumGreatWorks(), "Bad Great Work index");
+	ASSERT(iIndex < GetNumGreatWorks(), "Bad Great Work index");
 	const CvGreatWork* pWork = &m_CurrentGreatWorks[iIndex];
 
 	return CultureHelpers::GetGreatWorkName(pWork->m_eType);
@@ -319,7 +320,7 @@ CvString CvGameCulture::GetGreatWorkName(int iIndex) const
 /// Returns artist of this Great Work
 CvString CvGameCulture::GetGreatWorkArtist(int iIndex) const
 {
-	CvAssertMsg (iIndex < GetNumGreatWorks(), "Bad Great Work index");
+	ASSERT(iIndex < GetNumGreatWorks(), "Bad Great Work index");
 	CvString szArtist = "";
 
 	const CvGreatWork *pWork = &m_CurrentGreatWorks[iIndex];
@@ -331,7 +332,7 @@ CvString CvGameCulture::GetGreatWorkArtist(int iIndex) const
 /// Returns era of this Great Work
 CvString CvGameCulture::GetGreatWorkEra(int iIndex) const
 {
-	CvAssertMsg (iIndex < GetNumGreatWorks(), "Bad Great Work index");
+	ASSERT(iIndex < GetNumGreatWorks(), "Bad Great Work index");
 	CvString szEra = "";
 
 	const CvGreatWork *pWork = &m_CurrentGreatWorks[iIndex];
@@ -354,7 +355,7 @@ CvString CvGameCulture::GetGreatWorkEra(int iIndex) const
 
 CvString CvGameCulture::GetGreatWorkEraAbbreviation(int iIndex) const
 {
-	CvAssertMsg (iIndex < GetNumGreatWorks(), "Bad Great Work index");
+	ASSERT(iIndex < GetNumGreatWorks(), "Bad Great Work index");
 	CvString szEra = "";
 
 	const CvGreatWork *pWork = &m_CurrentGreatWorks[iIndex];
@@ -365,7 +366,7 @@ CvString CvGameCulture::GetGreatWorkEraAbbreviation(int iIndex) const
 
 CvString CvGameCulture::GetGreatWorkEraShort(int iIndex) const
 {
-	CvAssertMsg (iIndex < GetNumGreatWorks(), "Bad Great Work index");
+	ASSERT(iIndex < GetNumGreatWorks(), "Bad Great Work index");
 	CvString szEra = "";
 
 	const CvGreatWork *pWork = &m_CurrentGreatWorks[iIndex];
@@ -376,14 +377,14 @@ CvString CvGameCulture::GetGreatWorkEraShort(int iIndex) const
 
 PlayerTypes CvGameCulture::GetGreatWorkCreator (int iIndex) const
 {
-	CvAssertMsg (iIndex < GetNumGreatWorks(), "Bad Great Work index");
+	ASSERT(iIndex < GetNumGreatWorks(), "Bad Great Work index");
 	const CvGreatWork *pWork = &m_CurrentGreatWorks[iIndex];
 	return pWork->m_ePlayer;
 }
 
 PlayerTypes CvGameCulture::GetGreatWorkController(int iIndex) const
 {
-	CvAssertMsg (iIndex < GetNumGreatWorks(), "Bad Great Work index");
+	ASSERT(iIndex < GetNumGreatWorks(), "Bad Great Work index");
 	
 	// for each player
 	//   for each building
@@ -443,7 +444,7 @@ bool CvGameCulture::IsGreatWorkCreated(GreatWorkType eType) const
 
 CvCity* CvGameCulture::GetGreatWorkCity(int iIndex) const
 {
-	CvAssertMsg (iIndex < GetNumGreatWorks(), "Bad Great Work index");
+	ASSERT(iIndex < GetNumGreatWorks(), "Bad Great Work index");
 	
 	// for each player
 	//   for each building
@@ -489,7 +490,7 @@ CvCity* CvGameCulture::GetGreatWorkCity(int iIndex) const
 
 int CvGameCulture::GetGreatWorkCurrentThemingBonus(int iIndex) const
 {
-	CvAssertMsg (iIndex < GetNumGreatWorks(), "Bad Great Work index");
+	ASSERT(iIndex < GetNumGreatWorks(), "Bad Great Work index");
 
 	// for each player
 	//   for each building
@@ -863,23 +864,11 @@ CvGreatWorkBuildingInMyEmpire::CvGreatWorkBuildingInMyEmpire()
 : m_iCityID(-1)
 , m_eBuilding(NO_BUILDING)
 {
+	m_iGPThemingBonus = 0;
 	m_bThemed = false;
 	m_bEndangered = false;
 	m_bPuppet = false;
     m_eYieldType = NO_YIELD;
-}
-
-/// Constructor
-CvGreatWorkBuildingInMyEmpire::	CvGreatWorkBuildingInMyEmpire(int iCityID, BuildingTypes eBuilding)
-: m_iCityID(iCityID)
-, m_eBuilding(eBuilding)
-{
-	m_bThemed = false;
-	m_bEndangered = false;
-#if defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
-	m_bPuppet = false;
-    m_eYieldType = GC.GetGameBuildings()->GetEntry(eBuilding)->GetGreatWorkYieldType();
-#endif
 }
 
 //=====================================
@@ -1145,6 +1134,10 @@ void CvPlayerCulture::DoSwapGreatWorksHuman(bool bSwap)
 					CvGreatWorkBuildingInMyEmpire building;
 					building.m_eBuilding = eBuilding;
 					building.m_iCityID = pLoopCity->GetID();
+					if (pLoopCity->getGPRateModifierPerLocalTheme() > 0)
+					{
+						building.m_iGPThemingBonus = pLoopCity->getGPRateModifierPerLocalTheme() * pLoopCity->GetCityCitizens()->GetTotalSpecialistCount();
+					}
 
 					if (pLoopCity->isCapital())
 						building.m_bEndangered = false;
@@ -1252,6 +1245,10 @@ void CvPlayerCulture::DoSwapGreatWorks(YieldTypes eFocusYield)
 					CvGreatWorkBuildingInMyEmpire building;
 					building.m_eBuilding = eBuilding;
 					building.m_iCityID = pLoopCity->GetID();
+					if (pLoopCity->getGPRateModifierPerLocalTheme() > 0)
+					{
+						building.m_iGPThemingBonus = pLoopCity->getGPRateModifierPerLocalTheme() * pLoopCity->GetCityCitizens()->GetTotalSpecialistCount();
+					}
 
 					if (pLoopCity->isCapital())
 						building.m_bEndangered = false;
@@ -1333,7 +1330,9 @@ static bool SortThemingBonus(const CvGreatWorkBuildingInMyEmpire& kEntry1, const
 
 		if (pBonus1 && pBonus2)
 		{
-			return (pBonus1->GetAIPriority() > pBonus2->GetAIPriority());
+			int iBonus1 = 50 * pBonus1->GetAIPriority() + kEntry1.m_iGPThemingBonus;
+			int iBonus2 = 50 * pBonus2->GetAIPriority() + kEntry2.m_iGPThemingBonus;
+			return (iBonus1 > iBonus2);
 		}
 		else if (pBonus1)
 		{
@@ -2803,14 +2802,14 @@ void CvPlayerCulture::SetSwappableMusicIndex (int iIndex)
 /// Add to the list of plots where we have archaeologists waiting for orders
 void CvPlayerCulture::AddDigCompletePlot(CvPlot* pPlot)
 {
-	CvAssert(pPlot != NULL);
+	ASSERT(pPlot != NULL);
 	m_aDigCompletePlots.push_back(pPlot);
 }
 
 /// Remove a plot from the list of plots where we have archaeologists waiting for orders
 void CvPlayerCulture::RemoveDigCompletePlot(CvPlot* pPlot)
 {
-	CvAssert(pPlot != NULL);
+	ASSERT(pPlot != NULL);
 	vector<CvPlot*>::iterator it = std::find(m_aDigCompletePlots.begin(), m_aDigCompletePlots.end(), pPlot);
 	if (it != m_aDigCompletePlots.end())
 	{
@@ -2870,7 +2869,7 @@ CvUnit *CvPlayerCulture::GetNextDigCompleteArchaeologist(CvPlot **ppPlot) const
 /// Is there a dig that completed at this plot?
 bool CvPlayerCulture::HasDigCompleteHere(CvPlot* pPlot) const
 {
-	CvAssert(pPlot != NULL);
+	ASSERT(pPlot != NULL);
 	return std::find(m_aDigCompletePlots.begin(), m_aDigCompletePlots.end(), pPlot) != m_aDigCompletePlots.end();
 }
 
@@ -3014,7 +3013,7 @@ void CvPlayerCulture::DoArchaeologyChoice (ArchaeologyChoiceType eChoice)
 			if (pUnit)
 				pUnit->kill(true);
 
-			if (pPlot->getOwner() != NO_PLAYER)
+			if (pPlot->getOwner() != NO_PLAYER && pPlot->getOwner() != m_pPlayer->GetID())
 			{
 				CvPlayer &kOwner = GET_PLAYER(pPlot->getOwner());
 
@@ -3059,9 +3058,9 @@ void CvPlayerCulture::DoArchaeologyChoice (ArchaeologyChoiceType eChoice)
 	break;
 	case ARCHAEOLOGY_ARTIFACT_PLAYER1:
 	{
-		if (GET_PLAYER(pPlot->getOwner()).isMajorCiv())
+		if (pPlot->getOwner() != NO_PLAYER && GET_PLAYER(pPlot->getOwner()).isMajorCiv())
 		{
-			if (pUnit && pPlot->getOwner() != pUnit->getOwner() && GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->IsWaitingForDigChoice())
+			if (pUnit && pPlot->getTeam() != pUnit->getTeam() && GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->IsWaitingForDigChoice())
 			{
 				GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->ChangeNegativeArchaeologyPoints(pUnit->getOwner(), 1);
 			}
@@ -3119,7 +3118,7 @@ void CvPlayerCulture::DoArchaeologyChoice (ArchaeologyChoiceType eChoice)
 	{
 		if (GET_PLAYER(pPlot->getOwner()).isMajorCiv())
 		{
-			if (pUnit && pPlot->getOwner() != pUnit->getOwner() && GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->IsWaitingForDigChoice())
+			if (pUnit && pPlot->getTeam() != pUnit->getTeam() && GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->IsWaitingForDigChoice())
 			{
 				GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->ChangeNegativeArchaeologyPoints(pUnit->getOwner(), 1);
 			}
@@ -3178,7 +3177,7 @@ void CvPlayerCulture::DoArchaeologyChoice (ArchaeologyChoiceType eChoice)
 	{
 		if (GET_PLAYER(pPlot->getOwner()).isMajorCiv())
 		{
-			if (pUnit && pPlot->getOwner() != pUnit->getOwner() && GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->IsWaitingForDigChoice())
+			if (pUnit && pPlot->getTeam() != pUnit->getTeam() && GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->IsWaitingForDigChoice())
 			{
 				GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->ChangeNegativeArchaeologyPoints(pUnit->getOwner(), 1);
 			}
@@ -3237,7 +3236,7 @@ void CvPlayerCulture::DoArchaeologyChoice (ArchaeologyChoiceType eChoice)
 	{
 		if (GET_PLAYER(pPlot->getOwner()).isMajorCiv())
 		{
-			if (pUnit && pPlot->getOwner() != pUnit->getOwner() && GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->IsWaitingForDigChoice())
+			if (pUnit && pPlot->getTeam() != pUnit->getTeam() && GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->IsWaitingForDigChoice())
 			{
 				GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->ChangeNegativeArchaeologyPoints(pUnit->getOwner(), 1);
 			}
@@ -3375,7 +3374,7 @@ void CvPlayerCulture::DoTurn()
 		GC.getGame().GetGameCulture()->SetReportedSomeoneInfluential(true);
 	}
 
-	if (!m_bReportedTwoCivsAway && iThisTurnInfluentialCivs > 0 && iThisTurnInfluentialCivs == iInfluentialCivsForWin - 2 && GC.getGame().countMajorCivsEverAlive() >= 4)
+	if (!m_bReportedTwoCivsAway && iThisTurnInfluentialCivs > 0 && iThisTurnInfluentialCivs == iInfluentialCivsForWin - 2 && GC.getGame().GetNumMajorCivsEver() >= 4)
 	{
 		if(bCultureVictoryValid)
 		{//This civilization is the first civ to be two civilizations away from getting a cultural victory.  Notify the masses!
@@ -3415,13 +3414,13 @@ void CvPlayerCulture::DoTurn()
 		m_bReportedTwoCivsAway = true;
 	}
 
-	if (!m_bReportedOneCivAway && iThisTurnInfluentialCivs == iInfluentialCivsForWin - 1 && GC.getGame().countMajorCivsEverAlive() >= 3)
+	if (!m_bReportedOneCivAway && iThisTurnInfluentialCivs == iInfluentialCivsForWin - 1 && GC.getGame().GetNumMajorCivsEver() >= 3)
 	{
 		if(bCultureVictoryValid)
 		{//This civilization is the first civ to be one civilizations away from getting a cultural victory.  Notify the masses!
 
 		  // but don't notify if there are only two players left in the game!
-		  if (GC.getGame().countMajorCivsAlive() > 2) 
+		  if (GC.getGame().GetNumMajorCivsAlive() > 2) 
 		  {
 			CvString							targCloseOneSummary = GetLocalizedText("TXT_KEY_NOTIFICATION_CULTURE_VICTORY_WITHIN_ONE_ACTIVE_PLAYER");
 			Localization::String	targCloseOneInfo = Localization::Lookup("TXT_KEY_NOTIFICATION_CULTURE_VICTORY_WITHIN_ONE_ACTIVE_PLAYER_TT");
@@ -3831,8 +3830,8 @@ void CvPlayerCulture::SetLastTurnCPT(int iValue)
 /// What is our cultural influence now?
 int CvPlayerCulture::GetInfluenceOn(PlayerTypes ePlayer) const
 {
-	CvAssertMsg (ePlayer >= 0, "Invalid player index");
-	CvAssertMsg (ePlayer < MAX_MAJOR_CIVS, "Invalid player index");
+	PRECONDITION(ePlayer >= 0, "Invalid player index");
+	PRECONDITION(ePlayer < MAX_MAJOR_CIVS, "Invalid player index");
 
 	int iIndex = (int)ePlayer;
 	if (iIndex < 0 || iIndex >= MAX_MAJOR_CIVS) return 0;
@@ -3842,8 +3841,8 @@ int CvPlayerCulture::GetInfluenceOn(PlayerTypes ePlayer) const
 // What is our cultural influence now?
 void CvPlayerCulture::ChangeInfluenceOn(PlayerTypes ePlayer, int iValue)
 {
-	CvAssertMsg (ePlayer >= 0, "Invalid player index");
-	CvAssertMsg (ePlayer < MAX_MAJOR_CIVS, "Invalid player index");
+	PRECONDITION(ePlayer >= 0, "Invalid player index");
+	PRECONDITION(ePlayer < MAX_MAJOR_CIVS, "Invalid player index");
 
 	int iIndex = (int)ePlayer;
 	if (iIndex < 0 || iIndex >= MAX_MAJOR_CIVS) return;
@@ -3884,8 +3883,8 @@ int CvPlayerCulture::ChangeInfluenceOn(PlayerTypes eOtherPlayer, int iBaseInflue
 /// What was our cultural influence last turn?
 int CvPlayerCulture::GetLastTurnInfluenceOn(PlayerTypes ePlayer) const
 {
-	CvAssertMsg (ePlayer >= 0, "Invalid player index");
-	CvAssertMsg (ePlayer < MAX_MAJOR_CIVS, "Invalid player index");
+	PRECONDITION(ePlayer >= 0, "Invalid player index");
+	PRECONDITION(ePlayer < MAX_MAJOR_CIVS, "Invalid player index");
 
 	int iIndex = (int)ePlayer;
 	if (iIndex < 0 || iIndex >= MAX_MAJOR_CIVS) return 0;
@@ -3895,8 +3894,8 @@ int CvPlayerCulture::GetLastTurnInfluenceOn(PlayerTypes ePlayer) const
 /// What was our cultural influence last turn?
 int CvPlayerCulture::GetLastTurnInfluenceIPT(PlayerTypes ePlayer) const
 {
-	CvAssertMsg(ePlayer >= 0, "Invalid player index");
-	CvAssertMsg(ePlayer < MAX_MAJOR_CIVS, "Invalid player index");
+	PRECONDITION(ePlayer >= 0, "Invalid player index");
+	PRECONDITION(ePlayer < MAX_MAJOR_CIVS, "Invalid player index");
 
 	int iIndex = (int)ePlayer;
 	if (iIndex < 0 || iIndex >= MAX_MAJOR_CIVS) return 0;
@@ -4353,61 +4352,23 @@ int CvPlayerCulture::GetInfluenceCityConquestReduction(PlayerTypes ePlayer) cons
 /// Get spy time to establish surveillance based on current influence level
 int CvPlayerCulture::GetInfluenceSurveillanceTime(PlayerTypes ePlayer) const
 {
-	int iRtnValue = 3;
-
-	if (ePlayer < MAX_MAJOR_CIVS)
+	CvPlayer &kPlayer = GET_PLAYER(ePlayer);
+	if (kPlayer.isMajorCiv())
 	{
-		InfluenceLevelTypes eLevel = GetInfluenceLevel(ePlayer);
-
-		if (MOD_BALANCE_VP)
-		{
-			switch (eLevel)
-			{
-			case NO_INFLUENCE_LEVEL:
-			case INFLUENCE_LEVEL_UNKNOWN:
-				break; // No impact.
-			case INFLUENCE_LEVEL_EXOTIC:
-				iRtnValue = /*5*/ GD_INT_GET(BALANCE_SPY_BOOST_INFLUENCE_EXOTIC);
-				break;
-			case INFLUENCE_LEVEL_FAMILIAR:
-				iRtnValue = /*4*/ GD_INT_GET(BALANCE_SPY_BOOST_INFLUENCE_FAMILIAR);
-				break;
-			case INFLUENCE_LEVEL_POPULAR:
-				iRtnValue = /*3*/ GD_INT_GET(BALANCE_SPY_BOOST_INFLUENCE_POPULAR);
-				break;
-			case INFLUENCE_LEVEL_INFLUENTIAL:
-				iRtnValue = /*2*/ GD_INT_GET(BALANCE_SPY_BOOST_INFLUENCE_INFLUENTIAL);
-				break;
-			case INFLUENCE_LEVEL_DOMINANT:
-				iRtnValue = /*1*/ GD_INT_GET(BALANCE_SPY_BOOST_INFLUENCE_DOMINANT);
-				break;
-			}
-		}
-		else if (eLevel >= INFLUENCE_LEVEL_FAMILIAR)
-		{
-			iRtnValue = 1;
-		}
+		if (GetInfluenceLevel(ePlayer) >= INFLUENCE_LEVEL_FAMILIAR)
+			return 1;
 	}
-	else
+	else if (kPlayer.isMinorCiv())
 	{
-		// Have a major power ally?
-		CvPlayer &kCityState = GET_PLAYER(ePlayer);
-		if (kCityState.isMinorCiv())
+		PlayerTypes eAlly = kPlayer.GetMinorCivAI()->GetAlly();
+		if (eAlly != NO_PLAYER)
 		{
-			PlayerTypes eAlly = kCityState.GetMinorCivAI()->GetAlly();
-			if (eAlly != NO_PLAYER)
-			{
-				InfluenceLevelTypes eLevel = GetInfluenceLevel(eAlly);
-
-				if (eLevel >= INFLUENCE_LEVEL_FAMILIAR)
-				{
-					iRtnValue = 1;
-				}
-			}
+			if (GetInfluenceLevel(eAlly) >= INFLUENCE_LEVEL_FAMILIAR)
+				return 1;
 		}
 	}
 
-	return iRtnValue;
+	return 3;
 }
 
 /// Get extra spy rank in city state allies based on current influence level
@@ -6280,7 +6241,7 @@ int CvCityCulture::GetTourismMultiplier(PlayerTypes eTargetPlayer, bool bIgnoreR
 	}
 	// LATER add top science city and research agreement with this player???
 
-	return max(-100, iMultiplier);
+	return max(/*-100*/ max(GD_INT_GET(MINIMUM_TOURISM_MODIFIER), -100), iMultiplier);
 }
 
 /// What is the tooltip describing the tourism output?
@@ -6993,14 +6954,14 @@ CvString CvCityCulture::GetThemingTooltip(BuildingClassTypes eBuildingClass) con
 	if (iIndex != -1)
 	{
 		CvThemingBonusInfo* pkThemingInfo = pkBuildingInfo->GetThemingBonusInfo(iIndex);
-		CvAssert(pkThemingInfo);
+		ASSERT(pkThemingInfo, "Couldn't find theming bonus info");
 
 		CvString szBonusString = "";
 		szBonusString.Format("+%d [ICON_TOURISM]/[ICON_CULTURE]: ", GetThemingBonus(eBuildingClass));
 
 		CvString szThemeDescription = "";
 		int iGreatWork = m_pCity->GetCityBuildings()->GetBuildingGreatWork(eBuildingClass, 0);
-		if (iGreatWork != -1)
+		if (pkThemingInfo && iGreatWork != -1)
 		{
 			CvGreatWork work = GC.getGame().GetGameCulture()->m_CurrentGreatWorks[iGreatWork];
 			CvString szEraString = GC.getEraInfo(work.m_eEra)->getShortDesc();

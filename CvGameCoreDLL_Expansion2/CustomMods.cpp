@@ -300,6 +300,7 @@ int CustomMods::getOption(const string& sOption, int defValue) {
 		MOD_OPT_CACHE(BALANCE_CITY_STATE_PERSONALITIES);
 		MOD_OPT_CACHE(BALANCE_ENCAMPMENTS_SPAWN_ON_VISIBLE_TILES);
 		MOD_OPT_CACHE(BALANCE_PERMANENT_VOTE_COMMITMENTS);
+		MOD_OPT_CACHE(UI_DISPLAY_PRECISE_MOVEMENT_POINTS);
 		MOD_OPT_CACHE(ALTERNATIVE_DIFFICULTY);
 		MOD_OPT_CACHE(GLOBAL_STACKING_RULES);
 		MOD_OPT_CACHE(GLOBAL_LOCAL_GENERALS);
@@ -616,19 +617,14 @@ int CustomMods::getCivOption(const char* szCiv, const char* szName, int defValue
 
 void CheckSentinel(uint value)
 {
-	if (value == 0xDEADBEEF)
-		return; //everything ok
+    if (value == 0xDEADBEEF)
+        return; //everything ok
 
-	CUSTOMLOG("Deserialization Error, check DeserializationCallstack.log\n");
+    CUSTOMLOG("Deserialization Error\n");
 
-#if defined(STACKWALKER)
-	FILogFile* pLog=LOGFILEMGR.GetLog( "DeserializationCallstack.log", FILogFile::kDontTimeStamp );
-	if (pLog)
-	{
-		gStackWalker.SetLog(pLog);
-		gStackWalker.ShowCallstack(5);
-		gStackWalker.SetLog(NULL);
-		pLog->Msg("\r\n");
-	}
+#if defined(VPDEBUG)
+    char debugMsg[256];
+    sprintf(debugMsg, "Sentinel value mismatch: Expected 0xDEADBEEF, Got 0x%08X\n", value);
+    OutputDebugString(debugMsg);
 #endif
 }

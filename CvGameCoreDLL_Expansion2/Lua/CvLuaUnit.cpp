@@ -50,6 +50,8 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetWaypointPath);
 	Method(GeneratePathToNextWaypoint);
 	Method(GetMeleeAttackFromPlot);
+	Method(GetPotentialRangeAttackTargetPlots);
+	Method(GetPotentialRangeAttackOriginPlots);
 
 	Method(CanEnterTerritory);
 	Method(GetDeclareWarRangeStrike);
@@ -237,6 +239,9 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(IsSpecificContractUnit);
 	Method(GetContractUnit);
 #endif
+	Method(IsNoMaintenance);
+	Method(SetNoMaintenance);
+
 	Method(IsGreatPerson);
 
 	Method(IsFighting);
@@ -335,7 +340,6 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(IsInvisible);
 	Method(IsNukeImmune);
 	Method(IsRangeAttackOnlyInDomain);
-	Method(IsCoastalAttackOnly);
 	Method(IsCityAttackOnly);
 
 	Method(GetAirInterceptRange);
@@ -953,6 +957,123 @@ int CvLuaUnit::lGeneratePathToNextWaypoint(lua_State* L)
 	return 1;
 }
 
+//-------------- returns the plots the unit can bombard from a given plot. does not check for presence of enemies!
+// GetPotentialRangeAttackTargetPlots(plot)
+int CvLuaUnit::lGetPotentialRangeAttackTargetPlots(lua_State* L)
+{
+	CvUnit* pUnit = GetInstance(L);
+	CvPlot* pOrigin = CvLuaPlot::GetInstance(L, 2);
+	if (!pOrigin)
+		return 0;
+
+	lua_createtable(L, 0, 0);
+	int iCount = 1;
+
+	// Aircraft and special promotions make us ignore LOS
+	bool bIgnoreLOS = pUnit->IsRangeAttackIgnoreLOS() || pUnit->getDomainType() == DOMAIN_AIR;
+	// Can only bombard in domain? (used for Subs' torpedo attack)
+	bool bOnlyInDomain = pUnit->getUnitInfo().IsRangeAttackOnlyInDomain();
+
+	for (int iRange=1; iRange<=pUnit->GetRange(); iRange++)
+	{
+		const vector<CvPlot*>& vCandidates = GC.getMap().GetPlotsAtRangeX(pOrigin, iRange, true, !bIgnoreLOS);
+
+		for (size_t i = 0; i < vCandidates.size(); i++)
+		{
+			//skip sentinels
+			if (vCandidates[i] == NULL)
+				continue;
+
+			if (!vCandidates[i]->isRevealed(pUnit->getTeam()))
+				continue;
+
+			if (!pUnit->isNativeDomain(vCandidates[i]))
+				continue;
+
+			if (bOnlyInDomain)
+			{
+				//subs can only attack within their (water) area or adjacent cities
+				if (pOrigin->getArea() != vCandidates[i]->getArea())
+				{
+					CvCity* pCity = vCandidates[i]->getPlotCity();
+					if (!pCity || !pCity->HasAccessToArea(pOrigin->getArea()))
+						continue;
+				}
+			}
+
+			lua_createtable(L, 0, 0);
+			const int t = lua_gettop(L);
+			lua_pushinteger(L, vCandidates[i]->getX());
+			lua_setfield(L, t, "X");
+			lua_pushinteger(L, vCandidates[i]->getY());
+			lua_setfield(L, t, "Y");
+			lua_rawseti(L, -2, iCount++);
+		}
+	}
+
+	return 1;
+}
+
+//-------------- returns the plots the unit would need to be in to bombard a given plot. does not check for stacking.
+// GetPotentialRangeAttackOriginPlots(plot)
+int CvLuaUnit::lGetPotentialRangeAttackOriginPlots(lua_State* L)
+{
+	CvUnit* pUnit = GetInstance(L);
+	CvPlot* pTarget = CvLuaPlot::GetInstance(L, 2);
+	if (!pTarget)
+		return 0;
+
+	lua_createtable(L, 0, 0);
+	int iCount = 1;
+
+	// Aircraft and special promotions make us ignore LOS
+	bool bIgnoreLOS = pUnit->IsRangeAttackIgnoreLOS() || pUnit->getDomainType() == DOMAIN_AIR;
+	// Can only bombard in domain? (used for Subs' torpedo attack)
+	bool bOnlyInDomain = pUnit->getUnitInfo().IsRangeAttackOnlyInDomain();
+
+	for (int iRange = 1; iRange <= pUnit->GetRange(); iRange++)
+	{
+		const vector<CvPlot*>& vCandidates = GC.getMap().GetPlotsAtRangeX(pTarget, iRange, false, !bIgnoreLOS);
+
+		for (size_t i = 0; i < vCandidates.size(); i++)
+		{
+			//skip sentinels
+			if (vCandidates[i] == NULL)
+				continue;
+
+			if (!vCandidates[i]->isRevealed(pUnit->getTeam()))
+				continue;
+
+			if (!pUnit->isNativeDomain(vCandidates[i]))
+				continue;
+
+			if (!pUnit->canEndTurnAtPlot(vCandidates[i]))
+				continue;
+
+			if (bOnlyInDomain)
+			{
+				//subs can only attack within their (water) area or adjacent cities
+				if (pTarget->getArea() != vCandidates[i]->getArea())
+				{
+					CvCity* pCity = vCandidates[i]->getPlotCity();
+					if (!pCity || !pCity->HasAccessToArea(pTarget->getArea()))
+						continue;
+				}
+			}
+
+			lua_createtable(L, 0, 0);
+			const int t = lua_gettop(L);
+			lua_pushinteger(L, vCandidates[i]->getX());
+			lua_setfield(L, t, "X");
+			lua_pushinteger(L, vCandidates[i]->getY());
+			lua_setfield(L, t, "Y");
+			lua_rawseti(L, -2, iCount++);
+		}
+	}
+
+	return 1;
+}
+
 //-------------------------------------------------------------------------------------------
 // Returns the estimated "from" plot when this unit melee attacks a unit on the given plot
 int CvLuaUnit::lGetMeleeAttackFromPlot(lua_State* L)
@@ -1326,7 +1447,7 @@ int CvLuaUnit::lCanHeal(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 	CvPlot* pkPlot = CvLuaPlot::GetInstance(L, 2);
-	const bool bResult = pkUnit->canHeal(pkPlot);
+	const bool bResult = pkUnit->IsHurt() && pkUnit->canHeal(pkPlot);
 
 	lua_pushboolean(L, bResult);
 	return 1;
@@ -1807,23 +1928,6 @@ int CvLuaUnit::lIsRangeAttackOnlyInDomain(lua_State* L)
 	}
 
 	const bool bResult = pkUnitInfo->IsRangeAttackOnlyInDomain();
-	lua_pushboolean(L, bResult);
-	return 1;
-}
-
-//------------------------------------------------------------------------------
-int CvLuaUnit::lIsCoastalAttackOnly(lua_State* L)
-{
-	CvUnit* pkUnit = GetInstance(L);
-	CvUnitEntry* pkUnitInfo = GC.getUnitInfo(pkUnit->getUnitType());
-
-	if (pkUnitInfo == NULL)
-	{
-		luaL_error(L, "Could not find unit info (%d) for unit.", pkUnit->getUnitType());
-		return 0;
-	}
-
-	const bool bResult = pkUnitInfo->IsCoastalFireOnly();
 	lua_pushboolean(L, bResult);
 	return 1;
 }
@@ -2846,6 +2950,25 @@ int CvLuaUnit::lGetContractUnit(lua_State* L)
 	return 1;
 }
 #endif
+// bool IsNoMaintenance()
+int CvLuaUnit::lIsNoMaintenance(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+
+	const bool bResult = pkUnit->IsNoMaintenance();
+	lua_pushboolean(L, bResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+// SetNoMaintenance(bool bValue)
+int CvLuaUnit::lSetNoMaintenance(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const bool bNewValue = lua_toboolean(L, 2);
+
+	pkUnit->SetNoMaintenance(bNewValue);
+	return 0;
+}
 //------------------------------------------------------------------------------
 //bool IsGreatPerson();
 int CvLuaUnit::lIsGreatPerson(lua_State* L)
@@ -4582,7 +4705,6 @@ int CvLuaUnit::lGetPlot(lua_State* L)
 	CvUnit* pkUnit = GetInstance(L);
 	if(!GC.getMap().isPlot(pkUnit->getX(), pkUnit->getY()))
 	{
-		CvAssertMsg(false, "pUnit plot is not valid. Pushing nil!")
 		lua_pushnil(L);
 		return 1;
 	}
@@ -5998,12 +6120,8 @@ int CvLuaUnit::lGetReligion(lua_State* L)
 int CvLuaUnit::lGetConversionStrength(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
-#if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	CvCity* pkCity = CvLuaCity::GetInstance(L, 2, false);
 	int iReligiousStrength = pkUnit->GetConversionStrength(pkCity);
-#else
-	int iReligiousStrength = pkUnit->GetConversionStrength();
-#endif
 
 	lua_pushinteger(L, iReligiousStrength);
 

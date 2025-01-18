@@ -147,7 +147,6 @@ void CvTypes::AcquireTypes(Database::Connection& db)
 				sprintf_s(msg, "ArtifactType - %s is used in the DLL but does not exist in the database.", it->first.c_str());
 				FILogFile* pLog = LOGFILEMGR.GetLog("Gamecore.log", FILogFile::kDontTimeStamp);
 				pLog->WarningMsg(msg);
-				CvAssertMsg(false, msg);
 			}
 		}
 	}
@@ -176,17 +175,6 @@ void CvTypes::AcquireTypes(Database::Connection& db)
 			}
 		}
 
-		for(LookupTable::iterator it = kTypeLookupTable.begin(); it != kTypeLookupTable.end(); ++it)
-		{
-			if((*it->second) == NO_GREAT_WORK_SLOT)
-			{
-				char msg[256] = {0};
-				sprintf_s(msg, "GreatWorkSlotType - %s is used in the DLL but does not exist in the database.", it->first.c_str());
-				FILogFile* pLog = LOGFILEMGR.GetLog("Gamecore.log", FILogFile::kDontTimeStamp);
-				pLog->WarningMsg(msg);
-				CvAssertMsg(false, msg);
-			}
-		}
 	}
 
 	//MissionTypes
@@ -287,7 +275,6 @@ void CvTypes::AcquireTypes(Database::Connection& db)
 				sprintf_s(msg, "MissionType - %s is used in the DLL but does not exist in the database.", it->first.c_str());
 				FILogFile* pLog = LOGFILEMGR.GetLog("Gamecore.log", FILogFile::kDontTimeStamp);
 				pLog->WarningMsg(msg);
-				CvAssertMsg(false, msg);
 			}
 		}
 	}

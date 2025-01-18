@@ -366,9 +366,7 @@ public:
 	void changeUpgradeProgress(int iChange);
 
 	fraction ComputeFractionalYieldFromAdjacentImprovement(CvImprovementEntry& kImprovement, YieldTypes eYield) const;
-	int ComputeYieldFromAdjacentImprovement(CvImprovementEntry& kImprovement, ImprovementTypes eValue, YieldTypes eYield) const; // to be removed
-	int ComputeYieldFromTwoAdjacentImprovement(CvImprovementEntry& kImprovement, ImprovementTypes eValue, YieldTypes eYield) const; // to be removed
-	int ComputeYieldFromOtherAdjacentImprovement(CvImprovementEntry& kImprovement, YieldTypes eYield) const; // to be removed
+	fraction ComputeFractionalYieldFromAdjacentTerrain(CvImprovementEntry& kImprovement, YieldTypes eYield) const;
 	int ComputeYieldFromAdjacentTerrain(CvImprovementEntry& kImprovement, YieldTypes eYield) const;
 	int ComputeYieldFromAdjacentResource(CvImprovementEntry& kImprovement, YieldTypes eYield, TeamTypes eTeam) const;
 	int ComputeYieldFromAdjacentFeature(CvImprovementEntry& kImprovement, YieldTypes eYield) const;
@@ -607,8 +605,8 @@ public:
 
 	inline int getVisibilityCount(TeamTypes eTeam) const
 	{
-		CvAssertMsg(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
-		CvAssertMsg(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
+		PRECONDITION(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
+		PRECONDITION(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
 
 		//With delayed visibility, return the hacked visibility count so plots which were once visible this turn stay that way
 		return MOD_CORE_DELAYED_VISIBILITY ? m_aiVisibilityCountThisTurnMax[eTeam] : m_aiVisibilityCount[eTeam];
@@ -637,15 +635,15 @@ public:
 	{
 		if(bDebug && GC.getGame().isDebugMode())
 			return true;
-		CvAssertMsg(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
-		CvAssertMsg(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
+		PRECONDITION(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
+		PRECONDITION(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
 		return m_bfRevealed.GetBit(eTeam);
 	}
 
 	bool isRevealed(TeamTypes eTeam) const
 	{
-		CvAssertMsg(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
-		CvAssertMsg(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
+		PRECONDITION(eTeam >= 0, "eTeam is expected to be non-negative (invalid Index)");
+		PRECONDITION(eTeam < MAX_TEAMS, "eTeam is expected to be within maximum bounds (invalid Index)");
 		return m_bfRevealed.GetBit(eTeam);
 	}
 
@@ -680,6 +678,8 @@ public:
 	bool changeBuildProgress(BuildTypes eBuild, int iChange, PlayerTypes ePlayer = NO_PLAYER, bool bNewBuild = false);
 	bool getAnyBuildProgress() const;
 	void SilentlyResetAllBuildProgress(BuildTypes eBuild = NO_BUILD);
+
+	int GetStealPlotValue(PlayerTypes eStealingPlayer, bool& bStoleHighValueTile) const;
 
 	bool isLayoutDirty() const;							// The plot layout contains resources, routes, and improvements
 	void setLayoutDirty(bool bDirty);
@@ -832,6 +832,8 @@ public:
 	bool IsWithinDistanceOfResource(ResourceTypes iResourceType, int iDistance) const;
 	bool IsAdjacentToTerrain(TerrainTypes iTerrainType) const;
 	bool IsWithinDistanceOfTerrain(TerrainTypes iTerrainType, int iDistance) const;
+
+	bool IsStealBlockedByImprovement() const;
 
 #if defined(MOD_BALANCE_CORE)
 	bool IsEnemyCityAdjacent(TeamTypes eMyTeam, const CvCity* pSpecifyCity) const;

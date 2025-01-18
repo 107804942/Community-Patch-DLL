@@ -82,7 +82,7 @@ UPDATE Language_en_US
 SET Text = '[COLOR_YELLOW]Great Engineer[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_SPECIALISTSANDGP_GREATENGINEER_HEADING3_TITLE';
 UPDATE Language_en_US
-SET Text = '[COLOR_CYAN]Special Improvement: Manufactory[ENDCOLOR][NEWLINE]You can expend a Great Engineer to create a Manufactory. A Manufactory produces huge amounts of production (hammers) for the city, if it is worked.[NEWLINE][NEWLINE][COLOR_CYAN]Special Ability: {TXT_KEY_MISSION_HURRY_PRODUCTION}[ENDCOLOR][NEWLINE]You can expend a Great Engineer to hurry production on the city''s current effort. [COLOR_YELLOW]The amount of Production is equal to 5 turns of the best city''s average recent output. Every owned Manufactory you''ve created and own increases it by 10%.[ENDCOLOR]'
+SET Text = '[COLOR_CYAN]Special Improvement: Manufactory[ENDCOLOR][NEWLINE]You can expend a Great Engineer to create a Manufactory. A Manufactory produces huge amounts of production (hammers) for the city, if it is worked, and counts as every type of improvement for adjacency bonuses.[NEWLINE][NEWLINE][COLOR_CYAN]Special Ability: {TXT_KEY_MISSION_HURRY_PRODUCTION}[ENDCOLOR][NEWLINE]You can expend a Great Engineer to hurry production on the city''s current effort. [COLOR_YELLOW]The amount of Production is equal to 5 turns of the best city''s average recent output. Every owned Manufactory you''ve created and own increases it by 10%.[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_SPECIALISTSANDGP_GREATENGINEER_HEADING3_BODY';
 
 UPDATE Language_en_US
@@ -223,6 +223,13 @@ WHERE Tag = 'TXT_KEY_BARBARIAN_UNITS_HEADING2_TITLE';
 UPDATE Language_en_US
 SET Text = 'Barbarian encampments can create almost any kind of unit in the game - from warriors and spearmen to cannons and tanks. (They can build units equal to those that the most advanced civilization can create.)[NEWLINE][NEWLINE]Once created the barbarian units will either hang around their encampment or head off toward the nearest civilization or city-state and try to cause trouble. They''ll attack units, destroy improvements and menace cities. [COLOR_YELLOW]Barbarians next to a city without a garrison can steal food, culture, production or science from the owner. They can also conquer a poorly-defended city and turn it into a Barbarian City.[ENDCOLOR][NEWLINE][NEWLINE]This is why it''s important to periodically sweep the countryside around your civilization, destroying encampments before they become a threat.'
 WHERE Tag = 'TXT_KEY_BARBARIAN_UNITS_HEADING2_BODY';
+
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Experience Points Limitations[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_BARBARIAN_POINTLIMITS_HEADING3_TITLE';
+UPDATE Language_en_US
+SET Text = 'When they fight barbarian units, your less well-trained units will gain experience points. However, any unit that has already acquired [COLOR_YELLOW]45 XPs[ENDCOLOR] (or has exchanged that many for promotions) no longer gains XPs from fighting barbarians.'
+WHERE Tag = 'TXT_KEY_BARBARIAN_POINTLIMITS_HEADING3_BODY';
 
 UPDATE Language_en_US
 SET Text = '[COLOR_YELLOW]Settlers And Food Production[ENDCOLOR]'

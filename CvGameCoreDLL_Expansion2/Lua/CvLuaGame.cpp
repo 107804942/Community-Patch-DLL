@@ -622,7 +622,10 @@ int CvLuaGame::lCityPushOrder(lua_State* L)
 	const bool bShift		= luaL_optbool(L, 5, 0);
 	const bool bCtrl		= luaL_optbool(L, 6, 0);
 
-	GetInstance()->cityPushOrder(pkCity, eOrder, iData, bAlt, bShift, bCtrl);
+	if (GET_PLAYER(pkCity->getOwner()).isTurnActive())
+	{
+		GetInstance()->cityPushOrder(pkCity, eOrder, iData, bAlt, bShift, bCtrl);
+	}
 	return 0;
 }
 //------------------------------------------------------------------------------
@@ -1182,7 +1185,7 @@ int CvLuaGame::lGetNumWorldWonders(lua_State* L)
 			{
 				if(::isWorldWonderClass(pkBuildingInfo->GetBuildingClassInfo()))
 				{
-					iWonderCount += kLoopPlayer.countNumBuildings(eBuilding);
+					iWonderCount += kLoopPlayer.getNumBuildings(eBuilding);
 				}
 			}
 		}
@@ -2144,7 +2147,7 @@ int CvLuaGame::lGetAdvisorCounsel(lua_State* L)
 			// close out previous table
 			if(eCurrentAdvisorType != NUM_ADVISOR_TYPES)
 			{
-				CvAssertMsg(bTableOpen, "Table should be open");
+				ASSERT(bTableOpen, "Table should be open");
 				lua_rawseti(L, iTopLevelLua, eCurrentAdvisorType);
 				bTableOpen = false;
 			}
@@ -2156,14 +2159,14 @@ int CvLuaGame::lGetAdvisorCounsel(lua_State* L)
 				break;
 			}
 			eCurrentAdvisorType = eNextAdvisorType;
-			CvAssertMsg(!bTableOpen, "table should be open");
+			ASSERT(!bTableOpen, "table should be open");
 			lua_createtable(L, 0, 0);
 			bTableOpen = true;
 			iAdvisorTableLevel = lua_gettop(L);
 			iAdvisorIndex = 0;
 		}
 
-		CvAssertMsg(bTableOpen, "Table should be open");
+		ASSERT(bTableOpen, "Table should be open");
 		lua_pushstring(L, GC.getGame().GetAdvisorCounsel()->m_aCounsel[ui].m_strTxtKey);
 		lua_rawseti(L, iAdvisorTableLevel, iAdvisorIndex);
 		iAdvisorIndex++;

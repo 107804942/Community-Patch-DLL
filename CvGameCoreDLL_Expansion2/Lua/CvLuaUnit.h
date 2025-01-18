@@ -44,6 +44,8 @@ protected:
 	static int lGeneratePathToNextWaypoint(lua_State* L);
 	static int lGetWaypointPath(lua_State* L);
 	static int lGetMeleeAttackFromPlot(lua_State* L);
+	static int lGetPotentialRangeAttackTargetPlots(lua_State* L);
+	static int lGetPotentialRangeAttackOriginPlots(lua_State* L);
 
 	static int lCanEnterTerritory(lua_State* L);
 	static int lGetDeclareWarRangeStrike(lua_State* L);
@@ -233,6 +235,8 @@ protected:
 	static int lIsSpecificContractUnit(lua_State* L);
 	static int lGetContractUnit(lua_State* L);
 #endif
+	static int lIsNoMaintenance(lua_State* L);
+	static int lSetNoMaintenance(lua_State* L);
 
 	static int lIsGreatPerson(lua_State* L);
 
@@ -299,7 +303,6 @@ protected:
 	static int lCanSetUpForRangedAttack(lua_State* L);
 	static int lIsSetUpForRangedAttack(lua_State* L);
 	static int lIsRangeAttackOnlyInDomain(lua_State* L);
-	static int lIsCoastalAttackOnly(lua_State* L);
 	static int lIsCityAttackOnly(lua_State* L);
 
 	static int lNoDefensiveBonus(lua_State* L);

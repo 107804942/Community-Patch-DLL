@@ -1472,6 +1472,7 @@ if civ5_mode then
 			local CityStateHappiness = g_activePlayer:GetHappinessFromMinorCivs();
 			local HappinessFromAnnexedMinors = g_activePlayer:GetHappinessFromAnnexedMinors();
 			local VassalHappiness = g_activePlayer:GetHappinessFromVassals();
+			local WarWithMajorsHappiness = g_activePlayer:GetHappinessFromWarsWithMajors();
 			local HandicapHappiness = g_activePlayer:GetHandicapHappiness();
 
 			tips:insert( "[ENDCOLOR][COLOR:150:255:150:255]" )
@@ -1485,6 +1486,7 @@ if civ5_mode then
 			tips:insertLocalizedBulletIfNonZero( "TXT_KEY_TP_HAPPINESS_CITY_STATE_FRIENDSHIP", CityStateHappiness )
 			tips:insertLocalizedBulletIfNonZero( "TXT_KEY_TP_HAPPINESS_FROM_ANNEXED_MINORS", HappinessFromAnnexedMinors )
 			tips:insertLocalizedBulletIfNonZero( "TXT_KEY_TP_HAPPINESS_VASSALS", VassalHappiness )
+			tips:insertLocalizedBulletIfNonZero( "TXT_KEY_TP_HAPPINESS_WAR_WITH_MAJORS", WarWithMajorsHappiness )
     		tips:insertLocalizedBulletIfNonZero( "TXT_KEY_TP_HAPPINESS_DIFFICULTY_LEVEL", HandicapHappiness )
 			tips:insertLocalizedBulletIfNonZero( "TXT_KEY_TP_HAPPINESS_CITY_LOCAL", LocalCityHappiness )
 			tips:insert( "[ENDCOLOR]" )
@@ -2143,10 +2145,10 @@ if civ5_mode and gk_mode then
 				for plot in CityPlots( city ) do
 					local resourceID = plot:GetResourceType( g_activeTeamID )
 					local numResource = plot:GetNumResource()
-					if numResource > 0
+					if numResource > 0 and resourceID ~= -1
 						and Game.GetResourceUsageType( resourceID ) == ResourceUsageTypes.RESOURCEUSAGE_LUXURY
 					then
-						if plot:IsCity() or (not plot:IsImprovementPillaged() and plot:IsResourceConnectedByImprovement( plot:GetImprovementType() )) then
+						if plot:IsCity() or (plot:GetImprovementType() ~= -1 and not plot:IsImprovementPillaged() and plot:IsResourceConnectedByImprovement( plot:GetImprovementType() )) then
 							numConnectedResource[resourceID] = (numConnectedResource[resourceID] or 0) + numResource
 						else
 							numUnconnectedResource[resourceID] = (numUnconnectedResource[resourceID] or 0) + numResource
@@ -2477,7 +2479,7 @@ local function ResourcesToolTip( control )
 				for plot in CityPlots( city ) do
 					local numResource = plot:GetNumResource()
 					if numResource > 0  and resourceID == plot:GetResourceType( g_activeTeamID ) then
-						if plot:IsCity() or (not plot:IsImprovementPillaged() and plot:IsResourceConnectedByImprovement( plot:GetImprovementType() )) then
+						if plot:IsCity() or (plot:GetImprovementType() ~= -1 and not plot:IsImprovementPillaged() and plot:IsResourceConnectedByImprovement( plot:GetImprovementType() )) then
 							numConnectedResource = numConnectedResource + numResource
 						else
 							numUnconnectedResource = numUnconnectedResource + numResource

@@ -115,8 +115,8 @@ bool CvAICityStrategyEntry::CacheResults(Database::Results& kResults, CvDatabase
 /// What Flavors will be added by adopting this Strategy?
 int CvAICityStrategyEntry::GetFlavorValue(int i) const
 {
-	CvAssertMsg(i < GC.getNumFlavorTypes(), "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFlavorTypes(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piFlavorValue ? m_piFlavorValue[i] : -1;
 }
 
@@ -129,8 +129,8 @@ int CvAICityStrategyEntry::GetWeightThreshold() const
 /// How do a player's Personality Flavors affect the Threshold for adopting a Strategy? (if applicable)
 int CvAICityStrategyEntry::GetPersonalityFlavorThresholdMod(int i) const
 {
-	CvAssertMsg(i < GC.getNumFlavorTypes(), "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFlavorTypes(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piPersonalityFlavorThresholdMod ? m_piPersonalityFlavorThresholdMod[i] : -1;
 }
 
@@ -889,7 +889,9 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg, UnitTypes eIg
 			if (m_pCity->canMaintain(eProcess, (m_pCity->isProductionProcess() && eProcess == m_pCity->getProductionProcess())))
 			{		
 				int iTempWeight = m_pProcessProductionAI->GetWeight((ProcessTypes)iProcessLoop);
-				if (eProcess == GC.getInfoTypeForString("PROCESS_DEFENSE"))
+				CvProcessInfo* pProcess = GC.getProcessInfo(eProcess);
+				PRECONDITION(pProcess);
+				if (pProcess->getDefenseValue() > 0)
 				{
 					iTempWeight = 100;
 				}
@@ -2375,7 +2377,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_Lakebound(CvCity* pCity)
 bool CityStrategyAIHelpers::IsTestCityStrategy_NeedTileImprovers(AICityStrategyTypes eStrategy, CvCity* pCity)
 {
 	CvPlayer& kPlayer = GET_PLAYER(pCity->getOwner());
-	int iCurrentNumCities = kPlayer.countCitiesNeedingTerrainImprovements();
+	int iCurrentNumCities = kPlayer.getCitiesNeedingTerrainImprovements();
 
 	int iLastTurnWorkerDisbanded = kPlayer.GetEconomicAI()->GetLastTurnWorkerDisbanded();
 	if(iLastTurnWorkerDisbanded >= 0 && GC.getGame().getGameTurn() - iLastTurnWorkerDisbanded <= NO_WORKER_AFTER_DISBAND_DURATION)
@@ -2471,7 +2473,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_WantTileImprovers(AICityStrategyT
 		if (iNumBuilders < 1)
 			return true;
 
-		int iCurrentNumCities = kPlayer.countCitiesNeedingTerrainImprovements();
+		int iCurrentNumCities = kPlayer.getCitiesNeedingTerrainImprovements();
 		CvAICityStrategyEntry* pCityStrategy = pCity->GetCityStrategyAI()->GetAICityStrategies()->GetEntry(eStrategy);
 		if (iNumBuilders < iCurrentNumCities * pCityStrategy->GetWeightThreshold()) // limit to x builders per city
 			return true;
@@ -2515,7 +2517,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_EnoughTileImprovers(AICityStrateg
 
 	int iWeightThresholdModifier = GetWeightThresholdModifier(eStrategy, pCity);	// 10 Extra Weight per TILE_IMPROVEMENT Flavor
 	int iPerCityThreshold = pCityStrategy->GetWeightThreshold() + iWeightThresholdModifier;	// 100
-	int iNumCities = kPlayer.countCitiesNeedingTerrainImprovements();
+	int iNumCities = kPlayer.getCitiesNeedingTerrainImprovements();
 
 	// Average Player wants no more than 1.50 Builders per City [150 Weight is Average; range is 100 to 200]
 	return (iNumBuilders * 100) >= iPerCityThreshold*iNumCities;
@@ -3047,7 +3049,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_ManyTechsStolen(CvCity* pCity)
 				eFlavorEspionage = eFlavor;
 			}
 		}
-		CvAssertMsg(eFlavorEspionage != NO_FLAVOR, "Could not find espionage flavor!");
+		ASSERT(eFlavorEspionage != NO_FLAVOR, "Could not find espionage flavor!");
 		
 		fRatio = pCityEspionage->m_aiNumTimesCityRobbed[ePlayer] / (float)(iTurnsOfEspionage);
 	}
@@ -3095,7 +3097,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_KeyScienceCity(CvCity* pCity)
 				eFlavorEspionage = eFlavor;
 			}
 		}
-		CvAssertMsg(eFlavorEspionage != NO_FLAVOR, "Could not find espionage flavor!");
+		ASSERT(eFlavorEspionage != NO_FLAVOR, "Could not find espionage flavor!");
 
 		float fRatio = iNumBetterScienceCities / (float)iNumOtherCities;
 		float fCutOff = (0.05f * GET_PLAYER(ePlayer).GetFlavorManager()->GetPersonalityIndividualFlavor(eFlavorEspionage));
@@ -3393,101 +3395,31 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_GoodAirliftCity(CvCity *pCity)
 /// Do we need more Diplomatic Units? Check and see.
 bool CityStrategyAIHelpers::IsTestCityStrategy_NeedDiplomats(CvCity *pCity)
 {
+	if (!MOD_BALANCE_VP)
+		return false;
+
 	PlayerTypes ePlayer = pCity->getOwner();
-	EconomicAIStrategyTypes eStrategyNeedDiplomats = (EconomicAIStrategyTypes) GC.getInfoTypeForString("ECONOMICAISTRATEGY_NEED_DIPLOMATS");
+	EconomicAIStrategyTypes eStrategyNeedDiplomats = (EconomicAIStrategyTypes)GC.getInfoTypeForString("ECONOMICAISTRATEGY_NEED_DIPLOMATS");
+	if (!GET_PLAYER(ePlayer).GetEconomicAI()->IsUsingStrategy(eStrategyNeedDiplomats))
+		return false;
 
-	bool bHasDiploBuilding = false;
-
-	for (int iBuildingLoop = 0; iBuildingLoop < GC.getNumBuildingInfos(); iBuildingLoop++)
-	{
-		const BuildingTypes eBuilding = static_cast<BuildingTypes>(iBuildingLoop);
-		CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
-
-		if(pkBuildingInfo)
-		{
-			// Has this Building
-			if (pCity->GetCityBuildings()->GetNumBuilding(eBuilding) > 0)
-			{
-				// Does it grant a diplomatic production bonus?
-				if (pkBuildingInfo->GetBuildingClassType() == (BuildingClassTypes)GC.getInfoTypeForString("BUILDINGCLASS_SCRIBE"))
-				{
-					bHasDiploBuilding = true;
-				}
-
-				if (bHasDiploBuilding)
-				{
-					//Let's make sure the city is robust before we start this.
-					if(pCity->getPopulation() >= 6)
-					{
-						//Need diplomats?
-						if(GET_PLAYER(ePlayer).GetEconomicAI()->IsUsingStrategy(eStrategyNeedDiplomats))
-						{
-							return true;
-						}
-					}
-				}
-			}
-		}
-	}
-	if (pCity->isCapital() && pCity->getPopulation() >= 6)
-	{
-		//Need diplomats?
-		if(GET_PLAYER(ePlayer).GetEconomicAI()->IsUsingStrategy(eStrategyNeedDiplomats))
-		{
-			return true;
-		}
-	}
-	return false;
+	SpecialistTypes eDiplomat = (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_CIVIL_SERVANT");
+	return (pCity->isCapital() || pCity->GetCityCitizens()->GetSpecialistSlots(eDiplomat) > 0) && pCity->getPopulation() >= 6;
 }
 
 /// Do we REALLY need more Diplomatic Units? Check and see.
 bool CityStrategyAIHelpers::IsTestCityStrategy_NeedDiplomatsCritical(CvCity *pCity)
 {
+	if (!MOD_BALANCE_VP)
+		return false;
+
 	PlayerTypes ePlayer = pCity->getOwner();
 	EconomicAIStrategyTypes eStrategyNeedDiplomatsCritical = (EconomicAIStrategyTypes) GC.getInfoTypeForString("ECONOMICAISTRATEGY_NEED_DIPLOMATS_CRITICAL");
 
-	bool bHasDiploBuilding = false;
+	if (!GET_PLAYER(ePlayer).GetEconomicAI()->IsUsingStrategy(eStrategyNeedDiplomatsCritical))
+		return false;
 
-	for (int iBuildingLoop = 0; iBuildingLoop < GC.getNumBuildingInfos(); iBuildingLoop++)
-	{
-		const BuildingTypes eBuilding = static_cast<BuildingTypes>(iBuildingLoop);
-		CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
-
-		if(pkBuildingInfo)
-		{
-			// Has this Building
-			if (pCity->GetCityBuildings()->GetNumBuilding(eBuilding) > 0)
-			{
-				// Does it grant a diplomatic production bonus?
-				if (pkBuildingInfo->GetBuildingClassType() == (BuildingClassTypes)GC.getInfoTypeForString("BUILDINGCLASS_COURT_SCRIBE"))
-				{
-					bHasDiploBuilding = true;
-				}
-
-				if (bHasDiploBuilding)
-				{
-					//Let's make sure the city is robust before we start this.
-					if(pCity->getPopulation() >= 5)
-					{
-						//Need diplomats?
-						if(GET_PLAYER(ePlayer).GetEconomicAI()->IsUsingStrategy(eStrategyNeedDiplomatsCritical))
-						{
-							return true;
-						}
-					}
-				}
-			}
-		}
-	}
-	if (pCity->isCapital() && pCity->getPopulation() >= 5)
-	{
-		//Need diplomats?
-		if(GET_PLAYER(ePlayer).GetEconomicAI()->IsUsingStrategy(eStrategyNeedDiplomatsCritical))
-		{
-			return true;
-		}
-	}
-	return false;
+	return pCity->getPopulation() >= 5;
 }
 
 //Tests to help AI build buildings it needs.
@@ -3595,6 +3527,26 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 	if (pkBuildingInfo->GetSeaPlotYieldChange(eYield) > 0)
 	{
 		iFlatYield += (pkBuildingInfo->GetSeaPlotYieldChange(eYield) * pCity->countNumWaterPlots());
+	}
+	if (pkBuildingInfo->GetLakePlotYieldChange(eYield) > 0)
+	{
+		iFlatYield += (pkBuildingInfo->GetLakePlotYieldChange(eYield) * pCity->countNumLakePlots());
+	}
+	if (pkBuildingInfo->GetLakePlotYieldChangeGlobal(eYield) > 0)
+	{
+		// performance: don't loop though all cities, just estimate this
+		iFlatYield += (kPlayer.getNumCities() * pkBuildingInfo->GetLakePlotYieldChangeGlobal(eYield) * pCity->countNumLakePlots());
+	}
+	if (pkBuildingInfo->GetYieldFromGoldenAgeStart(eYield) > 0)
+	{
+		// estimate how often we'll start a golden age
+		iFlatYield += max(1, (3 * pkBuildingInfo->GetYieldFromGoldenAgeStart(eYield) * (kPlayer.GetHappinessForGAP() + kPlayer.GetGoldenAgePointsFromEmpire()) / max(1, kPlayer.GetGoldenAgeProgressThreshold())));
+	}
+	if (pkBuildingInfo->GetYieldChangePerGoldenAge(eYield) > 0)
+	{
+		// max number of times we can get this
+		int iNumGoldenAgeBonuses = pkBuildingInfo->GetYieldChangePerGoldenAgeCap(eYield) / pkBuildingInfo->GetYieldChangePerGoldenAge(eYield);
+		iFlatYield += (iNumGoldenAgeBonuses * pkBuildingInfo->GetYieldChangePerGoldenAge(eYield) / 2 / (iEra + 1));
 	}
 	for (int j = 0; j < NUM_YIELD_TYPES; j++)
 	{
@@ -3907,6 +3859,14 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 	{
 		iInstant += pkBuildingInfo->GetYieldFromVictoryGlobalEraScaling(eYield) * 5;
 	}
+	if (pkBuildingInfo->GetYieldFromVictoryGlobalInGoldenAge(eYield) > 0)
+	{
+		iInstant += pkBuildingInfo->GetYieldFromVictoryGlobalInGoldenAge(eYield) / 3;
+	}
+	if (pkBuildingInfo->GetYieldFromVictoryGlobalInGoldenAgeEraScaling(eYield) > 0)
+	{
+		iInstant += pkBuildingInfo->GetYieldFromVictoryGlobalInGoldenAgeEraScaling(eYield) * 5 / 3;
+	}
 	if (pkBuildingInfo->GetYieldFromVictoryGlobalPlayer(eYield) > 0)
 	{
 		iInstant += pkBuildingInfo->GetYieldFromVictoryGlobalPlayer(eYield) * 25;
@@ -3977,6 +3937,20 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 			iInstant += kPlayer.GetPlayerTraits()->GetInvestmentModifier() * -1;
 		}
 	}
+	if (pkBuildingInfo->GetYieldFromPurchaseGlobal(eYield) > 0)
+	{
+		int iTemp = pkBuildingInfo->GetYieldFromPurchaseGlobal(eYield);
+
+		if ((kPlayer.GetInvestmentModifier() * -1) > 0)
+		{
+			iTemp += kPlayer.GetInvestmentModifier() * -1;
+		}
+		if ((kPlayer.GetPlayerTraits()->GetInvestmentModifier() * -1) > 0)
+		{
+			iTemp += kPlayer.GetPlayerTraits()->GetInvestmentModifier() * -1;
+		}
+		iInstant += iTemp * iNumCities;
+	}
 	if (pkBuildingInfo->GetYieldFromFaithPurchase(eYield) > 0)
 	{
 		iInstant += pkBuildingInfo->GetYieldFromFaithPurchase(eYield);
@@ -4037,6 +4011,32 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 		iInstant += max(1, (500 - (pCity->getPopulation() * 10)));
 
 		iInstant += pkBuildingInfo->GetYieldFromBirth(eYield) + pCity->foodDifference() + pCity->GetGrowthExtraYield(eYield) + kPlayer.GetCityGrowthMod();
+		if (pCity->isCapital())
+		{
+			iInstant += kPlayer.GetCapitalGrowthMod();
+		}
+		iInstant += kPlayer.GetPlayerTraits()->GetWLTKDGPImprovementModifier();
+		iInstant += kPlayer.GetPlayerTraits()->GetGrowthBoon();
+	}
+	if (pkBuildingInfo->GetYieldFromBirthEraScaling(eYield) > 0)
+	{
+		//we want these as early as possible!
+		iInstant += max(1, (500 - (pCity->getPopulation() * 10)));
+
+		iInstant += (iEra * pkBuildingInfo->GetYieldFromBirthEraScaling(eYield)) + pCity->foodDifference() + pCity->GetGrowthExtraYield(eYield) + kPlayer.GetCityGrowthMod();
+		if (pCity->isCapital())
+		{
+			iInstant += kPlayer.GetCapitalGrowthMod();
+		}
+		iInstant += kPlayer.GetPlayerTraits()->GetWLTKDGPImprovementModifier();
+		iInstant += kPlayer.GetPlayerTraits()->GetGrowthBoon();
+	}
+	if (pkBuildingInfo->GetGPPOnCitizenBirth() > 0)
+	{
+		//we want these as early as possible!
+		iInstant += max(1, (500 - (pCity->getPopulation() * 10)));
+
+		iInstant += (iEra * pkBuildingInfo->GetGPPOnCitizenBirth()) + pCity->foodDifference() + pCity->GetGrowthExtraYield(eYield) + kPlayer.GetCityGrowthMod();
 		if (pCity->isCapital())
 		{
 			iInstant += kPlayer.GetCapitalGrowthMod();
@@ -4634,6 +4634,14 @@ int CityStrategyAIHelpers::GetBuildingGrandStrategyValue(CvCity *pCity, Building
 	{
 		iConquestValue += (pkBuildingInfo->GetUnitUpgradeCostMod() * -1);
 	}
+	if (pkBuildingInfo->GetMilitaryProductionModifier() > 0)
+	{
+		iConquestValue += pkBuildingInfo->GetMilitaryProductionModifier();
+	}
+	if (pkBuildingInfo->GetGlobalMilitaryProductionModPerMajorWar() > 0)
+	{
+		iConquestValue += pkBuildingInfo->GetGlobalMilitaryProductionModPerMajorWar() * kPlayer.getNumCities() * max(1, kPlayer.GetMilitaryAI()->GetNumberCivsAtWarWith(false));
+	}
 
 
 	if(pkBuildingInfo->GetGlobalSpaceProductionModifier() > 0)
@@ -4994,6 +5002,29 @@ int CityStrategyAIHelpers::GetBuildingPolicyValue(CvCity *pCity, BuildingTypes e
 			}
 		}
 	}
+	for (uint uiYield = 0; uiYield < NUM_YIELD_TYPES; uiYield++)
+	{
+		YieldTypes eYield = (YieldTypes)uiYield;
+
+		if (eYield == NO_YIELD)
+			continue;
+
+		if (pkBuildingInfo->GetYieldFromGoldenAgeStart(eYield) > 0)
+		{
+			if (pCity->GetPlayer()->GetPlayerTraits()->GetGoldenAgeFromVictory())
+			{
+				iValue += 5 * pkBuildingInfo->GetYieldFromGoldenAgeStart(eYield);
+			}
+		}
+		
+		if (pkBuildingInfo->GetYieldChangePerGoldenAge(eYield) > 0)
+		{
+			if (pCity->GetPlayer()->GetPlayerTraits()->GetGoldenAgeFromVictory())
+			{
+				iValue += 10 * pkBuildingInfo->GetYieldChangePerGoldenAge(eYield);
+			}
+		}
+	}
 	int iProductionBonus = kPlayer.GetPlayerPolicies()->GetBuildingClassProductionModifier(pkBuildingInfo->GetBuildingClassType());
 	if(iProductionBonus > 0)
 	{
@@ -5141,6 +5172,15 @@ int CityStrategyAIHelpers::GetBuildingBasicValue(CvCity *pCity, BuildingTypes eB
 	{
 		iValue += pkBuildingInfo->GetFoodKept() * pCity->getPopulation();
 	}
+	if (pkBuildingInfo->IsNoStarvationNonSpecialist() && !pCity->IsNoStarvationNonSpecialist())
+	{
+		iValue += 10 * pCity->getPopulation();
+		if (pCity->foodDifferenceTimes100(false) < 0)
+		{
+			// higher value if we are starving
+			iValue += (-2) * pCity->foodDifferenceTimes100(false);
+		}
+	}
 
 	if (pkBuildingInfo->AllowsFoodTradeRoutes())
 	{
@@ -5222,14 +5262,10 @@ int CityStrategyAIHelpers::GetBuildingBasicValue(CvCity *pCity, BuildingTypes eB
 
 		if (eFreeBuildingThisCity != NO_BUILDING)
 		{
-			CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eFreeBuildingThisCity);
-			if (pkBuildingInfo)
+			int iFreeValue = pCity->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(eFreeBuildingThisCity, 30, true, true);
+			if (iFreeValue > 0)
 			{
-				int iFreeValue = pCity->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(eFreeBuildingThisCity, 30, true, true);
-				if (iFreeValue > 0)
-				{
-					iValue += iFreeValue;
-				}
+				iValue += iFreeValue;
 			}
 		}
 	}

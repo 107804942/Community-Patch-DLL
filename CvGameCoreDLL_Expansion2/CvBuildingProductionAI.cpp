@@ -35,7 +35,7 @@ CvBuildingProductionAI::~CvBuildingProductionAI(void)
 /// Clear out AI local variables
 void CvBuildingProductionAI::Reset()
 {
-	CvAssertMsg(m_pCityBuildings != NULL, "Building Production AI init failure: city buildings are NULL");
+	ASSERT(m_pCityBuildings != NULL, "Building Production AI init failure: city buildings are NULL");
 
 	m_BuildingAIWeights.clear();
 
@@ -65,7 +65,7 @@ void CvBuildingProductionAI::Read(FDataStream& kStream)
 /// Serialization write
 void CvBuildingProductionAI::Write(FDataStream& kStream) const
 {
-	CvAssertMsg(m_pCityBuildings != NULL, "Building Production AI init failure: city buildings are NULL");
+	ASSERT(m_pCityBuildings != NULL, "Building Production AI init failure: city buildings are NULL");
 
 	CvStreamSaveVisitor serialVisitor(kStream);
 	Serialize(*this, serialVisitor);
@@ -289,28 +289,31 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 	if (!bIgnoreSituational)
 	{
 		//Minor Check
-		for (int iMinorLoop = MAX_MAJOR_CIVS; iMinorLoop < MAX_CIV_PLAYERS; iMinorLoop++)
+		if (kPlayer.isMajorCiv())
 		{
-			PlayerTypes eMinor = (PlayerTypes)iMinorLoop;
-			if (eMinor != NO_PLAYER)
+			for (int iMinorLoop = MAX_MAJOR_CIVS; iMinorLoop < MAX_CIV_PLAYERS; iMinorLoop++)
 			{
-				CvPlayer* pMinor = &GET_PLAYER(eMinor);
-				if (pMinor)
+				PlayerTypes eMinor = (PlayerTypes)iMinorLoop;
+				if (eMinor != NO_PLAYER)
 				{
-					CvMinorCivAI* pMinorCivAI = pMinor->GetMinorCivAI();
-					if (pMinorCivAI && pMinorCivAI->IsActiveQuestForPlayer(m_pCity->getOwner(), MINOR_CIV_QUEST_BUILD_X_BUILDINGS))
+					CvPlayer* pMinor = &GET_PLAYER(eMinor);
+					if (pMinor)
 					{
-						if ((BuildingTypes)pMinorCivAI->GetQuestData1(m_pCity->getOwner(), MINOR_CIV_QUEST_BUILD_X_BUILDINGS) == eBuilding)
+						CvMinorCivAI* pMinorCivAI = pMinor->GetMinorCivAI();
+						if (pMinorCivAI && pMinorCivAI->IsActiveQuestForPlayer(m_pCity->getOwner(), MINOR_CIV_QUEST_BUILD_X_BUILDINGS))
 						{
-							iBonus += 10;
-						}
-						if ((BuildingTypes)pMinorCivAI->GetQuestData1(m_pCity->getOwner(), MINOR_CIV_QUEST_CONSTRUCT_NATIONAL_WONDER) == eBuilding)
-						{
-							iBonus += 10;
-						}
-						if ((BuildingTypes)pMinorCivAI->GetQuestData1(m_pCity->getOwner(), MINOR_CIV_QUEST_CONSTRUCT_WONDER) == eBuilding)
-						{
-							iBonus += 10;
+							if ((BuildingTypes)pMinorCivAI->GetQuestData1(m_pCity->getOwner(), MINOR_CIV_QUEST_BUILD_X_BUILDINGS) == eBuilding)
+							{
+								iBonus += 10;
+							}
+							if ((BuildingTypes)pMinorCivAI->GetQuestData1(m_pCity->getOwner(), MINOR_CIV_QUEST_CONSTRUCT_NATIONAL_WONDER) == eBuilding)
+							{
+								iBonus += 10;
+							}
+							if ((BuildingTypes)pMinorCivAI->GetQuestData1(m_pCity->getOwner(), MINOR_CIV_QUEST_CONSTRUCT_WONDER) == eBuilding)
+							{
+								iBonus += 10;
+							}
 						}
 					}
 				}
@@ -533,10 +536,47 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 	////Happiness (VP)
 	////////
 
-	
-	if(pkBuildingInfo->GetHappiness() > 0 || pkBuildingInfo->GetHappinessPerCity() > 0 || pkBuildingInfo->GetHappinessPerXPolicies() > 0 || pkBuildingInfo->GetUnmoddedHappiness() > 0)
+	int iHappinessValue = 10; // value of one additional happiness
+	if (kPlayer.IsEmpireUnhappy())
 	{
-		iBonus += kPlayer.GetUnhappiness() * 10;
+		iHappinessValue *= 4;
+	}
+	if (kPlayer.IsEmpireSuperUnhappy())
+	{
+		iHappinessValue *= 4;
+	}
+	if (kPlayer.IsEmpireVeryUnhappy())
+	{
+		iHappinessValue *= 4;
+	}
+
+	if(pkBuildingInfo->GetHappiness() > 0)
+	{
+		iBonus += iHappinessValue * pkBuildingInfo->GetHappiness();
+		bGoodforHappiness = true;
+	}
+
+	if ( pkBuildingInfo->GetHappinessPerCity() > 0)
+	{
+		iBonus += iHappinessValue * pkBuildingInfo->GetHappinessPerCity() * kPlayer.getNumCities();
+		bGoodforHappiness = true;
+	}
+
+	if (pkBuildingInfo->GetHappinessPerXPolicies() > 0 && kPlayer.GetExtraHappinessPerXPolicies() == 0)
+	{
+		iBonus += iHappinessValue * kPlayer.GetPlayerPolicies()->GetNumPoliciesOwned() / pkBuildingInfo->GetHappinessPerXPolicies();
+		bGoodforHappiness = true;
+	}
+
+	if (pkBuildingInfo->GetUnmoddedHappiness() > 0)
+	{
+		iBonus += iHappinessValue * pkBuildingInfo->GetUnmoddedHappiness();
+		bGoodforHappiness = true;
+	}
+
+	if (pkBuildingInfo->GetGlobalHappinessPerMajorWar() > 0)
+	{
+		iBonus += iHappinessValue * pkBuildingInfo->GetGlobalHappinessPerMajorWar() * max(1, kPlayer.GetMilitaryAI()->GetNumberCivsAtWarWith(false));
 		bGoodforHappiness = true;
 	}
 
@@ -800,6 +840,90 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 			else
 				iBonus += 50;
 		}
+	}
+
+	//does it make a unit trainable?
+	const set<int>& sUnitClasses = pkBuildingInfo->GetUnitClassTrainingAllowed();
+	for (set<int>::const_iterator it = sUnitClasses.begin(); it != sUnitClasses.end(); ++it)
+	{
+		// don't need it if we can train the unit anyway
+		if (!kPlayer.canTrainUnit(kPlayer.GetSpecificUnitType((UnitClassTypes)*it)))
+		{
+			iBonus += 200;
+		}
+	}
+
+	const std::vector<CvPlot*>& vClaimedPlots = m_pCity->GetPlotsClaimedByBuilding(eBuilding);
+	if (vClaimedPlots.size() > 0)
+	{
+		vector<PlayerTypes> vMajorsStolenFrom;
+		for (std::vector<CvPlot*>::const_iterator it = vClaimedPlots.begin(); it != vClaimedPlots.end(); ++it)
+		{
+			CvPlot* pClaimedPlot = *it;
+			if (pClaimedPlot->getOwner() == NO_PLAYER)
+			{
+				iBonus += 20;
+			}
+			else if (GET_PLAYER(pClaimedPlot->getOwner()).isMajorCiv() && pClaimedPlot->getOwner() != kPlayer.GetID())
+			{
+				// City-States shouldn't steal plots from majors using buildings, that's annoying and will get them killed
+				if (kPlayer.isMinorCiv())
+					return SR_IMPOSSIBLE;
+
+				CivApproachTypes eApproachToPlotOwner = kPlayer.GetDiplomacyAI()->GetCivApproach(pClaimedPlot->getOwner());
+				switch (eApproachToPlotOwner)
+				{
+				case CIV_APPROACH_WAR:
+				case CIV_APPROACH_HOSTILE:
+					// harming our enemies? good
+					iBonus += 50;
+					break;
+				case CIV_APPROACH_NEUTRAL:
+				case CIV_APPROACH_FRIENDLY:
+					// sparking a fight? bad
+					iBonus -= 50;
+					break;
+				case CIV_APPROACH_GUARDED:
+				case CIV_APPROACH_DECEPTIVE:
+					break;
+				case CIV_APPROACH_AFRAID:
+				{
+					// don't steal if afraid, unless at war
+					if (!kPlayer.IsAtWarWith(pClaimedPlot->getOwner()))
+						return SR_STRATEGY;
+
+					break;
+				}
+				}
+
+				// Secondary check for more nuanced diplomatic factors
+				if (std::find(vMajorsStolenFrom.begin(), vMajorsStolenFrom.end(), pClaimedPlot->getOwner()) == vMajorsStolenFrom.end())
+					vMajorsStolenFrom.push_back(pClaimedPlot->getOwner());
+			}
+			else if (GET_PLAYER(pClaimedPlot->getOwner()).isMinorCiv() && pClaimedPlot->IsImprovementEmbassy())
+			{
+				// Don't steal our own embassy, or a friend's embassy, or the embassy of someone we don't want to piss off
+				PlayerTypes eEmbassyOwner = pClaimedPlot->GetPlayerThatBuiltImprovement();
+				if (GET_PLAYER(eEmbassyOwner).getTeam() == kPlayer.getTeam() || kPlayer.GetDiplomacyAI()->IsBadTheftTarget(eEmbassyOwner, THEFT_TYPE_EMBASSY))
+					return SR_STRATEGY;
+			}
+		}
+		for (vector<PlayerTypes>::iterator it = vMajorsStolenFrom.begin(); it != vMajorsStolenFrom.end(); ++it)
+		{
+			// Don't take plots from our friends, or anyone else we don't want to piss off
+			if (kPlayer.GetDiplomacyAI()->IsBadTheftTarget(*it, THEFT_TYPE_CULTURE_BOMB))
+				return SR_STRATEGY;
+		}
+	}
+
+	if (pkBuildingInfo->GetGPRateModifierPerMarriage() > 0)
+	{
+		iBonus += pkBuildingInfo->GetGPRateModifierPerMarriage() * GET_PLAYER(m_pCity->getOwner()).GetNumMarriedCityStatesNotAtWar();
+	}
+
+	if (pkBuildingInfo->GetGPRateModifierPerLocalTheme() > 0)
+	{
+		iBonus += pkBuildingInfo->GetGPRateModifierPerLocalTheme() * m_pCity->GetCityBuildings()->GetTotalNumThemedBuildings();
 	}
 
 	//Corporations!

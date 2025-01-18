@@ -178,7 +178,7 @@ bool CvDllDatabaseUtility::CacheGameDatabaseData()
 	//Log Database Memory statistics
 	LogMsg(DB.CalculateMemoryStats());
 
-	CvAssertMsg(bSuccess, "Failed to load Gameplay Database Data! Not Good!");
+	ASSERT(bSuccess, "Failed to load Gameplay Database Data! Not Good!");
 
 	GC.GameDataPostCache();
 
@@ -202,6 +202,10 @@ bool CvDllDatabaseUtility::PerformDatabasePostProcessing()
 	//Updates performed here are done AFTER the database has been built or read
 	//from cache.
 	Database::Connection* db = GC.GetGameDatabase();
+
+	// remap IDs in the database tables to make sure they start at 0 and there are no gaps
+	// this needs to be done before PostDefines are processed
+	DatabaseRemapper();
 
 	//Update Defines table from references in PostDefines table
 	db->BeginTransaction();
@@ -416,7 +420,7 @@ bool CvDllDatabaseUtility::PrefetchGameData()
 			while(kResults.Step())
 			{
 				const int iFlavor = kResults.GetInt("ID");
-				CvAssert(iFlavor >= 0 && iFlavor < iNumFlavors);
+				ASSERT(iFlavor >= 0 && iFlavor < iNumFlavors);
 				if(iFlavor >= 0 && iFlavor < iNumFlavors)
 				{
 					paFlavors[iFlavor] = kResults.GetText("Type");
@@ -426,7 +430,7 @@ bool CvDllDatabaseUtility::PrefetchGameData()
 		}
 		else
 		{
-			CvAssertMsg(false, DB.ErrorMessage());
+			ASSERT(false, DB.ErrorMessage());
 		}
 	}
 
@@ -434,6 +438,99 @@ bool CvDllDatabaseUtility::PrefetchGameData()
 
 	return true;
 }
+
+//------------------------------------------------------------------------------
+void CvDllDatabaseUtility::DatabaseRemapper()
+{
+	// This function changes the IDs in the database tables to make sure there are no gaps and the IDs start at 0
+
+	std::set<CvString> sTablesToExclude;
+	sTablesToExclude.insert("GreatWorkClasses");
+	sTablesToExclude.insert("MultiplayerOptions");
+	sTablesToExclude.insert("ReplayDataSets");
+	sTablesToExclude.insert("HistoricRankings");
+
+	LogMsg("**** Remapping IDs in Game Database *****");
+	cvStopWatch kPerfTest("Remapper Game Database", "xml-perf.log");
+	{
+		Database::Results kTables("name");
+		if (DB.SelectAt(kTables, "sqlite_master", "type", "table"))
+		{
+			while (kTables.Step())
+			{
+				const char* szTableName = kTables.GetText(0);
+				if (DB.Count(szTableName) > 0)
+				{
+					//Test if table has 'ID' column
+					bool bHasIDColumn = false;
+					{
+						char szSQL[512];
+						sprintf_s(szSQL, "pragma table_info(%s)", szTableName);
+						Database::Results kResults;
+						DB.Execute(kResults, szSQL);
+						while (kResults.Step())
+						{
+							const char* szName = kResults.GetText("name");
+							if (strcmp("ID", szName) == 0 && kResults.GetInt("pk") == 1)
+							{
+								bHasIDColumn = true;
+								break;
+							}
+						}
+					}
+
+					if (bHasIDColumn)
+					{
+						if (sTablesToExclude.find(szTableName) != sTablesToExclude.end())
+						{
+							LogMsg("Table %s: excluded from remapping", szTableName);
+						}
+						else
+						{
+							char szIDList[512];
+							sprintf_s(szIDList, "SELECT ID from %s ORDER BY ID;", szTableName);
+							Database::Results kQuery;
+							if (DB.Execute(kQuery, szIDList))
+							{
+								std::vector<int> vTableIDs;
+								while (kQuery.Step())
+								{
+									int iID = kQuery.GetInt(0);
+									if (iID < 0)
+									{
+										// negative IDs? cancel remapping for this table
+										LogMsg("Table %s: Negative IDs found, no remapping", szTableName);
+										break;
+									}
+									vTableIDs.push_back(kQuery.GetInt(0));
+								}
+								bool bFirst = true;
+								for (uint ui = 0; ui < vTableIDs.size(); ui++)
+								{
+									if (vTableIDs[ui] != ui)
+									{
+										if (bFirst)
+										{
+											LogMsg("Table %s: Remapping %d incorrect IDs, starting with %d -> %d. ", szTableName, vTableIDs.size() - ui, vTableIDs[ui], ui);
+											bFirst = false;
+										}
+										char szUpdate[512];
+										sprintf_s(szUpdate, "UPDATE %s SET ID = %d WHERE ID = %d;", szTableName, ui, vTableIDs[ui]);
+										DB.Execute(szUpdate);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	kPerfTest.EndPerfTest();
+	LogMsg("Remapping took %f seconds", kPerfTest.GetDeltaInSeconds());
+}
+
 //------------------------------------------------------------------------------
 bool CvDllDatabaseUtility::ValidateGameDatabase()
 {
@@ -450,56 +547,6 @@ bool CvDllDatabaseUtility::ValidateGameDatabase()
 	bool bError = false;
 
 	LogMsg("**** Validating Game Database *****");
-
-	//Test that all Tables w/ 'ID' column start at 0 and not 1.
-	{
-		cvStopWatch watch("Ensure All Tables with 'ID' column start at 0");
-		Database::Results kTables("name");
-		if(DB.SelectAt(kTables, "sqlite_master", "type", "table"))
-		{
-			while(kTables.Step())
-			{
-				const char* szTableName = kTables.GetText(0);
-				if(DB.Count(szTableName) > 0)
-				{
-					//Test if table has 'ID' column
-					bool bHasIDColumn = false;
-					{
-						//Execute "select ID from <table_name> limit 1;
-						//If there's a SQL error, it's most likely due to a lack of an 'id' column.
-						char szSQL[512];
-						sprintf_s(szSQL, "pragma table_info(%s)", szTableName);
-						Database::Results kResults;
-						DB.Execute(kResults, szSQL);
-						while(kResults.Step())
-						{
-							const char* szName = kResults.GetText("name");
-							if(strcmp("ID", szName) == 0)
-							{
-								bHasIDColumn = true;
-								break;
-							}
-
-						}
-					}
-
-					if(bHasIDColumn)
-					{
-						Database::SingleResult kTest;
-						if(!DB.SelectAt(kTest, szTableName, "ID", 0))
-						{
-							//Table has 'ID' column and contains data but does not use ID 0.
-							char szError[512];
-							sprintf_s(szError, "Table '%s' contains 'ID' column that starts at 1 instead of 0.", szTableName);
-							LogMsg(szError);
-							bError = true;
-						}
-					}
-
-				}
-			}
-		}
-	}
 
 	//Validate FK constraints
 	{
@@ -951,7 +998,7 @@ bool CvDllDatabaseUtility::SetGlobalActionInfo()
 	for(i = 0; i < iTotalActionInfoCount; i++)
 	{
 		CvActionInfo* pActionInfo = FNEW(CvActionInfo, c_eCiv5GameplayDLL, 0);
-		CvAssert(piIndexList[piOrderedIndex[i]] != -1);
+		ASSERT(piIndexList[piOrderedIndex[i]] != -1);
 
 		pActionInfo->setOriginalIndex(piIndexList[piOrderedIndex[i]]);
 		pActionInfo->setSubType((ActionSubTypes)piActionInfoTypeList[piOrderedIndex[i]]);

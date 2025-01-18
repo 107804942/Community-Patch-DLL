@@ -35,7 +35,7 @@ CvUnitProductionAI::~CvUnitProductionAI(void)
 /// Clear out AI local variables
 void CvUnitProductionAI::Reset()
 {
-	CvAssertMsg(m_pUnits != NULL, "Unit Production AI init failure: unit entries are NULL");
+	ASSERT(m_pUnits != NULL, "Unit Production AI init failure: unit entries are NULL");
 
 	m_UnitAIWeights.clear();
 
@@ -204,6 +204,19 @@ int CvUnitProductionAI::CheckUnitBuildSanity(UnitTypes eUnit, bool bForOperation
 	if (!bFree && bDesperate && !bCombat)
 	{
 		return SR_STRATEGY;
+	}
+
+	// can we build an upgraded version of this unit in any of our cities?
+	if (!kPlayer.GetUnitClassTrainingAllowedAnywhere().empty())
+	{
+		const set<UnitClassTypes>& sUnitClassTrainingAllowed = kPlayer.GetUnitClassTrainingAllowedAnywhere();
+		for (set<UnitClassTypes>::const_iterator it = sUnitClassTrainingAllowed.begin(); it != sUnitClassTrainingAllowed.end(); ++it)
+		{
+			if (pkUnitEntry->GetUpgradeUnitClass(*it))
+			{
+				return SR_STRATEGY;
+			}
+		}
 	}
 
 	if (!bDesperate && !bFree)

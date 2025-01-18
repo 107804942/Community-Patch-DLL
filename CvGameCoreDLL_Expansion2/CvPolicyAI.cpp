@@ -36,11 +36,11 @@ void CvPolicyAI::Reset()
 	m_iPolicyWeightPropagationLevels = /*2*/ GD_INT_GET(POLICY_WEIGHT_PROPAGATION_LEVELS);
 	m_iPolicyWeightPercentDropNewBranch = /*90*/ max(GD_INT_GET(POLICY_WEIGHT_PERCENT_DROP_NEW_BRANCH), 0);
 
-	CvAssertMsg(m_pCurrentPolicies != NULL, "Policy AI init failure: player policy data is NULL");
+	ASSERT(m_pCurrentPolicies != NULL, "Policy AI init failure: player policy data is NULL");
 	if(m_pCurrentPolicies != NULL)
 	{
 		CvPolicyXMLEntries* pPolicyEntries = m_pCurrentPolicies->GetPolicies();
-		CvAssertMsg(pPolicyEntries != NULL, "Policy AI init failure: no policy data");
+		ASSERT(pPolicyEntries != NULL, "Policy AI init failure: no policy data");
 		if(pPolicyEntries != NULL)
 		{
 			// Loop through reading each one and add an entry with 0 weight to our vector
@@ -178,7 +178,8 @@ int CvPolicyAI::ChooseNextPolicy(CvPlayer* pPlayer)
 		if (pkPolicyBranchInfo2 && m_pCurrentPolicies->IsPolicyBranchUnlocked(ePolicyBranch2))
 		{
 			// Have we not finished it yet? If we can finish it, let's not open a new one.
-			if (!m_pCurrentPolicies->HasPolicy((PolicyTypes)pkPolicyBranchInfo2->GetFreeFinishingPolicy()) && CanContinuePolicyBranch(ePolicyBranch2))
+			PolicyTypes eFinisher = (PolicyTypes)pkPolicyBranchInfo2->GetFreeFinishingPolicy();
+			if (eFinisher != NO_POLICY && !m_pCurrentPolicies->HasPolicy(eFinisher) && CanContinuePolicyBranch(ePolicyBranch2))
 			{
 				bNeedToFinish = true;
 				break;
@@ -3877,6 +3878,9 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 	{
 		const UnitClassTypes eUnitClass = static_cast<UnitClassTypes>(iI);
 		const UnitTypes eUnit = pPlayer->GetSpecificUnitType(eUnitClass);
+		if (eUnit == NO_UNIT)
+			continue;
+
 		CvUnitEntry* pUnitEntry = GC.getUnitInfo(eUnit);
 		if (!pUnitEntry)
 			continue;
@@ -5177,7 +5181,7 @@ int CvPolicyAI::WeighBranch(CvPlayer* pPlayer, PolicyBranchTypes eBranch)
 bool CvPolicyAI::IsBranchEffectiveInGame(PolicyBranchTypes eBranch)
 {
 	CvPolicyBranchEntry* pBranchInfo = GC.getPolicyBranchInfo(eBranch);
-	CvAssertMsg(pBranchInfo, "Branch info not found! Please send Anton your save file and version.");
+	ASSERT(pBranchInfo, "Branch info not found!");
 	if (!pBranchInfo) return false;
 	
 	if (pBranchInfo->IsDelayWhenNoReligion())

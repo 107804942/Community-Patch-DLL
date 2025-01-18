@@ -732,7 +732,7 @@ void CvBarbarians::DoCamps()
 			continue;
 
 		// No camps on n-tile islands
-		if (pLoopPlot->getLandmass() == -1 || theMap.getLandmassById(pLoopPlot->getLandmass())->getNumTiles() <= /*1*/ GD_INT_GET(BARBARIAN_CAMP_MINIMUM_ISLAND_SIZE))
+		if (pLoopPlot->getLandmass() == -1 || theMap.getLandmassById(pLoopPlot->getLandmass())->getNumTiles() < /*2 in CP, 1 in VP*/ GD_INT_GET(BARBARIAN_CAMP_MINIMUM_ISLAND_SIZE))
 			continue;
 
 		// No camps on water, in owned territory, adjacent to owned territory, or in impassable tiles
@@ -752,7 +752,7 @@ void CvBarbarians::DoCamps()
 			continue;
 
 		// Are Barbarian camps allowed to spawn on a tile with this terrain and this feature?
-		if (!pkCampInfo->GetTerrainMakesValid(pLoopPlot->getTerrainType()) || !pkCampInfo->GetFeatureMakesValid(pLoopPlot->getFeatureType()))
+		if (!pkCampInfo->GetTerrainMakesValid(pLoopPlot->getTerrainType()) || (pLoopPlot->getFeatureType() != NO_FEATURE && !pkCampInfo->GetFeatureMakesValid(pLoopPlot->getFeatureType())))
 			continue;
 
 		// This plot is POTENTIALLY eligible, add it to the list
@@ -994,7 +994,7 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 
 	// ---------- SPAWNING RULES ---------- //
 	// Plundered Trade Route - cannot use resources; can only spawn adjacent; no spawn cap
-	// Encampment - can use unowned resources within 3 tiles; can only spawn adjacent; spawn cap of 2 within 3 tiles
+	// Encampment - can use unowned resources within 3 tiles; can only spawn adjacent; spawn cap of 2 within 3 tiles; no ranged for encampment guards (except on 1-tile islands)
 	// City - can use resources owned by the city and unowned resources within 3 tiles; can use the UU of the player the city was captured from; can only spawn adjacent; spawn cap of 4 within 3 tiles
 	// Uprising or Partisans - can use resources owned by the player being revolted against as well as their UUs; no spawn cap
 	// Horde Quest or City-State capture - can use any resources owned by the City-State; if militaristic and UU is land, can also use their UU; no spawn cap
@@ -1005,6 +1005,8 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 	// Boats can only be spawned from encampments or captured cities on turn 30 or later.
 	// ----------------------------------- //
 
+	ImprovementTypes eCamp = (ImprovementTypes)GD_INT_GET(BARBARIAN_CAMP_IMPROVEMENT);
+	CvImprovementEntry* pkCampInfo = GC.getImprovementInfo(eCamp);
 	int iMaxBarbarians = INT_MAX;
 	int iMaxBarbarianRange = 0;
 	int iMinSpawnRadius = 1;
@@ -1082,9 +1084,10 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 	{
 		// First check the current tile
 		ResourceTypes eResource = pPlot->getResourceType();
-		CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
-		if (pkResource)
+		if (eResource != NO_RESOURCE)
+		{
 			vValidResources.push_back(eResource);
+		}
 
 		// Now look for any others within 3 tiles
 		for (int iI = 0; iI < RING_PLOTS[3]; iI++)
@@ -1096,11 +1099,10 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 			if (pLoopPlot->isOwned() && pLoopPlot->getOwner() != BARBARIAN_PLAYER)
 				continue;
 
-			eResource = pLoopPlot->getResourceType();
-			pkResource = GC.getResourceInfo(eResource);
-			if (pkResource && std::find(vValidResources.begin(), vValidResources.end(), eResource) == vValidResources.end())
+			ResourceTypes eLoopPlotResource = pLoopPlot->getResourceType();
+			if (eLoopPlotResource != NO_RESOURCE && std::find(vValidResources.begin(), vValidResources.end(), eLoopPlotResource) == vValidResources.end())
 			{
-				vValidResources.push_back(eResource);
+				vValidResources.push_back(eLoopPlotResource);
 			}
 		}
 	}
@@ -1112,8 +1114,7 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 		for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 		{
 			ResourceTypes eResource = (ResourceTypes)iResourceLoop;
-			CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
-			if (pkResource)
+			if (eResource != NO_RESOURCE)
 			{
 				if (GET_PLAYER(eMajor).getNumResourceTotal(eResource) > 0)
 					vValidResources.push_back(eResource);
@@ -1125,8 +1126,7 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 		// First check the current tile
 		PlayerTypes eMinor = pPlot->getOwner();
 		ResourceTypes eResource = pPlot->getResourceType();
-		CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
-		if (pkResource)
+		if (eResource != NO_RESOURCE)
 			vValidResources.push_back(eResource);
 
 		// Now look for any others within 3 tiles
@@ -1136,9 +1136,8 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 			if (!pLoopPlot || pLoopPlot->getOwner() != eMinor)
 				continue;
 
-			eResource = pLoopPlot->getResourceType();
-			pkResource = GC.getResourceInfo(eResource);
-			if (pkResource && std::find(vValidResources.begin(), vValidResources.end(), eResource) == vValidResources.end())
+			ResourceTypes eLoopPlotResource = pLoopPlot->getResourceType();
+			if (eLoopPlotResource != NO_RESOURCE && std::find(vValidResources.begin(), vValidResources.end(), eLoopPlotResource) == vValidResources.end())
 			{
 				vValidResources.push_back(eResource);
 			}
@@ -1150,11 +1149,19 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 	int iNumUnitsSpawned = 0;
 	if (bSpawnOnPlot)
 	{
-		UnitAITypes ePreferredType = (eReason == BARB_SPAWN_FROM_CITY || eReason == BARB_SPAWN_CITY_STATE_CAPTURE) ? UNITAI_RANGED : UNITAI_DEFENSE;
-		UnitTypes eUnit = GetRandomBarbarianUnitType(pPlot, ePreferredType, eUniqueUnitPlayer, vValidResources, CvSeeder::fromRaw(0x20a3b92c).mix(pPlot->GetPseudoRandomSeed()));
-		CvUnitEntry* pkUnitInfo = GC.getUnitInfo(eUnit);
-		if (pkUnitInfo)
+		bool bAllowRanged = false; // Do not spawn ranged in empty encampments, except on 1-tile islands
+		bool bIsBarbCamp = false;
+		if (eCamp != NO_IMPROVEMENT && pkCampInfo)
 		{
+			bIsBarbCamp = pPlot->getImprovementType() == eCamp;
+			bAllowRanged = !bIsBarbCamp || (pPlot->getLandmass() != -1 && GC.getMap().getLandmassById(pPlot->getLandmass())->getNumTiles() == 1);
+		}
+
+		UnitAITypes ePreferredType = (eReason == BARB_SPAWN_FROM_CITY || eReason == BARB_SPAWN_CITY_STATE_CAPTURE || (bIsBarbCamp && bAllowRanged)) ? UNITAI_RANGED : UNITAI_DEFENSE;
+		UnitTypes eUnit = GetRandomBarbarianUnitType(pPlot, ePreferredType, eUniqueUnitPlayer, vValidResources, bAllowRanged, CvSeeder::fromRaw(0x20a3b92c).mix(pPlot->GetPseudoRandomSeed()));
+		if (eUnit != NO_UNIT)
+		{
+			CvUnitEntry* pkUnitInfo = GC.getUnitInfo(eUnit);
 			CvUnit* pUnit = GET_PLAYER(BARBARIAN_PLAYER).initUnit(eUnit, pPlot->getX(), pPlot->getY(), pkUnitInfo->GetDefaultUnitAIType());
 			if (pUnit)
 			{
@@ -1217,6 +1224,7 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 		if (iNextRing > iMaxSpawnRadius)
 			break;
 
+		std::vector<CvPlot*> vPrioritySpawnPlots;
 		std::vector<CvPlot*> vBarbSpawnPlots;
 		for (int iI = iIteratorStart; iI < RING_PLOTS[iNextRing]; iI++)
 		{
@@ -1233,6 +1241,10 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 			if (pLoopPlot->getNumUnits() > 0 || !pLoopPlot->isValidMovePlot(BARBARIAN_PLAYER))
 				continue;
 
+			// Prioritize spawning in an ungarrisoned city or encampment
+			if (pLoopPlot->isCity() || (eCamp != NO_IMPROVEMENT && pkCampInfo && pLoopPlot->getImprovementType() == eCamp))
+				vPrioritySpawnPlots.push_back(pLoopPlot);
+
 			vBarbSpawnPlots.push_back(pLoopPlot);
 		}
 
@@ -1241,15 +1253,31 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 			if (vBarbSpawnPlots.empty())
 				break;
 
+			bool bPrioritySpawn = !vPrioritySpawnPlots.empty();
+
 			// Choose a random plot
-			uint uIndex = GC.getGame().urandLimitExclusive(vBarbSpawnPlots.size(), CvSeeder::fromRaw(0xe7e33cc1).mix(pPlot->GetPseudoRandomSeed()).mix(iNumUnitsSpawned));
-			CvPlot* pSpawnPlot = vBarbSpawnPlots[uIndex];
+			uint uIndex = bPrioritySpawn ? GC.getGame().urandLimitExclusive(vPrioritySpawnPlots.size(), CvSeeder::fromRaw(0x4775b31a).mix(pPlot->GetPseudoRandomSeed()).mix(iNumUnitsSpawned)) : GC.getGame().urandLimitExclusive(vBarbSpawnPlots.size(), CvSeeder::fromRaw(0xe7e33cc1).mix(pPlot->GetPseudoRandomSeed()).mix(iNumUnitsSpawned));
+			CvPlot* pSpawnPlot = bPrioritySpawn ? vPrioritySpawnPlots[uIndex] : vBarbSpawnPlots[uIndex];
 			UnitAITypes eUnitAI = pSpawnPlot->isWater() ? UNITAI_ATTACK_SEA : UNITAI_FAST_ATTACK;
 
+			// If by chance this unit is spawning in an undefended city or encampment, pick an appropriate defensive unit
+			bool bAllowRanged = true;
+			if (bPrioritySpawn)
+			{
+				if (pSpawnPlot->isCity())
+					eUnitAI = UNITAI_RANGED;
+				else if (pSpawnPlot->getLandmass() != -1 && GC.getMap().getLandmassById(pSpawnPlot->getLandmass())->getNumTiles() == 1)
+					eUnitAI = UNITAI_RANGED;
+				else
+				{
+					eUnitAI = UNITAI_DEFENSE;
+					bAllowRanged = false;
+				}
+			}
+
 			// Pick a unit
-			UnitTypes eUnit = GetRandomBarbarianUnitType(pSpawnPlot, eUnitAI, eUniqueUnitPlayer, vValidResources, CvSeeder::fromRaw(0xea7311de).mix(pSpawnPlot->GetPseudoRandomSeed()));
-			CvUnitEntry* pkUnitInfo = GC.getUnitInfo(eUnit);
-			if (pkUnitInfo)
+			UnitTypes eUnit = GetRandomBarbarianUnitType(pSpawnPlot, eUnitAI, eUniqueUnitPlayer, vValidResources, bAllowRanged, CvSeeder::fromRaw(0xea7311de).mix(pSpawnPlot->GetPseudoRandomSeed()));
+			if (eUnit != NO_UNIT)
 			{
 				// And spawn it!
 				CvUnit* pUnit = GET_PLAYER(BARBARIAN_PLAYER).initUnit(eUnit, pSpawnPlot->getX(), pSpawnPlot->getY(), eUnitAI);
@@ -1277,7 +1305,20 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 			}
 
 			// Make sure to erase the plot we chose from the list!
-			vBarbSpawnPlots.erase(vBarbSpawnPlots.begin() + uIndex);
+			if (bPrioritySpawn)
+			{
+				vPrioritySpawnPlots.erase(vPrioritySpawnPlots.begin() + uIndex);
+				for (uIndex = 0; uIndex < vBarbSpawnPlots.size(); uIndex++)
+				{
+					if (vBarbSpawnPlots[uIndex] == pSpawnPlot)
+					{
+						vBarbSpawnPlots.erase(vBarbSpawnPlots.begin() + uIndex);
+						break;
+					}
+				}
+			}
+			else
+				vBarbSpawnPlots.erase(vBarbSpawnPlots.begin() + uIndex);
 		}
 
 		iRingsCompleted++;
@@ -1312,7 +1353,7 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 }
 
 //	--------------------------------------------------------------------------------
-UnitTypes CvBarbarians::GetRandomBarbarianUnitType(CvPlot* pPlot, UnitAITypes ePreferredUnitAI, PlayerTypes eUniqueUnitPlayer, vector<ResourceTypes>& vValidResources, CvSeeder additionalSeed)
+UnitTypes CvBarbarians::GetRandomBarbarianUnitType(CvPlot* pPlot, UnitAITypes ePreferredUnitAI, PlayerTypes eUniqueUnitPlayer, vector<ResourceTypes>& vValidResources, bool bAllowRanged, CvSeeder additionalSeed)
 {
 	CvPlayerAI& kBarbarianPlayer = GET_PLAYER(BARBARIAN_PLAYER);
 	vector<OptionWithScore<UnitTypes>> candidates;
@@ -1331,6 +1372,10 @@ UnitTypes CvBarbarians::GetRandomBarbarianUnitType(CvPlot* pPlot, UnitAITypes eP
 
 		// No civilians
 		if (pkUnitInfo->GetCombat() <= 0 && pkUnitInfo->GetRangedCombat() <= 0)
+			continue;
+
+		// No ranged if not allowed
+		if (!bAllowRanged && pkUnitInfo->GetRangedCombat() > 0)
 			continue;
 
 		const UnitClassTypes eUnitClass = (UnitClassTypes)pkUnitInfo->GetUnitClassType();

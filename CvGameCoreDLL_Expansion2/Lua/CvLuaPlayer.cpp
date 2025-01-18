@@ -1094,6 +1094,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(IsBullyAnnex);
 	Method(IsTraitBonusReligiousBelief);
 	Method(GetHappinessFromLuxury);
+	Method(GetHappinessFromWarsWithMajors);
 	Method(IsAbleToAnnexCityStates);
 	Method(IsDiplomaticMarriage);
 	Method(IsGPWLTKD);
@@ -1201,7 +1202,6 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetInternationalTradeRouteOtherTraitBonus);
 	Method(GetInternationalTradeRouteRiverModifier);
 	Method(GetTradeConnectionDiplomatModifierTimes100);
-	Method(GetTradeRouteTurns);
 	Method(GetTradeConnectionDistanceValueModifierTimes100);
 	Method(GetTradeRouteTurns);
 	Method(GetTradeConnectionDistance);
@@ -1278,7 +1278,6 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetVassalDemandScore);
 	Method(GetVassalTaxScore);
 	Method(GetVassalProtectScore);
-	Method(GetVassalFailedProtectScore);
 	Method(GetVassalTreatmentLevel);
 	Method(GetVassalTreatmentToolTip);
 	Method(GetVassalIndependenceTooltipAsMaster);
@@ -1489,6 +1488,10 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 
 	Method(IsGlobalQuest);
 	Method(IsPersonalQuest);
+
+	Method(IsAccomplishmentCompleted);
+	Method(GetNumTimesAccomplishmentCompleted);
+	Method(CompleteAccomplishment);
 
 	Method(IsInstantYieldNotificationDisabled);
 	Method(SetInstantYieldNotificationDisabled);
@@ -2207,16 +2210,30 @@ int CvLuaPlayer::lGetArtStyleType(lua_State* L)
 	return BasicLuaMethod(L, &CvPlayerAI::getArtStyleType);
 }
 //------------------------------------------------------------------------------
-//int countCityFeatures(FeatureTypes  eFeature);
+//int countCityFeatures(FeatureTypes eFeature, bool bRecount = false);
 int CvLuaPlayer::lCountCityFeatures(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvPlayerAI::countCityFeatures);
+	CvPlayer* pPlayer = GetInstance(L);
+	const FeatureTypes eFeature = static_cast<FeatureTypes>(lua_tointeger(L, 2));
+	const bool bRecount = luaL_optint(L, 3, 0);
+	if (bRecount)
+		lua_pushinteger(L, pPlayer->UpdateCityFeatureCount(eFeature));
+	else
+		lua_pushinteger(L, pPlayer->getCityFeatures(eFeature));
+	return 1;
 }
 //------------------------------------------------------------------------------
-//int countNumBuildings(BuildingTypes  eBuilding);
+//int countNumBuildings(BuildingTypes eBuilding, bool bRecount = false);
 int CvLuaPlayer::lCountNumBuildings(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvPlayerAI::countNumBuildings);
+	CvPlayer* pPlayer = GetInstance(L);
+	const BuildingTypes eBuilding = static_cast<BuildingTypes>(lua_tointeger(L, 2));
+	const bool bRecount = luaL_optint(L, 3, 0);
+	if (bRecount)
+		lua_pushinteger(L, pPlayer->UpdateNumBuildings(eBuilding));
+	else
+		lua_pushinteger(L, pPlayer->getNumBuildings(eBuilding));
+	return 1;
 }
 //------------------------------------------------------------------------------
 //int GetNumWorldWonders();
@@ -2238,7 +2255,7 @@ int CvLuaPlayer::lGetNumWorldWonders(lua_State* L)
 		{
 			if(::isWorldWonderClass(pkBuildingEntry->GetBuildingClassInfo()))
 			{
-				iWonderCount += pkPlayer->countNumBuildings(eBuilding);
+				iWonderCount += pkPlayer->getNumBuildings(eBuilding);
 			}
 		}
 	}
@@ -4584,7 +4601,7 @@ int CvLuaPlayer::lGetTechSupplyReduction(lua_State* L)
 int CvLuaPlayer::lGetEmpireSizeSupplyReduction(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
-	int iReductionPercent = max(pkPlayer->GetNumEffectiveCities(false) * /*0 in CP, 5 in VP*/ GC.getMap().getWorldInfo().GetNumCitiesUnitSupplyMod(), 0);
+	int iReductionPercent = pkPlayer->getNumCities() > 0 ? max(pkPlayer->GetNumEffectiveCities(false) * /*0 in CP, 5 in VP*/ GC.getMap().getWorldInfo().GetNumCitiesUnitSupplyMod(), 0) : 0;
 	if (iReductionPercent == 0)
 	{
 		lua_pushinteger(L, 0);
@@ -4675,7 +4692,7 @@ int CvLuaPlayer::lGetPuppetYieldPenalty(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	const YieldTypes eYield = (YieldTypes)lua_tointeger(L, 2);
-	CvAssertMsg(eYield > NO_YIELD && eYield < NUM_YIELD_TYPES, "Unexpected yield in lGetPuppetYieldPenalty");
+	ASSERT(eYield > NO_YIELD && eYield < NUM_YIELD_TYPES, "Unexpected yield in lGetPuppetYieldPenalty");
 
 	int iResult = pkPlayer->GetPlayerTraits()->GetPuppetPenaltyReduction() + pkPlayer->GetPuppetYieldPenaltyMod();
 	switch (eYield)
@@ -7004,11 +7021,11 @@ int CvLuaPlayer::lCanAdoptPolicy(lua_State* L)
 	bool bIgnoreCost = luaL_optbool(L, 3, false);
 
 	CvPlayerAI* pkPlayer = GetInstance(L);
-	CvAssert(pkPlayer != NULL);
+	ASSERT(pkPlayer != NULL);
 	if(pkPlayer != NULL)
 	{
 		CvPlayerPolicies* pkPolicies = pkPlayer->GetPlayerPolicies();
-		CvAssert(pkPolicies != NULL);
+		ASSERT(pkPolicies != NULL);
 		if(pkPolicies != NULL)
 		{
 			bool bResult = pkPolicies->CanAdoptPolicy(ePolicy, bIgnoreCost);
@@ -7150,7 +7167,7 @@ int CvLuaPlayer::lCanAdoptTenet(lua_State* L)
 	bool bResult = false;
 
 	CvPlayerPolicies* pkPolicies = pkPlayer->GetPlayerPolicies();
-	CvAssert(pkPolicies != NULL);
+	ASSERT(pkPolicies != NULL);
 	if(pkPolicies != NULL)
 	{
 		bResult = pkPolicies->CanAdoptPolicy(ePolicy, bIgnoreCost);
@@ -7461,11 +7478,14 @@ int CvLuaPlayer::lGetGoldenAgeGreatMerchantRateModifier(lua_State* L)
 int CvLuaPlayer::lGetGoldenAgeGreatDiplomatRateModifier(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
-	GreatPersonTypes eGreatPerson = GetGreatPersonFromUnitClass((UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_GREAT_DIPLOMAT"));
 	int iResult = 0;
-	if (eGreatPerson != NO_GREATPERSON)
+	if (MOD_BALANCE_VP)
 	{
-		iResult = pkPlayer->GetPlayerTraits()->GetGoldenAgeGreatPersonRateModifier(eGreatPerson);
+		GreatPersonTypes eGreatPerson = GetGreatPersonFromUnitClass((UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_GREAT_DIPLOMAT"));
+		if (eGreatPerson != NO_GREATPERSON)
+		{
+			iResult = pkPlayer->GetPlayerTraits()->GetGoldenAgeGreatPersonRateModifier(eGreatPerson);
+		}
 	}
 	lua_pushinteger(L, iResult);
 	return 1;
@@ -8409,7 +8429,10 @@ int CvLuaPlayer::lChangeMinorCivFriendshipWithMajor(lua_State* L)
 	PlayerTypes ePlayer = (PlayerTypes) lua_tointeger(L, 2);
 	int iChange = lua_tointeger(L, 3);
 
-	pkPlayer->GetMinorCivAI()->ChangeFriendshipWithMajor(ePlayer, iChange);
+	if (ePlayer >= 0 && ePlayer < MAX_MAJOR_CIVS)
+	{
+		pkPlayer->GetMinorCivAI()->ChangeFriendshipWithMajor(ePlayer, iChange);
+	}
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -9827,7 +9850,7 @@ int CvLuaPlayer::lGetIncomingUnitType(lua_State* L)
 	if (pkPlayer->isMinorCiv())
 	{
 		const CvMinorCivAI* pMinorCivAI = pkPlayer->GetMinorCivAI();
-		CvAssert(pMinorCivAI);
+		ASSERT(pMinorCivAI);
 		if (pMinorCivAI)
 		{
 			const PlayerTypes eFromPlayer = static_cast<PlayerTypes>(lua_tointeger(L, 2));
@@ -9855,7 +9878,7 @@ int CvLuaPlayer::lGetIncomingUnitCountdown(lua_State* L)
 	if (pkPlayer->isMinorCiv())
 	{
 		const CvMinorCivAI* pMinorCivAI = pkPlayer->GetMinorCivAI();
-		CvAssert(pMinorCivAI);
+		ASSERT(pMinorCivAI);
 		if (pMinorCivAI)
 		{
 			const PlayerTypes eFromPlayer = static_cast<PlayerTypes>(lua_tointeger(L, 2));
@@ -10905,8 +10928,9 @@ int CvLuaPlayer::lIsFriendDeclaredWarOnUs(lua_State* L)
 int CvLuaPlayer::lGetWeDeclaredWarOnFriendCount(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
-
-	const int iValue = pkPlayer->GetDiplomacyAI()->GetWeDeclaredWarOnFriendCount();
+	PlayerTypes eObserver = (PlayerTypes)luaL_optint(L, 2, -1);
+	const bool bExcludeOtherBackstabbers = luaL_optbool(L, 3, false);
+	const int iValue = pkPlayer->GetDiplomacyAI()->GetWeDeclaredWarOnFriendCount(eObserver, bExcludeOtherBackstabbers);
 
 	lua_pushinteger(L, iValue);
 	return 1;
@@ -11302,7 +11326,7 @@ int CvLuaPlayer::lGetOtherPlayerNumProtectedMinorsAttacked(lua_State* L)
 }
 //------------------------------------------------------------------------------
 // int GetTurnsSincePlayerBulliedProtectedMinor(int iOtherPlayer);
-// Returns MAX_TURNS_SAFE_ESTIMATE if OtherPlayer has never bullied a protected minor
+// Returns -1 if OtherPlayer has never bullied a protected minor
 int CvLuaPlayer::lGetTurnsSincePlayerBulliedProtectedMinor(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
@@ -11376,7 +11400,7 @@ int CvLuaPlayer::lIsPlayerRecklessExpander(lua_State* L)
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	PlayerTypes eOtherPlayer = (PlayerTypes) lua_tointeger(L, 2);
 
-	const bool bValue = pkPlayer->GetDiplomacyAI()->IsPlayerRecklessExpander(eOtherPlayer);
+	const bool bValue = pkPlayer->GetDiplomacyAI()->IsRecklessExpander(eOtherPlayer);
 
 	lua_pushboolean(L, bValue);
 	return 1;
@@ -12483,6 +12507,11 @@ int CvLuaPlayer::lGetHappinessFromLuxury(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
+int CvLuaPlayer::lGetHappinessFromWarsWithMajors(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvPlayerAI::GetHappinessFromWarsWithMajors);
+}
+//------------------------------------------------------------------------------
 int CvLuaPlayer::lIsAbleToAnnexCityStates(lua_State* L)
 {
 	CvPlayer* pkPlayer = GetInstance(L);
@@ -12877,7 +12906,7 @@ int CvLuaPlayer::lGetPolicyEspionageModifier(lua_State* L)
 {
 	const PolicyTypes iIndex = (PolicyTypes)lua_tointeger(L, 2);
 	CvPolicyEntry* pkPolicyInfo = GC.getPolicyInfo(iIndex);
-	CvAssertMsg(pkPolicyInfo, "pkPolicyInfo is null!");
+	ASSERT(pkPolicyInfo, "pkPolicyInfo is null!");
 	if (!pkPolicyInfo)
 	{
 		return 0;
@@ -12892,7 +12921,7 @@ int CvLuaPlayer::lGetPolicyEspionageCatchSpiesModifier(lua_State* L)
 {
 	const PolicyTypes iIndex = (PolicyTypes)lua_tointeger(L, 2);
 	CvPolicyEntry* pkPolicyInfo = GC.getPolicyInfo(iIndex);
-	CvAssertMsg(pkPolicyInfo, "pkPolicyInfo is null!");
+	ASSERT(pkPolicyInfo, "pkPolicyInfo is null!");
 	if (!pkPolicyInfo)
 	{
 		return 0;
@@ -12908,7 +12937,7 @@ int CvLuaPlayer::lGetPolicyConversionModifier(lua_State* L)
 {
 	const PolicyTypes iIndex = (PolicyTypes)lua_tointeger(L, 2);
 	CvPolicyEntry* pkPolicyInfo = GC.getPolicyInfo(iIndex);
-	CvAssertMsg(pkPolicyInfo, "pkPolicyInfo is null!");
+	ASSERT(pkPolicyInfo, "pkPolicyInfo is null!");
 	if (!pkPolicyInfo)
 	{
 		return 0;
@@ -13244,7 +13273,6 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 				case CIV_APPROACH_FRIENDLY:
 					str = Localization::Lookup("TXT_KEY_DIPLO_REAL_APPROACH_FRIENDLY").toUTF8();
 					break;
-				case NO_CIV_APPROACH:
 				case CIV_APPROACH_NEUTRAL:
 					str = Localization::Lookup("TXT_KEY_DIPLO_REAL_APPROACH_NEUTRAL").toUTF8();
 					break;
@@ -13553,7 +13581,7 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 				aOpinions.push_back(kOpinion);
 			}
 			// Captured our Holy City?
-			if (pDiplo->IsPlayerCapturedHolyCity(ePlayer))
+			if (pDiplo->IsPlayerEverCapturedHolyCity(ePlayer))
 			{
 				Opinion kOpinion;
 				kOpinion.m_iValue = 2000;
@@ -13561,7 +13589,7 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 				aOpinions.push_back(kOpinion);
 			}
 			// Captured our capital?
-			if (pDiplo->IsPlayerCapturedCapital(ePlayer))
+			if (pDiplo->IsPlayerEverCapturedCapital(ePlayer))
 			{
 				Opinion kOpinion;
 				kOpinion.m_iValue = 3000;
@@ -14125,7 +14153,7 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 			}
 
 			// Wonder Dispute
-			if (bPretendNoDisputes && !pDiplo->IsPlayerWonderSpammer(ePlayer))
+			if (bPretendNoDisputes && !pDiplo->IsWonderSpammer(ePlayer))
 			{
 				int iEra = (int)pkPlayer->GetCurrentEra();
 				if (iEra <= 0)
@@ -14608,7 +14636,7 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 					str = Localization::Lookup("TXT_KEY_DIPLO_VASSAL_TREATMENT_ENSLAVED").toUTF8();
 					break;
 				case NO_VASSAL_TREATMENT:
-					CvAssertMsg(false, "eTreatmentLevel is not expected to be NO_VASSAL_TREATMENT");
+					ASSERT(false, "eTreatmentLevel is not expected to be NO_VASSAL_TREATMENT");
 					break;
 				}
 
@@ -14663,8 +14691,7 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 				aOpinions.push_back(kOpinion);
 			}
 
-			// Vassal protect VS. failed protect
-			iValue = pDiplo->GetVassalProtectScore(ePlayer) + pDiplo->GetVassalFailedProtectScore(ePlayer);
+			iValue = pDiplo->GetVassalProtectScore(ePlayer);
 			if (iValue != 0)
 			{
 				Opinion kOpinion;
@@ -15446,7 +15473,7 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 		{
 			str = Localization::Lookup("TXT_KEY_DIPLO_ATTACKED_OWN_VASSAL").toUTF8();
 		}
-		else if ((!pDiplo->IsVassal(ePlayer) || iAttackedVassalScore <= 0) && iFriendDenouncedUsScore > 0)
+		else if (iFriendDenouncedUsScore > 0)
 		{
 			str = Localization::Lookup("TXT_KEY_DIPLO_HUMAN_FRIEND_DENOUNCED").toUTF8();
 		}
@@ -15614,7 +15641,6 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 			case CIV_APPROACH_FRIENDLY:
 				str = Localization::Lookup("TXT_KEY_DIPLO_FRIENDLY").toUTF8();
 				break;
-			case NO_CIV_APPROACH:
 			case CIV_APPROACH_WAR:
 			case CIV_APPROACH_DECEPTIVE:
 			case CIV_APPROACH_NEUTRAL:
@@ -16156,8 +16182,7 @@ int CvLuaPlayer::lGetEspionageSpies(lua_State* L)
 			lua_pushstring(L, "TXT_KEY_SPY_STATE_SCHMOOZING");
 			break;
 		case SPY_STATE_TERMINATED:
-			lua_pushstring(L, "TXT_KEY_SPY_STATE_TERMINATED");
-			break;
+			UNREACHABLE();
 		}
 		lua_setfield(L, t, "State");
 
@@ -16392,7 +16417,7 @@ int CvLuaPlayer::lGetNumTechsToSteal(lua_State* L)
 	CvPlayerEspionage* pkPlayerEspionage = pkThisPlayer->GetEspionage();
 
 	int iPlayer = lua_tointeger(L, 2);
-	CvAssertMsg(iPlayer >= 0 && iPlayer < MAX_MAJOR_CIVS, "iPlayer out of bounds");
+	ASSERT(iPlayer >= 0 && iPlayer < MAX_MAJOR_CIVS, "iPlayer out of bounds");
 	PlayerTypes ePlayer = (PlayerTypes)iPlayer;
 	lua_pushinteger(L, pkPlayerEspionage->GetNumTechsToSteal(ePlayer));
 	return 1;
@@ -16435,7 +16460,7 @@ int CvLuaPlayer::lHasRecentIntrigueAbout(lua_State* L)
 	CvPlayerEspionage* pkPlayerEspionage = pkThisPlayer->GetEspionage();
 
 	int iPlayer = lua_tointeger(L, 2);
-	CvAssertMsg(iPlayer >= 0 && iPlayer < MAX_MAJOR_CIVS, "iPlayer out of bounds");
+	ASSERT(iPlayer >= 0 && iPlayer < MAX_MAJOR_CIVS, "iPlayer out of bounds");
 	PlayerTypes ePlayer = (PlayerTypes)iPlayer;
 	lua_pushboolean(L, pkPlayerEspionage->HasRecentIntrigueAbout(ePlayer));
 
@@ -16448,7 +16473,7 @@ int CvLuaPlayer::lGetRecentIntrigueInfo(lua_State* L)
 	CvPlayerEspionage* pkPlayerEspionage = pkThisPlayer->GetEspionage();
 
 	int iPlayer = lua_tointeger(L, 2);
-	CvAssertMsg(iPlayer >= 0 && iPlayer < MAX_MAJOR_CIVS, "iPlayer out of bounds");
+	ASSERT(iPlayer >= 0 && iPlayer < MAX_MAJOR_CIVS, "iPlayer out of bounds");
 	PlayerTypes eTargetPlayer = (PlayerTypes)iPlayer;
 	IntrigueNotificationMessage* pNotificationMessage = pkPlayerEspionage->GetRecentIntrigueInfo(eTargetPlayer);
 
@@ -16474,7 +16499,7 @@ int CvLuaPlayer::lGetCoupChanceOfSuccess(lua_State* L)
 	bool bIgnoreEnemySpies = luaL_optbool(L, 3, false);
 
 	int iSpyIndex = pkPlayerEspionage->GetSpyIndexInCity(pkCity);
-	CvAssertMsg(iSpyIndex >= 0, "iSpyIndex out of bounds");
+	PRECONDITION(iSpyIndex >= 0, "iSpyIndex out of bounds");
 	if(iSpyIndex < 0)
 	{
 		lua_pushinteger(L, 0);
@@ -16831,16 +16856,6 @@ int CvLuaPlayer::lGetVassalProtectScore(lua_State* L)
 	PlayerTypes eOtherPlayer = (PlayerTypes) lua_tointeger(L, 2);
 	
 	lua_pushinteger(L, pkPlayer->GetDiplomacyAI()->GetVassalProtectScore(eOtherPlayer));
-	return 1;
-}
-
-// CvDiplomacyAI::GetVassalFailedProtectScore(PlayerTypes ePlayer)
-int CvLuaPlayer::lGetVassalFailedProtectScore(lua_State* L)
-{
-	CvPlayerAI* pkPlayer = GetInstance(L);
-	PlayerTypes eOtherPlayer = (PlayerTypes) lua_tointeger(L, 2);
-	
-	lua_pushinteger(L, pkPlayer->GetDiplomacyAI()->GetVassalFailedProtectScore(eOtherPlayer));
 	return 1;
 }
 
@@ -18231,6 +18246,35 @@ int CvLuaPlayer::lIsPersonalQuest(lua_State* L)
 
 	const bool bResult = pkPlayer->GetMinorCivAI()->IsPersonalQuest(eQuest);
 	lua_pushboolean(L, bResult);
+	return 1;
+}
+
+int CvLuaPlayer::lIsAccomplishmentCompleted(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	const AccomplishmentTypes eAccomplishment = (AccomplishmentTypes)lua_tointeger(L, 2);
+
+	const bool bResult = pkPlayer->IsAccomplishmentCompleted(eAccomplishment);
+	lua_pushboolean(L, bResult);
+	return 1;
+}
+
+int CvLuaPlayer::lGetNumTimesAccomplishmentCompleted(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	const AccomplishmentTypes eAccomplishment = (AccomplishmentTypes)lua_tointeger(L, 2);
+
+	const int iResult = pkPlayer->GetNumTimesAccomplishmentCompleted(eAccomplishment);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+
+int CvLuaPlayer::lCompleteAccomplishment(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	const AccomplishmentTypes eAccomplishment = (AccomplishmentTypes)lua_tointeger(L, 2);
+
+	pkPlayer->CompleteAccomplishment(eAccomplishment);
 	return 1;
 }
 

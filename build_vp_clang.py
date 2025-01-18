@@ -64,13 +64,12 @@ SHARED_PREDEFS = [
     '_WINDOWS',
     '_USRDLL',
     'EXTERNAL_PAUSING',
-    'STACKWALKER',
     'CVGAMECOREDLL_EXPORTS',
     'FINAL_RELEASE',
     '_CRT_SECURE_NO_WARNINGS',
-    '_WINDLL',
+    '_WINDLL'
 ]
-RELEASE_PREDEFS = SHARED_PREDEFS + ['STRONG_ASSUMPTIONS', 'NDEBUG']
+RELEASE_PREDEFS = SHARED_PREDEFS + ['STRONG_ASSUMPTIONS', 'NDEBUG', 'VPRELEASE_ERRORMSG']
 DEBUG_PREDEFS = SHARED_PREDEFS + ['VPDEBUG']
 PREDEFS = {
     Config.Release: RELEASE_PREDEFS,
@@ -102,7 +101,6 @@ CPP = [
     'CvGameCoreDLL_Expansion2\\Lua\\CvLuaTeam.cpp',
     'CvGameCoreDLL_Expansion2\\Lua\\CvLuaTeamTech.cpp',
     'CvGameCoreDLL_Expansion2\\Lua\\CvLuaUnit.cpp',
-    'CvGameCoreDLL_Expansion2\\stackwalker\\StackWalker.cpp',
     'CvGameCoreDLL_Expansion2\\CustomMods.cpp',
     'CvGameCoreDLL_Expansion2\\CvAchievementInfo.cpp',
     'CvGameCoreDLL_Expansion2\\CvAchievementUnlocker.cpp',
@@ -319,7 +317,7 @@ def build_cl_config_args(config: Config) -> list[str]:
     return args
 
 def build_link_config_args(config: Config) -> list[str]:
-    args = ['/MACHINE:x86', '/DLL', '/DEBUG', '/LTCG', '/DYNAMICBASE', '/NXCOMPAT', '/SUBSYSTEM:WINDOWS', '/MANIFEST:EMBED', f'/DEF:"{os.path.join(PROJECT_DIR, DEF_FILE)}"']
+    args = ['/MACHINE:x86', '/DLL', '/DEBUG', '/LTCG', '/DYNAMICBASE', '/NXCOMPAT', '/SUBSYSTEM:WINDOWS', '/MANIFEST:EMBED', '/FORCE:MULTIPLE', f'/DEF:"{os.path.join(PROJECT_DIR, DEF_FILE)}"']
     if config == Config.Release:
         args += ['/OPT:REF', '/OPT:ICF']
     return args

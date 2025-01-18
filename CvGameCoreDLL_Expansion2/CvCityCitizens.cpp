@@ -84,7 +84,7 @@ void CvCityCitizens::Reset()
 	int iI = 0;
 
 	m_vWorkedPlots.clear();
-	CvAssertMsg((0 < MAX_CITY_PLOTS), "MAX_CITY_PLOTS is not greater than zero but an array is being allocated in CvCityCitizens::reset");
+	ASSERT((0 < MAX_CITY_PLOTS), "MAX_CITY_PLOTS is not greater than zero but an array is being allocated in CvCityCitizens::reset");
 	for (iI = 0; iI < MAX_CITY_PLOTS; iI++)
 	{
 		m_pabWorkingPlot[iI] = false;
@@ -383,14 +383,14 @@ void CvCityCitizens::DoTurn()
 			}
 		}
 
-		CvAssertMsg((GetNumCitizensWorkingPlots() + GetTotalSpecialistCount() + GetNumUnassignedCitizens()) <= GetCity()->getPopulation(true), "Gameplay: More workers than population in the city.");
+		ASSERT((GetNumCitizensWorkingPlots() + GetTotalSpecialistCount() + GetNumUnassignedCitizens()) <= GetCity()->getPopulation(true), "Gameplay: More workers than population in the city.");
 		DoReallocateCitizens(bForceCheck);
 	}
 
-	CvAssertMsg((GetNumCitizensWorkingPlots() + GetTotalSpecialistCount() + GetNumUnassignedCitizens()) <= GetCity()->getPopulation(true), "Gameplay: More workers than population in the city.");
+	ASSERT((GetNumCitizensWorkingPlots() + GetTotalSpecialistCount() + GetNumUnassignedCitizens()) <= GetCity()->getPopulation(true), "Gameplay: More workers than population in the city.");
 	DoSpecialists();
 
-	CvAssertMsg((GetNumCitizensWorkingPlots() + GetTotalSpecialistCount() + GetNumUnassignedCitizens()) <= GetCity()->getPopulation(true), "Gameplay: More workers than population in the city.");
+	ASSERT((GetNumCitizensWorkingPlots() + GetTotalSpecialistCount() + GetNumUnassignedCitizens()) <= GetCity()->getPopulation(true), "Gameplay: More workers than population in the city.");
 }
 
 int CvCityCitizens::GetBonusPlotValue(CvPlot* pPlot, YieldTypes eYield, SPrecomputedExpensiveNumbers& cache)
@@ -625,8 +625,8 @@ CityAIFocusTypes CvCityCitizens::GetFocusType() const
 /// What is this city focusing on?
 bool CvCityCitizens::SetFocusType(CityAIFocusTypes eFocus, bool bReallocate)
 {
-	FAssert(eFocus >= NO_CITY_AI_FOCUS_TYPE);
-	FAssert(eFocus < NUM_CITY_AI_FOCUS_TYPES);
+	PRECONDITION(eFocus >= NO_CITY_AI_FOCUS_TYPE);
+	PRECONDITION(eFocus < NUM_CITY_AI_FOCUS_TYPES);
 
 	if (eFocus != m_eCityAIFocusTypes)
 	{
@@ -760,8 +760,7 @@ int CvCityCitizens::GetSpecialistGPPRate(SpecialistTypes eSpecialist, SPrecomput
 		CvSpecialistInfo* pSpecialistInfo = GC.getSpecialistInfo(eSpecialist);
 		UnitClassTypes eUnitClass = (UnitClassTypes)pSpecialistInfo->getGreatPeopleUnitClass();
 		int iGPPRate = (pSpecialistInfo->getGreatPeopleRateChange() + m_pCity->GetEventGPPFromSpecialists()) * 100;
-		int iGPPRateMod = 0;
-		iGPPRateMod += m_pCity->getGreatPeopleRateModifier() + GetPlayer()->getGreatPeopleRateModifier() + m_pCity->GetSpecialistRateModifier(eSpecialist);
+		int iGPPRateMod = m_pCity->getGreatPeopleRateModifier() + GetPlayer()->getGreatPeopleRateModifier() + m_pCity->GetSpecialistRateModifierFromBuildings(eSpecialist);
 
 		// Player and Golden Age mods to this specific class
 		if (eUnitClass == GC.getInfoTypeForString("UNITCLASS_SCIENTIST"))
@@ -809,40 +808,7 @@ int CvCityCitizens::GetSpecialistGPPRate(SpecialistTypes eSpecialist, SPrecomput
 		if (eGreatPerson != NO_GREATPERSON)
 		{
 			iGPPRateMod += GetPlayer()->getSpecificGreatPersonRateModifierFromMonopoly(eGreatPerson);
-			if (GetPlayer()->isGoldenAge())
-			{
-				iGPPRateMod += GetPlayer()->getGoldenAgeGreatPersonRateModifier(eGreatPerson);
-				iGPPRateMod += GetPlayer()->GetPlayerTraits()->GetGoldenAgeGreatPersonRateModifier(eGreatPerson);
-
-				const CvReligion* pReligion = m_pCity->GetCityReligions()->GetMajorityReligion();
-				BeliefTypes eSecondaryPantheon = NO_BELIEF;
-				if (pReligion)
-				{
-					iGPPRateMod += pReligion->m_Beliefs.GetGoldenAgeGreatPersonRateModifier(eGreatPerson, m_pCity->getOwner(), m_pCity, true);
-					eSecondaryPantheon = GetCity()->GetCityReligions()->GetSecondaryReligionPantheonBelief();
-					if (eSecondaryPantheon != NO_BELIEF)
-					{
-						iGPPRateMod += GC.GetGameBeliefs()->GetEntry(eSecondaryPantheon)->GetGoldenAgeGreatPersonRateModifier(eGreatPerson);
-					}
-				}
-
-				// Mod for civs keeping their pantheon belief forever
-				if (MOD_RELIGION_PERMANENT_PANTHEON)
-				{
-					if (GC.getGame().GetGameReligions()->HasCreatedPantheon(GetOwner()))
-					{
-						const CvReligion* pPantheon = GC.getGame().GetGameReligions()->GetReligion(RELIGION_PANTHEON, GetOwner());
-						BeliefTypes ePantheonBelief = GC.getGame().GetGameReligions()->GetBeliefInPantheon(GetOwner());
-						if (pPantheon != NULL && ePantheonBelief != NO_BELIEF && ePantheonBelief != eSecondaryPantheon)
-						{
-							if (pReligion == NULL || (pReligion != NULL && !pReligion->m_Beliefs.IsPantheonBeliefInReligion(ePantheonBelief, pReligion->m_eReligion, GetOwner()))) // check that the our religion does not have our belief, to prevent double counting
-							{
-								iGPPRateMod += GC.GetGameBeliefs()->GetEntry(ePantheonBelief)->GetGoldenAgeGreatPersonRateModifier(eGreatPerson);
-							}
-						}
-					}
-				}
-			}
+			iGPPRateMod += GetCity()->GetReligionGreatPersonRateModifier(eGreatPerson);
 			int iNumPuppets = GetPlayer()->GetNumPuppetCities();
 			if (iNumPuppets > 0)
 			{
@@ -950,14 +916,15 @@ int CvCityCitizens::GetBaseValuePerYield(YieldTypes eYield, SPrecomputedExpensiv
 
 	// if we're working a process that converts production into eYield, always value eYield highly
 	ProcessTypes eProcess = m_pCity->getProductionProcess();
-	const CvProcessInfo* pkProcessInfo = GC.getProcessInfo(eProcess);
+	bool bFoodProcess = eProcess != NO_PROCESS && GC.getProcessInfo(eProcess)->getProductionToYieldModifier(YIELD_FOOD) > 0;
 
 	switch (eYield)
 	{
 	case YIELD_FOOD:
-		if (bAssumeStarving)
+		// in small cities, treat being under the growth threshold like starvation, unless we focus on a yield other than food
+		if (bAssumeStarving || (bAssumeBelowGrowthThreshold && m_pCity->getPopulation() <= 3 && (eFocus == NO_CITY_AI_FOCUS_TYPE || eFocus == CITY_AI_FOCUS_TYPE_FOOD || eFocus == CITY_AI_FOCUS_TYPE_GOLD_GROWTH || eFocus == CITY_AI_FOCUS_TYPE_PROD_GROWTH)))
 			iYieldMod =  /*500*/ GD_INT_GET(AI_CITIZEN_VALUE_FOOD_STARVING);
-		else if (bAssumeBelowGrowthThreshold || eFocus == CITY_AI_FOCUS_TYPE_FOOD || (pkProcessInfo && pkProcessInfo->getProductionToYieldModifier(eYield) > 0))
+		else if (bAssumeBelowGrowthThreshold || eFocus == CITY_AI_FOCUS_TYPE_FOOD || bFoodProcess)
 			iYieldMod =  /*32*/ GD_INT_GET(AI_CITIZEN_VALUE_FOOD_NEED_GROWTH);
 		else
 			iYieldMod = /*8*/ GD_INT_GET(AI_CITIZEN_VALUE_FOOD);
@@ -965,8 +932,9 @@ int CvCityCitizens::GetBaseValuePerYield(YieldTypes eYield, SPrecomputedExpensiv
 	case YIELD_PRODUCTION:
 		iYieldMod = /*12*/ GD_INT_GET(AI_CITIZEN_VALUE_PRODUCTION);
 		// working a process?
-		if (pkProcessInfo)
+		if (eProcess != NO_PROCESS)
 		{
+			const CvProcessInfo* pkProcessInfo = GC.getProcessInfo(eProcess);
 			iYieldMod *= 3;
 			// if the process converts production to some other yield, use the valuation of that yield instead
 			for (int i = 0; i < YIELD_TOURISM; i++)
@@ -1117,6 +1085,20 @@ int CvCityCitizens::ScoreYieldChangeQuick(YieldAndGPPList yieldChanges, SPrecomp
 	{
 		YieldTypes eYield = (YieldTypes)iI;
 		int iYield100 = yieldChanges.yield[iI];
+
+		// Inca exception: if we're already under the non-specialist food consumption threshold, we can safely remove even more food ...
+		if (m_pCity->IsNoStarvationNonSpecialist() && eYield == YIELD_FOOD && iYield100 < 0 && cache.iFoodConsumptionTimes100 <= cache.iFoodConsumptionAssumeNoReductionNonSpecialistsTimes100)
+		{
+			// ... unless we're adding a specialist
+			int iNumSpecialistAdded = 0;
+			for (int iI = 0; iI < (int)yieldChanges.iNumSpecialists.size(); iI++)
+			{
+				iNumSpecialistAdded += yieldChanges.iNumSpecialists[iI];
+			}
+			if (iNumSpecialistAdded <= 0)
+				continue;
+
+		}
 
 		if (iYield100 != 0)
 		{
@@ -1276,6 +1258,13 @@ int CvCityCitizens::ScoreYieldChange(YieldAndGPPList yieldChanges, SPrecomputedE
 			int iNetFoodNow = cache.iFoodRateTimes100 - cache.iFoodConsumptionTimes100;
 			// food consumption also depends on how many specialists are worked
 			int iNetFoodThen = iNetFoodNow + iYield100 - iNumSpecialistsAdded * (m_pCity->foodConsumptionSpecialistTimes100() - m_pCity->foodConsumptionNonSpecialistTimes100());
+			if (m_pCity->IsNoStarvationNonSpecialist())
+			{
+				// if non-specialists can't cause starvation, the calculation is more complicated. we have to recalculate current and future food consumption by non-specialists manually
+				// iNetFoodThen = iNetFoodNow + (Change in Food Rate) - (Change in Food Consumption)
+				// with (Change in Food Consumption) = (Future Food Consumption Non-Specialists) - (Current Food Consumption Non-Specialists) + (Change in Food Consumption Specialists)
+				iNetFoodThen = iNetFoodNow + iYield100 - (min(cache.iFoodRateTimes100 + iYield100, cache.iFoodConsumptionAssumeNoReductionNonSpecialistsTimes100 - iNumSpecialistsAdded * m_pCity->foodConsumptionNonSpecialistTimes100()) - min(cache.iFoodRateTimes100, cache.iFoodConsumptionAssumeNoReductionNonSpecialistsTimes100) + iNumSpecialistsAdded * m_pCity->foodConsumptionSpecialistTimes100());
+			}
 
 			// special case of building a settler: all excess food is converted into production
 			if (m_pCity->isFoodProduction())
@@ -1333,7 +1322,7 @@ int CvCityCitizens::ScoreYieldChange(YieldAndGPPList yieldChanges, SPrecomputedE
 			// for the scoring, we split the difference in excess food in the different parts and value them accordingly
 			// the code below is a more efficient calculation of the following:
 			// for (i = iLower; i < iHigher; i++) { if (i < 0) {iFoodValue += iValuePerFoodStarving} ; if (0 <= i < GrowthThreshold) {iFoodValue += iValueBelowThreshold} ; if(i > iGrowthThreshold) {...} }
-			
+
 			// how much of the difference (iHigher - iLower) corresponds to food in the "starving" area?
 			// case 1) if both iHigher and iLower < 0   -> iHigher - iLower
 			// case 2) if iLower < 0 and iHigher > 0    -> 0 - iLower
@@ -1429,7 +1418,7 @@ int CvCityCitizens::GetNumUnassignedCitizens() const
 void CvCityCitizens::ChangeNumUnassignedCitizens(int iChange)
 {
 	m_iNumUnassignedCitizens += iChange;
-	CvAssertMsg(m_iNumUnassignedCitizens >= 0, "invalid number of unassigned citizens in CvCityCitizens::ChangeNumUnassignedCitizens!");
+	ASSERT(m_iNumUnassignedCitizens >= 0, "invalid number of unassigned citizens in CvCityCitizens::ChangeNumUnassignedCitizens!");
 }
 
 /// How many Citizens are working Plots?
@@ -2060,7 +2049,7 @@ void CvCityCitizens::OptimizeWorkedPlots(bool bLogging)
 	const int iNumOptionsSpecialists = 5;
 
 	//failsafe against switching back and forth, don't try this too often
-	while (iCount < m_pCity->getPopulation() / 2)
+	while (iCount < max(5, m_pCity->getPopulation() / 2))
 	{
 		//now the real check. unassigning a tile might cause the valuation of the other tiles to change, so we have to consider combinations
 		int iNetFood100 = m_pCity->getYieldRateTimes100(YIELD_FOOD, false) - m_pCity->foodConsumptionTimes100();
@@ -2296,6 +2285,9 @@ bool CvCityCitizens::IsWorkingPlot(int iIndex) const
 /// Is our City working a CvPlot?
 bool CvCityCitizens::IsWorkingPlot(const CvPlot* pPlot) const
 {
+	if (plotDistance(m_pCity->getX(), m_pCity->getY(), pPlot->getX(), pPlot->getY()) > MAX_CITY_RADIUS)
+		return false;
+
 	int iIndex = GetCityIndexFromPlot(pPlot);
 
 	if (iIndex != -1)
@@ -2314,7 +2306,7 @@ void CvCityCitizens::SetWorkingPlot(CvPlot* pPlot, bool bNewValue, CvCity::eUpda
 
 	int iIndex = GetCityIndexFromPlot(pPlot);
 
-	CvAssertMsg(iIndex >= 0, "iIndex expected to be >= 0");
+	PRECONDITION(iIndex >= 0, "iIndex expected to be >= 0");
 
 	int iPlotNum = GC.getMap().plotNum(pPlot->getX(), pPlot->getY());
 	std::vector<int>::iterator it = std::find(m_vWorkedPlots.begin(), m_vWorkedPlots.end(), iPlotNum);
@@ -2330,7 +2322,7 @@ void CvCityCitizens::SetWorkingPlot(CvPlot* pPlot, bool bNewValue, CvCity::eUpda
 			m_vWorkedPlots.erase(it);
 	}
 
-	CvAssertMsg(iIndex < GetCity()->GetNumWorkablePlots(), "iIndex expected to be < NUM_CITY_PLOTS");
+	PRECONDITION(iIndex < GetCity()->GetNumWorkablePlots(), "iIndex expected to be < NUM_CITY_PLOTS");
 
 	if (IsWorkingPlot(pPlot) != bNewValue && iIndex >= 0 && iIndex < GetCity()->GetNumWorkablePlots())
 	{
@@ -2381,10 +2373,6 @@ void CvCityCitizens::SetWorkingPlot(CvPlot* pPlot, bool bNewValue, CvCity::eUpda
 				{
 					GetCity()->ChangeNumFeatureWorked(pPlot->getFeatureType(), 1);
 				}
-				if (pPlot->getResourceType(GetCity()->getTeam()) != NO_RESOURCE)
-				{
-					GetCity()->ChangeNumResourceWorked(pPlot->getResourceType(GetCity()->getTeam()), 1);
-				}
 				if (pPlot->getImprovementType() != NO_IMPROVEMENT)
 				{
 					GetCity()->ChangeNumImprovementWorked(pPlot->getImprovementType(), 1);
@@ -2416,10 +2404,6 @@ void CvCityCitizens::SetWorkingPlot(CvPlot* pPlot, bool bNewValue, CvCity::eUpda
 				if (pPlot->getFeatureType() != NO_FEATURE)
 				{
 					GetCity()->ChangeNumFeatureWorked(pPlot->getFeatureType(), -1);
-				}
-				if (pPlot->getResourceType(GetCity()->getTeam()) != NO_RESOURCE)
-				{
-					GetCity()->ChangeNumResourceWorked(pPlot->getResourceType(GetCity()->getTeam()), -1);
 				}
 				if (pPlot->getImprovementType() != NO_IMPROVEMENT)
 				{
@@ -2577,8 +2561,8 @@ void CvCityCitizens::SetForcedWorkingPlot(CvPlot* pPlot, bool bNewValue)
 {
 	int iIndex = GetCityIndexFromPlot(pPlot);
 
-	CvAssertMsg(iIndex >= 0, "iIndex expected to be >= 0");
-	CvAssertMsg(iIndex < GetCity()->GetNumWorkablePlots(), "iIndex expected to be < NUM_CITY_PLOTS");
+	PRECONDITION(iIndex >= 0, "iIndex expected to be >= 0");
+	PRECONDITION(iIndex < GetCity()->GetNumWorkablePlots(), "iIndex expected to be < NUM_CITY_PLOTS");
 
 	if (IsForcedWorkingPlot(pPlot) != bNewValue && iIndex >= 0 && iIndex < GetCity()->GetNumWorkablePlots())
 	{
@@ -2859,7 +2843,7 @@ int CvCityCitizens::GetSpecialistRate(SpecialistTypes eSpecialist)
 				// Player mod
 				iMod += GetPlayer()->getGreatPeopleRateModifier();
 
-				iMod += GetCity()->GetSpecialistRateModifier(eSpecialist);
+				iMod += GetCity()->GetSpecialistRateModifierFromBuildings(eSpecialist);
 
 				// Player and Golden Age mods to this specific class
 				if ((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass() == GC.getInfoTypeForString("UNITCLASS_SCIENTIST"))
@@ -3010,8 +2994,8 @@ int CvCityCitizens::GetNumSpecialistsAllowedByBuilding(const CvBuildingEntry& kB
 /// Are we in the position to add another Specialist to eBuilding?
 bool CvCityCitizens::IsCanAddSpecialistToBuilding(BuildingTypes eBuilding)
 {
-	CvAssert(eBuilding > -1);
-	CvAssert(eBuilding < GC.getNumBuildingInfos());
+	PRECONDITION(eBuilding > -1);
+	PRECONDITION(eBuilding < GC.getNumBuildingInfos());
 
 	if (m_pCity->IsResistance() || m_pCity->IsRazing())
 		return false;
@@ -3031,8 +3015,8 @@ bool CvCityCitizens::IsCanAddSpecialistToBuilding(BuildingTypes eBuilding)
 /// Adds and initializes a Specialist for this building
 void CvCityCitizens::DoAddSpecialistToBuilding(BuildingTypes eBuilding, bool bForced, CvCity::eUpdateMode updateMode)
 {
-	CvAssert(eBuilding > -1);
-	CvAssert(eBuilding < GC.getNumBuildingInfos());
+	PRECONDITION(eBuilding > -1);
+	PRECONDITION(eBuilding < GC.getNumBuildingInfos());
 
 	//no building means laborer
 	if (eBuilding == NO_BUILDING)
@@ -3108,8 +3092,8 @@ void CvCityCitizens::DoAddSpecialistToBuilding(BuildingTypes eBuilding, bool bFo
 /// Removes and uninitializes a Specialist for this building
 void CvCityCitizens::DoRemoveSpecialistFromBuilding(BuildingTypes eBuilding, bool bForced, CvCity::eUpdateMode updateMode)
 {
-	CvAssert(eBuilding > -1);
-	CvAssert(eBuilding < GC.getNumBuildingInfos());
+	PRECONDITION(eBuilding > -1);
+	PRECONDITION(eBuilding < GC.getNumBuildingInfos());
 
 	CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
 	if (pkBuildingInfo == NULL)
@@ -3173,8 +3157,8 @@ void CvCityCitizens::DoRemoveSpecialistFromBuilding(BuildingTypes eBuilding, boo
 /// It is up to the caller to reassign population.
 void CvCityCitizens::DoRemoveAllSpecialistsFromBuilding(BuildingTypes eBuilding, CvCity::eUpdateMode updateMode)
 {
-	CvAssert(eBuilding > -1);
-	CvAssert(eBuilding < GC.getNumBuildingInfos());
+	PRECONDITION(eBuilding > -1);
+	PRECONDITION(eBuilding < GC.getNumBuildingInfos());
 
 	CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
 	if (pkBuildingInfo == NULL)
@@ -3313,8 +3297,8 @@ void CvCityCitizens::ChangeNumForcedDefaultSpecialists(int iChange)
 /// How many Specialists do we have assigned of this type in our City?
 int CvCityCitizens::GetSpecialistCount(SpecialistTypes eIndex) const
 {
-	CvAssert(eIndex > -1);
-	CvAssert(eIndex < GC.getNumSpecialistInfos());
+	PRECONDITION(eIndex > -1);
+	PRECONDITION(eIndex < GC.getNumSpecialistInfos());
 
 	return m_aiSpecialistCounts[eIndex];
 }
@@ -3322,15 +3306,15 @@ int CvCityCitizens::GetSpecialistCount(SpecialistTypes eIndex) const
 #if defined(MOD_BALANCE_CORE)
 int CvCityCitizens::GetSpecialistSlots(SpecialistTypes eIndex) const
 {
-	CvAssert(eIndex > -1);
-	CvAssert(eIndex < GC.getNumSpecialistInfos());
+	PRECONDITION(eIndex > -1);
+	PRECONDITION(eIndex < GC.getNumSpecialistInfos());
 
 	return m_aiSpecialistSlots[eIndex];
 }
 void CvCityCitizens::ChangeNumSpecialistSlots(SpecialistTypes eIndex, int iValue)
 {
-	CvAssert(eIndex > -1);
-	CvAssert(eIndex < GC.getNumSpecialistInfos());
+	PRECONDITION(eIndex > -1);
+	PRECONDITION(eIndex < GC.getNumSpecialistInfos());
 
 	m_aiSpecialistSlots[eIndex] += iValue;
 }
@@ -3378,8 +3362,8 @@ int CvCityCitizens::GetTotalSpecialistCount() const
 /// GPP changes from Buildings
 int CvCityCitizens::GetBuildingGreatPeopleRateChanges(SpecialistTypes eSpecialist) const
 {
-	CvAssert(eSpecialist > -1);
-	CvAssert(eSpecialist < GC.getNumSpecialistInfos());
+	PRECONDITION(eSpecialist > -1);
+	PRECONDITION(eSpecialist < GC.getNumSpecialistInfos());
 
 	return m_piBuildingGreatPeopleRateChanges[eSpecialist];
 }
@@ -3387,8 +3371,8 @@ int CvCityCitizens::GetBuildingGreatPeopleRateChanges(SpecialistTypes eSpecialis
 /// Change GPP from Buildings
 void CvCityCitizens::ChangeBuildingGreatPeopleRateChanges(SpecialistTypes eSpecialist, int iChange)
 {
-	CvAssert(eSpecialist > -1);
-	CvAssert(eSpecialist < GC.getNumSpecialistInfos());
+	PRECONDITION(eSpecialist > -1);
+	PRECONDITION(eSpecialist < GC.getNumSpecialistInfos());
 
 	m_piBuildingGreatPeopleRateChanges[eSpecialist] += iChange;
 }
@@ -3396,8 +3380,8 @@ void CvCityCitizens::ChangeBuildingGreatPeopleRateChanges(SpecialistTypes eSpeci
 /// How much progress does this City have towards a Great Person from eIndex?
 int CvCityCitizens::GetSpecialistGreatPersonProgress(SpecialistTypes eIndex) const
 {
-	CvAssert(eIndex > -1);
-	CvAssert(eIndex < GC.getNumSpecialistInfos());
+	PRECONDITION(eIndex > -1);
+	PRECONDITION(eIndex < GC.getNumSpecialistInfos());
 
 	return GetSpecialistGreatPersonProgressTimes100(eIndex) / 100;
 }
@@ -3405,8 +3389,8 @@ int CvCityCitizens::GetSpecialistGreatPersonProgress(SpecialistTypes eIndex) con
 /// How much progress does this City have towards a Great Person from eIndex? (in hundreds)
 int CvCityCitizens::GetSpecialistGreatPersonProgressTimes100(SpecialistTypes eIndex) const
 {
-	CvAssert(eIndex > -1);
-	CvAssert(eIndex < GC.getNumSpecialistInfos());
+	PRECONDITION(eIndex > -1);
+	PRECONDITION(eIndex < GC.getNumSpecialistInfos());
 
 	return m_aiSpecialistGreatPersonProgressTimes100[eIndex];
 }
@@ -3414,8 +3398,8 @@ int CvCityCitizens::GetSpecialistGreatPersonProgressTimes100(SpecialistTypes eIn
 /// Change progress for this City towards a Great Person
 void CvCityCitizens::ChangeSpecialistGreatPersonProgressTimes100(SpecialistTypes eIndex, int iChange, bool bCheckForSpawn)
 {
-	CvAssert(eIndex > -1);
-	CvAssert(eIndex < GC.getNumSpecialistInfos());
+	PRECONDITION(eIndex > -1);
+	PRECONDITION(eIndex < GC.getNumSpecialistInfos());
 
 	m_aiSpecialistGreatPersonProgressTimes100[eIndex] += iChange;
 
@@ -3450,16 +3434,16 @@ void CvCityCitizens::ChangeSpecialistGreatPersonProgressTimes100(SpecialistTypes
 /// Reset Specialist progress
 void CvCityCitizens::DoResetSpecialistGreatPersonProgressTimes100(SpecialistTypes eIndex, int iAmountToRemove)
 {
-	CvAssert(eIndex > -1);
-	CvAssert(eIndex < GC.getNumSpecialistInfos());
+	PRECONDITION(eIndex > -1);
+	PRECONDITION(eIndex < GC.getNumSpecialistInfos());
 	m_aiSpecialistGreatPersonProgressTimes100[eIndex] -= iAmountToRemove;
 }
 
 /// How many Specialists are assigned to eBuilding?
 int CvCityCitizens::GetNumSpecialistsInBuilding(BuildingTypes eBuilding) const
 {
-	CvAssert(eBuilding > -1);
-	CvAssert(eBuilding < GC.getNumBuildingInfos());
+	PRECONDITION(eBuilding > -1);
+	PRECONDITION(eBuilding < GC.getNumBuildingInfos());
 
 	return m_aiNumSpecialistsInBuilding[eBuilding];
 }
@@ -3467,8 +3451,8 @@ int CvCityCitizens::GetNumSpecialistsInBuilding(BuildingTypes eBuilding) const
 /// How many Forced Specialists are assigned to eBuilding?
 int CvCityCitizens::GetNumForcedSpecialistsInBuilding(BuildingTypes eBuilding) const
 {
-	CvAssert(eBuilding > -1);
-	CvAssert(eBuilding < GC.getNumBuildingInfos());
+	PRECONDITION(eBuilding > -1);
+	PRECONDITION(eBuilding < GC.getNumBuildingInfos());
 
 	return m_aiNumForcedSpecialistsInBuilding[eBuilding];
 }
@@ -3512,7 +3496,7 @@ int CvCityCitizens::GetSpecialistUpgradeThreshold(UnitClassTypes eUnitClass) con
 		iNumCreated = kPlayer.getGreatMusiciansCreated(MOD_GLOBAL_TRULY_FREE_GP);
 		iThreshold -= /*0*/ GD_INT_GET(GWAM_THRESHOLD_DECREASE);
 	}
-	else if (MOD_BALANCE_VP && eUnitClass == GC.getInfoTypeForString("UNITCLASS_GREAT_DIPLOMAT", true))
+	else if (MOD_BALANCE_VP && eUnitClass == GC.getInfoTypeForString("UNITCLASS_GREAT_DIPLOMAT"))
 	{
 		iNumCreated = kPlayer.getGreatDiplomatsCreated(MOD_GLOBAL_TRULY_FREE_GP);
 	}
@@ -3605,7 +3589,7 @@ int CvCityCitizens::GetSpecialistUpgradeThreshold(UnitClassTypes eUnitClass) con
 /// Create a GP!
 void CvCityCitizens::DoSpawnGreatPerson(UnitTypes eUnit, bool bIncrementCount, bool bCountAsProphet, bool bIsFree)
 {
-	CvAssert(eUnit != NO_UNIT);
+	PRECONDITION(eUnit != NO_UNIT);
 
 	if (GC.getUnitInfo(eUnit)->IsFoundReligion() && GC.getGame().isOption(GAMEOPTION_NO_RELIGION))
 		return;
@@ -3713,6 +3697,7 @@ SPrecomputedExpensiveNumbers::SPrecomputedExpensiveNumbers() :
 	iOtherUnhappiness(0),
 	iFoodRateTimes100(0),
 	iFoodConsumptionTimes100(0),
+	iFoodConsumptionAssumeNoReductionNonSpecialistsTimes100(0),
 	iFoodCorpMod(0),
 	bWantArt(false),
 	bWantScience(false),
@@ -3728,6 +3713,7 @@ void SPrecomputedExpensiveNumbers::update(CvCity* pCity, bool bInsideLoop)
 	iGrowthMod = pCity->getGrowthMods();
 	iFoodRateTimes100 = pCity->getYieldRateTimes100(YIELD_FOOD, false);
 	iFoodConsumptionTimes100 = pCity->foodConsumptionTimes100();
+	iFoodConsumptionAssumeNoReductionNonSpecialistsTimes100 = pCity->foodConsumptionTimes100(false, 0, true);
 
 	if (MOD_BALANCE_VP)
 	{

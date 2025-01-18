@@ -46,6 +46,7 @@
 int giKnownCostWeight = 1;
 int giHeuristicCostWeight = 1;
 int giLastStartIndex = 0;
+int giLastDestIndex = 0;
 
 unsigned int saiRuntimeHistogram[100] = {0};
 
@@ -330,11 +331,8 @@ int CvAStar::udFunc(CvAStarConst2Func func, const CvAStarNode* param1, const CvA
 //	--------------------------------------------------------------------------------
 // Generates a path from iXstart,iYstart to iXdest,iYdest
 // private method - not threadsafe!
-bool CvAStar::FindPathWithCurrentConfiguration(int iXstart, int iYstart, int iXdest, int iYdest, const SPathFinderUserData& data)
+bool CvAStar::FindPathWithCurrentConfiguration(int iXstart, int iYstart, int iXdest, int iYdest)
 {
-	if (data.ePath != m_sData.ePath)
-		return false;
-
 	if (!IsInitialized(iXstart, iYstart, iXdest, iYdest))
 		return false;
 
@@ -343,7 +341,6 @@ bool CvAStar::FindPathWithCurrentConfiguration(int iXstart, int iYstart, int iXd
 	if (m_iCurrentGenerationID==0xFFFF)
 		m_iCurrentGenerationID = 1;
 
-	m_sData = data;
 	m_iXdest = iXdest;
 	m_iYdest = iYdest;
 	m_iXstart = iXstart;
@@ -419,16 +416,18 @@ bool CvAStar::FindPathWithCurrentConfiguration(int iXstart, int iYstart, int iXd
 
 	CvUnit* pUnit = m_sData.iUnitID > 0 ? GET_PLAYER(m_sData.ePlayer).getUnit(m_sData.iUnitID) : NULL;
 #if defined(VPDEBUG)
-	if ( timer.GetDeltaInSeconds()>0.2 && data.ePath==PT_UNIT_MOVEMENT )
+	if (timer.GetDeltaInSeconds() > 0.2 && m_sData.ePath == PT_UNIT_MOVEMENT)
 	{
-		//debug hook
 		int iStartIndex = GC.getMap().plotNum(m_iXstart, m_iYstart);
-		if (iStartIndex==giLastStartIndex && iStartIndex>0)
+		int iDestIndex = GC.getMap().plotNum(m_iXdest, m_iYdest);
+		if (iStartIndex == giLastStartIndex && iDestIndex == giLastDestIndex && iStartIndex > 0 && iDestIndex > 0)
 		{
 			OutputDebugString("Repeated pathfinding start\n");
-			gStackWalker.ShowCallstack(5);
+			// Add debug break point here for investigation during development
+			ASSERT(false && "Repeated pathfinding detected - investigate call path");
 		}
 		giLastStartIndex = iStartIndex;
+		giLastDestIndex = iDestIndex;
 
 		int iNumPlots = GC.getMap().numPlots();
 
@@ -439,13 +438,6 @@ bool CvAStar::FindPathWithCurrentConfiguration(int iXstart, int iYstart, int iXd
 			(100 * m_iProcessedNodes) / iNumPlots, timer.GetDeltaInSeconds() * 1000);
 		OutputDebugString( msg.c_str() );
 
-#ifdef STACKWALKER
-		//FILogFile* pLog = LOGFILEMGR.GetLog("PathfinderLongRun.txt", FILogFile::kDontTimeStamp);
-		//pLog->Msg(msg.c_str());
-		//gStackWalker.SetLog(pLog);
-		//gStackWalker.ShowCallstack(5);
-		//gStackWalker.SetLog(NULL);
-#endif
 	}
 #endif
 
@@ -465,12 +457,6 @@ bool CvAStar::FindPathWithCurrentConfiguration(int iXstart, int iYstart, int iXd
 				pLog->Msg(CvString::format("# %s from %d,%d to %d,%d for player %d, type %d, flags %d\n",
 					GetName(), m_iXstart, m_iYstart, m_iXdest, m_iYdest, m_sData.ePlayer, m_sData.ePath, m_sData.iFlags).c_str());
 			}
-
-#ifdef STACKWALKER
-			gStackWalker.SetLog(pLog);
-			gStackWalker.ShowCallstack(5);
-			gStackWalker.SetLog(NULL);
-#endif
 
 			for (size_t i = 0; i < g_svPathLog.size(); i++)
 				pLog->Msg(CvString::format("%d,%d,%d,%d,%d,%d,%d,%d\n", g_svPathLog[i].round, g_svPathLog[i].type, g_svPathLog[i].x, g_svPathLog[i].y,
@@ -550,7 +536,7 @@ void CvAStar::CreateChildren(CvAStarNode* node)
 	bool bHaveStopNodeHere = false;
 
 	//direct neighbors
-	for(int i = 0; i < 6; i++)
+	for(int i = 0; i < NUM_DIRECTION_TYPES; i++)
 	{
 		CvAStarNode* check = node->m_apNeighbors[i];
 		if (!check)
@@ -1681,7 +1667,7 @@ void CvTwoLayerPathFinder::NodeAddedToPath(CvAStarNode* parent, CvAStarNode* nod
 	if (bUpdateCacheForNeighbors)
 	{
 		//update cache for also all possible children
-		for(int i = 0; i < 6; i++)
+		for(int i = 0; i < NUM_DIRECTION_TYPES; i++)
 		{
 			CvAStarNode* neighbor = node->m_apNeighbors[i];
 			UpdateNodeCacheData(neighbor,pUnit,this);
@@ -1729,14 +1715,14 @@ int StepDestValid(int iToX, int iToY, const SPathFinderUserData&, const CvAStar*
 	if (pFromPlot->isCity())
 	{
 		CvCity* pCity = pFromPlot->getPlotCity();
-		if (pCity->HasAccessToLandmass(pToPlot->getLandmass()))
+		if (pCity->HasAccessToLandmassOrOcean(pToPlot->getLandmass()))
 			bAllow = true;
 	}
 
 	if (pToPlot->isCity())
 	{
 		CvCity* pCity = pToPlot->getPlotCity();
-		if (pCity->HasAccessToLandmass(pFromPlot->getLandmass()))
+		if (pCity->HasAccessToLandmassOrOcean(pFromPlot->getLandmass()))
 			bAllow = true;
 	}
 
@@ -1815,14 +1801,14 @@ int StepValidGeneric(const CvAStarNode* parent, const CvAStarNode* node, const S
 			if (pFromPlot->isCity())
 			{
 				CvCity* pCity = pFromPlot->getPlotCity();
-				if (pCity->HasAccessToLandmass(pToPlot->getLandmass()))
+				if (pCity->HasAccessToLandmassOrOcean(pToPlot->getLandmass()))
 					bAllowStep = true;
 			}
 
 			if (pToPlot->isCity())
 			{
 				CvCity* pCity = pToPlot->getPlotCity();
-				if (pCity->HasAccessToLandmass(pFromPlot->getLandmass()))
+				if (pCity->HasAccessToLandmassOrOcean(pFromPlot->getLandmass()))
 					bAllowStep = true;
 			}
 		}
@@ -1993,7 +1979,7 @@ int InfluenceCost(const CvAStarNode* parent, const CvAStarNode* node, const SPat
 		{
 			//hack: treat a lake like plains - water has a higher influence cost
 			CvTerrainInfo* pTerrain = GC.getTerrainInfo(pToPlot->isLake() ? TERRAIN_PLAINS : pToPlot->getTerrainType());
-			CvFeatureInfo* pFeature = GC.getFeatureInfo(pToPlot->getFeatureType());
+			CvFeatureInfo* pFeature = pToPlot->getFeatureType() != NO_FEATURE ? GC.getFeatureInfo(pToPlot->getFeatureType()) : NULL;
 			if (pFeature)
 				iExtraCost = max(iExtraCost, pFeature->getInfluenceCost());
 			else if (pTerrain)
@@ -2621,7 +2607,7 @@ bool CvTwoLayerPathFinder::CommonNeighborIsPassable(const CvAStarNode * a, const
 	if (!a || !b)
 		return false;
 
-	for (int i = 0; i < 6; i++)
+	for (int i = 0; i < NUM_DIRECTION_TYPES; i++)
 	{
 		CvAStarNode* check = a->m_apNeighbors[i];
 		if (check && plotDistance(check->m_iX, check->m_iY, b->m_iX, b->m_iY) == 1)
@@ -2716,6 +2702,8 @@ bool CvTwoLayerPathFinder::AddStopNodeIfRequired(const CvAStarNode* current, con
 /// can do only certain types of path here
 bool CvTwoLayerPathFinder::Configure(const SPathFinderUserData& config)
 {
+	m_sData = config;
+
 	//there is no good place to do this but we need to make sure the dangerplots are not dirty
 	//otherwise there will be a recursive pathfinding call with unpredictable results
 	if (config.ePlayer != NO_PLAYER && !HaveFlag(CvUnit::MOVEFLAG_IGNORE_DANGER))
@@ -2736,7 +2724,6 @@ bool CvTwoLayerPathFinder::Configure(const SPathFinderUserData& config)
 		return false;
 	}
 
-	m_sData.ePath = config.ePath;
 	return true;
 }
 
@@ -2778,6 +2765,8 @@ bool CvStepFinder::AddStopNodeIfRequired(const CvAStarNode*, const CvAStarNode*)
 //////////////////////////////////////////////////////////////////////////
 bool CvStepFinder::Configure(const SPathFinderUserData& config)
 {
+	m_sData = config;
+
 	switch(config.ePath)
 	{
 	case PT_GENERIC_SAME_AREA:
@@ -2849,7 +2838,6 @@ bool CvStepFinder::Configure(const SPathFinderUserData& config)
 		return false;
 	}
 
-	m_sData.ePath = config.ePath;
 	return true;
 }
 
@@ -2864,7 +2852,7 @@ SPath CvPathFinder::GetPath(int iXstart, int iYstart, int iXdest, int iYdest, co
 		gDLL->GetGameCoreLock();
 
 	SPath result;
-	if (Configure(data) && CvAStar::FindPathWithCurrentConfiguration(iXstart, iYstart, iXdest, iYdest, data))
+	if (Configure(data) && CvAStar::FindPathWithCurrentConfiguration(iXstart, iYstart, iXdest, iYdest))
 		result = CvAStar::GetCurrentPath(eMode);
 
 	if(!bHadLock)
@@ -2954,7 +2942,7 @@ ReachablePlots CvPathFinder::GetPlotsInReach(int iXstart, int iYstart, const SPa
 	ReachablePlots plots;
 	
 	//there is no destination! the return value will always be false
-	CvAStar::FindPathWithCurrentConfiguration(iXstart, iYstart, -1, -1, data);
+	CvAStar::FindPathWithCurrentConfiguration(iXstart, iYstart, -1, -1);
 
 	//iterate all previously touched nodes
 	for (std::vector<CvAStarNode*>::const_iterator it=m_closedNodes.begin(); it!=m_closedNodes.end(); ++it)
@@ -3014,7 +3002,7 @@ map<int,SPath> CvPathFinder::GetMultiplePaths(const CvPlot* pStartPlot, vector<C
 	std::stable_sort( vDestPlots.begin(), vDestPlots.end(), PrSortByPlotIndex() );
 
 	//there is no destination! the return value will always be false
-	CvAStar::FindPathWithCurrentConfiguration(pStartPlot->getX(),pStartPlot->getY(), -1, -1, data);
+	CvAStar::FindPathWithCurrentConfiguration(pStartPlot->getX(),pStartPlot->getY(), -1, -1);
 
 	//iterate all previously touched nodes
 	for (std::vector<CvAStarNode*>::const_iterator it=m_closedNodes.begin(); it!=m_closedNodes.end(); ++it)
@@ -3515,7 +3503,7 @@ int ArmyStepCost(const CvAStarNode* parent, const CvAStarNode* node, const SPath
 	if (!finder->HaveFlag(CvUnit::MOVEFLAG_IGNORE_ENEMIES) && pToPlot->isOwned() && GC.getGame().GetClosestCityDistanceInPlots(pToPlot) < 3)
 	{
 		PlayerTypes eClosestCityOwner = GC.getGame().GetClosestCityOwnerByPlots(pToPlot);
-		if (GET_PLAYER(finder->GetData().ePlayer).IsAtWarWith(eClosestCityOwner))
+		if (finder->GetData().ePlayer != NO_PLAYER && GET_PLAYER(finder->GetData().ePlayer).IsAtWarWith(eClosestCityOwner))
 			iScale *= 2;
 	}
 

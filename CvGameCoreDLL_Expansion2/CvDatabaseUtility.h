@@ -61,6 +61,8 @@ void InitializeArray(T*& pArray, const char* szTableName, T default_ = (T)0);
 	                              const char* szFilterColumn,
 	                              const char* szFilterValue);
 
+	bool PopulateVector(std::vector<int>& pVector, const char* szTypeTableName, const char* szDataTableName, const char* szTypeColumn, const char* szFilterColumn, const char* szFilterValue);
+
 	//!Allocates an array to Count(szTypeTableName) and initializes to 0
 	//!Then assigns pArray[Type.ID] = value for all resulting rows.
 	bool PopulateArrayByValue(int*& pArray, const char* szTypeTableName,
@@ -112,7 +114,7 @@ private:
 //------------------------------------------------------------------------------
 inline void CvDatabaseUtility::InitializeArray(int*& pArray, const size_t count, int iDefault)
 {
-	CvAssertMsg(count > 0, "Initializing array to 0 or less items.");
+	ASSERT(count > 0, "Initializing array to 0 or less items.");
 	pArray = FNEW(int[count], c_eCiv5GameplayDLL, 0);
 	if(iDefault == 0)
 	{
@@ -127,7 +129,7 @@ inline void CvDatabaseUtility::InitializeArray(int*& pArray, const size_t count,
 //------------------------------------------------------------------------------
 inline void CvDatabaseUtility::InitializeArray(bool*& pArray, const size_t count, bool bDefault)
 {
-	CvAssertMsg(count > 0, "Initializing array to 0 or less items.");
+	ASSERT(count > 0, "Initializing array to 0 or less items.");
 	pArray = FNEW(bool[count], c_eCiv5GameplayDLL, 0);
 	if(bDefault == 0.0f)
 	{
@@ -142,7 +144,7 @@ inline void CvDatabaseUtility::InitializeArray(bool*& pArray, const size_t count
 //------------------------------------------------------------------------------
 inline void CvDatabaseUtility::InitializeArray(float*& pArray, const size_t count, float fDefault)
 {
-	CvAssertMsg(count > 0, "Initializing array to 0 or less items.");
+	ASSERT(count > 0, "Initializing array to 0 or less items.");
 	pArray = FNEW(float[count], c_eCiv5GameplayDLL, 0);
 	if(fDefault == 0.0f)
 	{
@@ -165,7 +167,7 @@ inline void CvDatabaseUtility::InitializeArray(T*& pArray, const char* szTableNa
 	//We cannot simply NULL out the array because WAY too much code blindly assumes SOMETHING will be there..
 	//Instead we allocate room for 1 element and just roll with it.
 
-	//CvAssertMsg(count > 0, DB.ErrorMessage());
+	//ASSERT(count > 0, DB.ErrorMessage());
 	if(count == 0)
 		count = 1;
 

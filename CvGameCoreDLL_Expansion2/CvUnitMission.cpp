@@ -59,7 +59,7 @@
 /// Perform automated mission
 void CvUnitMission::AutoMission(CvUnit* hUnit)
 {
-	CvAssert(hUnit->getOwner() != NO_PLAYER);
+	ASSERT(hUnit->getOwner() != NO_PLAYER);
 
 	const MissionData* pkMissionNode = HeadMissionData(hUnit->m_missionQueue);
 	if(pkMissionNode != NULL)
@@ -102,14 +102,14 @@ void CvUnitMission::PushMission(CvUnit* hUnit, MissionTypes eMission, int iData1
 {
 	if(CvPreGame::isHuman(hUnit->getOwner()))
 	{
-		CvAssertMsg(CvUnit::dispatchingNetMessage(), "Multiplayer Error! CvUnit::PushMission invoked for a human player outside of a network message!");
+		ASSERT(CvUnit::dispatchingNetMessage(), "Multiplayer Error! CvUnit::PushMission invoked for a human player outside of a network message!");
 		if(!CvUnit::dispatchingNetMessage())
 			gDLL->netMessageDebugLog("*** PROTOCOL ERROR *** : PushMission invoked for a human controlled player outside of a network message!");
 	}
 
 	MissionData mission;
 
-	CvAssert(hUnit->getOwner() != NO_PLAYER);
+	ASSERT(hUnit->getOwner() != NO_PLAYER);
 
 	if (!bAppend)
 	{
@@ -228,7 +228,7 @@ void CvUnitMission::PushMission(CvUnit* hUnit, MissionTypes eMission, int iData1
 /// Retrieve next mission
 void CvUnitMission::PopMission(CvUnit* hUnit)
 {
-	CvAssert(hUnit->getOwner() != NO_PLAYER);
+	ASSERT(hUnit->getOwner() != NO_PLAYER);
 
 	// Update Resource info
 	if(hUnit->getBuildType() != NO_BUILD)
@@ -297,12 +297,12 @@ void CvUnitMission::WaitFor(CvUnit* hUnit, CvUnit* hWaitForUnit)
 {
 	if(CvPreGame::isHuman(hUnit->getOwner()))
 	{
-		CvAssertMsg(CvUnit::dispatchingNetMessage(), "Multiplayer Error! CvUnit::PushMission invoked for a human player outside of a network message!");
+		ASSERT(CvUnit::dispatchingNetMessage(), "Multiplayer Error! CvUnit::PushMission invoked for a human player outside of a network message!");
 		if(!CvUnit::dispatchingNetMessage())
 			gDLL->netMessageDebugLog("*** PROTOCOL ERROR *** : PushMission invoked for a human controlled player outside of a network message!");
 	}
 
-	CvAssert(hUnit->getOwner() != NO_PLAYER);
+	ASSERT(hUnit->getOwner() != NO_PLAYER);
 
 	MissionData mission;
 	mission.eMissionType = CvTypes::getMISSION_WAIT_FOR();
@@ -316,7 +316,7 @@ void CvUnitMission::WaitFor(CvUnit* hUnit, CvUnit* hWaitForUnit)
 	//  Insert head of mission list
 	kQueue.insertAtBeginning(&mission);
 
-	CvAssert(kQueue.getLength() < 10);
+	ASSERT(kQueue.getLength() < 10);
 
 	if((hUnit->getOwner() == GC.getGame().getActivePlayer()) && hUnit->IsSelected())
 	{
@@ -369,10 +369,10 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 		bool bDone = false;   // are we done with mission?
 		bool bAction = false; // are we taking an action this turn?
 
-		CvAssert(!hUnit->isInCombat());
-		CvAssert(hUnit->HeadMissionData() != NULL);
-		CvAssert(hUnit->getOwner() != NO_PLAYER);
-		CvAssert(hUnit->GetActivityType() == ACTIVITY_MISSION);
+		ASSERT(!hUnit->isInCombat());
+		ASSERT(hUnit->HeadMissionData() != NULL);
+		ASSERT(hUnit->getOwner() != NO_PLAYER);
+		ASSERT(hUnit->GetActivityType() == ACTIVITY_MISSION);
 
 		if(HeadMissionData(hUnit->m_missionQueue) == NULL)
 		{
@@ -381,7 +381,7 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 			return;
 		}
 
-		CvAssert(iSteps < 100);
+		ASSERT(iSteps < 100);
 		if(iSteps >= 100)
 		{
 			OutputDebugString("warning: endless loop in ContinueMission\n");
@@ -1049,8 +1049,8 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 	}
 	else if(iMission == CvTypes::getMISSION_MOVE_TO_UNIT())
 	{
-		CvAssertMsg(iData1 != NO_PLAYER, "iData1 should be a valid Player");
-		CvAssertMsg(iData2 != NO_UNIT, "iData2 should be a valid Unit ID");
+		ASSERT(iData1 != NO_PLAYER, "iData1 should be a valid Player");
+		ASSERT(iData2 != NO_UNIT, "iData2 should be a valid Unit ID");
 		if (iData1 != NO_PLAYER && iData2 != NO_UNIT)
 		{
 			pTargetUnit = GET_PLAYER((PlayerTypes)iData1).getUnit(iData2);
@@ -1105,7 +1105,7 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 	}
 	else if(iMission == CvTypes::getMISSION_HEAL())
 	{
-		if(hUnit->canHeal(pPlot, false)) //next turn is also ok
+		if(hUnit->IsHurt() && hUnit->canHeal(pPlot, false)) //next turn is also ok
 		{
 			return true;
 		}
@@ -1280,7 +1280,7 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 	}
 	else if(iMission == CvTypes::getMISSION_BUILD())
 	{
-		CvAssertMsg(((BuildTypes)iData1) < GC.getNumBuildInfos(), "Invalid Build");
+		ASSERT(((BuildTypes)iData1) < GC.getNumBuildInfos(), "Invalid Build");
 		if(hUnit->canBuild(pPlot, ((BuildTypes)iData1), bTestVisible))
 		{
 			return true;
@@ -1392,11 +1392,11 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 	static int stackDepth = 0;
 	++stackDepth; // JAR debugging
 
-	CvAssert(stackDepth < 100);
+	ASSERT(stackDepth < 100);
 
-	CvAssert(!hUnit->IsBusy());
-	CvAssert(hUnit->getOwner() != NO_PLAYER);
-	CvAssert(hUnit->HeadMissionData() != NULL);
+	ASSERT(!hUnit->IsBusy());
+	ASSERT(hUnit->getOwner() != NO_PLAYER);
+	ASSERT(hUnit->HeadMissionData() != NULL);
 
 	CvPlayerAI& kUnitOwner = GET_PLAYER(hUnit->getOwner());
 
@@ -1437,7 +1437,7 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 	}
 	else
 	{
-		CvAssertMsg(kUnitOwner.isTurnActive() || kUnitOwner.isHuman(), "It's expected that either the turn is active for this player or the player is human");
+		ASSERT(kUnitOwner.isTurnActive() || kUnitOwner.isHuman(), "It's expected that either the turn is active for this player or the player is human");
 
 		if(pkQueueData->eMissionType == CvTypes::getMISSION_SKIP())
 		{
@@ -1500,7 +1500,7 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 		if(bNotify)
 		{
 			// The entity should not futz with the missions, but...
-			CvAssert(GetHeadMissionData(hUnit) == pkQueueData);
+			ASSERT(GetHeadMissionData(hUnit) == pkQueueData);
 			pkQueueData = GetHeadMissionData(hUnit);
 		}
 
@@ -1751,13 +1751,15 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 			else if (pkQueueData->eMissionType == CvTypes::getMISSION_ESTABLISH_TRADE_ROUTE())
 			{
 				CvPlot* pPlot = GC.getMap().plotByIndex(pkQueueData->iData1);
-				CvAssertMsg(pPlot, "pPlot is null! OH NOES, JOEY!");
+				ASSERT(pPlot, "pPlot is null! OH NOES, JOEY!");
 				if (pPlot)
 				{
 					if (GC.getGame().isNetworkMultiPlayer())
 					{
-						// This should fix TR/cargo unit related desyncs (different paths etc). I suspect there is still the potential for desyncs if the user opens the TR popup but something changes before they issue the command. Even just opening the popup could cause problems. I think a net message is in order for a real fix.
-						GC.getGame().GetGameTrade()->InvalidateTradePathCache(hUnit->getOwner()); // although we are only interested in one trade route, we invalidate all since the originating client has updated their whole cache when opening the popup
+						// This should fix TR/cargo unit related desyncs (different paths etc).
+						// I suspect there is still the potential for desyncs if the user opens the TR popup but something changes before they issue the command. 
+						// Even just opening the popup could cause problems. I think a net message is in order for a real fix.
+						GC.getGame().GetGameTrade()->InvalidateTradePathCache(hUnit->getOwner());
 					}
 
 					if(hUnit->makeTradeRoute(pPlot->getX(), pPlot->getY(), (TradeConnectionType)pkQueueData->iData2))
@@ -1828,7 +1830,7 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 						if(eImprovement != NO_IMPROVEMENT)
 						{
 							CvImprovementEntry* pkImprovementInfo = GC.getImprovementInfo(eImprovement);
-							CvAssert(pkImprovementInfo);
+							ASSERT(pkImprovementInfo);
 							if(pkImprovementInfo)
 							{
 								iNumResource += pkImprovementInfo->GetResourceQuantityRequirement(iResourceLoop);
@@ -1837,7 +1839,7 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 						else if(eRoute != NO_ROUTE)
 						{
 							CvRouteInfo* pkRouteInfo = GC.getRouteInfo(eRoute);
-							CvAssert(pkRouteInfo);
+							ASSERT(pkRouteInfo);
 							if(pkRouteInfo)
 							{
 								iNumResource += pkRouteInfo->getResourceQuantityRequirement(iResourceLoop);
@@ -2125,12 +2127,12 @@ const MissionData* CvUnitMission::GetMissionData(CvUnit* hUnit, int iNode)
 /// Push onto back end of mission queue
 void CvUnitMission::InsertAtEndMissionQueue(CvUnit* hUnit, MissionData mission, bool bStart)
 {
-	CvAssert(hUnit->getOwner() != NO_PLAYER);
+	ASSERT(hUnit->getOwner() != NO_PLAYER);
 
 	MissionQueue& kQueue = hUnit->m_missionQueue;
 	kQueue.insertAtEnd(&mission);
 
-	CvAssert(kQueue.getLength() < 10);
+	ASSERT(kQueue.getLength() < 10);
 
 	if((GetLengthMissionQueue(kQueue) == 1) && bStart)
 	{
@@ -2152,8 +2154,8 @@ MissionData* CvUnitMission::DeleteMissionData(CvUnit* hUnit, MissionData* pNode)
 {
 	MissionData* pNextMissionNode = NULL;
 
-	CvAssertMsg(pNode != NULL, "Node is not assigned a valid value");
-	CvAssert(hUnit->getOwner() != NO_PLAYER);
+	ASSERT(pNode != NULL, "Node is not assigned a valid value");
+	ASSERT(hUnit->getOwner() != NO_PLAYER);
 
 	MissionQueue& kQueue = hUnit->m_missionQueue;
 	if(pNode == HeadMissionData(kQueue))
@@ -2181,8 +2183,8 @@ MissionData* CvUnitMission::DeleteMissionData(CvUnit* hUnit, MissionData* pNode)
 /// Clear all queued missions
 void CvUnitMission::ClearMissionQueue(CvUnit* hUnit, bool bKeepPathCache, int iUnitCycleTimerOverride)
 {
-	//VALIDATE_OBJECT
-	CvAssert(hUnit->getOwner() != NO_PLAYER);
+	//VALIDATE_OBJECT();
+	ASSERT(hUnit->getOwner() != NO_PLAYER);
 
 	DeactivateHeadMission(hUnit, iUnitCycleTimerOverride);
 
@@ -2208,8 +2210,7 @@ void CvUnitMission::ClearMissionQueue(CvUnit* hUnit, bool bKeepPathCache, int iU
 /// Start our first mission
 void CvUnitMission::ActivateHeadMission(CvUnit* hUnit)
 {
-	VALIDATE_OBJECT
-	CvAssert(hUnit->getOwner() != NO_PLAYER);
+	ASSERT(hUnit->getOwner() != NO_PLAYER);
 	if(hUnit->GetLengthMissionQueue() != 0)
 	{
 		if(!hUnit->IsBusy())
@@ -2223,8 +2224,7 @@ void CvUnitMission::ActivateHeadMission(CvUnit* hUnit)
 /// Deactivate our first mission, waking up the unit
 void CvUnitMission::DeactivateHeadMission(CvUnit* hUnit, int iUnitCycleTimer)
 {
-	VALIDATE_OBJECT
-	CvAssert(hUnit->getOwner() != NO_PLAYER);
+	ASSERT(hUnit->getOwner() != NO_PLAYER);
 
 	if(hUnit->GetLengthMissionQueue() != 0)
 	{
@@ -2307,7 +2307,7 @@ int	CvUnitMission::GetLengthMissionQueue(const MissionQueue& kQueue)
 //	---------------------------------------------------------------------------
 const MissionData* CvUnitMission::GetHeadMissionData(CvUnit* hUnit)
 {
-	CvAssert(hUnit != NULL);
+	ASSERT(hUnit != NULL);
 	if(hUnit->m_missionQueue.getLength())
 		return (hUnit->m_missionQueue.head());
 	return NULL;
@@ -2316,7 +2316,7 @@ const MissionData* CvUnitMission::GetHeadMissionData(CvUnit* hUnit)
 //	---------------------------------------------------------------------------
 const MissionData* CvUnitMission::IsHeadMission(CvUnit* hUnit, int iMission)
 {
-	CvAssert(hUnit != NULL);
+	ASSERT(hUnit != NULL);
 	if(hUnit->m_missionQueue.getLength())
 	{
 		const MissionData& kMissionData = *hUnit->m_missionQueue.head();

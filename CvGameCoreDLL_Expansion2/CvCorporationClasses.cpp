@@ -25,8 +25,8 @@ CvCorporationEntry::CvCorporationEntry(void):
 	m_iBaseSpreadChance(0),
 	m_iTourismMod(0),
 	m_bTradeRoutesInvulnerable(false),
-	m_piResourceMonopolyAnd(NULL),
-	m_piResourceMonopolyOrs(NULL),
+	m_viResourceMonopolyAnds(),
+	m_viResourceMonopolyOrs(),
 	m_piNumFreeResource(NULL),
 	m_piTradeRouteMod(NULL),
 	m_piTradeRouteCityMod(NULL),
@@ -40,8 +40,8 @@ CvCorporationEntry::CvCorporationEntry(void):
 
 CvCorporationEntry::~CvCorporationEntry(void)
 {
-	SAFE_DELETE_ARRAY(m_piResourceMonopolyAnd);
-	SAFE_DELETE_ARRAY(m_piResourceMonopolyOrs);
+	m_viResourceMonopolyAnds.clear();
+	m_viResourceMonopolyOrs.clear();
 	SAFE_DELETE_ARRAY(m_piNumFreeResource);
 	SAFE_DELETE_ARRAY(m_piTradeRouteMod);
 	SAFE_DELETE_ARRAY(m_piTradeRouteCityMod);
@@ -120,83 +120,90 @@ bool CvCorporationEntry::IsTradeRoutesInvulnerable() const
 	return m_bTradeRoutesInvulnerable;
 }
 
-int CvCorporationEntry::GetResourceMonopolyAnd(int i) const
+/// Prerequisite resources with AND
+uint CvCorporationEntry::GetResourceMonopolyAndSize() const
 {
-	CvAssertMsg(i < /*5*/ GD_INT_GET(NUM_BUILDING_RESOURCE_PREREQS), "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
-	return m_piResourceMonopolyAnd ? m_piResourceMonopolyAnd[i] : -1;
+	return m_viResourceMonopolyAnds.size();
+}
+int CvCorporationEntry::GetResourceMonopolyAnd(uint ui) const
+{
+	PRECONDITION(ui < m_viResourceMonopolyAnds.size(), "Index out of bounds");
+	return m_viResourceMonopolyAnds[ui];
 }
 
 /// Prerequisite resources with OR
-int CvCorporationEntry::GetResourceMonopolyOr(int i) const
+uint CvCorporationEntry::GetResourceMonopolyOrSize() const
 {
-	CvAssertMsg(i < /*5*/ GD_INT_GET(NUM_BUILDING_RESOURCE_PREREQS), "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
-	return m_piResourceMonopolyOrs ? m_piResourceMonopolyOrs[i] : -1;
+	return m_viResourceMonopolyOrs.size();
+}
+int CvCorporationEntry::GetResourceMonopolyOr(uint ui) const
+{
+	PRECONDITION(ui < m_viResourceMonopolyOrs.size(), "Index out of bounds");
+	return m_viResourceMonopolyOrs[ui];
 }
 
 int CvCorporationEntry::GetNumFreeResource(int i) const
 {
-	CvAssertMsg(i < /*5*/ GD_INT_GET(NUM_BUILDING_RESOURCE_PREREQS), "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piNumFreeResource ? m_piNumFreeResource[i] : -1;
 }
 
 int CvCorporationEntry::GetUnitResourceProductionModifier(int i) const
 {
-	CvAssertMsg(i < /*5*/ GD_INT_GET(NUM_BUILDING_RESOURCE_PREREQS), "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piUnitResourceProductionModifier ? m_piUnitResourceProductionModifier[i] : -1;
 }
 
 /// Yield Modifier for Trade Routes to cities from an office to cities with a Franchise
 int CvCorporationEntry::GetTradeRouteMod(int i) const
 {
-	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piTradeRouteMod ? m_piTradeRouteMod[i] : -1;
 }
 
 int CvCorporationEntry::GetTradeRouteCityMod(int i) const
 {
-	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piTradeRouteCityMod ? m_piTradeRouteCityMod[i] : -1;
 }
 
 /// Change to Resource yield by type
 int CvCorporationEntry::GetResourceYieldChange(int i, int j) const
 {
-	CvAssertMsg(i < GC.getNumResourceInfos(), "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
-	CvAssertMsg(j < NUM_YIELD_TYPES, "Index out of bounds");
-	CvAssertMsg(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppaiResourceYieldChange ? m_ppaiResourceYieldChange[i][j] : -1;
 }
 
 /// Array of changes to Resource yield
 int* CvCorporationEntry::GetResourceYieldChangeArray(int i) const
 {
-	CvAssertMsg(i < GC.getNumResourceInfos(), "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_ppaiResourceYieldChange[i];
 }
 
 /// Change to specialist yield by type
 int CvCorporationEntry::GetSpecialistYieldChange(int i, int j) const
 {
-	CvAssertMsg(i < GC.getNumSpecialistInfos(), "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
-	CvAssertMsg(j < NUM_YIELD_TYPES, "Index out of bounds");
-	CvAssertMsg(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumSpecialistInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppaiSpecialistYieldChange ? m_ppaiSpecialistYieldChange[i][j] : -1;
 }
 
 /// Array of changes to specialist yield
 int* CvCorporationEntry::GetSpecialistYieldChangeArray(int i) const
 {
-	CvAssertMsg(i < GC.getNumSpecialistInfos(), "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumSpecialistInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_ppaiSpecialistYieldChange[i];
 }
 
@@ -213,10 +220,10 @@ CvString CvCorporationEntry::GetTradeRouteBenefitHelper() const
 /// Yield change for a specific BuildingClass by yield type
 int CvCorporationEntry::GetBuildingClassYieldChange(int i, int j) const
 {
-	CvAssertMsg(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
-	CvAssertMsg(j < NUM_YIELD_TYPES, "Index out of bounds");
-	CvAssertMsg(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiBuildingClassYieldChanges[i][j];
 }
 
@@ -277,8 +284,8 @@ bool CvCorporationEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 
 	const char* szCorporationType = GetType();
 
-	kUtility.PopulateArrayByExistence(m_piResourceMonopolyAnd, "Resources", "Corporation_ResourceMonopolyAnds", "ResourceType", "CorporationType", szCorporationType);
-	kUtility.PopulateArrayByExistence(m_piResourceMonopolyOrs, "Resources", "Corporation_ResourceMonopolyOrs", "ResourceType", "CorporationType", szCorporationType);
+	kUtility.PopulateVector(m_viResourceMonopolyAnds, "Resources", "Corporation_ResourceMonopolyAnds", "ResourceType", "CorporationType", szCorporationType);
+	kUtility.PopulateVector(m_viResourceMonopolyOrs, "Resources", "Corporation_ResourceMonopolyOrs", "ResourceType", "CorporationType", szCorporationType);
 	kUtility.PopulateArrayByValue(m_piNumFreeResource, "Resources", "Corporation_NumFreeResource", "ResourceType", "CorporationType", szCorporationType, "NumResource");
 	kUtility.PopulateArrayByValue(m_piUnitResourceProductionModifier, "Resources", "Corporation_UnitResourceProductionModifier", "ResourceType", "CorporationType", szCorporationType, "Modifier");
 	kUtility.SetYields(m_piTradeRouteCityMod, "Corporation_TradeRouteCityYield", "CorporationType", szCorporationType);
@@ -736,15 +743,15 @@ void CvPlayerCorporations::ChangeNoFranchisesInForeignCities(int iValue)
 
 int CvPlayerCorporations::GetFranchisesPerImprovement(ImprovementTypes eIndex) const
 {
-	CvAssertMsg(eIndex < GC.getNumImprovementInfos(), "Index out of bounds");
-	CvAssertMsg(eIndex > -1, "Index out of bounds");
+	PRECONDITION(eIndex < GC.getNumImprovementInfos(), "Index out of bounds");
+	PRECONDITION(eIndex > -1, "Index out of bounds");
 	return m_aiFranchisesPerImprovement[eIndex];
 }
 
 void CvPlayerCorporations::ChangeFranchisesPerImprovement(ImprovementTypes eIndex, int iValue)
 {
-	CvAssertMsg(eIndex < GC.getNumImprovementInfos(), "Index out of bounds");
-	CvAssertMsg(eIndex > -1, "Index out of bounds");
+	PRECONDITION(eIndex < GC.getNumImprovementInfos(), "Index out of bounds");
+	PRECONDITION(eIndex > -1, "Index out of bounds");
 	if (iValue != 0)
 	{
 		m_aiFranchisesPerImprovement[eIndex] += iValue;
@@ -913,8 +920,6 @@ void CvPlayerCorporations::BuildFranchiseInCity(CvCity* pOriginCity, CvCity* pDe
 		return;
 
 	CvBuildingEntry* pBuildingInfo = GC.getBuildingInfo(eFranchise);
-	if (pBuildingInfo == NULL)
-		return;
 
 	// If we've passed all the checks above, we are ready to go!
 	pDestCity->GetCityBuildings()->SetNumRealBuilding(eFranchise, 1, true);
@@ -1197,9 +1202,10 @@ CvString CvPlayerCorporations::GetCurrentOfficeBenefit()
 	int iNumFranchises = GetNumFranchises();
 
 	BuildingTypes eOffice = (BuildingTypes)m_pPlayer->getCivilizationInfo().getCivilizationBuildings(pkCorporationInfo->GetOfficeBuildingClass());
-	CvBuildingEntry* pkOfficeInfo = GC.getBuildingInfo(eOffice);
-	if (pkOfficeInfo == NULL)
+	if (eOffice == NO_BUILDING)
 		return "";
+
+	CvBuildingEntry* pkOfficeInfo = GC.getBuildingInfo(eOffice);
 
 	// Great Person Rate bonus?
 	if (pkOfficeInfo->GetGPRateModifierPerXFranchises() > 0)
@@ -1426,8 +1432,8 @@ void CvPlayerCorporations::ClearAllCorporationsFromCity(CvCity* pCity)
 // Clear foreign Corporations from pCity
 void CvPlayerCorporations::ClearCorporationFromCity(CvCity* pCity, CorporationTypes eCorporation, bool bAllButThis)
 {
-	CvAssert(pCity);
-	CvAssert(eCorporation != NO_CORPORATION);
+	ASSERT(pCity);
+	ASSERT(eCorporation != NO_CORPORATION);
 
 	if (!pCity)
 		return;
