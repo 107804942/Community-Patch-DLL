@@ -115,8 +115,8 @@ bool CvAICityStrategyEntry::CacheResults(Database::Results& kResults, CvDatabase
 /// What Flavors will be added by adopting this Strategy?
 int CvAICityStrategyEntry::GetFlavorValue(int i) const
 {
-	PRECONDITION(i < GC.getNumFlavorTypes(), "Index out of bounds");
-	PRECONDITION(i > -1, "Index out of bounds");
+	ASSERT_DEBUG(i < GC.getNumFlavorTypes(), "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
 	return m_piFlavorValue ? m_piFlavorValue[i] : -1;
 }
 
@@ -129,8 +129,8 @@ int CvAICityStrategyEntry::GetWeightThreshold() const
 /// How do a player's Personality Flavors affect the Threshold for adopting a Strategy? (if applicable)
 int CvAICityStrategyEntry::GetPersonalityFlavorThresholdMod(int i) const
 {
-	PRECONDITION(i < GC.getNumFlavorTypes(), "Index out of bounds");
-	PRECONDITION(i > -1, "Index out of bounds");
+	ASSERT_DEBUG(i < GC.getNumFlavorTypes(), "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
 	return m_piPersonalityFlavorThresholdMod ? m_piPersonalityFlavorThresholdMod[i] : -1;
 }
 
@@ -890,7 +890,7 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg, UnitTypes eIg
 			{		
 				int iTempWeight = m_pProcessProductionAI->GetWeight((ProcessTypes)iProcessLoop);
 				CvProcessInfo* pProcess = GC.getProcessInfo(eProcess);
-				PRECONDITION(pProcess);
+				ASSERT_DEBUG(pProcess);
 				if (pProcess->getDefenseValue() > 0)
 				{
 					iTempWeight = 100;
@@ -3049,7 +3049,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_ManyTechsStolen(CvCity* pCity)
 				eFlavorEspionage = eFlavor;
 			}
 		}
-		ASSERT(eFlavorEspionage != NO_FLAVOR, "Could not find espionage flavor!");
+		ASSERT_DEBUG(eFlavorEspionage != NO_FLAVOR, "Could not find espionage flavor!");
 		
 		fRatio = pCityEspionage->m_aiNumTimesCityRobbed[ePlayer] / (float)(iTurnsOfEspionage);
 	}
@@ -3097,7 +3097,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_KeyScienceCity(CvCity* pCity)
 				eFlavorEspionage = eFlavor;
 			}
 		}
-		ASSERT(eFlavorEspionage != NO_FLAVOR, "Could not find espionage flavor!");
+		ASSERT_DEBUG(eFlavorEspionage != NO_FLAVOR, "Could not find espionage flavor!");
 
 		float fRatio = iNumBetterScienceCities / (float)iNumOtherCities;
 		float fCutOff = (0.05f * GET_PLAYER(ePlayer).GetFlavorManager()->GetPersonalityIndividualFlavor(eFlavorEspionage));
@@ -3483,6 +3483,35 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 	{
 		iFlatYield += pkBuildingInfo->GetYieldChange(eYield);
 	}
+	if (pkBuildingInfo->GetYieldChangesPerLocalTheme(eYield) > 0)
+	{
+		iFlatYield += pkBuildingInfo->GetYieldChangesPerLocalTheme(eYield) * pCity->GetCityBuildings()->GetTotalNumThemedBuildings();
+	}
+	if (pkBuildingInfo->GetYieldChangesPerCityStrengthTimes100(eYield) > 0)
+	{
+		iFlatYield += pkBuildingInfo->GetYieldChangesPerCityStrengthTimes100(eYield) * pCity->getStrengthValue() / 10000;
+	}
+	// take into account if this is a defense building and we're getting yields per city strength
+	if (pkBuildingInfo->GetDefenseModifier() && pCity->GetYieldChangesPerCityStrengthTimes100(eYield) > 0)
+	{
+		iFlatYield += pCity->GetYieldChangesPerCityStrengthTimes100(eYield) * pkBuildingInfo->GetDefenseModifier() / 10000;
+	}
+	if (!pkBuildingInfo->GetTechEnhancedYields().empty())
+	{
+		map<int, std::map<int, int>> mTechEnhancedYields = pkBuildingInfo->GetTechEnhancedYields();
+		map<int, std::map<int, int>>::iterator it;
+		for (it = mTechEnhancedYields.begin(); it != mTechEnhancedYields.end(); it++)
+		{
+			if (GET_TEAM(kPlayer.getTeam()).GetTeamTechs()->HasTech((TechTypes)it->first))
+			{
+				std::map<int, int>::const_iterator it2 = (it->second).find(eYield);
+				if (it2 != (it->second).end())
+				{
+					iFlatYield += it2->second;
+				}
+			}
+		}
+	}
 	if (pkBuildingInfo->GetYieldChangePerPop(eYield) > 0)
 	{
 		//Since this is going to grow, let's boost the pop by Era (earlier more: Anc x6, Cla x3, Med x2, Ren x1.5, Mod x1.2)
@@ -3829,6 +3858,55 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 	if (pkBuildingInfo->GetYieldFromInternalTREnd(eYield) > 0)
 	{
 		iInstant += pkBuildingInfo->GetYieldFromInternalTREnd(eYield);
+	}
+	if (pkBuildingInfo->GetYieldFromInternationalTREnd(eYield) > 0)
+	{
+		iInstant += pkBuildingInfo->GetYieldFromInternationalTREnd(eYield);
+	}
+	if (pkBuildingInfo->GetYieldFromLongCount(eYield) > 0 && kPlayer.GetPlayerTraits()->IsUsingMayaCalendar())
+	{
+		// there are 13 Baktuns in total, the building is more valuable if more baktuns are yet to come
+		iInstant += pkBuildingInfo->GetYieldFromLongCount(eYield) * max(1, 13 - kPlayer.GetPlayerTraits()->GetCurrentBaktun());
+	}
+	if (pkBuildingInfo->GetYieldFromGPBirthScaledWithWriterBulb(eYield) > 0)
+	{
+		// do we have writers in this city?
+		SpecialistTypes eWriter = (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_WRITER", true);
+		iInstant += pCity->GetCityCitizens()->GetSpecialistCount(eWriter) * pkBuildingInfo->GetYieldFromGPBirthScaledWithWriterBulb(eYield);
+	}
+	if (pkBuildingInfo->GetYieldFromGPBirthScaledWithArtistBulb(eYield) > 0)
+	{
+		// do we have artists in this city?
+		SpecialistTypes eArtist = (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_ARTIST", true);
+		iInstant += pCity->GetCityCitizens()->GetSpecialistCount(eArtist) * pkBuildingInfo->GetYieldFromGPBirthScaledWithArtistBulb(eYield);
+	}
+	if (!pkBuildingInfo->GetYieldFromGPBirthScaledWithPerTurnYieldMap().empty())
+	{
+		map<GreatPersonTypes, map<std::pair<YieldTypes, YieldTypes>, int>> mYieldFromGPBirthScaledWithPerTurnYield = pkBuildingInfo->GetYieldFromGPBirthScaledWithPerTurnYieldMap();
+		map<GreatPersonTypes, map<std::pair<YieldTypes, YieldTypes>, int>>::iterator it;
+		for (it = mYieldFromGPBirthScaledWithPerTurnYield.begin(); it != mYieldFromGPBirthScaledWithPerTurnYield.end(); ++it)
+		{
+			GreatPersonTypes eGreatPerson = it->first;
+			SpecialistTypes eSpecialist = (SpecialistTypes)GC.getGreatPersonInfo(eGreatPerson)->GetSpecialistType();
+			if (eSpecialist == NO_SPECIALIST)
+				continue;
+
+			map<std::pair<YieldTypes, YieldTypes>, int> mInnerYieldMap = it->second;
+			map<std::pair<YieldTypes, YieldTypes>, int>::iterator it2;
+			for (it2 = mInnerYieldMap.begin(); it2 != mInnerYieldMap.end(); ++it2)
+			{
+				std::pair<YieldTypes, YieldTypes> eYieldPair = it2->first;
+				if (eYieldPair.second == eYield)
+				{
+					iInstant += pCity->GetCityCitizens()->GetSpecialistCount(eSpecialist) * kPlayer.GetEmpireYieldRate(eYieldPair.first, true) * it2->second / 100;
+				}
+			}
+		}
+	}
+	if (pkBuildingInfo->GetYieldFromLongCount(eYield) > 0 && kPlayer.GetPlayerTraits()->IsUsingMayaCalendar())
+	{
+		// there are 13 Baktuns in total, the building is more valuable if more baktuns are yet to come
+		iInstant += pkBuildingInfo->GetYieldFromLongCount(eYield) * max(1, 13 - kPlayer.GetPlayerTraits()->GetCurrentBaktun());
 	}
 	if (pkBuildingInfo->GetYieldFromConstruction(eYield) > 0)
 	{
@@ -4608,6 +4686,10 @@ int CityStrategyAIHelpers::GetBuildingGrandStrategyValue(CvCity *pCity, Building
 	{
 		iConquestValue += pkBuildingInfo->GetFreeExperience();
 	}
+	if(pkBuildingInfo->GetExperiencePerGoldenAge() > 0)
+	{
+		iConquestValue += pkBuildingInfo->GetExperiencePerGoldenAge();
+	}
 	PromotionTypes eFreePromotion = (PromotionTypes) pkBuildingInfo->GetFreePromotion();
 	if(eFreePromotion != NO_PROMOTION)
 	{
@@ -4704,10 +4786,6 @@ int CityStrategyAIHelpers::GetBuildingGrandStrategyValue(CvCity *pCity, Building
 	{
 		iTourismValue += (pkBuildingInfo->GetSeaTourismEnd() * 10);
 	}
-	if (pkBuildingInfo->GetTechEnhancedTourism() > 0)
-	{
-		iTourismValue += (pkBuildingInfo->GetTechEnhancedTourism() * 10);
-	}
 	if (pkBuildingInfo->GetLandmarksTourismPercentGlobal() > 0)
 	{
 		iTourismValue += pkBuildingInfo->GetLandmarksTourismPercentGlobal() * kPlayer.getNumCities();
@@ -4802,22 +4880,6 @@ int CityStrategyAIHelpers::GetBuildingPolicyValue(CvCity *pCity, BuildingTypes e
 	if(pkBuildingInfo->GetWorkerSpeedModifier() > 0)
 	{
 		iValue += kPlayer.getWorkerSpeedModifier() + pkBuildingInfo->GetWorkerSpeedModifier();
-	}
-
-	for (int iSpecialistLoop = 0; iSpecialistLoop < GC.getNumSpecialistInfos(); iSpecialistLoop++)
-	{
-		const SpecialistTypes eSpecialist = static_cast<SpecialistTypes>(iSpecialistLoop);
-		CvSpecialistInfo* pkSpecialistInfo = GC.getSpecialistInfo(eSpecialist);
-		if(pkSpecialistInfo)
-		{
-			int iNumWorkers = pCity->GetCityCitizens()->GetSpecialistSlots(eSpecialist);
-			if (iNumWorkers <= 0)
-				continue;
-
-			iValue += (pkBuildingInfo->GetSpecificGreatPersonRateModifier(iSpecialistLoop) * iNumWorkers);
-
-			iValue += pCity->GetPlayer()->GetPlayerTraits()->GetWLTKDGPImprovementModifier() * 5;
-		}
 	}
 
 	if(pkBuildingInfo->GetBorderGrowthRateIncrease() > 0)
@@ -5141,6 +5203,35 @@ int CityStrategyAIHelpers::GetBuildingBasicValue(CvCity *pCity, BuildingTypes eB
 		iValue += (pkBuildingInfo->GetBuildingProductionModifier() + pCity->getPopulation()) * 5;
 	}
 
+	for (int iSpecialistLoop = 0; iSpecialistLoop < GC.getNumSpecialistInfos(); iSpecialistLoop++)
+	{
+		const SpecialistTypes eSpecialist = static_cast<SpecialistTypes>(iSpecialistLoop);
+		CvSpecialistInfo* pkSpecialistInfo = GC.getSpecialistInfo(eSpecialist);
+		if (pkSpecialistInfo)
+		{
+			int iNumWorkers = pCity->GetCityCitizens()->GetSpecialistSlots(eSpecialist);
+			if (iNumWorkers <= 0)
+				continue;
+
+			iValue += (pkBuildingInfo->GetSpecificGreatPersonRateModifier(iSpecialistLoop) * iNumWorkers);
+
+			iValue += pCity->GetPlayer()->GetPlayerTraits()->GetWLTKDGPImprovementModifier() * 5;
+		}
+	}
+
+	if (!pkBuildingInfo->GetGreatPersonPointFromConstruction().empty())
+	{
+		std::map<pair<GreatPersonTypes, EraTypes>, int> mGreatPersonPointFromConstruction = pkBuildingInfo->GetGreatPersonPointFromConstruction();
+		std::map<pair<GreatPersonTypes, EraTypes>, int>::iterator it;
+		for (it = mGreatPersonPointFromConstruction.begin(); it != mGreatPersonPointFromConstruction.end(); it++)
+		{
+			EraTypes eGPConstructionEra = (it->first).second;
+			if (kPlayer.GetCurrentEra() >= eGPConstructionEra)
+			{
+				iValue += (it->second) * (GC.getNumEraInfos() - eGPConstructionEra);
+			}
+		}
+	}
 	if (pkBuildingInfo->GetPopulationChange() > 0)
 	{
 		iValue += (pkBuildingInfo->GetPopulationChange() + pCity->getPopulation()) * 10;

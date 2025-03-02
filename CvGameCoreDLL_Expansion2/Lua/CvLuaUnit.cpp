@@ -354,6 +354,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetDefenseModifier);
 	Method(GetRangedDefenseModifier);
 	Method(GetRangedAttackModifier);
+	Method(GetGarrisonRangedAttackModifier);
 	Method(CityAttackModifier);
 	Method(CityDefenseModifier);
 	Method(HillsAttackModifier);
@@ -974,38 +975,37 @@ int CvLuaUnit::lGetPotentialRangeAttackTargetPlots(lua_State* L)
 	// Can only bombard in domain? (used for Subs' torpedo attack)
 	bool bOnlyInDomain = pUnit->getUnitInfo().IsRangeAttackOnlyInDomain();
 
-	for (int iRange=1; iRange<=pUnit->GetRange(); iRange++)
+	for (int iRange = 1; iRange <= pUnit->GetRange(); iRange++)
 	{
 		const vector<CvPlot*>& vCandidates = GC.getMap().GetPlotsAtRangeX(pOrigin, iRange, true, !bIgnoreLOS);
-
-		for (size_t i = 0; i < vCandidates.size(); i++)
+		for (vector<CvPlot*>::const_iterator it = vCandidates.begin(); it != vCandidates.end(); ++it)
 		{
-			//skip sentinels
-			if (vCandidates[i] == NULL)
+			const CvPlot* pCandidate = *it;
+			if (!pCandidate)
 				continue;
 
-			if (!vCandidates[i]->isRevealed(pUnit->getTeam()))
+			if (!pCandidate->isRevealed(pUnit->getTeam()))
 				continue;
 
-			if (!pUnit->isNativeDomain(vCandidates[i]))
+			if (!pUnit->isNativeDomain(pCandidate))
 				continue;
 
 			if (bOnlyInDomain)
 			{
-				//subs can only attack within their (water) area or adjacent cities
-				if (pOrigin->getArea() != vCandidates[i]->getArea())
-				{
-					CvCity* pCity = vCandidates[i]->getPlotCity();
-					if (!pCity || !pCity->HasAccessToArea(pOrigin->getArea()))
-						continue;
-				}
+				// Can only attack same landmass or adjacent city (VP only)
+				bool bForbidden = (pCandidate->getLandmass() != pOrigin->getLandmass());
+				if (MOD_BALANCE_VP && pCandidate->isCity() && pCandidate->getPlotCity()->HasAccessToLandmassOrOcean(pOrigin->getLandmass()))
+					bForbidden = false;
+
+				if (bForbidden)
+					continue;
 			}
 
 			lua_createtable(L, 0, 0);
 			const int t = lua_gettop(L);
-			lua_pushinteger(L, vCandidates[i]->getX());
+			lua_pushinteger(L, pCandidate->getX());
 			lua_setfield(L, t, "X");
-			lua_pushinteger(L, vCandidates[i]->getY());
+			lua_pushinteger(L, pCandidate->getY());
 			lua_setfield(L, t, "Y");
 			lua_rawseti(L, -2, iCount++);
 		}
@@ -1034,38 +1034,37 @@ int CvLuaUnit::lGetPotentialRangeAttackOriginPlots(lua_State* L)
 	for (int iRange = 1; iRange <= pUnit->GetRange(); iRange++)
 	{
 		const vector<CvPlot*>& vCandidates = GC.getMap().GetPlotsAtRangeX(pTarget, iRange, false, !bIgnoreLOS);
-
-		for (size_t i = 0; i < vCandidates.size(); i++)
+		for (vector<CvPlot*>::const_iterator it = vCandidates.begin(); it != vCandidates.end(); ++it)
 		{
-			//skip sentinels
-			if (vCandidates[i] == NULL)
+			const CvPlot* pCandidate = *it;
+			if (!pCandidate)
 				continue;
 
-			if (!vCandidates[i]->isRevealed(pUnit->getTeam()))
+			if (!pCandidate->isRevealed(pUnit->getTeam()))
 				continue;
 
-			if (!pUnit->isNativeDomain(vCandidates[i]))
+			if (!pUnit->isNativeDomain(pCandidate))
 				continue;
 
-			if (!pUnit->canEndTurnAtPlot(vCandidates[i]))
+			if (!pUnit->canEndTurnAtPlot(pCandidate))
 				continue;
 
 			if (bOnlyInDomain)
 			{
-				//subs can only attack within their (water) area or adjacent cities
-				if (pTarget->getArea() != vCandidates[i]->getArea())
-				{
-					CvCity* pCity = vCandidates[i]->getPlotCity();
-					if (!pCity || !pCity->HasAccessToArea(pTarget->getArea()))
-						continue;
-				}
+				// Can only attack same landmass or adjacent city (VP only)
+				bool bForbidden = (pCandidate->getLandmass() != pTarget->getLandmass());
+				if (MOD_BALANCE_VP && pTarget->isCity() && pTarget->getPlotCity()->HasAccessToLandmassOrOcean(pCandidate->getLandmass()))
+					bForbidden = false;
+
+				if (bForbidden)
+					continue;
 			}
 
 			lua_createtable(L, 0, 0);
 			const int t = lua_gettop(L);
-			lua_pushinteger(L, vCandidates[i]->getX());
+			lua_pushinteger(L, pCandidate->getX());
 			lua_setfield(L, t, "X");
-			lua_pushinteger(L, vCandidates[i]->getY());
+			lua_pushinteger(L, pCandidate->getY());
 			lua_setfield(L, t, "Y");
 			lua_rawseti(L, -2, iCount++);
 		}
@@ -1918,17 +1917,8 @@ int CvLuaUnit::lCanConstruct(lua_State* L)
 //------------------------------------------------------------------------------
 int CvLuaUnit::lIsRangeAttackOnlyInDomain(lua_State* L)
 {
-	CvUnit* pkUnit = GetInstance(L);
-	CvUnitEntry* pkUnitInfo = GC.getUnitInfo(pkUnit->getUnitType());
-
-	if(pkUnitInfo == NULL)
-	{
-		luaL_error(L, "Could not find unit info (%d) for unit.", pkUnit->getUnitType());
-		return 0;
-	}
-
-	const bool bResult = pkUnitInfo->IsRangeAttackOnlyInDomain();
-	lua_pushboolean(L, bResult);
+	CvUnit* pUnit = GetInstance(L);
+	lua_pushboolean(L, pUnit->getUnitInfo().IsRangeAttackOnlyInDomain());
 	return 1;
 }
 
@@ -2013,11 +2003,7 @@ int CvLuaUnit::lGetHurryProduction(lua_State* L)
 //int GetTradeGold();
 int CvLuaUnit::lGetTradeGold(lua_State* L)
 {
-	CvUnit* pkUnit = GetInstance(L);
-
-	const int iResult = pkUnit->getTradeGold();
-	lua_pushinteger(L, iResult);
-	return 1;
+	return BasicLuaMethod(L, &CvUnit::GetGoldBlastStrength);
 }
 //------------------------------------------------------------------------------
 //int GetTradeInfluence(CyPlot* pPlot);
@@ -2160,49 +2146,24 @@ int CvLuaUnit::lGetGivePoliciesCulture(lua_State* L)
 //int GetBlastTourism()
 int CvLuaUnit::lGetBlastTourism(lua_State* L)
 {
-	CvUnit* pkUnit = GetInstance(L);
-	int iResult = 0;
-	if (pkUnit)
+	CvUnit* pUnit = GetInstance(L);
+	int iResult = pUnit->GetTourismBlastStrength();
+
+	if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES && iResult > 0)
 	{
-		iResult = pkUnit->getBlastTourism();
-
-#if defined(MOD_BALANCE_CORE)
-		if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES && pkUnit && pkUnit->getBlastTourism() > 0)
+		CvPlot* pPlot = pUnit->plot();
+		if (pPlot && pUnit->canBlastTourism(pPlot))
 		{
-			CvPlot* pPlot = pkUnit->plot();
-			if (pPlot && pkUnit->canBlastTourism(pPlot))
+			CvCity* pCapital = GET_PLAYER(pUnit->getOwner()).getCapitalCity();
+			PlayerTypes eOtherPlayer = pPlot->getOwner();
+
+			// Player to player modifier
+			if (pCapital)
 			{
-				CvPlayer& kUnitOwner = GET_PLAYER(pkUnit->getOwner());
-				PlayerTypes eOtherPlayer = pPlot->getOwner();
-				
-
-				// below logic based on CvPlayerCulture::ChangeInfluenceOn()
-				if (eOtherPlayer != NO_PLAYER)
-				{
-					// gamespeed modifier
-					iResult = iResult * GC.getGame().getGameSpeedInfo().getCulturePercent() / 100;
-
-					// player to player modifier (eg religion, open borders, ideology)
-					if (kUnitOwner.getCapitalCity())
-					{
-						int iModifier = kUnitOwner.getCapitalCity()->GetCityCulture()->GetTourismMultiplier(eOtherPlayer, false, false, false, false, false);
-						if (iModifier != 0)
-						{
-							iResult = iResult * (100 + iModifier) / 100;
-						}
-					}
-
-					// IsNoOpenTrade trait modifier (half tourism if trait owner does not send a trade route to the unit owner)
-					CvPlayer& kOtherPlayer = GET_PLAYER(eOtherPlayer);
-					if (eOtherPlayer != pkUnit->getOwner() && kOtherPlayer.isMajorCiv() && kOtherPlayer.GetPlayerTraits()->IsNoOpenTrade())
-					{
-						if (!GC.getGame().GetGameTrade()->IsPlayerConnectedToPlayer(eOtherPlayer, pkUnit->getOwner(), true))
-							iResult /= 2;
-					}
-				}
+				int iModifier = pCapital->GetCityCulture()->GetTourismMultiplier(eOtherPlayer, false, false, false, false, false);
+				iResult = iResult * (100 + iModifier) / 100;
 			}
 		}
-#endif
 	}
 	
 	lua_pushinteger(L, iResult);
@@ -2440,7 +2401,7 @@ int CvLuaUnit::lGetUnitCombatType(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 
-	const UnitCombatTypes eResult = (UnitCombatTypes)pkUnit->getUnitCombatType();
+	const UnitCombatTypes eResult = pkUnit->getUnitCombatType();
 	lua_pushinteger(L, eResult);
 	return 1;
 }
@@ -4008,6 +3969,22 @@ int CvLuaUnit::lGetRangedAttackModifier(lua_State* L)
 	CvUnit* pkUnit = GetInstance(L);
 
 	const int iResult = pkUnit->GetRangedAttackModifier();
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+//int GarrisonRangedAttackModifier();
+int CvLuaUnit::lGetGarrisonRangedAttackModifier(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+
+	int iResult = 0;
+	CvPlot* pPlot = pkUnit->plot();
+	if (pPlot && pPlot->isCity())
+	{
+		CvCity* pCity = pPlot->getPlotCity();
+		iResult = pCity->getGarrisonRangedAttackModifier();
+	}
 	lua_pushinteger(L, iResult);
 	return 1;
 }

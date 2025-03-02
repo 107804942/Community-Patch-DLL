@@ -458,8 +458,8 @@ public:
 	bool sellExoticGoods();
 
 	int getRebaseRange() const;
-	bool canRebase(bool bForced = false) const;
-	bool canRebaseAt(int iXDest, int iYDest, bool bForced = false) const;
+	bool canRebase(bool bIgnoreMovementPoints = false) const;
+	bool canRebaseAt(int iXDest, int iYDest, bool bIgnoreMovementPoints = false) const;
 	bool rebase(int iX, int iY, bool bForced = false);
 
 	bool canPillage(const CvPlot* pPlot) const;
@@ -581,7 +581,7 @@ public:
 	SpecialUnitTypes getSpecialUnitType() const;
 	bool IsGreatPerson() const;
 	UnitTypes getCaptureUnitType(PlayerTypes eCapturingPlayer) const;
-	int getUnitCombatType() const;
+	UnitCombatTypes getUnitCombatType() const;
 	void setUnitCombatType(UnitCombatTypes eCombat);
 #if defined(MOD_GLOBAL_PROMOTION_CLASSES)
 	UnitCombatTypes getUnitPromotionType() const;
@@ -2401,7 +2401,7 @@ protected:
 	ActivityTypes m_eActivityType;
 	AutomateTypes m_eAutomateType;
 	UnitAITypes m_eUnitAIType; //current AI type, might be different from default
-	int m_eCombatType;
+	UnitCombatTypes m_eCombatType;
 
 	//not serialized
 	std::vector<CvPlot*> m_unitMoveLocs;
@@ -2788,7 +2788,7 @@ SYNC_ARCHIVE_VAR(MissionAITypes, m_eMissionAIType)
 SYNC_ARCHIVE_VAR(ActivityTypes, m_eActivityType)
 SYNC_ARCHIVE_VAR(AutomateTypes, m_eAutomateType)
 SYNC_ARCHIVE_VAR(UnitAITypes, m_eUnitAIType)
-SYNC_ARCHIVE_VAR(int, m_eCombatType)
+SYNC_ARCHIVE_VAR(UnitCombatTypes, m_eCombatType)
 SYNC_ARCHIVE_VAR(int, m_iEmbarkedAllWaterCount)
 SYNC_ARCHIVE_VAR(int, m_iEmbarkedDeepWaterCount)
 SYNC_ARCHIVE_VAR(int, m_iEmbarkExtraVisibility)

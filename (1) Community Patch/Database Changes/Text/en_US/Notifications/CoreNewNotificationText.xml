@@ -13,6 +13,13 @@
 		<Row Tag="TXT_KEY_NOTIFICATION_PANTHEON_ENHANCED_UNKNOWN">
 			<Text>An unknown civilization has enhanced their pantheon by adding a new belief.</Text>
 		</Row>
+		
+		<Row Tag="TXT_KEY_NOTIFICATION_QUEST_ENDED_REVOKED_WAR">
+			<Text>Because you are at war with {1_MinorCivName:textkey}, they have revoked quests previously offered to you. The war must end before they will offer you quests again.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_QUEST_ENDED_REVOKED_WAR">
+			<Text>{1_MinorCivName:textkey} revokes quests</Text>
+		</Row>
 
 		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_CULTURE_UNIT">
 			<Text>A {1_Resource:textkey} has brought inspiration!</Text>
@@ -417,6 +424,9 @@
 		<Row Tag="TXT_KEY_INSTANT_YIELD_BIRTH">
 			<Text>Birth of a [ICON_CITIZEN] Citizen:[NEWLINE]{1_YieldString}</Text>
 		</Row>
+		<Row Tag="TXT_KEY_INSTANT_YIELD_TYPE_BAKTUN_END">
+			<Text>End of a B'ak'tun:[NEWLINE]{1_YieldString}</Text>
+		</Row>
 		<Row Tag="TXT_KEY_INSTANT_YIELD_BIRTH_RETROACTIVE">
 			<Text>Total Number of City [ICON_CITIZEN] Citizens:[NEWLINE]{1_YieldString}</Text>
 		</Row>
@@ -545,6 +555,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_INSTANT_YIELD_GOLDEN_AGE_START">
 			<Text>Starting a Golden Age:[NEWLINE]{1_YieldString}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_INSTANT_YIELD_TYPE_UNIT_GIFT">
+			<Text>Gifting a Unit to a City-State:[NEWLINE]{1_YieldString}</Text>
 		</Row>
 		<Row Tag="TXT_KEY_INSTANT_YIELD_REFUND">
 			<Text>[ICON_PRODUCTION] Refund from Free Building Replacement:[NEWLINE]{1_YieldString}</Text>

@@ -97,6 +97,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(IsAITeammateOfHuman);
 	Method(IsBarbarian);
 	Method(GetName);
+	Method(GetBuildingTechEnhancedYields);
 	Method(GetNameKey);
 	Method(GetNickName);
 	Method(GetCivilizationDescription);
@@ -2178,6 +2179,34 @@ int CvLuaPlayer::lGetCivilizationAdjectiveKey(lua_State* L)
 int CvLuaPlayer::lIsWhiteFlag(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvPlayerAI::isWhiteFlag);
+}
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lGetBuildingTechEnhancedYields(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	BuildingTypes eBuilding = (BuildingTypes)lua_tointeger(L, 2);
+	CvBuildingEntry* pBuildingInfo = GC.getBuildingInfo(eBuilding);
+	YieldTypes eYield = (YieldTypes)lua_tointeger(L, 3);
+
+	int iResult = 0;
+	if (!pBuildingInfo->GetTechEnhancedYields().empty())
+	{
+		map<int, std::map<int, int>> mTechEnhancedYields = pBuildingInfo->GetTechEnhancedYields();
+		map<int, std::map<int, int>>::iterator it;
+		for (it = mTechEnhancedYields.begin(); it != mTechEnhancedYields.end(); it++)
+		{
+			if (GET_TEAM(pkPlayer->getTeam()).GetTeamTechs()->HasTech((TechTypes)it->first))
+			{
+				std::map<int, int>::const_iterator it2 = (it->second).find(eYield);
+				if (it2 != (it->second).end())
+				{
+					iResult += it2->second;
+				}
+			}
+		}
+	}
+	lua_pushinteger(L, iResult);
+	return 1;
 }
 //------------------------------------------------------------------------------
 //wstring GetStateReligionName();
@@ -4692,7 +4721,7 @@ int CvLuaPlayer::lGetPuppetYieldPenalty(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	const YieldTypes eYield = (YieldTypes)lua_tointeger(L, 2);
-	ASSERT(eYield > NO_YIELD && eYield < NUM_YIELD_TYPES, "Unexpected yield in lGetPuppetYieldPenalty");
+	ASSERT_DEBUG(eYield > NO_YIELD && eYield < NUM_YIELD_TYPES, "Unexpected yield in lGetPuppetYieldPenalty");
 
 	int iResult = pkPlayer->GetPlayerTraits()->GetPuppetPenaltyReduction() + pkPlayer->GetPuppetYieldPenaltyMod();
 	switch (eYield)
@@ -7021,11 +7050,11 @@ int CvLuaPlayer::lCanAdoptPolicy(lua_State* L)
 	bool bIgnoreCost = luaL_optbool(L, 3, false);
 
 	CvPlayerAI* pkPlayer = GetInstance(L);
-	ASSERT(pkPlayer != NULL);
+	ASSERT_DEBUG(pkPlayer != NULL);
 	if(pkPlayer != NULL)
 	{
 		CvPlayerPolicies* pkPolicies = pkPlayer->GetPlayerPolicies();
-		ASSERT(pkPolicies != NULL);
+		ASSERT_DEBUG(pkPolicies != NULL);
 		if(pkPolicies != NULL)
 		{
 			bool bResult = pkPolicies->CanAdoptPolicy(ePolicy, bIgnoreCost);
@@ -7167,7 +7196,7 @@ int CvLuaPlayer::lCanAdoptTenet(lua_State* L)
 	bool bResult = false;
 
 	CvPlayerPolicies* pkPolicies = pkPlayer->GetPlayerPolicies();
-	ASSERT(pkPolicies != NULL);
+	ASSERT_DEBUG(pkPolicies != NULL);
 	if(pkPolicies != NULL)
 	{
 		bResult = pkPolicies->CanAdoptPolicy(ePolicy, bIgnoreCost);
@@ -9850,7 +9879,7 @@ int CvLuaPlayer::lGetIncomingUnitType(lua_State* L)
 	if (pkPlayer->isMinorCiv())
 	{
 		const CvMinorCivAI* pMinorCivAI = pkPlayer->GetMinorCivAI();
-		ASSERT(pMinorCivAI);
+		ASSERT_DEBUG(pMinorCivAI);
 		if (pMinorCivAI)
 		{
 			const PlayerTypes eFromPlayer = static_cast<PlayerTypes>(lua_tointeger(L, 2));
@@ -9878,7 +9907,7 @@ int CvLuaPlayer::lGetIncomingUnitCountdown(lua_State* L)
 	if (pkPlayer->isMinorCiv())
 	{
 		const CvMinorCivAI* pMinorCivAI = pkPlayer->GetMinorCivAI();
-		ASSERT(pMinorCivAI);
+		ASSERT_DEBUG(pMinorCivAI);
 		if (pMinorCivAI)
 		{
 			const PlayerTypes eFromPlayer = static_cast<PlayerTypes>(lua_tointeger(L, 2));
@@ -12906,7 +12935,7 @@ int CvLuaPlayer::lGetPolicyEspionageModifier(lua_State* L)
 {
 	const PolicyTypes iIndex = (PolicyTypes)lua_tointeger(L, 2);
 	CvPolicyEntry* pkPolicyInfo = GC.getPolicyInfo(iIndex);
-	ASSERT(pkPolicyInfo, "pkPolicyInfo is null!");
+	ASSERT_DEBUG(pkPolicyInfo, "pkPolicyInfo is null!");
 	if (!pkPolicyInfo)
 	{
 		return 0;
@@ -12921,7 +12950,7 @@ int CvLuaPlayer::lGetPolicyEspionageCatchSpiesModifier(lua_State* L)
 {
 	const PolicyTypes iIndex = (PolicyTypes)lua_tointeger(L, 2);
 	CvPolicyEntry* pkPolicyInfo = GC.getPolicyInfo(iIndex);
-	ASSERT(pkPolicyInfo, "pkPolicyInfo is null!");
+	ASSERT_DEBUG(pkPolicyInfo, "pkPolicyInfo is null!");
 	if (!pkPolicyInfo)
 	{
 		return 0;
@@ -12937,7 +12966,7 @@ int CvLuaPlayer::lGetPolicyConversionModifier(lua_State* L)
 {
 	const PolicyTypes iIndex = (PolicyTypes)lua_tointeger(L, 2);
 	CvPolicyEntry* pkPolicyInfo = GC.getPolicyInfo(iIndex);
-	ASSERT(pkPolicyInfo, "pkPolicyInfo is null!");
+	ASSERT_DEBUG(pkPolicyInfo, "pkPolicyInfo is null!");
 	if (!pkPolicyInfo)
 	{
 		return 0;
@@ -14636,7 +14665,7 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 					str = Localization::Lookup("TXT_KEY_DIPLO_VASSAL_TREATMENT_ENSLAVED").toUTF8();
 					break;
 				case NO_VASSAL_TREATMENT:
-					ASSERT(false, "eTreatmentLevel is not expected to be NO_VASSAL_TREATMENT");
+					ASSERT_DEBUG(false, "eTreatmentLevel is not expected to be NO_VASSAL_TREATMENT");
 					break;
 				}
 
@@ -16417,7 +16446,7 @@ int CvLuaPlayer::lGetNumTechsToSteal(lua_State* L)
 	CvPlayerEspionage* pkPlayerEspionage = pkThisPlayer->GetEspionage();
 
 	int iPlayer = lua_tointeger(L, 2);
-	ASSERT(iPlayer >= 0 && iPlayer < MAX_MAJOR_CIVS, "iPlayer out of bounds");
+	ASSERT_DEBUG(iPlayer >= 0 && iPlayer < MAX_MAJOR_CIVS, "iPlayer out of bounds");
 	PlayerTypes ePlayer = (PlayerTypes)iPlayer;
 	lua_pushinteger(L, pkPlayerEspionage->GetNumTechsToSteal(ePlayer));
 	return 1;
@@ -16460,7 +16489,7 @@ int CvLuaPlayer::lHasRecentIntrigueAbout(lua_State* L)
 	CvPlayerEspionage* pkPlayerEspionage = pkThisPlayer->GetEspionage();
 
 	int iPlayer = lua_tointeger(L, 2);
-	ASSERT(iPlayer >= 0 && iPlayer < MAX_MAJOR_CIVS, "iPlayer out of bounds");
+	ASSERT_DEBUG(iPlayer >= 0 && iPlayer < MAX_MAJOR_CIVS, "iPlayer out of bounds");
 	PlayerTypes ePlayer = (PlayerTypes)iPlayer;
 	lua_pushboolean(L, pkPlayerEspionage->HasRecentIntrigueAbout(ePlayer));
 
@@ -16473,7 +16502,7 @@ int CvLuaPlayer::lGetRecentIntrigueInfo(lua_State* L)
 	CvPlayerEspionage* pkPlayerEspionage = pkThisPlayer->GetEspionage();
 
 	int iPlayer = lua_tointeger(L, 2);
-	ASSERT(iPlayer >= 0 && iPlayer < MAX_MAJOR_CIVS, "iPlayer out of bounds");
+	ASSERT_DEBUG(iPlayer >= 0 && iPlayer < MAX_MAJOR_CIVS, "iPlayer out of bounds");
 	PlayerTypes eTargetPlayer = (PlayerTypes)iPlayer;
 	IntrigueNotificationMessage* pNotificationMessage = pkPlayerEspionage->GetRecentIntrigueInfo(eTargetPlayer);
 
@@ -16499,7 +16528,7 @@ int CvLuaPlayer::lGetCoupChanceOfSuccess(lua_State* L)
 	bool bIgnoreEnemySpies = luaL_optbool(L, 3, false);
 
 	int iSpyIndex = pkPlayerEspionage->GetSpyIndexInCity(pkCity);
-	PRECONDITION(iSpyIndex >= 0, "iSpyIndex out of bounds");
+	ASSERT_DEBUG(iSpyIndex >= 0, "iSpyIndex out of bounds");
 	if(iSpyIndex < 0)
 	{
 		lua_pushinteger(L, 0);

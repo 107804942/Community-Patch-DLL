@@ -585,7 +585,7 @@ bool CvGameTrade::CreateTradeRoute(CvCity* pOriginCity, CvCity* pDestCity, Domai
 	}
 
 	int iNewTradeRouteIndex = GetEmptyTradeRouteIndex();
-	PRECONDITION(iNewTradeRouteIndex < (int)m_aTradeConnections.size(), "iNewTradeRouteIndex out of bounds");
+	ASSERT_DEBUG(iNewTradeRouteIndex < (int)m_aTradeConnections.size(), "iNewTradeRouteIndex out of bounds");
 
 	// couldn't find valid connection, bail out
 	if (iNewTradeRouteIndex < 0)
@@ -1109,7 +1109,7 @@ bool CvGameTrade::IsTradeRouteIndexEmpty(int iIndex)
 //	--------------------------------------------------------------------------------
 bool CvGameTrade::ClearTradeRoute(int iIndex)
 {
-	PRECONDITION(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
+	ASSERT_DEBUG(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
 	if (iIndex < 0 || iIndex >= (int)m_aTradeConnections.size())
 		return false;
 
@@ -1246,7 +1246,7 @@ int CvGameTrade::GetTradeRouteTurns(CvCity* pOriginCity, CvCity* pDestCity, Doma
 /// Called when a city changes hands
 void CvGameTrade::ClearAllCityTradeRoutes (CvPlot* pPlot, bool bIncludeTransits)
 {
-	ASSERT(pPlot != NULL);
+	ASSERT_DEBUG(pPlot != NULL);
 
 	if (pPlot)
 	{
@@ -1270,7 +1270,7 @@ void CvGameTrade::ClearAllCityTradeRoutes (CvPlot* pPlot, bool bIncludeTransits)
 					CvPlayer& kPlayer = GET_PLAYER(m_aTradeConnections[ui].m_eOriginOwner);
 					UnitTypes eUnitType = kPlayer.GetTrade()->GetTradeUnit(m_aTradeConnections[ui].m_eDomain, &kPlayer);
 
-					ASSERT(eUnitType != NO_UNIT, "No trade unit found");
+					ASSERT_DEBUG(eUnitType != NO_UNIT, "No trade unit found");
 					if (eUnitType != NO_UNIT)
 					{
 						GET_PLAYER(m_aTradeConnections[ui].m_eOriginOwner).initUnit(eUnitType, m_aTradeConnections[ui].m_iOriginX, m_aTradeConnections[ui].m_iOriginY, UNITAI_TRADE_UNIT);
@@ -1333,7 +1333,7 @@ void CvGameTrade::ClearAllCivTradeRoutes (PlayerTypes ePlayer, bool bFromEmbargo
 					CvPlayer& kPlayer = GET_PLAYER(m_aTradeConnections[ui].m_eOriginOwner);
 					UnitTypes eUnitType = kPlayer.GetTrade()->GetTradeUnit(m_aTradeConnections[ui].m_eDomain, &kPlayer);
 
-					ASSERT(eUnitType != NO_UNIT, "No trade unit found");
+					ASSERT_DEBUG(eUnitType != NO_UNIT, "No trade unit found");
 					if (eUnitType != NO_UNIT)
 					{
 						GET_PLAYER(m_aTradeConnections[ui].m_eOriginOwner).initUnit(eUnitType, m_aTradeConnections[ui].m_iOriginX, m_aTradeConnections[ui].m_iOriginY, UNITAI_TRADE_UNIT);
@@ -1366,7 +1366,7 @@ void CvGameTrade::ClearAllCityStateTradeRoutes (void)
 				CvPlayer& kPlayer = GET_PLAYER(m_aTradeConnections[ui].m_eOriginOwner);
 				UnitTypes eUnitType = kPlayer.GetTrade()->GetTradeUnit(m_aTradeConnections[ui].m_eDomain, &kPlayer);
 
-				ASSERT(eUnitType != NO_UNIT, "No trade unit found");
+				ASSERT_DEBUG(eUnitType != NO_UNIT, "No trade unit found");
 				if (eUnitType != NO_UNIT)
 				{
 					GET_PLAYER(m_aTradeConnections[ui].m_eOriginOwner).initUnit(eUnitType, m_aTradeConnections[ui].m_iOriginX, m_aTradeConnections[ui].m_iOriginY, UNITAI_TRADE_UNIT);
@@ -1404,7 +1404,7 @@ void CvGameTrade::ClearAllCityStateTradeRoutesSpecial (void)
 				CvPlayer& kPlayer = GET_PLAYER(m_aTradeConnections[ui].m_eOriginOwner);
 				UnitTypes eUnitType = kPlayer.GetTrade()->GetTradeUnit(m_aTradeConnections[ui].m_eDomain, &kPlayer);
 
-				ASSERT(eUnitType != NO_UNIT, "No trade unit found");
+				ASSERT_DEBUG(eUnitType != NO_UNIT, "No trade unit found");
 				if (eUnitType != NO_UNIT)
 				{
 					GET_PLAYER(m_aTradeConnections[ui].m_eOriginOwner).initUnit(eUnitType, m_aTradeConnections[ui].m_iOriginX, m_aTradeConnections[ui].m_iOriginY, UNITAI_TRADE_UNIT);
@@ -1451,7 +1451,7 @@ void CvGameTrade::ClearTradePlayerToPlayer(PlayerTypes ePlayer, PlayerTypes eToP
 				{
 					CvPlayer& kPlayer = GET_PLAYER(m_aTradeConnections[ui].m_eOriginOwner);
 					UnitTypes eUnitType = kPlayer.GetTrade()->GetTradeUnit(m_aTradeConnections[ui].m_eDomain, &kPlayer);
-					ASSERT(eUnitType != NO_UNIT, "No trade unit found");
+					ASSERT_DEBUG(eUnitType != NO_UNIT, "No trade unit found");
 					if (eUnitType != NO_UNIT)
 					{
 						GET_PLAYER(m_aTradeConnections[ui].m_eOriginOwner).initUnit(eUnitType, m_aTradeConnections[ui].m_iOriginX, m_aTradeConnections[ui].m_iOriginY, UNITAI_TRADE_UNIT);
@@ -1656,7 +1656,7 @@ CvCity* CvGameTrade::GetOriginCity(const TradeConnection& kTradeConnection)
 {
 	CvPlot* pPlot = GC.getMap().plot(kTradeConnection.m_iOriginX, kTradeConnection.m_iOriginY);
 
-	ASSERT(pPlot, "CvPlayerTrade - plot is null");
+	ASSERT_DEBUG(pPlot, "CvPlayerTrade - plot is null");
 	if (!pPlot)
 	{
 		return NULL;
@@ -1670,7 +1670,7 @@ CvCity* CvGameTrade::GetDestCity(const TradeConnection& kTradeConnection)
 {
 	CvPlot* pPlot = GC.getMap().plot(kTradeConnection.m_iDestX, kTradeConnection.m_iDestY);
 
-	ASSERT(pPlot, "CvPlayerTrade - plot is null");
+	ASSERT_DEBUG(pPlot, "CvPlayerTrade - plot is null");
 	if (!pPlot)
 	{
 		return NULL;
@@ -1882,7 +1882,7 @@ int CvGameTrade::GetPolicyDifference(PlayerTypes ePlayer, PlayerTypes ePlayer2)
 }
 
 bool CvGameTrade::IsRecalledUnit (int iIndex) {
-	PRECONDITION(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
+	ASSERT_DEBUG(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
 	if (iIndex < 0 || iIndex >= (int)m_aTradeConnections.size())
 	{
 		return false;
@@ -1895,7 +1895,7 @@ bool CvGameTrade::IsRecalledUnit (int iIndex) {
 //	--------------------------------------------------------------------------------
 /// recall a trade unit
 void CvGameTrade::RecallUnit (int iIndex, bool bImmediate) {
-	PRECONDITION(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
+	ASSERT_DEBUG(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
 	if (iIndex < 0 || iIndex >= (int)m_aTradeConnections.size())
 	{
 		return;
@@ -1913,7 +1913,7 @@ void CvGameTrade::RecallUnit (int iIndex, bool bImmediate) {
 //	--------------------------------------------------------------------------------
 /// end a trade route
 void CvGameTrade::EndTradeRoute (int iIndex) {
-	PRECONDITION(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
+	ASSERT_DEBUG(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
 	if (iIndex < 0 || iIndex >= (int)m_aTradeConnections.size())
 	{
 		return;
@@ -1928,7 +1928,7 @@ void CvGameTrade::EndTradeRoute (int iIndex) {
 /// move a trade unit along its path for all its movement points
 bool CvGameTrade::MoveUnit (int iIndex) 
 {
-	PRECONDITION(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
+	ASSERT_DEBUG(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
 	if (iIndex < 0 || iIndex >= (int)m_aTradeConnections.size())
 	{
 		return false;
@@ -2009,7 +2009,7 @@ bool CvGameTrade::MoveUnit (int iIndex)
 /// move a trade unit a single step along its path (called by MoveUnit)
 bool CvGameTrade::StepUnit (int iIndex)
 {
-	PRECONDITION(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
+	ASSERT_DEBUG(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
 	if (iIndex < 0 || iIndex >= (int)m_aTradeConnections.size())
 	{
 		return false;
@@ -2093,7 +2093,7 @@ bool CvGameTrade::StepUnit (int iIndex)
 //	----------------------------------------------------------------------------
 void CvGameTrade::CreateTradeUnitForRoute(int iIndex)
 {
-	PRECONDITION(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
+	ASSERT_DEBUG(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
 	if (iIndex < 0 || iIndex >= (int)m_aTradeConnections.size())
 	{
 		return;
@@ -2121,7 +2121,7 @@ void CvGameTrade::CreateTradeUnitForRoute(int iIndex)
 //	----------------------------------------------------------------------------
 CvUnit* CvGameTrade::GetTradeUnitForRoute(int iIndex)
 {
-	PRECONDITION(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
+	ASSERT_DEBUG(iIndex >= 0 && iIndex < (int)m_aTradeConnections.size(), "iIndex out of bounds");
 	if (iIndex < 0 || iIndex >= (int)m_aTradeConnections.size())
 	{
 		return NULL;
@@ -2146,7 +2146,7 @@ void CvGameTrade::DisplayTemporaryPopupTradeRoute(int iDestX, int iDestY, TradeC
 
 	CvInterfacePtr<ICvUnit1> pSelectedUnit(GC.GetEngineUserInterface()->GetHeadSelectedUnit());
 	CvUnit* pkSelectedUnit = GC.UnwrapUnitPointer(pSelectedUnit.get());
-	ASSERT(pkSelectedUnit != NULL);
+	ASSERT_DEBUG(pkSelectedUnit != NULL);
 	if (pkSelectedUnit)
 	{
 		iOriginX = pkSelectedUnit->getX();
@@ -2783,14 +2783,14 @@ int CvPlayerTrade::GetTradeConnectionGPTValueTimes100(const TradeConnection& kTr
 
 				CvPlot* pPlot = GC.getMap().plot(iX, iY);
 
-				ASSERT(pPlot, "CvPlayerTrade - plot is null");
+				ASSERT_DEBUG(pPlot, "CvPlayerTrade - plot is null");
 				if (!pPlot)
 				{
 					return 0;
 				}
 
 				CvCity* pCity = pPlot->getPlotCity();
-				ASSERT(pCity, "CvPlayerTrade - pCity is null");	
+				ASSERT_DEBUG(pCity, "CvPlayerTrade - pCity is null");	
 				if (!pCity)
 				{
 					return 0;
@@ -2826,7 +2826,7 @@ int CvPlayerTrade::GetTradeConnectionResourceValueTimes100(const TradeConnection
 				CvPlot* pOriginPlot = GC.getMap().plot(kTradeConnection.m_iOriginX, kTradeConnection.m_iOriginY);
 				CvPlot* pDestPlot = GC.getMap().plot(kTradeConnection.m_iDestX, kTradeConnection.m_iDestY);
 
-				ASSERT(pOriginPlot && pDestPlot, "pOriginPlot or pDestPlot are null");
+				ASSERT_DEBUG(pOriginPlot && pDestPlot, "pOriginPlot or pDestPlot are null");
 				if (!pOriginPlot || !pDestPlot)
 				{
 					return 0;
@@ -2835,7 +2835,7 @@ int CvPlayerTrade::GetTradeConnectionResourceValueTimes100(const TradeConnection
 				CvCity* pOriginCity = pOriginPlot->getPlotCity();
 				CvCity* pDestCity = pDestPlot->getPlotCity();
 
-				ASSERT(pOriginCity && pDestCity, "pOriginCity or pDestCity are null");
+				ASSERT_DEBUG(pOriginCity && pDestCity, "pOriginCity or pDestCity are null");
 				if (!pOriginCity || !pDestCity)
 				{
 					return 0;
@@ -2914,7 +2914,7 @@ int CvPlayerTrade::GetTradeConnectionYourBuildingValueTimes100(const TradeConnec
 	CvPlot* pOriginPlot = GC.getMap().plot(kTradeConnection.m_iOriginX, kTradeConnection.m_iOriginY);
 	CvPlot* pDestPlot = GC.getMap().plot(kTradeConnection.m_iDestX, kTradeConnection.m_iDestY);
 
-	ASSERT(pOriginPlot && pDestPlot, "pOriginPlot or pDestPlot are null");
+	ASSERT_DEBUG(pOriginPlot && pDestPlot, "pOriginPlot or pDestPlot are null");
 	if (!pOriginPlot || !pDestPlot)
 	{
 		return 0;
@@ -3019,7 +3019,7 @@ int CvPlayerTrade::GetTradeConnectionTheirBuildingValueTimes100(const TradeConne
 	CvPlot* pOriginPlot = GC.getMap().plot(kTradeConnection.m_iOriginX, kTradeConnection.m_iOriginY);
 	CvPlot* pDestPlot = GC.getMap().plot(kTradeConnection.m_iDestX, kTradeConnection.m_iDestY);
 
-	ASSERT(pOriginPlot && pDestPlot, "pOriginPlot or pDestPlot are null");
+	ASSERT_DEBUG(pOriginPlot && pDestPlot, "pOriginPlot or pDestPlot are null");
 	if (!pOriginPlot || !pDestPlot)
 	{
 		return 0;
@@ -3310,7 +3310,7 @@ int CvPlayerTrade::GetTradeConnectionRiverValueModifierTimes100(const TradeConne
 		if (bAsOriginPlayer)
 		{
 			CvCity* pOriginCity = CvGameTrade::GetOriginCity(kTradeConnection);
-			ASSERT(pOriginCity != NULL);
+			ASSERT_DEBUG(pOriginCity != NULL);
 			if (pOriginCity)
 			{
 				CvPlot* pOriginCityPlot = pOriginCity->plot();
@@ -3323,7 +3323,7 @@ int CvPlayerTrade::GetTradeConnectionRiverValueModifierTimes100(const TradeConne
 		else
 		{
 			CvCity* pDestCity = CvGameTrade::GetDestCity(kTradeConnection);
-			ASSERT(pDestCity != NULL);
+			ASSERT_DEBUG(pDestCity != NULL);
 			if (pDestCity)
 			{
 				CvPlot* pDestCityPlot = pDestCity->plot();
@@ -3349,8 +3349,8 @@ int CvPlayerTrade::GetTradeConnectionDiplomatModifierTimes100(const TradeConnect
 	{
 		CvCity* pOriginCity = CvGameTrade::GetOriginCity(kTradeConnection);
 		CvCity* pDestCity = CvGameTrade::GetDestCity(kTradeConnection);
-		ASSERT(pOriginCity != NULL);
-		ASSERT(pDestCity != NULL);
+		ASSERT_DEBUG(pOriginCity != NULL);
+		ASSERT_DEBUG(pDestCity != NULL);
 		if (pOriginCity && pDestCity)
 		{
 			PlayerTypes eOriginPlayer = pOriginCity->getOwner();
@@ -3909,7 +3909,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 	{
 		if (pTrade->IsConnectionInternational(kTradeConnection))
 		{
-			ASSERT(kTradeConnection.m_eConnectionType == TRADE_CONNECTION_INTERNATIONAL);
+			ASSERT_DEBUG(kTradeConnection.m_eConnectionType == TRADE_CONNECTION_INTERNATIONAL);
 			if (kTradeConnection.m_eDestOwner == m_pPlayer->GetID())
 			{
 				switch (eYield)
@@ -3990,7 +3990,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 		}
 		else
 		{
-			ASSERT(kTradeConnection.m_eConnectionType != TRADE_CONNECTION_INTERNATIONAL);
+			ASSERT_DEBUG(kTradeConnection.m_eConnectionType != TRADE_CONNECTION_INTERNATIONAL);
 			switch (kTradeConnection.m_eConnectionType)
 			{
 			case TRADE_CONNECTION_FOOD:
@@ -4909,7 +4909,7 @@ bool CvPlayerTrade::PlunderTradeRoute(int iTradeConnectionID, CvUnit* pUnit)
 	CvGameTrade* pTrade = GC.getGame().GetGameTrade();
 	int iTradeConnectionIndex = pTrade->GetIndexFromID(iTradeConnectionID);
 
-	ASSERT(iTradeConnectionIndex >= 0, "iTradeConnectionIndex < 0");
+	ASSERT_DEBUG(iTradeConnectionIndex >= 0, "iTradeConnectionIndex < 0");
 	if (iTradeConnectionIndex < 0)
 		return false;
 
@@ -4933,8 +4933,8 @@ bool CvPlayerTrade::PlunderTradeRoute(int iTradeConnectionID, CvUnit* pUnit)
 
 	CvCity* pOriginCity = GET_PLAYER(eOwningPlayer).getCity(pTradeConnection->m_iOriginID);
 	CvCity* pDestCity = GET_PLAYER(eDestPlayer).getCity(pTradeConnection->m_iDestID);
-	ASSERT(pOriginCity, "pOriginCity doesn't exist");
-	ASSERT(pDestCity, "pDestCity doesn't exist");
+	ASSERT_DEBUG(pOriginCity, "pOriginCity doesn't exist");
+	ASSERT_DEBUG(pDestCity, "pDestCity doesn't exist");
 
 	// if the trade route was not broken
 	if (!pTrade->ClearTradeRoute(iTradeConnectionIndex))
@@ -5354,7 +5354,7 @@ int CvPlayerTrade::GetTradeRouteSpeed(DomainTypes eDomain) const
 		return iMoves;
 	}
 
-	ASSERT(false, "Undefined domain for trade route speed");
+	ASSERT_DEBUG(false, "Undefined domain for trade route speed");
 	return -1;
 }
 
@@ -5396,7 +5396,7 @@ uint CvPlayerTrade::GetNumTradeRoutesPossible() const
 {
 	int iNumRoutes = 0;
 
-	ASSERT(m_pPlayer->getCivilizationType() != NO_CIVILIZATION);
+	ASSERT_DEBUG(m_pPlayer->getCivilizationType() != NO_CIVILIZATION);
 	if (m_pPlayer->getCivilizationType() == NO_CIVILIZATION)
 		return 0;
 
@@ -5405,7 +5405,7 @@ uint CvPlayerTrade::GetNumTradeRoutesPossible() const
 	CvTechEntry* pTechInfo = NULL; 
 
 	CvTechXMLEntries* pMyPlayerTechEntries = pMyPlayerTechs->GetTechs();
-	ASSERT(pMyPlayerTechEntries);
+	ASSERT_DEBUG(pMyPlayerTechEntries);
 	if (pMyPlayerTechEntries == NULL)
 		return 0;
 
@@ -5418,7 +5418,7 @@ uint CvPlayerTrade::GetNumTradeRoutesPossible() const
 		}
 
 		pTechInfo = pMyPlayerTechEntries->GetEntry(eTech);
-		ASSERT(pTechInfo, "null tech entry");
+		ASSERT_DEBUG(pTechInfo, "null tech entry");
 		if (pTechInfo)
 		{
 			iNumRoutes += pTechInfo->GetNumInternationalTradeRoutesChange();
@@ -6118,7 +6118,7 @@ CvTradeAI::TRSortElement CvTradeAI::ScoreInternationalTR(const TradeConnection& 
 
 	// gold
 	int iGoldAmount = pPlayerTrade->GetTradeConnectionValueTimes100(kTradeConnection, YIELD_GOLD, true);
-
+	
 	int iPlayerEra = MAX((int)m_pPlayer->GetCurrentEra(), 1);
 	int iOtherPlayerEra = MAX((int)GET_PLAYER(kTradeConnection.m_eDestOwner).GetCurrentEra(), 1);
 
@@ -6147,6 +6147,14 @@ CvTradeAI::TRSortElement CvTradeAI::ScoreInternationalTR(const TradeConnection& 
 		{
 			iGoldAmount += iPoverty * 10;
 		}
+	}
+
+	// instant gold when the trade route ends?
+	if (pFromCity->GetYieldFromInternationalTREnd(YIELD_GOLD) > 0)
+	{
+		int iTurnsToComplete = GC.getGame().GetGameTrade()->GetTradeRouteTurns(pFromCity, pToCity, kTradeConnection.m_eDomain, NULL);
+		ASSERT_DEBUG(iTurnsToComplete > 0);
+		iGoldAmount += pFromCity->GetYieldFromInternationalTREnd(YIELD_GOLD) / iTurnsToComplete;
 	}
 
 	//If we are somewhat influential, let's count that here.
@@ -6283,6 +6291,14 @@ CvTradeAI::TRSortElement CvTradeAI::ScoreInternationalTR(const TradeConnection& 
 		}
 	}
 
+	// instant science when the trade route ends?
+	if (pFromCity->GetYieldFromInternationalTREnd(YIELD_SCIENCE) > 0)
+	{
+		int iTurnsToComplete = GC.getGame().GetGameTrade()->GetTradeRouteTurns(pFromCity, pToCity, kTradeConnection.m_eDomain, NULL);
+		ASSERT_DEBUG(iTurnsToComplete > 0);
+		iAdjustedTechDifferenceP1fromP2 += pFromCity->GetYieldFromInternationalTREnd(YIELD_SCIENCE) / iTurnsToComplete;
+	}
+
 	int iTechDifferenceP2fromP1 = GC.getGame().GetGameTrade()->GetTechDifference(kTradeConnection.m_eDestOwner,   kTradeConnection.m_eOriginOwner);
 	int iAdjustedTechDifferenceP2fromP1 = 0;
 	if (iTechDifferenceP2fromP1 > 0)
@@ -6362,6 +6378,14 @@ CvTradeAI::TRSortElement CvTradeAI::ScoreInternationalTR(const TradeConnection& 
 		{
 			iAdjustedCultureDifferenceP1fromP2 += iBoredom;
 		}
+	}
+
+	// instant culture when the trade route ends?
+	if (pFromCity->GetYieldFromInternationalTREnd(YIELD_CULTURE) > 0)
+	{
+		int iTurnsToComplete = GC.getGame().GetGameTrade()->GetTradeRouteTurns(pFromCity, pToCity, kTradeConnection.m_eDomain, NULL);
+		ASSERT_DEBUG(iTurnsToComplete > 0);
+		iAdjustedCultureDifferenceP1fromP2 += pFromCity->GetYieldFromInternationalTREnd(YIELD_CULTURE) / iTurnsToComplete;
 	}
 
 	int iCultureDifferenceP2fromP1 = GC.getGame().GetGameTrade()->GetPolicyDifference(kTradeConnection.m_eDestOwner, kTradeConnection.m_eOriginOwner);
@@ -6459,33 +6483,34 @@ CvTradeAI::TRSortElement CvTradeAI::ScoreInternationalTR(const TradeConnection& 
 	if(iScore <= 0)
 		return ret;
 
-	for(int iJ = 0; iJ < NUM_YIELD_TYPES; iJ++)
+	for (int iJ = 0; iJ < NUM_YIELD_TYPES; iJ++)
 	{
+		YieldTypes eYieldLoop = (YieldTypes)iJ;
 		for (uint uiPlotList = 0; uiPlotList < kTradeConnection.m_aPlotList.size(); uiPlotList++)
 		{
 			CvPlot* pPlot = GC.getMap().plot(kTradeConnection.m_aPlotList[uiPlotList].m_iX, kTradeConnection.m_aPlotList[uiPlotList].m_iY);
-			ASSERT(pPlot, "pPlot is null when trying to evaluate the list");
+			ASSERT_DEBUG(pPlot, "pPlot is null when trying to evaluate the list");
 			if (pPlot == NULL)
 			{
 				continue;
 			}
-			if(pPlot->getOwner() != m_pPlayer->GetID())
+			if (pPlot->getOwner() != m_pPlayer->GetID())
 			{
 				continue;
 			}
-			if(pPlot->getTerrainType() == NO_TERRAIN)
+			if (pPlot->getTerrainType() == NO_TERRAIN)
 			{
 				continue;
 			}
-			iScore += (m_pPlayer->GetPlayerTraits()->GetTerrainYieldChange(pPlot->getTerrainType(), ((YieldTypes)iJ)) * 10);
+			iScore += (m_pPlayer->GetPlayerTraits()->GetTerrainYieldChange(pPlot->getTerrainType(), eYieldLoop) * 10);
 		}
 
-		//If we get a bonus from sending trade routes to foreign territory, let's send an international route!
-		if (MOD_TRAITS_YIELD_FROM_ROUTE_MOVEMENT_IN_FOREIGN_TERRITORY)
+		if (eYieldLoop != YIELD_GOLD && eYieldLoop != YIELD_SCIENCE && eYieldLoop != YIELD_CULTURE) // We already checked these yield types above with a more sophisticated routine
 		{
-			YieldTypes eYieldLoop = (YieldTypes)iJ;
-			if (eYieldLoop != YIELD_GOLD && eYieldLoop != YIELD_SCIENCE && eYieldLoop != YIELD_CULTURE) // We already checked these yield types above with a more sophisticated routine
+			//If we get a bonus from sending trade routes to foreign territory, let's send an international route!
+			if (MOD_TRAITS_YIELD_FROM_ROUTE_MOVEMENT_IN_FOREIGN_TERRITORY)
 			{
+
 				int iTempScore = 0;
 				iTempScore += m_pPlayer->GetPlayerTraits()->GetYieldFromRouteMovementInForeignTerritory(eYieldLoop, true);
 				iTempScore += m_pPlayer->GetPlayerTraits()->GetYieldFromRouteMovementInForeignTerritory(eYieldLoop, false);
@@ -6493,6 +6518,14 @@ CvTradeAI::TRSortElement CvTradeAI::ScoreInternationalTR(const TradeConnection& 
 				// Era scaler here because the instant yield scales with era
 				// We divide by 2 here, because the trade unit spends half of its time in foreign territory (rough estimate)
 				iScore += iTempScore * iPlayerEra / 2;
+			}
+
+			// instant yields when the trade route ends?
+			if (pFromCity->GetYieldFromInternationalTREnd(eYieldLoop) > 0)
+			{
+				int iTurnsToComplete = GC.getGame().GetGameTrade()->GetTradeRouteTurns(pFromCity, pToCity, kTradeConnection.m_eDomain, NULL);
+				ASSERT_DEBUG(iTurnsToComplete > 0);
+				iScore += pFromCity->GetYieldFromInternationalTREnd(eYieldLoop) / iTurnsToComplete;
 			}
 		}
 	}
@@ -6516,7 +6549,7 @@ CvTradeAI::TRSortElement CvTradeAI::ScoreInternationalTR(const TradeConnection& 
 		for (uint uiPlotList = 0; uiPlotList < kTradeConnection.m_aPlotList.size(); uiPlotList++)
 		{
 			CvPlot* pPlot = GC.getMap().plot(kTradeConnection.m_aPlotList[uiPlotList].m_iX, kTradeConnection.m_aPlotList[uiPlotList].m_iY);
-			ASSERT(pPlot, "pPlot is null when trying to evaluate the list");
+			ASSERT_DEBUG(pPlot, "pPlot is null when trying to evaluate the list");
 			if (pPlot == NULL)
 			{
 				break;
@@ -6705,7 +6738,7 @@ CvTradeAI::TRSortElement CvTradeAI::ScoreInternationalTR(const TradeConnection& 
 /// Score Food TR
 int CvTradeAI::ScoreInternalTR(const TradeConnection& kTradeConnection, const std::vector<CvCity*>& aTargetCityList)
 {
-	ASSERT(kTradeConnection.m_eConnectionType != TRADE_CONNECTION_INTERNATIONAL);
+	ASSERT_DEBUG(kTradeConnection.m_eConnectionType != TRADE_CONNECTION_INTERNATIONAL);
 
 	// if we're not going to a target from our list, ignore
 	bool bValidTarget = false;
@@ -6844,7 +6877,7 @@ int CvTradeAI::ScoreInternalTR(const TradeConnection& kTradeConnection, const st
 		for (uint uiPlotList = 0; uiPlotList < kTradeConnection.m_aPlotList.size(); uiPlotList++)
 		{
 			CvPlot* pPlot = GC.getMap().plot(kTradeConnection.m_aPlotList[uiPlotList].m_iX, kTradeConnection.m_aPlotList[uiPlotList].m_iY);
-			ASSERT(pPlot, "pPlot is null when trying to evaluate the list");
+			ASSERT_DEBUG(pPlot, "pPlot is null when trying to evaluate the list");
 			if (pPlot == NULL)
 			{
 				break;
@@ -6858,10 +6891,11 @@ int CvTradeAI::ScoreInternalTR(const TradeConnection& kTradeConnection, const st
 
 	for(int iJ = 0; iJ < NUM_YIELD_TYPES; iJ++)
 	{
+		YieldTypes eYieldLoop = (YieldTypes)iJ;
 		for (uint uiPlotList = 0; uiPlotList < kTradeConnection.m_aPlotList.size(); uiPlotList++)
 		{
 			CvPlot* pPlot = GC.getMap().plot(kTradeConnection.m_aPlotList[uiPlotList].m_iX, kTradeConnection.m_aPlotList[uiPlotList].m_iY);
-			ASSERT(pPlot, "pPlot is null when trying to evaluate the list");
+			ASSERT_DEBUG(pPlot, "pPlot is null when trying to evaluate the list");
 			if (pPlot == NULL)
 			{
 				continue;
@@ -6874,7 +6908,15 @@ int CvTradeAI::ScoreInternalTR(const TradeConnection& kTradeConnection, const st
 			{
 				continue;
 			}
-			iScore += (m_pPlayer->GetPlayerTraits()->GetTerrainYieldChange(pPlot->getTerrainType(), ((YieldTypes)iJ)) * 10);
+			iScore += (m_pPlayer->GetPlayerTraits()->GetTerrainYieldChange(pPlot->getTerrainType(), eYieldLoop) * 10);
+		}
+
+		// instant yields when the trade route ends?
+		if (pOriginCity->GetYieldFromInternalTREnd(eYieldLoop) + pDestCity->GetYieldFromInternalTREnd(eYieldLoop) > 0)
+		{
+			int iTurnsToComplete = GC.getGame().GetGameTrade()->GetTradeRouteTurns(pOriginCity, pDestCity, kTradeConnection.m_eDomain, NULL);
+			ASSERT_DEBUG(iTurnsToComplete > 0);
+			iScore += (pOriginCity->GetYieldFromInternalTREnd(eYieldLoop) + pDestCity->GetYieldFromInternalTREnd(eYieldLoop)) / iTurnsToComplete;
 		}
 	}
 
@@ -7088,10 +7130,11 @@ CvTradeAI::TRSortElement CvTradeAI::ScoreGoldInternalTR(const TradeConnection& k
 
 	for (int iJ = 0; iJ < NUM_YIELD_TYPES; iJ++)
 	{
+		YieldTypes eYieldLoop = (YieldTypes)iJ;
 		for (uint uiPlotList = 0; uiPlotList < kTradeConnection.m_aPlotList.size(); uiPlotList++)
 		{
 			CvPlot* pPlot = GC.getMap().plot(kTradeConnection.m_aPlotList[uiPlotList].m_iX, kTradeConnection.m_aPlotList[uiPlotList].m_iY);
-			ASSERT(pPlot, "pPlot is null when trying to evaluate the list");
+			ASSERT_DEBUG(pPlot, "pPlot is null when trying to evaluate the list");
 			if (pPlot == NULL)
 			{
 				continue;
@@ -7104,7 +7147,15 @@ CvTradeAI::TRSortElement CvTradeAI::ScoreGoldInternalTR(const TradeConnection& k
 			{
 				continue;
 			}
-			iScore += (m_pPlayer->GetPlayerTraits()->GetTerrainYieldChange(pPlot->getTerrainType(), ((YieldTypes)iJ)) * 10);
+			iScore += (m_pPlayer->GetPlayerTraits()->GetTerrainYieldChange(pPlot->getTerrainType(), eYieldLoop) * 10);
+		}
+
+		// instant yields when the trade route ends?
+		if (pFromCity->GetYieldFromInternalTREnd(eYieldLoop) + pToCity->GetYieldFromInternalTREnd(eYieldLoop) > 0)
+		{
+			int iTurnsToComplete = GC.getGame().GetGameTrade()->GetTradeRouteTurns(pFromCity, pToCity, kTradeConnection.m_eDomain, NULL);
+			ASSERT_DEBUG(iTurnsToComplete > 0);
+			iScore += (pFromCity->GetYieldFromInternalTREnd(eYieldLoop) + pToCity->GetYieldFromInternalTREnd(eYieldLoop)) / iTurnsToComplete;
 		}
 	}
 
@@ -7112,7 +7163,7 @@ CvTradeAI::TRSortElement CvTradeAI::ScoreGoldInternalTR(const TradeConnection& k
 	for (uint uiPlotList = 0; uiPlotList < kTradeConnection.m_aPlotList.size(); uiPlotList++)
 	{
 		CvPlot* pPlot = GC.getMap().plot(kTradeConnection.m_aPlotList[uiPlotList].m_iX, kTradeConnection.m_aPlotList[uiPlotList].m_iY);
-		ASSERT(pPlot, "pPlot is null when trying to evaluate the list");
+		ASSERT_DEBUG(pPlot, "pPlot is null when trying to evaluate the list");
 		if (pPlot == NULL)
 		{
 			break;

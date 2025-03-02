@@ -2699,7 +2699,7 @@ void CvTacticalAI::PlotArmyMovesEscort(CvArmyAI* pThisArmy)
 			}
 			else
 			{
-				if (MoveToEmptySpaceNearTarget(pCivilian, pOperation->GetTargetPlot(), DOMAIN_LAND, INT_MAX))
+				if (MoveToEmptySpaceNearTarget(pCivilian, pOperation->GetTargetPlot(), DOMAIN_LAND, INT_MAX, true))
 				{
 					if(GC.getLogging() && GC.getAILogging())
 						strLogString.Format("%s now at (%d,%d). Moving to empty space near target (%d,%d) without escort.",  pCivilian->getName().c_str(), pCivilian->getX(), pCivilian->getY(), pOperation->GetTargetPlot()->getX(), pOperation->GetTargetPlot()->getY() );
@@ -5065,7 +5065,7 @@ CvUnit* CvTacticalAI::FindUnitForThisMove(AITacticalMove eMove, CvPlot* pTarget,
 				switch (pLoopUnit->AI_getUnitAIType())
 				{
 				case UNITAI_RANGED:
-					iExtraScore += 30;
+					iExtraScore += 30 + pTarget->getPlotCity()->getGarrisonRangedAttackModifier();
 					break;
 				case UNITAI_DEFENSE_AIR:
 				case UNITAI_DEFENSE:
@@ -5595,9 +5595,14 @@ bool CvTacticalAI::MoveToEmptySpaceNearTarget(CvUnit* pUnit, CvPlot* pTarget, Do
 	//if not possible, try again with more leeway
 	if (iTurns==INT_MAX)
 	{
-		iFlags = CvUnit::MOVEFLAG_APPROX_TARGET_RING2;
-		if (eDomain==pTarget->getDomain())
-			iFlags |= CvUnit::MOVEFLAG_APPROX_TARGET_NATIVE_DOMAIN;
+		if (iFlags & CvUnit::MOVEFLAG_APPROX_TARGET_RING1)
+		{
+			iFlags &= ~CvUnit::MOVEFLAG_APPROX_TARGET_RING1;
+			iFlags |= CvUnit::MOVEFLAG_APPROX_TARGET_RING2;
+		}
+		else
+			iFlags |= CvUnit::MOVEFLAG_APPROX_TARGET_RING1;
+
 		iTurns = pUnit->TurnsToReachTarget(pTarget,iFlags,iMaxTurns);
 	}
 
@@ -6281,7 +6286,7 @@ bool TacticalAIHelpers::IsAttackNetPositive(CvUnit* pUnit, const CvPlot* pTarget
 //see if there is a possible target around the unit
 bool TacticalAIHelpers::PerformOpportunityAttack(CvUnit* pUnit, bool bAllowMovement)
 {
-	if (!pUnit || !pUnit->IsCanAttack() || !pUnit->canMove())
+	if (!pUnit || !pUnit->IsCanAttack() || !pUnit->canMove() || pUnit->isDelayedDeath())
 		return false;
 
 	//for ranged we have a readymade method
@@ -6709,6 +6714,10 @@ bool TacticalAIHelpers::IsGoodPlotForStaging(CvPlayer* pPlayer, CvPlot* pCandida
 	if (iPassableNeighbors<3)
 		return false;
 
+	//we don't know the unit, so use a rough estimation ...
+	if (pPlayer->GetPlotDanger(*pCandidate, false) > /*10*/ GD_INT_GET(NEUTRAL_HEAL_RATE))
+		return false;
+
 	return true;
 }
 
@@ -6755,7 +6764,7 @@ CvPlot* TacticalAIHelpers::FindClosestSafePlotForHealing(CvUnit* pUnit, bool bCo
 		//don't check movement, don't need to heal right now
 		if (pUnit->getDomainType() == DOMAIN_LAND)
 		{
-			if (!pUnit->canHeal(pPlot, true))
+			if (!pUnit->canHeal(pPlot, false))
 				continue;
 
 			//don't mess with (ranged) garrisons if enemies are around
@@ -6793,9 +6802,9 @@ CvPlot* TacticalAIHelpers::FindClosestSafePlotForHealing(CvUnit* pUnit, bool bCo
 
 		//make up a score function
 		//this is difficult, danger does not consider cover from our own units
-		//on the other hand, our covering units might run away ...
-		int iRemainingDanger = iDanger - nFriends * 50 + pUnit->GetCurrHitPoints();
-		int iScore = (iHealRate - iRemainingDanger) * 10;
+		//on the other hand, our covering units might run away ... just assume an even spread
+		int iRemainingDanger = iDanger / (nFriends+1);
+		int iScore = (pUnit->GetCurrHitPoints() + iHealRate - iRemainingDanger) * 10;
 		//is this safe enough?
 		if (iScore > 0)
 		{
@@ -6857,11 +6866,16 @@ std::vector<CvPlot*> TacticalAIHelpers::GetPlotsForRangedAttack(const CvPlot* pT
 
 		if (bOnlyInDomain)
 		{
-			//subs can only attack within their (water) area or adjacent cities
-			if (pRefPlot->getArea() != vCandidates[i]->getArea())
+			//subs can only attack within their (water) area or adjacent cities (VP only)
+			if (pRefPlot->getLandmass() != vCandidates[i]->getLandmass())
 			{
-				CvCity *pCity = vCandidates[i]->getPlotCity();
-				if (!pCity || !pCity->HasAccessToArea(pRefPlot->getArea()))
+				if (!MOD_BALANCE_VP)
+					continue;
+
+				if (!vCandidates[i]->isCity())
+					continue;
+
+				if (!vCandidates[i]->getPlotCity()->HasAccessToLandmassOrOcean(pRefPlot->getLandmass()))
 					continue;
 			}
 		}
@@ -8282,7 +8296,7 @@ STacticalAssignment ScorePlotForMeleeAttack(const SUnitStats& unit, const CvTact
 
 	//how often can we attack this turn (depending on moves left on the unit)
 	int iMaxAttacks = min(unit.iAttacksLeft, (unit.iMovesLeft + GD_INT_GET(MOVE_DENOMINATOR) - 1) / GD_INT_GET(MOVE_DENOMINATOR));
-	if (iMaxAttacks == 0)
+	if (iMaxAttacks <= 0)
 		return result;
 
 	//check how much damage we could do
@@ -8300,7 +8314,7 @@ STacticalAssignment ScorePlotForMeleeAttack(const SUnitStats& unit, const CvTact
 	{
 		int iMoveCost = unit.iMovesLeft - iAssumedMovesLeft;
 		int iAttackCost = max(iMoveCost, GD_INT_GET(MOVE_DENOMINATOR));
-		result.iRemainingMoves -= min(unit.iMovesLeft, iAttackCost);
+		result.iRemainingMoves = max(0,unit.iMovesLeft - iAttackCost);
 	}
 
 	//don't break formation if there are many enemies around
@@ -10047,7 +10061,7 @@ pair<int,int> CvTacticalPosition::doVisibilityUpdate(const STacticalAssignment& 
 						{
 							const vector<STacticalUnit>& units = neighborPlot.getUnitsAtPlot();
 							for (size_t j = 0; j < units.size(); j++)
-								ASSERT(!isCombatUnit(units[j].eMoveType));
+								ASSERT_DEBUG(!isCombatUnit(units[j].eMoveType));
 						}
 					}
 				}
@@ -11039,8 +11053,8 @@ vector<STacticalAssignment> TacticalAIHelpers::FindBestUnitAssignments(
 		OutputDebugString(szDebugInfo);
 
 		// Assertions for critical conditions
-		ASSERT(iMaxBranches >= 2 && iMaxBranches <= 9 && "Invalid branch count");
-		ASSERT(iMaxChoicesPerUnit >= 2 && iMaxChoicesPerUnit <= 9 && "Invalid choices per unit");
+		ASSERT_DEBUG(iMaxBranches >= 2 && iMaxBranches <= 9 && "Invalid branch count");
+		ASSERT_DEBUG(iMaxChoicesPerUnit >= 2 && iMaxChoicesPerUnit <= 9 && "Invalid choices per unit");
 	}
 #endif
 

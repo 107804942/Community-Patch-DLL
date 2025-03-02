@@ -178,7 +178,7 @@ bool CvDllDatabaseUtility::CacheGameDatabaseData()
 	//Log Database Memory statistics
 	LogMsg(DB.CalculateMemoryStats());
 
-	ASSERT(bSuccess, "Failed to load Gameplay Database Data! Not Good!");
+	ASSERT_DEBUG(bSuccess, "Failed to load Gameplay Database Data! Not Good!");
 
 	GC.GameDataPostCache();
 
@@ -420,7 +420,7 @@ bool CvDllDatabaseUtility::PrefetchGameData()
 			while(kResults.Step())
 			{
 				const int iFlavor = kResults.GetInt("ID");
-				ASSERT(iFlavor >= 0 && iFlavor < iNumFlavors);
+				ASSERT_DEBUG(iFlavor >= 0 && iFlavor < iNumFlavors);
 				if(iFlavor >= 0 && iFlavor < iNumFlavors)
 				{
 					paFlavors[iFlavor] = kResults.GetText("Type");
@@ -430,7 +430,7 @@ bool CvDllDatabaseUtility::PrefetchGameData()
 		}
 		else
 		{
-			ASSERT(false, DB.ErrorMessage());
+			ASSERT_DEBUG(false, DB.ErrorMessage());
 		}
 	}
 
@@ -444,17 +444,11 @@ void CvDllDatabaseUtility::DatabaseRemapper()
 {
 	// This function changes the IDs in the database tables to make sure there are no gaps and the IDs start at 0
 
-	std::set<CvString> sTablesToExclude;
-	sTablesToExclude.insert("GreatWorkClasses");
-	sTablesToExclude.insert("MultiplayerOptions");
-	sTablesToExclude.insert("ReplayDataSets");
-	sTablesToExclude.insert("HistoricRankings");
-
 	LogMsg("**** Remapping IDs in Game Database *****");
 	cvStopWatch kPerfTest("Remapper Game Database", "xml-perf.log");
 	{
 		Database::Results kTables("name");
-		if (DB.SelectAt(kTables, "sqlite_master", "type", "table"))
+		if (DB.SelectAll(kTables, "Remapper"))
 		{
 			while (kTables.Step())
 			{
@@ -481,43 +475,36 @@ void CvDllDatabaseUtility::DatabaseRemapper()
 
 					if (bHasIDColumn)
 					{
-						if (sTablesToExclude.find(szTableName) != sTablesToExclude.end())
+						char szIDList[512];
+						sprintf_s(szIDList, "SELECT ID from %s ORDER BY ID;", szTableName);
+						Database::Results kQuery;
+						if (DB.Execute(kQuery, szIDList))
 						{
-							LogMsg("Table %s: excluded from remapping", szTableName);
-						}
-						else
-						{
-							char szIDList[512];
-							sprintf_s(szIDList, "SELECT ID from %s ORDER BY ID;", szTableName);
-							Database::Results kQuery;
-							if (DB.Execute(kQuery, szIDList))
+							std::vector<int> vTableIDs;
+							while (kQuery.Step())
 							{
-								std::vector<int> vTableIDs;
-								while (kQuery.Step())
+								int iID = kQuery.GetInt(0);
+								if (iID < 0)
 								{
-									int iID = kQuery.GetInt(0);
-									if (iID < 0)
-									{
-										// negative IDs? cancel remapping for this table
-										LogMsg("Table %s: Negative IDs found, no remapping", szTableName);
-										break;
-									}
-									vTableIDs.push_back(kQuery.GetInt(0));
+									// negative IDs? cancel remapping for this table
+									LogMsg("Table %s: Negative IDs found, no remapping", szTableName);
+									break;
 								}
-								bool bFirst = true;
-								for (uint ui = 0; ui < vTableIDs.size(); ui++)
+								vTableIDs.push_back(kQuery.GetInt(0));
+							}
+							bool bFirst = true;
+							for (uint ui = 0; ui < vTableIDs.size(); ui++)
+							{
+								if (vTableIDs[ui] != ui)
 								{
-									if (vTableIDs[ui] != ui)
+									if (bFirst)
 									{
-										if (bFirst)
-										{
-											LogMsg("Table %s: Remapping %d incorrect IDs, starting with %d -> %d. ", szTableName, vTableIDs.size() - ui, vTableIDs[ui], ui);
-											bFirst = false;
-										}
-										char szUpdate[512];
-										sprintf_s(szUpdate, "UPDATE %s SET ID = %d WHERE ID = %d;", szTableName, ui, vTableIDs[ui]);
-										DB.Execute(szUpdate);
+										LogMsg("Table %s: Remapping %d incorrect IDs, starting with %d -> %d. ", szTableName, vTableIDs.size() - ui, vTableIDs[ui], ui);
+										bFirst = false;
 									}
+									char szUpdate[512];
+									sprintf_s(szUpdate, "UPDATE %s SET ID = %d WHERE ID = %d;", szTableName, ui, vTableIDs[ui]);
+									DB.Execute(szUpdate);
 								}
 							}
 						}
@@ -998,7 +985,7 @@ bool CvDllDatabaseUtility::SetGlobalActionInfo()
 	for(i = 0; i < iTotalActionInfoCount; i++)
 	{
 		CvActionInfo* pActionInfo = FNEW(CvActionInfo, c_eCiv5GameplayDLL, 0);
-		ASSERT(piIndexList[piOrderedIndex[i]] != -1);
+		ASSERT_DEBUG(piIndexList[piOrderedIndex[i]] != -1);
 
 		pActionInfo->setOriginalIndex(piIndexList[piOrderedIndex[i]]);
 		pActionInfo->setSubType((ActionSubTypes)piActionInfoTypeList[piOrderedIndex[i]]);

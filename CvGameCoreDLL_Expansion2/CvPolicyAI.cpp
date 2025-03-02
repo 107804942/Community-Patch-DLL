@@ -36,11 +36,11 @@ void CvPolicyAI::Reset()
 	m_iPolicyWeightPropagationLevels = /*2*/ GD_INT_GET(POLICY_WEIGHT_PROPAGATION_LEVELS);
 	m_iPolicyWeightPercentDropNewBranch = /*90*/ max(GD_INT_GET(POLICY_WEIGHT_PERCENT_DROP_NEW_BRANCH), 0);
 
-	ASSERT(m_pCurrentPolicies != NULL, "Policy AI init failure: player policy data is NULL");
+	ASSERT_DEBUG(m_pCurrentPolicies != NULL, "Policy AI init failure: player policy data is NULL");
 	if(m_pCurrentPolicies != NULL)
 	{
 		CvPolicyXMLEntries* pPolicyEntries = m_pCurrentPolicies->GetPolicies();
-		ASSERT(pPolicyEntries != NULL, "Policy AI init failure: no policy data");
+		ASSERT_DEBUG(pPolicyEntries != NULL, "Policy AI init failure: no policy data");
 		if(pPolicyEntries != NULL)
 		{
 			// Loop through reading each one and add an entry with 0 weight to our vector
@@ -4466,11 +4466,7 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 		}
 		if (PolicyInfo->GetYieldFromBorderGrowth(eYield) != 0)
 		{
-			if (pPlayerTraits->IsBuyOwnedTiles()) // America UA has an anti-synergy with this
-			{
-				yield[eYield] += PolicyInfo->GetYieldFromBorderGrowth(eYield) * iNumCities / 2;
-			}
-			else if (pPlayerTraits->IsExpansionist() && pPlayerTraits->GetExtraFoundedCityTerritoryClaimRange() == 0)
+			if (pPlayerTraits->IsExpansionist() && pPlayerTraits->GetExtraFoundedCityTerritoryClaimRange() == 0)
 			{
 				yield[eYield] += PolicyInfo->GetYieldFromBorderGrowth(eYield) * 2 * iNumCities;
 			}
@@ -5181,7 +5177,7 @@ int CvPolicyAI::WeighBranch(CvPlayer* pPlayer, PolicyBranchTypes eBranch)
 bool CvPolicyAI::IsBranchEffectiveInGame(PolicyBranchTypes eBranch)
 {
 	CvPolicyBranchEntry* pBranchInfo = GC.getPolicyBranchInfo(eBranch);
-	ASSERT(pBranchInfo, "Branch info not found!");
+	ASSERT_DEBUG(pBranchInfo, "Branch info not found!");
 	if (!pBranchInfo) return false;
 	
 	if (pBranchInfo->IsDelayWhenNoReligion())

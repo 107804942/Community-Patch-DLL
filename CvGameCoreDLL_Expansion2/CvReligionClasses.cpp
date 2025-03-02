@@ -188,7 +188,7 @@ FDataStream& operator<<(FDataStream& saveTo, const CvReligion& readFrom)
 CvString CvReligion::GetName() const
 {
 	CvReligionEntry* pEntry = GC.getReligionInfo(m_eReligion);
-	PRECONDITION(pEntry, "pEntry for religion not expected to be NULL.");
+	ASSERT_DEBUG(pEntry, "pEntry for religion not expected to be NULL.");
 	if (pEntry)
 	{
 		CvString szReligionName = strlen(m_szCustomName) == 0 ? pEntry->GetDescriptionKey() : m_szCustomName;
@@ -1454,7 +1454,7 @@ void CvGameReligions::EnhanceReligion(PlayerTypes ePlayer, ReligionTypes eReligi
 	}
 	if (!bFoundIt)
 	{
-		ASSERT(false, "Internal error in religion code.");
+		ASSERT_DEBUG(false, "Internal error in religion code.");
 		CUSTOMLOG("Trying to enhance a religion/pantheon that doesn't exist!!!");
 		return;
 	}
@@ -1637,7 +1637,7 @@ void CvGameReligions::AddReformationBelief(PlayerTypes ePlayer, ReligionTypes eR
 	}
 	if(!bFoundIt)
 	{
-		ASSERT(false, "Internal error in religion code.");
+		ASSERT_DEBUG(false, "Internal error in religion code.");
 		return;
 	}
 
@@ -5327,7 +5327,7 @@ void CvCityReligions::RecomputeFollowers(CvReligiousFollowChangeReason eReason, 
 	// Safety check to avoid divide by zero
 	if (iUnassignedFollowers < 1)
 	{
-		ASSERT(false, "Invalid city population when recomputing followers");
+		ASSERT_DEBUG(false, "Invalid city population when recomputing followers");
 		return;
 	}
 
@@ -5427,7 +5427,7 @@ void CvCityReligions::SimulateFollowers()
 	// safety check
 	if (iTotalPressure == 0 || iUnassignedFollowers == 0)
 	{
-		ASSERT(false, "Internal religion data error. Send save to Ed");
+		ASSERT_DEBUG(false, "Internal religion data error. Send save to Ed");
 		return;
 	}
 
@@ -8929,11 +8929,7 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity) const
 		if (pEntry->GetYieldPerBorderGrowth((YieldTypes)iI) > 0) // FIXME: also evaluate the yields that are scaling with era
 		{
 			int iVal = ((pEntry->GetYieldPerBorderGrowth((YieldTypes)iI) * iCulture) / max(4, pCity->GetJONSCultureLevel() * 4));
-			if (m_pPlayer->GetPlayerTraits()->IsBuyOwnedTiles()) // America UA has an anti-synergy with this
-			{
-				iVal /= 2;
-			}
-			else if (m_pPlayer->GetPlayerTraits()->IsExpansionist() && m_pPlayer->GetPlayerTraits()->GetExtraFoundedCityTerritoryClaimRange() == 0)
+			if (m_pPlayer->GetPlayerTraits()->IsExpansionist() && m_pPlayer->GetPlayerTraits()->GetExtraFoundedCityTerritoryClaimRange() == 0)
 			{
 				iVal *= 2;
 			}

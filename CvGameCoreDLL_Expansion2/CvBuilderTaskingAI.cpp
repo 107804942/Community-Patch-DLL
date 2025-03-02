@@ -1074,7 +1074,7 @@ int CvBuilderTaskingAI::GetTotalRouteBuildTime(const CvUnit* pUnit, const CvPlot
 	map<int, PlannedRoute>::const_iterator it = m_bestRouteForPlot.find(pPlot->GetPlotIndex());
 
 	if (it == m_bestRouteForPlot.end())
-		return -1;
+		return INT_MAX;
 
 	return GetRouteBuildTime(it->second, pUnit);
 }
@@ -1423,7 +1423,7 @@ bool CvBuilderTaskingAI::ExecuteWorkerMove(CvUnit* pUnit, BuilderDirective aDire
 			{
 				pUnit->PushMission(CvTypes::getMISSION_BUILD(), aDirective.m_eBuild, aDirective.m_eDirectiveType, 0, false, false, MISSIONAI_BUILD, pPlot);
 
-				ASSERT(!pUnit->ReadyToMove(), "Worker did not do their mission this turn. Could cause game to hang.");
+				ASSERT_DEBUG(!pUnit->ReadyToMove(), "Worker did not do their mission this turn. Could cause game to hang.");
 				bSuccessful = true;
 			}
 
@@ -2994,7 +2994,7 @@ pair<int,int> CvBuilderTaskingAI::ScorePlotBuild(CvPlot* pPlot, ImprovementTypes
 	}
 
 	// Give a flat bonus for GPP Rate (200 per 5%)
-	if (pkImprovementInfo->GetGreatPersonRateModifier() != 0)
+	if (pkImprovementInfo && pkImprovementInfo->GetGreatPersonRateModifier() != 0)
 	{
 		iSecondaryScore += pkImprovementInfo->GetGreatPersonRateModifier() * 40;
 	}

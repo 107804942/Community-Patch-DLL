@@ -1043,7 +1043,7 @@ void CvHomelandAI::ExecuteUnitGift()
 	}
 
 	// No City-State quest? But are we Germany?
-	if (GET_PLAYER(ePlayer).GetPlayerTraits()->GetMinorInfluencePerGiftedUnit() > 0)
+	if (GET_PLAYER(ePlayer).GetPlayerTraits()->GetMinorInfluencePerGiftedUnit() > 0 || GET_PLAYER(ePlayer).isInstantYieldsFromUnitGift())
 	{
 		// Don't consider gifting if we're in military trouble
 		if (GET_PLAYER(ePlayer).IsNoNewWars() || GET_PLAYER(ePlayer).GetDiplomacyAI()->GetStateAllWars() == STATE_ALL_WARS_LOSING)
@@ -2414,9 +2414,7 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 
 			//if there is an improvement to plunder and we can flee
 			if (tile->iMovesLeft > GD_INT_GET(MOVE_DENOMINATOR) &&
-				pEvalPlot->getRevealedImprovementType(pUnit->getTeam()) != NO_IMPROVEMENT &&
-				pEvalPlot->getResourceType() != NO_RESOURCE &&
-				!pEvalPlot->IsImprovementPillaged() &&
+				pUnit->canPillage(pEvalPlot) &&
 				pUnit->GetDanger(pEvalPlot) < pUnit->GetCurrHitPoints())
 			{
 				pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pEvalPlot->getX(), pEvalPlot->getY());
@@ -2590,7 +2588,8 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 
 		//in case it was non-native scout, reset the unit AI
 		pUnit->AI_setUnitAIType(pUnit->getUnitInfo().GetDefaultUnitAIType());
-		return true; //nothing left to do
+		ExecuteMovesToSafestPlot(pUnit);
+		return true;
 	}
 }
 
@@ -4555,7 +4554,7 @@ void CvHomelandAI::ExecuteGeneralMoves()
 							break;
 						}
 
-						ASSERT(eSelectedBuildType != NO_BUILD, "Great General trying to build something it doesn't qualify for");
+						ASSERT_DEBUG(eSelectedBuildType != NO_BUILD, "Great General trying to build something it doesn't qualify for");
 						if (eSelectedBuildType != NO_BUILD)
 						{
 							pUnit->PushMission(CvTypes::getMISSION_BUILD(), eSelectedBuildType, -1, 0, false, false, MISSIONAI_BUILD, pTargetPlot);
@@ -6079,7 +6078,7 @@ bool CvHomelandAI::ExecuteSpecialExploreMove(CvUnit* pUnit, CvPlot* pTargetPlot)
 		CvPlot* pPlot = PathHelpers::GetPathEndFirstTurnPlot(path);
 		if(pPlot)
 		{
-			ASSERT(!pUnit->atPlot(*pPlot));
+			ASSERT_DEBUG(!pUnit->atPlot(*pPlot));
 			if(GC.getLogging() && GC.getAILogging())
 			{
 				CvString strLogString;
@@ -6208,7 +6207,6 @@ const char* homelandMoveNames[] =
 	"H_MOVE_SENTRY",
 	"H_MOVE_SENTRY_NAVAL",
 	"H_MOVE_WORKER",
-	"H_MOVE_WORKER_SEA",
 	"H_MOVE_PATROL",
 	"H_MOVE_UPGRADE",
 	"H_MOVE_WRITER",
@@ -6230,7 +6228,6 @@ const char* homelandMoveNames[] =
 	"H_MOVE_DIPLOMAT_EMBASSY",
 	"H_MOVE_MESSENGER",
 	"H_MOVE_SECONDARY_SETTLER",
-	"H_MOVE_SECONDARY_WORKER",
 };
 
 const char* directiveNames[] = 
