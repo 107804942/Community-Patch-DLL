@@ -31,7 +31,6 @@
 #include "CvTypes.h"
 #include "CvUnitCombat.h"
 #include "CvUnitMission.h"
-#include "FMemoryStream.h"
 #include "ICvDLLUserInterface.h"
 #include <math.h>
 
@@ -2612,20 +2611,6 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer /*= NO_PLAYER*/)
 
 	if (bDelay)
 	{
-		if (ePlayer == NO_PLAYER && isCultureFromExperienceDisbandUpgrade())
-		{
-			int iExperience = getExperienceTimes100() / 100;
-			if (iExperience > 0)
-			{
-				GET_PLAYER(eUnitOwner).changeJONSCulture(iExperience);
-				if (eUnitOwner == GC.getGame().getActivePlayer())
-				{
-					char text[256] = { 0 };
-					sprintf_s(text, "[COLOR_MAGENTA]+%d[ENDCOLOR][ICON_CULTURE]", iExperience);
-					SHOW_PLOT_POPUP(plot(),eUnitOwner, text);
-				}
-			}
-		}
 		startDelayedDeath();
 		return;
 	}
@@ -2784,10 +2769,6 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer /*= NO_PLAYER*/)
 					(*it)->GetCityCitizens()->OptimizeWorkedPlots(false);
 			}
 		}
-
-		// Clear cached danger in the vicinity for instant update
-		if (ePlayer!=NO_PLAYER)
-			GET_PLAYER(ePlayer).ResetDangerCache(*pPlot,3);
 	}
 
 	// Remove Resource Quantity from Used
@@ -4819,7 +4800,7 @@ bool CvUnit::canEnterTerrain(const CvPlot& enterPlot, int iMoveFlags) const
 		{
 			if(eDomain == DOMAIN_SEA)
 			{
-				return ((iMoveFlags&CvUnit::MOVEFLAG_DESTINATION)==0) || canCrossOceans() || kPlayer.CanCrossOcean();
+				return ((iMoveFlags&CvUnit::MOVEFLAG_DESTINATION)==0) || canCrossOceans();
 			}
 			else if(eDomain == DOMAIN_LAND)
 			{
@@ -5540,8 +5521,9 @@ bool CvUnit::jumpToNearestValidPlot()
 	{
 		CvPlot* pLoopPlot = GC.getMap().plotByIndexUnchecked(it->iPlotIndex);
 
-		//plot must be empty even of civilians
-		if (pLoopPlot->getNumUnits() == 0 && canMoveInto(*pLoopPlot,CvUnit::MOVEFLAG_DESTINATION))
+		//don't put combat units on top of other teams' civilians
+		bool bAvailable = (IsCivilianUnit() || !pLoopPlot->isNeutralUnit(getOwner(), false, false)) && !pLoopPlot->isEnemyUnit(getOwner(), false, false);
+		if (bAvailable && canMoveInto(*pLoopPlot,CvUnit::MOVEFLAG_DESTINATION))
 		{
 			int iValue = it->iNormalizedDistanceRaw + GET_PLAYER(getOwner()).GetCityDistanceInPlots(pLoopPlot);
 
@@ -5952,10 +5934,28 @@ void CvUnit::scrap(bool bDelay)
 		return;
 	}
 
+	CvPlayer& kOwner = GET_PLAYER(getOwner());
+
 	if(plot()->getOwner() == getOwner())
 	{
 		int iGold = GetScrapGold();
-		GET_PLAYER(getOwner()).GetTreasury()->ChangeGold(iGold);
+		kOwner.GetTreasury()->ChangeGold(iGold);
+	}
+
+	// TODO: change to instant yield
+	if (isCultureFromExperienceDisbandUpgrade())
+	{
+		int iExperience = getExperienceTimes100() / 100;
+		if (iExperience > 0)
+		{
+			kOwner.changeJONSCulture(iExperience);
+			if (getOwner() == GC.getGame().getActivePlayer())
+			{
+				char text[256] = { 0 };
+				sprintf_s(text, "[COLOR_MAGENTA]+%d[ENDCOLOR][ICON_CULTURE]", iExperience);
+				SHOW_PLOT_POPUP(plot(), getOwner(), text);
+			}
+		}
 	}
 
 	kill(bDelay);
@@ -7323,10 +7323,6 @@ bool CvUnit::canUseForTacticalAI() const
 	if (AI_getUnitAIType() == UNITAI_CARRIER_SEA || AI_getUnitAIType() == UNITAI_ICBM)
 		return false;
 
-	//do not poach important garrisons
-	if (IsGarrisoned() && GetGarrisonedCity()->NeedsGarrison())
-		return false;
-
 	//we want all barbarians ...
 	if (isBarbarian())
 		return true;
@@ -7546,9 +7542,26 @@ int CvUnit::GetPower() const
 	int iPowerMod = getLevel() * 125;
 	iPower = (iPower * (1000 + iPowerMod)) / 1000;
 
-	//Reduce power for damaged units
-	int iDamageMod = m_iDamage * /*33*/ GD_INT_GET(WOUNDED_DAMAGE_MULTIPLIER) / 100;
-	iPower -= (iPower * iDamageMod / GetMaxHitPoints());
+	// Reduce power for damaged units
+	int iWoundedDamageMultiplier = 33;
+	int iEliteForcesMod = GET_PLAYER(getOwner()).GetWoundedUnitDamageMod(); // +25% CS when wounded (vanilla Autocracy tenet)
+
+	// Unit is stronger when damaged (Banzai!) - apply only 1/2 of the decrease
+	if (IsStrongerDamaged())
+	{
+		iWoundedDamageMultiplier /= 2;
+	}
+	else
+	{
+		// Unit fights at full strength when damaged, or has a bonus to CS when wounded - apply only 75% of the decrease
+		int iReductionFromEliteForces = iEliteForcesMod < 0 ? 25 * iEliteForcesMod / -25 : 0;
+		int iReductionFromFightWellDamaged = (IsFightWellDamaged() || GET_PLAYER(getOwner()).GetPlayerTraits()->IsFightWellDamaged()) ? 25 : 0;
+		iWoundedDamageMultiplier *= max(100 - max(iReductionFromEliteForces, iReductionFromFightWellDamaged), 0);
+		iWoundedDamageMultiplier /= 100;
+	}
+
+	iPower *= 100 - (getDamage() * iWoundedDamageMultiplier / GetMaxHitPoints());
+	iPower /= 100;
 
 	return iPower;
 }
@@ -9607,40 +9620,29 @@ float CvUnit::calculateExoticGoodsDistanceFactor(const CvPlot* pPlot)
 //	--------------------------------------------------------------------------------
 bool CvUnit::canSellExoticGoods(const CvPlot* pPlot, bool bOnlyTestVisibility) const
 {
-	if (pPlot == NULL)
-	{
+	if (!pPlot)
 		return false;
-	}
 
 	if (getNumExoticGoods() <= 0)
-	{
 		return false;
-	}
 
 	if (!bOnlyTestVisibility)
 	{
-		int iNumValidPlots = 0;
 		for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
 		{
-			CvPlot* pLoopPlot = plotDirection(pPlot->getX(), pPlot->getY(), ((DirectionTypes)iI));
-			if (pLoopPlot != NULL)
+			CvPlot* pLoopPlot = plotDirection(pPlot->getX(), pPlot->getY(), (DirectionTypes)iI);
+			if (!pLoopPlot)
+				continue;
+
+			PlayerTypes eLoopPlotOwner = pLoopPlot->getOwner();
+			if (eLoopPlotOwner != NO_PLAYER && GET_PLAYER(eLoopPlotOwner).getTeam() != getTeam())
 			{
-				PlayerTypes eLoopPlotOwner = pLoopPlot->getOwner();
-				if (eLoopPlotOwner != getOwner() && eLoopPlotOwner != NO_PLAYER)
-				{
-					if (!GET_TEAM(getTeam()).isAtWar(GET_PLAYER(eLoopPlotOwner).getTeam()))
-					{
-						iNumValidPlots++;
-						break;
-					}
-				}
+				if (!GET_TEAM(getTeam()).isAtWar(GET_PLAYER(eLoopPlotOwner).getTeam()))
+					return true;
 			}
 		}
 
-		if (iNumValidPlots <= 0)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	return true;
@@ -9679,119 +9681,122 @@ int CvUnit::getExoticGoodsXPAmount()
 //	--------------------------------------------------------------------------------
 bool CvUnit::sellExoticGoods()
 {
-	if (canSellExoticGoods(plot()))
-	{
-		int iXP = getExoticGoodsXPAmount();
-		int iGold = getExoticGoodsGoldAmount();
-		changeExperienceTimes100(iXP * 100);
-		GET_PLAYER(getOwner()).GetTreasury()->ChangeGold(iGold);
-		char text[256] = {0};
-		sprintf_s(text, "[COLOR_YELLOW]+%d[ENDCOLOR][ICON_GOLD]", iGold);
-		SHOW_PLOT_POPUP(plot(), getOwner(), text);
+	if (!canSellExoticGoods(plot()))
+		return false;
 
-		changeNumExoticGoods(-1);
-#if defined(MOD_BALANCE_CORE)
-		PlayerTypes ePlotOwner = NO_PLAYER;
-		ImprovementTypes eFeitoria = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_FEITORIA");
-		if (eFeitoria != NO_IMPROVEMENT)
+	// Award XP and Gold
+	int iXP = getExoticGoodsXPAmount();
+	int iGold = getExoticGoodsGoldAmount();
+	changeExperienceTimes100(iXP * 100);
+	GET_PLAYER(getOwner()).GetTreasury()->ChangeGold(iGold);
+	char text[256] = {0};
+	sprintf_s(text, "[COLOR_YELLOW]+%d[ENDCOLOR][ICON_GOLD]", iGold);
+	SHOW_PLOT_POPUP(plot(), getOwner(), text);
+
+	// Increment # of Exotic Goods sold
+	changeNumExoticGoods(-1);
+
+	ImprovementTypes eFeitoria = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_FEITORIA");
+	if (eFeitoria == NO_IMPROVEMENT)
+		return false;
+
+	CvImprovementEntry* pFeitoriaInfo = GC.getImprovementInfo(eFeitoria);
+	if (!pFeitoriaInfo || (pFeitoriaInfo->GetRequiredCivilization() != NO_CIVILIZATION && pFeitoriaInfo->GetRequiredCivilization() != getCivilizationType()))
+		return false;
+
+	// See if there's a City-State whose territory is adjacent to this tile
+	CvPlot* pBestPlot = NULL;
+	int iOceanThreshold = /*10*/ GD_INT_GET(MIN_WATER_SIZE_FOR_OCEAN);
+	for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
+	{
+		CvPlot* pLoopPlotSearch = plotDirection(plot()->getX(), plot()->getY(), (DirectionTypes)iI);
+		if (pLoopPlotSearch)
 		{
-			if (GC.getImprovementInfo(eFeitoria) != NULL && GC.getImprovementInfo(eFeitoria)->GetRequiredCivilization() == getCivilizationType())
+			PlayerTypes ePlotOwner = pLoopPlotSearch->getOwner();
+			if (ePlotOwner != NO_PLAYER && GET_PLAYER(ePlotOwner).getTeam() != getTeam() && !GET_TEAM(getTeam()).isAtWar(GET_PLAYER(ePlotOwner).getTeam()) && GET_PLAYER(ePlotOwner).isMinorCiv())
 			{
-				for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
+				// We found one! Check if they already have a Feitoria, and if not, build one in their Capital.
+				// Note that it's possible a City-State could also already have a Feitoria if they conquered a City-State or Portuguese city that already has one, but that's OK. They should only have one.
+				if (GET_PLAYER(ePlotOwner).getImprovementCount(eFeitoria, false) > 0)
+					continue;
+
+				CvCity* pCapital = GET_PLAYER(ePlotOwner).getCapitalCity();
+				if (!pCapital)
+					continue;
+
+				std::set<int> siPlots = pCapital->GetPlotList();
+				for (std::set<int>::const_iterator it = siPlots.begin(); it != siPlots.end(); ++it)
 				{
-					CvPlot* pLoopPlotSearch = plotDirection(plot()->getX(), plot()->getY(), ((DirectionTypes)iI));
-					if (pLoopPlotSearch != NULL)
+					CvPlot* pLoopPlot = GC.getMap().plotByIndex(*it);
+					if (!pLoopPlot || pLoopPlot->getOwner() != ePlotOwner || pLoopPlot->isCity() || pLoopPlot->isWater())
+						continue;
+
+					if (pLoopPlot->isImpassable(BARBARIAN_TEAM) || pLoopPlot->IsNaturalWonder() || pLoopPlot->getResourceType(getTeam()) != NO_RESOURCE)
+						continue;
+
+					// Plot must be adjacent to the ocean or a large inland sea
+					if (!pLoopPlot->isCoastalLand(iOceanThreshold))
+						continue;
+
+					// If we can build on an empty spot, do so.
+					if (pLoopPlot->getImprovementType() == NO_IMPROVEMENT)
 					{
-						PlayerTypes eLoopPlotOwner = pLoopPlotSearch->getOwner();
-						if (eLoopPlotOwner != NO_PLAYER)
+						// Prefer to build on a tile with no resource period, even ones the player can't see yet, but if there's no such option we'll build a Feitoria anyway
+						if (pLoopPlot->getResourceType(NO_TEAM) != NO_RESOURCE)
 						{
-							if (!GET_TEAM(getTeam()).isAtWar(GET_PLAYER(eLoopPlotOwner).getTeam()))
-							{
-								if(GET_PLAYER(eLoopPlotOwner).isMinorCiv())
-								{
-									ePlotOwner = eLoopPlotOwner;
-									break;
-								}
-							}
+							pBestPlot = pLoopPlot;
+							break;
+						}
+						else if (!pBestPlot || pBestPlot->getResourceType(NO_TEAM) != NO_RESOURCE)
+						{
+							pBestPlot = pLoopPlot;
 						}
 					}
-				}
-				if (ePlotOwner != NO_PLAYER)
-				{
-					bool bAlreadyHere = false;
-					CvPlot* pBestPlot = NULL;
-					CvCity* pCity = GET_PLAYER(ePlotOwner).getCapitalCity();
-					if (pCity != NULL)
+					// If not, let's clear a basic improvement off.
+					else
 					{
-						std::set<int> siPlots = pCity->GetPlotList();
-						for (std::set<int>::const_iterator it = siPlots.begin(); it != siPlots.end(); ++it)
-						{
-							CvPlot* pLoopPlot = GC.getMap().plotByIndex(*it);
-							if (!pLoopPlot->isCity() && !pLoopPlot->isWater() && !pLoopPlot->isImpassable(getTeam()) && !pLoopPlot->IsNaturalWonder() && pLoopPlot->isCoastalLand() && (pLoopPlot->getResourceType(getTeam()) == NO_RESOURCE))
-							{
-								if (pLoopPlot->getImprovementType() != NO_IMPROVEMENT)
-								{
-									if (pLoopPlot->getImprovementType() == eFeitoria)
-									{
-										bAlreadyHere = true;
-										break;
-									}
+						// Do not replace Embassies, GPTIs, or other unique improvements
+						CvImprovementEntry* pImprovementInfo = GC.getImprovementInfo(pLoopPlot->getImprovementType());
+						if (pImprovementInfo->IsPermanent() || pImprovementInfo->IsCreatedByGreatPerson() || pImprovementInfo->GetRequiredCivilization() != NO_CIVILIZATION)
+							continue;
 
-								}
-							}
-						}
-						if (!bAlreadyHere)
+						// Prefer to build on a tile with no resource period, even ones the player can't see yet, but if there's no such option we'll build a Feitoria anyway
+						if (pLoopPlot->getResourceType(NO_TEAM) != NO_RESOURCE)
 						{
-							std::set<int> siPlots = pCity->GetPlotList();
-							for (std::set<int>::const_iterator it = siPlots.begin(); it != siPlots.end(); ++it)
-							{
-								CvPlot* pLoopPlot = GC.getMap().plotByIndex(*it);
-								if (!pLoopPlot->isCity() && !pLoopPlot->isWater() && !pLoopPlot->isImpassable(getTeam()) && !pLoopPlot->IsNaturalWonder() && pLoopPlot->isCoastalLand() && (pLoopPlot->getResourceType(getTeam()) == NO_RESOURCE))
-								{
-									//If we can build on an empty spot, do so.
-									if (pLoopPlot->getImprovementType() == NO_IMPROVEMENT)
-									{
-										pBestPlot = pLoopPlot;
-										break;
-									}
-									//If not, let's clear a basic improvement off.
-									else
-									{
-										CvImprovementEntry* pImprovementInfo = GC.getImprovementInfo(pLoopPlot->getImprovementType());
-										if (pImprovementInfo && !pImprovementInfo->IsPermanent() && !pImprovementInfo->IsCreatedByGreatPerson())
-										{
-											pBestPlot = pLoopPlot;
-										}
-									}
-								}
-							}
+							pBestPlot = pLoopPlot;
 						}
-						if (pBestPlot != NULL && !bAlreadyHere)
+						else if (!pBestPlot || pBestPlot->getResourceType(NO_TEAM) != NO_RESOURCE)
 						{
-							pBestPlot->setImprovementType(NO_IMPROVEMENT);
-							pBestPlot->setImprovementType(eFeitoria, getOwner());
-							pBestPlot->SilentlyResetAllBuildProgress();
-
-							IDInfo* pUnitNode = NULL;
-							CvUnit* pLoopUnit = NULL;
-							pUnitNode = pBestPlot->headUnitNode();
-							while (pUnitNode != NULL)
-							{
-								pLoopUnit = ::GetPlayerUnit(*pUnitNode);
-								pUnitNode = pBestPlot->nextUnitNode(pUnitNode);
-								if (pLoopUnit != NULL && pLoopUnit->GetMissionAIType() == MISSIONAI_BUILD && pLoopUnit->GetMissionAIPlot() == pBestPlot)
-								{
-									pLoopUnit->ClearMissionQueue();
-								}
-							}
+							pBestPlot = pLoopPlot;
 						}
 					}
 				}
 			}
 		}
-		return true;
-#endif
 	}
+
+	// Place the Feitoria if we found a suitable location
+	if (pBestPlot)
+	{
+		pBestPlot->setImprovementType(NO_IMPROVEMENT);
+		pBestPlot->setImprovementType(eFeitoria, getOwner());
+		pBestPlot->SilentlyResetAllBuildProgress();
+
+		IDInfo* pUnitNode = NULL;
+		CvUnit* pLoopUnit = NULL;
+		pUnitNode = pBestPlot->headUnitNode();
+		while (pUnitNode != NULL)
+		{
+			pLoopUnit = ::GetPlayerUnit(*pUnitNode);
+			pUnitNode = pBestPlot->nextUnitNode(pUnitNode);
+			if (pLoopUnit != NULL && pLoopUnit->GetMissionAIType() == MISSIONAI_BUILD && pLoopUnit->GetMissionAIPlot() == pBestPlot)
+			{
+				pLoopUnit->ClearMissionQueue();
+			}
+		}
+		return true;
+	}
+
 	return false;
 }
 
@@ -14474,7 +14479,7 @@ SpecialUnitTypes CvUnit::getSpecialUnitType() const
 //	--------------------------------------------------------------------------------
 bool CvUnit::IsGreatPerson() const
 {
-	SpecialUnitTypes eSpecialUnitGreatPerson = (SpecialUnitTypes) GC.getInfoTypeForString("SPECIALUNIT_PEOPLE");
+	static SpecialUnitTypes eSpecialUnitGreatPerson = (SpecialUnitTypes) GC.getInfoTypeForString("SPECIALUNIT_PEOPLE");
 
 	return (getSpecialUnitType() == eSpecialUnitGreatPerson);
 }
@@ -14735,7 +14740,7 @@ int CvUnit::baseMoves(bool bPretendEmbarked) const
 		return max(1, /*2 in CP, 3 in VP*/ GD_INT_GET(EMBARKED_UNIT_MOVEMENT) + getExtraNavalMoves() + thisTeam.getEmbarkedExtraMoves() + thisTeam.getExtraMoves(eDomain) + pTraits->GetExtraEmbarkMoves() + pPolicies->GetNumericModifier(POLICYMOD_EMBARKED_EXTRA_MOVES));
 	}
 
-	int m_iExtraNavalMoves = 0;
+	int iExtraNavalMoves = 0;
 	if(eDomain == DOMAIN_SEA)
 	{
 #if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
@@ -14748,7 +14753,7 @@ int CvUnit::baseMoves(bool bPretendEmbarked) const
 				CvResourceInfo* pInfo = GC.getResourceInfo(eResourceLoop);
 				if (pInfo && pInfo->getMonopolyMovementBonus() > 0)
 				{
-					m_iExtraNavalMoves += pInfo->getMonopolyMovementBonus();
+					iExtraNavalMoves += pInfo->getMonopolyMovementBonus();
 				}
 			}
 		}
@@ -14756,7 +14761,7 @@ int CvUnit::baseMoves(bool bPretendEmbarked) const
 		// Work boats also get extra moves, and they don't have a combat class to receive a promotion from
 		if(m_iBaseCombat == 0)
 		{
-			m_iExtraNavalMoves += pTraits->GetExtraEmbarkMoves();
+			iExtraNavalMoves += pTraits->GetExtraEmbarkMoves();
 		}
 	}
 
@@ -14779,7 +14784,7 @@ int CvUnit::baseMoves(bool bPretendEmbarked) const
 	iExtraUnitCombatTypeMoves += pTraits->GetMovesChangeUnitClass((UnitClassTypes)(m_pUnitInfo->GetUnitClassType()));
 #endif
 
-	return max(1, (m_pUnitInfo->GetMoves() + getExtraMoves() + thisTeam.getExtraMoves(eDomain) + m_iExtraNavalMoves + iExtraGoldenAgeMoves + iExtraUnitCombatTypeMoves));
+	return max(1, (m_pUnitInfo->GetMoves() + getExtraMoves() + thisTeam.getExtraMoves(eDomain) + iExtraNavalMoves + iExtraGoldenAgeMoves + iExtraUnitCombatTypeMoves));
 }
 
 
@@ -15616,6 +15621,9 @@ int CvUnit::workRate(bool bMax, BuildTypes /*eBuild*/) const
 	if (!bMax && !canMove())
 		return 0;
 
+	if (MOD_CIV6_WORKER)
+		return 1;
+
 	int iRate = m_pUnitInfo->GetWorkRate();
 	if (iRate <= 0)
 	{
@@ -15634,9 +15642,6 @@ int CvUnit::workRate(bool bMax, BuildTypes /*eBuild*/) const
 	// Work Rate of 1 is used for instant builds
 	if (iRate <= 1)
 		return iRate;
-
-	if (MOD_CIV6_WORKER)
-		return 1;
 
 	int Modifiers = 0;
 	if (MOD_BALANCE_CORE_BARBARIAN_THEFT && GetWorkRateMod() != 0)
@@ -16005,7 +16010,7 @@ int CvUnit::GetDamageCombatModifier(bool bForDefenseAgainstRanged, int iAssumedD
 	int iWoundedDamageMultiplier = /*33*/ GD_INT_GET(WOUNDED_DAMAGE_MULTIPLIER);
 	int iRtnValue = iDamageValueToUse > 0 ? GET_PLAYER(getOwner()).GetWoundedUnitDamageMod() * -1 : 0; // usually 0, +25% with vanilla Elite Forces if wounded
 
-	// Unit is stronger when damaged (Tenacity)
+	// Unit is stronger when damaged (Banzai!)
 	if (iDamageValueToUse > 0 && IsStrongerDamaged())
 	{
 		iRtnValue += (iDamageValueToUse * iWoundedDamageMultiplier) / 100;
@@ -16013,13 +16018,13 @@ int CvUnit::GetDamageCombatModifier(bool bForDefenseAgainstRanged, int iAssumedD
 	}
 
 	// Option: Damage modifier does not apply for defense against ranged attack (fewer targets -> harder to hit)
-	// Units that fight well damaged do not take a penalty from being wounded
 	if (bForDefenseAgainstRanged && MOD_BALANCE_CORE_RANGED_ATTACK_PENALTY)
 	{
 		return iRtnValue;
 	}
 
 	// How much does damage weaken the effectiveness of the Unit?
+	// Units that fight well damaged do not take a penalty from being wounded
 	if (iDamageValueToUse > 0 && !IsFightWellDamaged() && !GET_PLAYER(getOwner()).GetPlayerTraits()->IsFightWellDamaged())
 	{
 		iRtnValue -= (iDamageValueToUse * iWoundedDamageMultiplier) / 100;
@@ -16093,9 +16098,7 @@ int CvUnit::GetGenericMeleeStrengthModifier(const CvUnit* pOtherUnit, const CvPl
 
 		// Great General nearby
 		if (!IsIgnoreGreatGeneralBenefit())
-		{
 			iModifier += kPlayer.GetAreaEffectModifier(AE_GREAT_GENERAL, getDomainType(), pMyPlot);
-		}
 
 		// Reverse Great General nearby
 		iModifier += GetReverseGreatGeneralModifier(pMyPlot);
@@ -16397,11 +16400,11 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 			iModifier += cityAttackModifier();
 
 			// City is blockaded
-			if (pToPlot->getPlotCity()->IsBlockadedWaterAndLand())
+			if (!bQuickAndDirty && pToPlot->getPlotCity()->IsBlockadedWaterAndLand())
 				iModifier += max(0, /*0 in CP, 20 in VP*/ GD_INT_GET(BLOCKADED_CITY_ATTACK_MODIFIER));
 
 			// Nearby unit sapping this city
-			iModifier += GET_PLAYER(getOwner()).GetAreaEffectModifier(AE_SAPPER, NO_DOMAIN, pToPlot);
+			iModifier += bQuickAndDirty ? 0 : GET_PLAYER(getOwner()).GetAreaEffectModifier(AE_SAPPER, NO_DOMAIN, pToPlot);
 
 			//bonus for attacking same unit over and over in a turn?
 			int iTempModifier = getMultiAttackBonus() + GET_PLAYER(getOwner()).GetPlayerTraits()->GetMultipleAttackBonus();
@@ -16817,18 +16820,14 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 
 			// Great General nearby
 			if (!IsIgnoreGreatGeneralBenefit())
-			{
 				iModifier += kPlayer.GetAreaEffectModifier(AE_GREAT_GENERAL, getDomainType(), pMyPlot);
-			}
 
 			// Reverse Great General nearby
 			iModifier += GetReverseGreatGeneralModifier(pMyPlot);
 
 			// NearbyUnit gives a Combat Modifier?
 			if (MOD_CORE_AREA_EFFECT_PROMOTIONS)
-			{
 				iModifier += GetGiveCombatModToUnit(pMyPlot);
-			}
 		}
 
 		// Improvement with combat bonus (from trait) nearby
@@ -17070,7 +17069,7 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 			int iTempModifier = unitCombatModifier(eUnitCombat);
 			if (pOtherUnit->getUnitInfo().IsMounted())
 			{
-				UnitCombatTypes eMountedCombat = (UnitCombatTypes) GC.getInfoTypeForString("UNITCOMBAT_MOUNTED", true);
+				static UnitCombatTypes eMountedCombat = (UnitCombatTypes) GC.getInfoTypeForString("UNITCOMBAT_MOUNTED", true);
 				if (eMountedCombat != eUnitCombat)
 					iTempModifier += unitCombatModifier(eMountedCombat);
 			}
@@ -18236,7 +18235,7 @@ void CvUnit::changeCanCrossMountainsCount(int iValue)
 bool CvUnit::canCrossOceans() const
 {
 	VALIDATE_OBJECT();
-	return getCanCrossOceansCount() > 0;
+	return getCanCrossOceansCount() > 0 || GET_PLAYER(getOwner()).CanCrossOcean();
 }
 
 //	--------------------------------------------------------------------------------
@@ -20328,7 +20327,7 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 				}
 
 				// Is this a missionary and do we have a belief that converts barbarians here?
-				UnitClassTypes eMissionary = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_MISSIONARY", true);
+				static UnitClassTypes eMissionary = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_MISSIONARY", true);
 				if (eMissionary != NO_UNITCLASS)
 				{
 					if (getUnitClassType() == eMissionary)
@@ -26543,7 +26542,7 @@ bool CvUnit::canAcquirePromotion(PromotionTypes ePromotion) const
 	}
 #if defined(MOD_BALANCE_CORE)
 	CvPlayer& kPlayer = GET_PLAYER(getOwner());
-	PromotionTypes ePromotionRoughTerrain = (PromotionTypes)GC.getInfoTypeForString("PROMOTION_ROUGH_TERRAIN_ENDS_TURN");
+	static PromotionTypes ePromotionRoughTerrain = (PromotionTypes)GC.getInfoTypeForString("PROMOTION_ROUGH_TERRAIN_ENDS_TURN");
 	if(ePromotion == ePromotionRoughTerrain && kPlayer.GetPlayerTraits()->IsConquestOfTheWorld())
 	{
 		return false;
@@ -31804,7 +31803,7 @@ int CvUnit::AI_promotionValue(PromotionTypes ePromotion)
 	// M + nM + R + mR + nR + AA: +15 (antiair land) 1, +20 2 , +25 3.
 	if (iTemp != 0)
 	{
-		MilitaryAIStrategyTypes eStrategy = (MilitaryAIStrategyTypes)GC.getInfoTypeForString("MILITARYAISTRATEGY_NEED_AIR");
+		static MilitaryAIStrategyTypes eStrategy = (MilitaryAIStrategyTypes)GC.getInfoTypeForString("MILITARYAISTRATEGY_NEED_AIR");
 		if(GET_PLAYER(getOwner()).GetMilitaryAI()->IsUsingStrategy(eStrategy))
 		{
 			iTemp *= 2;		// Not mine but I assume it's useful

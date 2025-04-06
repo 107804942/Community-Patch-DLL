@@ -3628,7 +3628,7 @@ void CvCity::DoStartEvent(CityEventTypes eChosenEvent, bool bSendMsg)
 					{
 						CvString strBuffer = GetLocalizedText("TXT_KEY_CHOOSE_EVENT_CHOICE_CITY");
 						CvString strSummary = GetLocalizedText("TXT_KEY_CHOOSE_EVENT_CHOICE_CITY_TT");
-						pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_EVENT_CHOICE_CITY"), strSummary.c_str(), strBuffer.c_str(), -1, -1, eChosenEvent, GetID());
+						pNotifications->Add((NotificationTypes)FStringHash("NOTIFICATION_EVENT_CHOICE_CITY"), strSummary.c_str(), strBuffer.c_str(), -1, -1, eChosenEvent, GetID());
 					}
 				}
 				else
@@ -7294,7 +7294,7 @@ void CvCity::DoEventChoice(CityEventChoiceTypes eEventChoice, CityEventTypes eCi
 				CvString strNotificationString = pkEventChoiceInfo->GetNotificationInfo(iI)->GetNotificationString();
 				if (strNotificationString != NULL && !strNotificationString.empty())
 				{
-					NotificationTypes eNotificationType = (NotificationTypes)FString::Hash(strNotificationString);
+					NotificationTypes eNotificationType = (NotificationTypes)FStringHash(strNotificationString);
 
 					if (eNotificationType != NO_NOTIFICATION_TYPE)
 					{
@@ -8697,8 +8697,8 @@ bool CvCity::canTrain(UnitTypes eUnit, bool bContinue, bool bTestVisible, bool b
 	}
 
 	// If Zulu Player has this trait and Pikeman are an immediate upgrade to Impi, let's not let player exploit lower production cost of pikeman->impi. So, let's make it immediately obsolete.
-	UnitClassTypes ePikemanClass = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_PIKEMAN");
-	UnitTypes eZuluImpi = (UnitTypes)GC.getInfoTypeForString("UNIT_ZULU_IMPI");
+	static UnitClassTypes ePikemanClass = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_PIKEMAN");
+	static UnitTypes eZuluImpi = (UnitTypes)GC.getInfoTypeForString("UNIT_ZULU_IMPI");
 	if (GET_PLAYER(getOwner()).GetPlayerTraits()->IsFreeZuluPikemanToImpi())
 	{
 		if (eUnitClass != NO_UNITCLASS && (eUnitClass == ePikemanClass) && GET_PLAYER(getOwner()).canTrainUnit(eZuluImpi, false, false, true))
@@ -9598,7 +9598,8 @@ void CvCity::ChangeNumResourceLocal(ResourceTypes eResource, int iChange, bool b
 				{
 					if (MOD_BALANCE_CORE_RESOURCE_FLAVORS && pkResource->getWonderProductionModObsoleteEra() == GC.getInfoTypeForString("ERA_INDUSTRIAL", true /*bHideAssert*/))
 					{
-						if (GET_PLAYER(getOwner()).GetCurrentEra() < GC.getInfoTypeForString("ERA_INDUSTRIAL", true /*bHideAssert*/))
+						static EraTypes industrialEra = (EraTypes)GC.getInfoTypeForString("ERA_INDUSTRIAL", true /*bHideAssert*/);
+						if (GET_PLAYER(getOwner()).GetCurrentEra() < industrialEra)
 						{
 							CvNotifications* pNotifications = GET_PLAYER(getOwner()).GetNotifications();
 							if (pNotifications)
@@ -9715,7 +9716,7 @@ void CvCity::ChangeNumResourceLocal(ResourceTypes eResource, int iChange, bool b
 						CvNotifications* pNotifications = GET_PLAYER(getOwner()).GetNotifications();
 						if (pNotifications)
 						{
-							pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_PRODUCTION_COST_MODIFIERS_FROM_RESOURCES"), strText.toUTF8(), strSummary.toUTF8(), getX(), getY(), eResource);
+							pNotifications->Add((NotificationTypes)FStringHash("NOTIFICATION_PRODUCTION_COST_MODIFIERS_FROM_RESOURCES"), strText.toUTF8(), strSummary.toUTF8(), getX(), getY(), eResource);
 						}
 					}
 				}
@@ -10738,7 +10739,7 @@ void CvCity::addProductionExperience(CvUnit* pUnit, bool bHalveXP, bool bGoldPur
 				if ((pUnit->getExperienceTimes100() / 100) >= pUnit->experienceNeeded() && getDomainFreeExperienceFromGreatWorks(pUnit->getUnitInfo().GetDomainType()) > 0)
 				{
 					// We have a Royal Library
-					BuildingTypes eRoyalLibrary = (BuildingTypes)GC.getInfoTypeForString("BUILDING_ROYAL_LIBRARY", true);
+					static BuildingTypes eRoyalLibrary = (BuildingTypes)GC.getInfoTypeForString("BUILDING_ROYAL_LIBRARY", true);
 					if (eRoyalLibrary != NO_BUILDING && GetCityBuildings()->GetNumBuilding(eRoyalLibrary) > 0)
 					{
 						gDLL->UnlockAchievement(ACHIEVEMENT_XP2_19);
@@ -11540,7 +11541,8 @@ int CvCity::getProductionTurnsLeft(ProjectTypes eProject, int iNum) const
 int CvCity::getProductionNeeded(ProcessTypes eProcess) const
 {
 	VALIDATE_OBJECT();
-	if (eProcess == GC.getInfoTypeForString("PROCESS_STOCKPILE", true))
+	static ProcessTypes stockpile = (ProcessTypes)GC.getInfoTypeForString("PROCESS_STOCKPILE");
+	if (eProcess == stockpile)
 	{
 		return GET_PLAYER(getOwner()).getMaxStockpile();
 	}
@@ -11552,7 +11554,8 @@ int CvCity::getProductionNeeded(ProcessTypes eProcess) const
 int CvCity::getProductionTurnsLeft(ProcessTypes eProcess, int) const
 {
 	VALIDATE_OBJECT();
-	if (eProcess == GC.getInfoTypeForString("PROCESS_STOCKPILE", true))
+	static ProcessTypes stockpile = (ProcessTypes)GC.getInfoTypeForString("PROCESS_STOCKPILE");
+	if (eProcess == stockpile)
 	{
 		int iProduction = getOverflowProduction();
 		int iProductionNeeded = GET_PLAYER(getOwner()).getMaxStockpile();
@@ -11849,7 +11852,7 @@ int CvCity::GetFaithPurchaseCost(UnitTypes eUnit, bool bIncludeBeliefDiscounts)
 	ReligionTypes eCityReligion = GetCityReligions()->GetReligiousMajority();
 
 	// LATE-GAME GREAT PERSON
-	SpecialUnitTypes eSpecialUnitGreatPerson = (SpecialUnitTypes)GC.getInfoTypeForString("SPECIALUNIT_PEOPLE");
+	static SpecialUnitTypes eSpecialUnitGreatPerson = (SpecialUnitTypes)GC.getInfoTypeForString("SPECIALUNIT_PEOPLE");
 	if (pkUnitInfo->GetSpecialUnitType() == eSpecialUnitGreatPerson)
 	{
 		// We must be into the industrial era

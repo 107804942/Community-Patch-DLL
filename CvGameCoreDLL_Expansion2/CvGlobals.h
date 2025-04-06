@@ -172,7 +172,7 @@ public:
 	};
 
 	typedef stdext::hash_map<std::string /* type string */, int /* info index */> InfosMap;
-	typedef std::map<uint /* FString::HashType */, int /* info index */> InfosHashMap;
+	typedef std::map<uint /* FStringHashType */, int /* info index */> InfosHashMap;
 	typedef tr1::array<uint32, 4> GameDataHash;
 
 	// singleton accessor
@@ -1407,10 +1407,10 @@ public:
 	GD_INT_MEMBER(OPINION_WEIGHT_VICTORY_WEAK);
 	GD_INT_MEMBER(OPINION_WEIGHT_VICTORY_NONE);
 	GD_INT_MEMBER(OPINION_WEIGHT_VICTORY_PER_ERA); // VP
+	GD_INT_MEMBER(OPINION_WEIGHT_VICTORY_NONE_PER_ERA); // VP
 	GD_INT_MEMBER(OPINION_WEIGHT_VICTORY_BLOCK_FIERCE); // VP
 	GD_INT_MEMBER(OPINION_WEIGHT_VICTORY_BLOCK_STRONG); // VP
 	GD_INT_MEMBER(OPINION_WEIGHT_VICTORY_BLOCK_WEAK); // VP
-	GD_INT_MEMBER(OPINION_WEIGHT_VICTORY_BLOCK_NONE); // VP
 	GD_INT_MEMBER(OPINION_WEIGHT_VICTORY_BLOCK_PER_ERA); // VP
 	GD_INT_MEMBER(OPINION_WEIGHT_WONDER_FIERCE);
 	GD_INT_MEMBER(OPINION_WEIGHT_WONDER_STRONG);
@@ -2954,8 +2954,13 @@ public:
 	GD_INT_MEMBER(IDEOLOGY_START_ERA); // VP
 	GD_INT_MEMBER(IDEOLOGY_PREREQ_ERA); // VP
 	GD_INT_MEMBER(ANCIENT_ERA); // VP
+	GD_INT_MEMBER(CLASSICAL_ERA); // VP
 	GD_INT_MEMBER(MEDIEVAL_ERA); // VP
+	GD_INT_MEMBER(RENAISSANCE_ERA); // VP
 	GD_INT_MEMBER(INDUSTRIAL_ERA); // VP
+	GD_INT_MEMBER(MODERN_ERA); // VP
+	GD_INT_MEMBER(ATOMIC_ERA); // VP
+	GD_INT_MEMBER(INFORMATION_ERA); // VP
 	GD_INT_MEMBER(TOURISM_START_TECH); // VP
 	GD_INT_MEMBER(TOURISM_START_ERA); // VP
 	GD_INT_MEMBER(JUGGERNAUT_PROMOTION); // VP
@@ -3211,6 +3216,9 @@ extern CvGlobals gGlobals;
 #define DB (*GC.GetGameDatabase())
 #define DLLUI (GC.GetEngineUserInterface())
 #define DLLUIClass CvDLLInterfaceIFaceBase
+
+uint FStringHash(LPCWSTR pszStr);
+uint FStringHash(LPCSTR pszStr);
 
 inline Database::Connection* CvGlobals::GetGameDatabase()
 {

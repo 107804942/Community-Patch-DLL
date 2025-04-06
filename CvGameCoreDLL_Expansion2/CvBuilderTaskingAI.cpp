@@ -1310,11 +1310,13 @@ bool CvBuilderTaskingAI::ExecuteWorkerMove(CvUnit* pUnit, BuilderDirective aDire
 	{
 		switch (aDirective.m_eDirectiveType)
 		{
+		case BuilderDirective::KEEP_IMPROVEMENT:
+			UNREACHABLE();
 		case BuilderDirective::BUILD_IMPROVEMENT_ON_RESOURCE:
 		case BuilderDirective::BUILD_IMPROVEMENT:
 		case BuilderDirective::REPAIR:
 		case BuilderDirective::BUILD_ROUTE:
-		case BuilderDirective::CHOP:
+		case BuilderDirective::REMOVE_FEATURE:
 		case BuilderDirective::REMOVE_ROAD:
 		{
 			CvPlot* pPlot = GC.getMap().plot(aDirective.m_sX, aDirective.m_sY);
@@ -1346,6 +1348,8 @@ bool CvBuilderTaskingAI::ExecuteWorkerMove(CvUnit* pUnit, BuilderDirective aDire
 
 				switch (aDirective.m_eDirectiveType)
 				{
+				case BuilderDirective::KEEP_IMPROVEMENT:
+					UNREACHABLE();
 				case BuilderDirective::BUILD_IMPROVEMENT_ON_RESOURCE:
 					strLog += "On resource,";
 					break;
@@ -1358,8 +1362,8 @@ bool CvBuilderTaskingAI::ExecuteWorkerMove(CvUnit* pUnit, BuilderDirective aDire
 				case BuilderDirective::BUILD_ROUTE:
 					strLog += "Building route,";
 					break;
-				case BuilderDirective::CHOP:
-					strLog += "Removing resource for production,";
+				case BuilderDirective::REMOVE_FEATURE:
+					strLog += "Removing feature for production,";
 					break;
 				case BuilderDirective::REMOVE_ROAD:
 					strLog += "Removing road,";
@@ -1387,7 +1391,7 @@ bool CvBuilderTaskingAI::ExecuteWorkerMove(CvUnit* pUnit, BuilderDirective aDire
 					{
 						strLog += "Building improvement,";
 					}
-					else if (aDirective.m_eDirectiveType == BuilderDirective::CHOP)
+					else if (aDirective.m_eDirectiveType == BuilderDirective::REMOVE_FEATURE)
 					{
 						strLog += "Removing feature for production,";
 					}
@@ -1407,11 +1411,12 @@ bool CvBuilderTaskingAI::ExecuteWorkerMove(CvUnit* pUnit, BuilderDirective aDire
 			if (eMission == CvTypes::getMISSION_MOVE_TO())
 			{
 				pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), aDirective.m_sX, aDirective.m_sY,
-					CvUnit::MOVEFLAG_NO_ENEMY_TERRITORY | CvUnit::MOVEFLAG_ABORT_IF_NEW_ENEMY_REVEALED, false, false, MISSIONAI_BUILD, pPlot);
+					CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER | CvUnit::MOVEFLAG_VISIBLE_ONLY, false, false, MISSIONAI_BUILD, pPlot);
 
 				//do we have movement left?
 				if (pUnit->getMoves() > 0)
 				{
+					//might also have aborted the move mission
 					if (pUnit->getX() == aDirective.m_sX && pUnit->getY() == aDirective.m_sY)
 						eMission = CvTypes::getMISSION_BUILD();
 				}
@@ -1602,25 +1607,16 @@ void CvBuilderTaskingAI::UpdateRoutePlots(void)
 /// Use the flavor settings to determine what to do
 void CvBuilderTaskingAI::UpdateImprovementPlots()
 {
-	vector<OptionWithScore<BuilderDirective>> aDirectives;
+	vector<OptionWithScore<BuilderDirective>> allDirectives(GetRouteDirectives());
+	vector<OptionWithScore<BuilderDirective>> improvementDirectives = GetImprovementDirectives();
+	allDirectives.insert(allDirectives.end(), improvementDirectives.begin(), improvementDirectives.end());
 
-	vector<OptionWithScore<BuilderDirective>> aRouteDirectives = GetRouteDirectives();
-	for (vector<OptionWithScore<BuilderDirective>>::const_iterator it = aRouteDirectives.begin(); it != aRouteDirectives.end(); ++it)
-	{
-		aDirectives.push_back(*it);
-	}
-	vector<OptionWithScore<BuilderDirective>> aImprovementDirectives = GetImprovementDirectives();
-	for (vector<OptionWithScore<BuilderDirective>>::const_iterator it = aImprovementDirectives.begin(); it != aImprovementDirectives.end(); ++it)
-	{
-		aDirectives.push_back(*it);
-	}
-
-	std::stable_sort(aDirectives.begin(), aDirectives.end());
-	LogDirectives(aDirectives);
+	std::stable_sort(allDirectives.begin(), allDirectives.end());
+	LogDirectives(allDirectives);
 
 	m_directives.clear();
 	m_assignedDirectives.clear();
-	for (vector<OptionWithScore<BuilderDirective>>::iterator it = aDirectives.begin(); it != aDirectives.end(); ++it)
+	for (vector<OptionWithScore<BuilderDirective>>::iterator it = allDirectives.begin(); it != allDirectives.end(); ++it)
 		m_directives.push_back(it->option);
 }
 
@@ -2051,11 +2047,8 @@ vector<OptionWithScore<BuilderDirective>> CvBuilderTaskingAI::GetImprovementDire
 		{
 			if (pPlot->getImprovementType() != NO_IMPROVEMENT && !pPlot->IsImprovementPillaged())
 			{
-				ImprovementTypes eImprovement = pPlot->getImprovementType();
-
-				pair<int,int> pScore = ScorePlotBuild(pPlot, eImprovement, NO_BUILD);
-
-				aDirectives.push_back(OptionWithScore<BuilderDirective>(BuilderDirective(BuilderDirective::NUM_DIRECTIVES, NO_BUILD, NO_RESOURCE, false, pPlot->getX(), pPlot->getY(), pScore.first, pScore.second), pScore.first));
+				pair<int,int> pScore = ScorePlotBuild(pPlot, pPlot->getImprovementType(), NO_BUILD);
+				aDirectives.push_back(OptionWithScore<BuilderDirective>(BuilderDirective(BuilderDirective::KEEP_IMPROVEMENT, NO_BUILD, NO_RESOURCE, false, pPlot->getX(), pPlot->getY(), pScore.first, pScore.second), pScore.first));
 			}
 		}
 
@@ -2137,9 +2130,7 @@ void CvBuilderTaskingAI::AddImprovingPlotsDirective(vector<OptionWithScore<Build
 			continue;
 
 		if (eImprovement == eExistingImprovement)
-		{
 			continue;
-		}
 
 		CvImprovementEntry* pkImprovementInfo = GC.getImprovementInfo(eImprovement);
 		if (pkImprovementInfo == NULL)
@@ -2234,7 +2225,7 @@ void CvBuilderTaskingAI::AddImprovingPlotsDirective(vector<OptionWithScore<Build
 
 				if (eChopBuild != NO_BUILD)
 				{
-					BuilderDirective chopDirective(BuilderDirective::CHOP, eChopBuild, NO_RESOURCE, false, pPlot->getX(), pPlot->getY(), iScore / 3, (iScore * 2) / 3 + iPotentialScore - 1);
+					BuilderDirective chopDirective(BuilderDirective::REMOVE_FEATURE, eChopBuild, NO_RESOURCE, false, pPlot->getX(), pPlot->getY(), iScore / 3, (iScore * 2) / 3 + iPotentialScore - 1);
 					aDirectives.push_back(OptionWithScore<BuilderDirective>(chopDirective, iScore / 3));
 				}
 			}
@@ -2261,7 +2252,6 @@ void CvBuilderTaskingAI::AddRemoveRouteDirective(vector<OptionWithScore<BuilderD
 		return;
 
 	RouteTypes eExistingRoute = pPlot->getRouteType();
-
 	if (eExistingRoute == NO_ROUTE)
 		return;
 
@@ -2567,7 +2557,7 @@ void CvBuilderTaskingAI::AddChopDirectives(vector<OptionWithScore<BuilderDirecti
 
 	if(iWeight > 0)
 	{
-		aDirectives.push_back(OptionWithScore<BuilderDirective>(BuilderDirective(BuilderDirective::CHOP, eChopBuild, NO_RESOURCE, false, pPlot->getX(), pPlot->getY(), iWeight, 0), iWeight));
+		aDirectives.push_back(OptionWithScore<BuilderDirective>(BuilderDirective(BuilderDirective::REMOVE_FEATURE, eChopBuild, NO_RESOURCE, false, pPlot->getX(), pPlot->getY(), iWeight, 0), iWeight));
 	}
 }
 
@@ -2638,7 +2628,7 @@ void CvBuilderTaskingAI::AddScrubFalloutDirectives(vector<OptionWithScore<Builde
 	{
 		int iWeight =/*20000*/ GD_INT_GET(BUILDER_TASKING_BASELINE_SCRUB_FALLOUT);
 
-		aDirectives.push_back(OptionWithScore<BuilderDirective>(BuilderDirective(BuilderDirective::CHOP, m_eFalloutRemove, NO_RESOURCE, false, pPlot->getX(), pPlot->getY(), iWeight, 0), iWeight));
+		aDirectives.push_back(OptionWithScore<BuilderDirective>(BuilderDirective(BuilderDirective::REMOVE_FEATURE, m_eFalloutRemove, NO_RESOURCE, false, pPlot->getX(), pPlot->getY(), iWeight, 0), iWeight));
 	}
 }
 
@@ -3369,14 +3359,20 @@ pair<int,int> CvBuilderTaskingAI::ScorePlotBuild(CvPlot* pPlot, ImprovementTypes
 				if (!pAdjacentOwningCity || pAdjacentOwningCity->IsRazing())
 					continue;
 
-				int iNewAdjacentYield = 0;
+				int iNewAdjacentWorkedYield = 0;
+				int iNewAdjacentUnworkedYield = 0;
+
+				bool bWorkingAdjacent = pAdjacentOwningCity->GetCityCitizens()->IsWorkingPlot(pAdjacentPlot);
 
 				// How much extra yield we give to adjacent tiles with a certain terrain
 				if (pAdjacentPlot->getTerrainType() != NO_TERRAIN)
 				{
 					int iAdjacentTerrainYieldChange = pkImprovementInfo ? pkImprovementInfo->GetAdjacentTerrainYieldChanges(pAdjacentPlot->getTerrainType(), eYield) : 0;
 					if (iAdjacentTerrainYieldChange != 0)
-						iNewAdjacentYield += iAdjacentTerrainYieldChange;
+						if (bWorkingAdjacent)
+							iNewAdjacentWorkedYield += iAdjacentTerrainYieldChange;
+						else
+							iNewAdjacentUnworkedYield += iAdjacentTerrainYieldChange;
 				}
 
 				ImprovementTypes eAdjacentImprovement = GetPlannedImprovementInPlot(pAdjacentPlot, sState);
@@ -3396,14 +3392,20 @@ pair<int,int> CvBuilderTaskingAI::ScorePlotBuild(CvPlot* pPlot, ImprovementTypes
 
 						int iDeltaTruncatedYield = (fCurrentAdjacentImprovementYield + fAdjacentImprovementYield).Truncate() - fCurrentAdjacentImprovementYield.Truncate();
 						if (iDeltaTruncatedYield != 0)
-							iNewAdjacentYield += iDeltaTruncatedYield;
+							if (bWorkingAdjacent)
+								iNewAdjacentWorkedYield += iDeltaTruncatedYield;
+							else
+								iNewAdjacentUnworkedYield += iDeltaTruncatedYield;
 
 						// How much extra yield an adjacent improvement will get if we create a resource
 						if (eResourceFromImprovement != NO_RESOURCE)
 						{
 							int iAdjacentResourceYieldChanges = pkAdjacentImprovementInfo->GetAdjacentResourceYieldChanges(eResourceFromImprovement, eYield);
 							if (iAdjacentResourceYieldChanges != 0)
-								iNewAdjacentYield += iAdjacentResourceYieldChanges;
+								if (bWorkingAdjacent)
+									iNewAdjacentWorkedYield += iAdjacentResourceYieldChanges;
+								else
+									iNewAdjacentUnworkedYield += iAdjacentResourceYieldChanges;
 						}
 
 						// How much extra yield an adjacent improvement will get if we create a feature (or keep the one that's here)
@@ -3412,15 +3414,19 @@ pair<int,int> CvBuilderTaskingAI::ScorePlotBuild(CvPlot* pPlot, ImprovementTypes
 							FeatureTypes eNewFeature = eFeatureFromImprovement != NO_FEATURE ? eFeatureFromImprovement : eFeature;
 							int iAdjacentFeatureYieldChanges = pkAdjacentImprovementInfo->GetAdjacentFeatureYieldChanges(eNewFeature, eYield);
 							if (iAdjacentFeatureYieldChanges != 0)
-								iNewAdjacentYield += iAdjacentFeatureYieldChanges;
+								if (bWorkingAdjacent)
+									iNewAdjacentWorkedYield += iAdjacentFeatureYieldChanges;
+								else
+									iNewAdjacentUnworkedYield += iAdjacentFeatureYieldChanges;
 						}
 					}
 				}
 
-				if (iNewAdjacentYield != 0)
+				if (iNewAdjacentWorkedYield != 0 || iNewAdjacentUnworkedYield != 0)
 				{
 					int iAdjacentCityYieldModifier = pAdjacentOwningCity ? GetYieldCityModifierTimes100(pAdjacentOwningCity, m_pPlayer, eYield) : 100;
-					iSecondaryScore += (iNewAdjacentYield * iYieldModifier * iAdjacentCityYieldModifier) / 100;
+					iSecondaryScore += (iNewAdjacentWorkedYield * iYieldModifier * iAdjacentCityYieldModifier) / 100;
+					iPotentialScore += (iNewAdjacentUnworkedYield * iYieldModifier * iAdjacentCityYieldModifier) / 100;
 				}
 			}
 		}
@@ -3533,7 +3539,7 @@ pair<int,int> CvBuilderTaskingAI::ScorePlotBuild(CvPlot* pPlot, ImprovementTypes
 			if (eOldImprovement != NO_IMPROVEMENT)
 			{
 				CvImprovementEntry* pkOldImprovementInfo = GC.getImprovementInfo(eOldImprovement);
-				if (pkOldImprovementInfo && (pkOldImprovementInfo->IsConnectsResource(eResource) || pkOldImprovementInfo->GetResourceFromImprovement() == eResourceFromImprovement))
+				if (pkOldImprovementInfo && (pkOldImprovementInfo->IsConnectsResource(eResource) || pkOldImprovementInfo->GetResourceFromImprovement() == eResource))
 					iExtraResource -= iResourceAmount;
 			
 			}
@@ -3576,7 +3582,7 @@ pair<int,int> CvBuilderTaskingAI::ScorePlotBuild(CvPlot* pPlot, ImprovementTypes
 				}
 				int iTotalNumResource = GC.getMap().getNumResources(eConnectedResource);
 				if (bCreatesResource)
-					iTotalNumResource += iExtraResource;
+					iTotalNumResource += iResourceAmount;
 
 				int iCurrentMonopolyPercent = 0;
 				int iFutureMonopolyPercent = 0;
@@ -3596,7 +3602,8 @@ pair<int,int> CvBuilderTaskingAI::ScorePlotBuild(CvPlot* pPlot, ImprovementTypes
 				if (pkConnectedResource->getResourceUsage() == RESOURCEUSAGE_STRATEGIC)
 					iStrategicThreshold = /*25*/ GD_INT_GET(STRATEGIC_RESOURCE_MONOPOLY_THRESHOLD);
 
-				bool bCanReachGlobalMonopoly = iFutureMonopolyPercent > 50 || m_pPlayer->GetPlayerTraits()->IsImportsCountTowardsMonopolies() || (2 * (m_pPlayer->getResourceInOwnedPlots(eConnectedResource) + iResourceFromMinors) > iTotalNumResource);
+				bool bCanReachGlobalMonopoly = iFutureMonopolyPercent > iGlobalThreshold || m_pPlayer->GetPlayerTraits()->IsImportsCountTowardsMonopolies() || (100 * (m_pPlayer->getResourceInOwnedPlots(eConnectedResource) + iResourceFromMinors) > iGlobalThreshold * iTotalNumResource);
+				bool bCanReachStrategicMonopoly = iStrategicThreshold != 0 && (iFutureMonopolyPercent > iStrategicThreshold || m_pPlayer->GetPlayerTraits()->IsImportsCountTowardsMonopolies() || (100 * (m_pPlayer->getResourceInOwnedPlots(eConnectedResource) + iResourceFromMinors) > iStrategicThreshold * iTotalNumResource));
 
 				if (iCurrentMonopolyPercent <= iGlobalThreshold)
 				{
@@ -3616,6 +3623,10 @@ pair<int,int> CvBuilderTaskingAI::ScorePlotBuild(CvPlot* pPlot, ImprovementTypes
 					{
 						// We can get a global monopoly eventually
 						iPotentialScore += 2000;
+					}
+					else if (bCanReachStrategicMonopoly)
+					{
+						iPotentialScore += 1000;
 					}
 				}
 			}
@@ -4380,11 +4391,14 @@ void CvBuilderTaskingAI::LogDirective(BuilderDirective directive, int iWeight, b
 	case BuilderDirective::BUILD_ROUTE:
 		strLog += "BUILD_ROUTE,";
 		break;
-	case BuilderDirective::CHOP:
+	case BuilderDirective::REMOVE_FEATURE:
 		strLog += "CHOP,";
 		break;
 	case BuilderDirective::REMOVE_ROAD:
 		strLog += "REMOVE_ROAD,";
+		break;
+	case BuilderDirective::KEEP_IMPROVEMENT:
+		strLog += "KEEP_IMPROVEMENT,";
 		break;
 	}
 

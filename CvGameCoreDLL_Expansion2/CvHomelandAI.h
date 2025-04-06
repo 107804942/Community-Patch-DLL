@@ -287,6 +287,7 @@ private:
 
 	void ExecuteWorkerMoves();
 	void ExecuteMovesToSafestPlot(CvUnit* pUnit);
+	bool ExecuteMoveUnitAwayFromBorder(CvUnit* pUnit);
 	bool ExecuteMoveToTarget(CvUnit* pUnit, CvPlot* pTarget, int iFlags, bool bEndTurn = false);
 
 	void ExecuteHeals();
@@ -313,8 +314,16 @@ private:
 	bool MoveToTargetButDontEndTurn(CvUnit* pUnit, CvPlot* pTargetPlot, int iFlags);
 
 	CvPlot* FindArchaeologistTarget(CvUnit *pUnit);
-	vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> GetWeightedDirectives(const vector<BuilderDirective> aDirectives, const set<BuilderDirective> ignoredDirectives, const list<int> allWorkers, const set<int> ignoredWorkers, map<pair<int, int>, int>& plotDistanceCache);
-	int GetBuilderNumTurnsAway(CvUnit* pUnit, BuilderDirective eDirective, int iMaxDistance = INT_MAX);
+	vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> GetWeightedDirectives(
+		const vector<BuilderDirective> aDirectives, 
+		const set<BuilderDirective> ignoredDirectives, 
+		const list<int> allWorkers, 
+		const set<int> ignoredWorkers, 
+		const std::map<CvUnit*, ReachablePlots>& allWorkersReachablePlots);
+	int GetBuilderNumTurnsAway(
+		CvUnit* pUnit, 
+		BuilderDirective eDirective, 
+		const std::map<CvUnit*, ReachablePlots>& allWorkersReachablePlots);
 
 	void UnitProcessed(int iID);
 	bool ExecuteCultureBlast(CvUnit* pUnit);

@@ -781,9 +781,9 @@ enum CLOSED_ENUM InterfaceMessageTypes
 
 //  !!!!!!!!!!!!!!!!!!!!!!!
 //  IMPORTANT - NotificationTypes enum contains hash values, not an index!
-//  It is not required to add a new enum for a new notification, you can just use the hash (FString::Hash) of the name
+//  It is not required to add a new enum for a new notification, you can just use the hash (FStringHash) of the name
 //	as defined in the Notifications.xml or equivalent.  The enum is just a helper so that the has generation is done
-//	at compile time.  e.g.  the enum NOTIFICATION_TECH is equivalent to FString::Hash("NOTIFICATION_TECH")
+//	at compile time.  e.g.  the enum NOTIFICATION_TECH is equivalent to FStringHash("NOTIFICATION_TECH")
 //
 //  MODDERS:
 //		If you add a new notification, you do NOT have to add it to this helper list, you can just make a define
@@ -1952,12 +1952,12 @@ enum CLOSED_ENUM AutomateTypes
 
 	// Do not add any more sequential enums, add explicit key values (hash of text key)
 
-	AUTOMATE_TRADE		= 0x4bdc68d8,	// FString::Hash("AUTOMATE_TRADE");
+	AUTOMATE_TRADE		= 0x4bdc68d8,	// FStringHash("AUTOMATE_TRADE");
 #if defined(MOD_BALANCE_CORE)
-	AUTOMATE_MISSIONARY = 0x840842ea,  //FString::Hash("AUTOMATE_MISSIONARY");
-	AUTOMATE_ARCHAEOLOGIST = 0x64f5468a,  //FString::Hash("AUTOMATE_ARCHAEOLOGIST");
+	AUTOMATE_MISSIONARY = 0x840842ea,  //FStringHash("AUTOMATE_MISSIONARY");
+	AUTOMATE_ARCHAEOLOGIST = 0x64f5468a,  //FStringHash("AUTOMATE_ARCHAEOLOGIST");
 #endif
-	AUTOMATE_DIPLOMAT = 0xd2d86d2d,  //FString::Hash("AUTOMATE_DIPLOMAT");
+	AUTOMATE_DIPLOMAT = 0xd2d86d2d,  //FStringHash("AUTOMATE_DIPLOMAT");
 
 };
 
@@ -3776,25 +3776,19 @@ enum CLOSED_ENUM LoyaltyStateTypes // MOD_BALANCE_CORE_JFD
 enum CLOSED_ENUM AITacticalTargetType
 {
     AI_TACTICAL_TARGET_NONE,
-    AI_TACTICAL_TARGET_CITY,
+    AI_TACTICAL_TARGET_ENEMY_CITY,
     AI_TACTICAL_TARGET_BARBARIAN_CAMP,
     AI_TACTICAL_TARGET_IMPROVEMENT,
     AI_TACTICAL_TARGET_BLOCKADE_POINT,
-    AI_TACTICAL_TARGET_LOW_PRIORITY_UNIT,    // Can't attack one of our cities
-    AI_TACTICAL_TARGET_MEDIUM_PRIORITY_UNIT, // Can damage one of our cities
-    AI_TACTICAL_TARGET_HIGH_PRIORITY_UNIT,   // Can contribute to capturing one of our cities
-    AI_TACTICAL_TARGET_CITY_TO_DEFEND,
+    AI_TACTICAL_TARGET_ENEMY_COMBAT_UNIT,
+    AI_TACTICAL_TARGET_FRIENDLY_CITY,
     AI_TACTICAL_TARGET_IMPROVEMENT_TO_DEFEND,
     AI_TACTICAL_TARGET_DEFENSIVE_BASTION,
-    AI_TACTICAL_TARGET_BOMBARDMENT_ZONE,     // Used for naval bombardment operation
-    AI_TACTICAL_TARGET_EMBARKED_CIVILIAN,
-    AI_TACTICAL_TARGET_VERY_HIGH_PRIORITY_CIVILIAN,
     AI_TACTICAL_TARGET_HIGH_PRIORITY_CIVILIAN,
-    AI_TACTICAL_TARGET_MEDIUM_PRIORITY_CIVILIAN,
     AI_TACTICAL_TARGET_LOW_PRIORITY_CIVILIAN,
 	AI_TACTICAL_TARGET_TRADE_UNIT_SEA,
 	AI_TACTICAL_TARGET_TRADE_UNIT_LAND,
-	AI_TACTICAL_TARGET_CITADEL,
+	AI_TACTICAL_TARGET_ENEMY_CITADEL,
 	AI_TACTICAL_TARGET_IMPROVEMENT_RESOURCE,
 	AI_TACTICAL_TARGET_GOODY,
 };

@@ -4565,7 +4565,7 @@ CvCity* CvPlayer::acquireCity(CvCity* pCity, bool bConquest, bool bGift, bool bO
 
 					CvString strBuffer = GetLocalizedText("TXT_KEY_CHOOSE_CITY_CAPTURE", pNewCity->getNameKey());
 					CvString strSummary = GetLocalizedText("TXT_KEY_CHOOSE_CITY_CAPTURE_TT", pNewCity->getNameKey());
-					pNotify->Add((NotificationTypes)FString::Hash("NOTIFICATION_CITY_CAPTURE"), strSummary.c_str(), strBuffer.c_str(), pNewCity->getX(), pNewCity->getY(), -1);
+					pNotify->Add((NotificationTypes)FStringHash("NOTIFICATION_CITY_CAPTURE"), strSummary.c_str(), strBuffer.c_str(), pNewCity->getX(), pNewCity->getY(), -1);
 				}
 			}
 		}
@@ -6726,7 +6726,7 @@ void CvPlayer::DoStartEvent(EventTypes eChosenEvent, bool bSendMsg)
 					{
 						CvString strBuffer = GetLocalizedText("TXT_KEY_CHOOSE_EVENT_CHOICE");
 						CvString strSummary = GetLocalizedText("TXT_KEY_CHOOSE_EVENT_CHOICE_TT");
-						pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_EVENT_CHOICE"), strSummary.c_str(), strBuffer.c_str(), -1, -1, eChosenEvent);
+						pNotifications->Add((NotificationTypes)FStringHash("NOTIFICATION_EVENT_CHOICE"), strSummary.c_str(), strBuffer.c_str(), -1, -1, eChosenEvent);
 					}
 				}
 				else
@@ -8479,7 +8479,7 @@ void CvPlayer::DoEventChoice(EventChoiceTypes eEventChoice, EventTypes eEvent, b
 				CvString strNotificationString = pkEventChoiceInfo->GetNotificationInfo(iI)->GetNotificationString();
 				if(strNotificationString != NULL && !strNotificationString.empty())
 				{
-					NotificationTypes eNotificationType = (NotificationTypes)FString::Hash(strNotificationString);
+					NotificationTypes eNotificationType = (NotificationTypes)FStringHash(strNotificationString);
 
 					if(eNotificationType != NO_NOTIFICATION_TYPE)
 					{
@@ -9662,6 +9662,32 @@ int CvPlayer::GetNumUnitPromotions(PromotionTypes ePromotion)
 	return iNum;
 }
 
+int CvPlayer::GetNumUnitsInProduction(DomainTypes eDomain, bool bMilitaryOnly)
+{
+	int iNumUnits = 0;
+
+	CvCity* pLoopCity = NULL;
+	int iLoop = 0;
+
+	for (pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
+	{
+		UnitTypes eUnitType = pLoopCity->getProductionUnit();
+
+		if (eUnitType == NO_UNIT)
+			continue;
+
+		CvUnitEntry* pkUnitInfo = GC.getUnitInfo(eUnitType);
+
+		if (pkUnitInfo == NULL)
+			continue;
+
+		if (pkUnitInfo->GetDomainType() == eDomain && (!bMilitaryOnly || pkUnitInfo->GetCombat() > 0))
+			iNumUnits++;
+	}
+
+	return iNumUnits;
+}
+
 //	-----------------------------------------------------------------------------------------------
 void CvPlayer::UpdateDangerPlots()
 {
@@ -10424,7 +10450,7 @@ void CvPlayer::doTurnPostDiplomacy()
 			if (pNotifications)
 			{
 				Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_INSTANT_YIELD_EMPIRE");
-				pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), strInstantYield.toUTF8(), strSummary.toUTF8(), -1, -1, GetID());
+				pNotifications->Add((NotificationTypes)FStringHash("NOTIFICATION_INSTANT_YIELD"), strInstantYield.toUTF8(), strSummary.toUTF8(), -1, -1, GetID());
 			}
 			setInstantYieldText(eInstantYield, "");
 		}
@@ -10436,7 +10462,7 @@ void CvPlayer::doTurnPostDiplomacy()
 			if (pNotifications)
 			{
 				Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_GREAT_PERSON_PROGRESS_EMPIRE");
-				pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), strInstantGreatPersonProgress.toUTF8(), strSummary.toUTF8(), -1, -1, GetID());
+				pNotifications->Add((NotificationTypes)FStringHash("NOTIFICATION_INSTANT_YIELD"), strInstantGreatPersonProgress.toUTF8(), strSummary.toUTF8(), -1, -1, GetID());
 			}
 			setInstantGreatPersonProgressText(eInstantYield, "");
 		}
@@ -22690,10 +22716,10 @@ void CvPlayer::UpdateGoldPerTurnFromAnnexedMinors()
 
 		EraTypes eCurrentEra = GET_TEAM(getTeam()).GetCurrentEra();
 
-		EraTypes eIndustrial = (EraTypes)GC.getInfoTypeForString("ERA_INDUSTRIAL", true);
-		EraTypes eRenaissance = (EraTypes)GC.getInfoTypeForString("ERA_RENAISSANCE", true);
-		EraTypes eMedieval = (EraTypes)GC.getInfoTypeForString("ERA_MEDIEVAL", true);
-		EraTypes eClassical = (EraTypes)GC.getInfoTypeForString("ERA_CLASSICAL", true);
+		static EraTypes eIndustrial = (EraTypes)GC.getInfoTypeForString("ERA_INDUSTRIAL", true);
+		static EraTypes eRenaissance = (EraTypes)GC.getInfoTypeForString("ERA_RENAISSANCE", true);
+		static EraTypes eMedieval = (EraTypes)GC.getInfoTypeForString("ERA_MEDIEVAL", true);
+		static EraTypes eClassical = (EraTypes)GC.getInfoTypeForString("ERA_CLASSICAL", true);
 
 		// Industrial era or later
 		if (eCurrentEra >= eIndustrial)
@@ -22777,10 +22803,10 @@ void CvPlayer::UpdateSciencePerTurnFromAnnexedMinors()
 		int iBonus = 0;
 
 		EraTypes eCurrentEra = GET_TEAM(getTeam()).GetCurrentEra();
-		EraTypes eIndustrial = (EraTypes)GC.getInfoTypeForString("ERA_INDUSTRIAL", true);
-		EraTypes eRenaissance = (EraTypes)GC.getInfoTypeForString("ERA_RENAISSANCE", true);
-		EraTypes eMedieval = (EraTypes)GC.getInfoTypeForString("ERA_MEDIEVAL", true);
-		EraTypes eClassical = (EraTypes)GC.getInfoTypeForString("ERA_CLASSICAL", true);
+		static EraTypes eIndustrial = (EraTypes)GC.getInfoTypeForString("ERA_INDUSTRIAL", true);
+		static EraTypes eRenaissance = (EraTypes)GC.getInfoTypeForString("ERA_RENAISSANCE", true);
+		static EraTypes eMedieval = (EraTypes)GC.getInfoTypeForString("ERA_MEDIEVAL", true);
+		static EraTypes eClassical = (EraTypes)GC.getInfoTypeForString("ERA_CLASSICAL", true);
 
 		// Industrial era or later
 		if (eCurrentEra >= eIndustrial)
@@ -22825,10 +22851,10 @@ void CvPlayer::UpdateFaithPerTurnFromAnnexedMinors()
 		int iBonus = 0;
 
 		EraTypes eCurrentEra = GET_TEAM(getTeam()).GetCurrentEra();
-		EraTypes eIndustrial = (EraTypes)GC.getInfoTypeForString("ERA_INDUSTRIAL", true);
-		EraTypes eRenaissance = (EraTypes)GC.getInfoTypeForString("ERA_RENAISSANCE", true);
-		EraTypes eMedieval = (EraTypes)GC.getInfoTypeForString("ERA_MEDIEVAL", true);
-		EraTypes eClassical = (EraTypes)GC.getInfoTypeForString("ERA_CLASSICAL", true);
+		static EraTypes eIndustrial = (EraTypes)GC.getInfoTypeForString("ERA_INDUSTRIAL", true);
+		static EraTypes eRenaissance = (EraTypes)GC.getInfoTypeForString("ERA_RENAISSANCE", true);
+		static EraTypes eMedieval = (EraTypes)GC.getInfoTypeForString("ERA_MEDIEVAL", true);
+		static EraTypes eClassical = (EraTypes)GC.getInfoTypeForString("ERA_CLASSICAL", true);
 
 		// Industrial era or later
 		if (eCurrentEra >= eIndustrial)
@@ -22872,9 +22898,9 @@ void CvPlayer::UpdateHappinessFromAnnexedMinors()
 		int iNumCityStates = m_aiNumAnnexedCityStates[MINOR_CIV_TRAIT_MERCANTILE];
 		int iBonus = 0;
 
-		EraTypes eCurrentEra = GET_TEAM(getTeam()).GetCurrentEra();
-		EraTypes eIndustrial = (EraTypes)GC.getInfoTypeForString("ERA_INDUSTRIAL", true);
-		EraTypes eMedieval = (EraTypes)GC.getInfoTypeForString("ERA_MEDIEVAL", true);
+		static EraTypes eCurrentEra = GET_TEAM(getTeam()).GetCurrentEra();
+		static EraTypes eIndustrial = (EraTypes)GC.getInfoTypeForString("ERA_INDUSTRIAL", true);
+		static EraTypes eMedieval = (EraTypes)GC.getInfoTypeForString("ERA_MEDIEVAL", true);
 
 		// Industrial era or Later
 		if (eCurrentEra >= eIndustrial)
@@ -27440,11 +27466,11 @@ void CvPlayer::doInstantYield(InstantYieldType iType, bool bCityFaith, GreatPers
 			}
 			if(pCity == NULL)
 			{
-				pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), -1, -1 ,-1);
+				pNotifications->Add((NotificationTypes)FStringHash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), -1, -1 ,-1);
 			}
 			else
 			{
-				pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), pCity->getX(), pCity->getY(), pCity->GetID());
+				pNotifications->Add((NotificationTypes)FStringHash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), pCity->getX(), pCity->getY(), pCity->GetID());
 			}
 		}
 	}
@@ -27916,12 +27942,12 @@ void CvPlayer::doInstantGreatPersonProgress(InstantYieldType iType, bool bSuppre
 			{
 				if (pCapital != NULL)
 				{
-					pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), pCapital->getX(), pCapital->getY(), pCapital->GetID());
+					pNotifications->Add((NotificationTypes)FStringHash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), pCapital->getX(), pCapital->getY(), pCapital->GetID());
 				}
 			}
 			else
 			{
-				pNotifications->Add((NotificationTypes)FString::Hash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), pCity->getX(), pCity->getY(), pCity->GetID());
+				pNotifications->Add((NotificationTypes)FStringHash("NOTIFICATION_INSTANT_YIELD"), localizedText.toUTF8(), strSummary.toUTF8(), pCity->getX(), pCity->getY(), pCity->GetID());
 			}
 		}
 	}
@@ -32746,9 +32772,9 @@ void CvPlayer::setTurnActiveForPbem(bool bActive)
 
 void CvPlayer::setTurnActive(bool bNewValue, bool bDoTurn) // R: bDoTurn default is true (CvPlayer.h)
 {
-	//in single player mode create autosaves after the human turn for easier reproduction of observed AI problems
+	//in single player mode create autosaves after the first player's (human) turn for easier reproduction of observed AI problems
 	//also they will have the correct year in the name! hooray
-	if(!GC.getGame().isNetworkMultiPlayer() && m_eID==0 && !bNewValue)
+	if(!GC.getGame().isNetworkMultiPlayer() && m_eID==GC.getGame().getFirstAlivePlayer() && !bNewValue)
 		gDLL->AutoSave(false, true);
 
 	if(isTurnActive() != bNewValue)
@@ -34406,7 +34432,7 @@ void CvPlayer::DoXPopulationConscription(CvCity* pCity)
 	if (!pUnit)
 		return;
 
-	PromotionTypes ePromotionConscript = static_cast<PromotionTypes>(GC.getInfoTypeForString("PROMOTION_CONSCRIPT"));
+	static PromotionTypes ePromotionConscript = static_cast<PromotionTypes>(GC.getInfoTypeForString("PROMOTION_CONSCRIPT"));
 	changeNumUnitsSupplyFree(1);
 	pUnit->changeNoSupply(1);
 	pUnit->setHasPromotion(ePromotionConscript, true);
@@ -35263,20 +35289,20 @@ void CvPlayer::ApplyWarDamage(PlayerTypes ePlayer, int iAmount, bool bNoRatingCh
 					continue;
 
 				// No common foe bonus is awarded while at war.
-				if (pDiplo->IsAtWar(ePlayer))
+				if (pDiplo->IsAtWar(GetID()))
 					continue;
 
 				// Capitulated vassals don't care, but they do get a bonus in CvDiplomacyAI::ChangeVassalProtectValue() if the damage to the foe was done near them.
-				if (!GET_PLAYER(eLoopPlayer).isHuman() && pDiplo->IsVassal(ePlayer) && !pDiplo->IsVoluntaryVassalage(ePlayer))
+				if (!GET_PLAYER(eLoopPlayer).isHuman() && pDiplo->IsVassal(GetID()) && !pDiplo->IsVoluntaryVassalage(GetID()))
 					continue;
 
 				// Are they at war with me too? Then they're happy that this player damaged us!
-				if (IsAtWarWith(eLoopPlayer))
+				if (GET_PLAYER(ePlayer).IsAtWarWith(eLoopPlayer))
 				{
 					int iBonus = iAmount;
 
 					// How much they're happy about it depends on how strong we are compared to them.
-					switch (GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->GetMilitaryStrengthComparedToUs(GetID()))
+					switch (GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->GetMilitaryStrengthComparedToUs(ePlayer))
 					{
 					case STRENGTH_IMMENSE:
 						iBonus *= 300;
@@ -35301,7 +35327,7 @@ void CvPlayer::ApplyWarDamage(PlayerTypes ePlayer, int iAmount, bool bNoRatingCh
 						break;
 					}
 
-					GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->ChangeCommonFoeValue(ePlayer, iBonus/100);
+					GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->ChangeCommonFoeValue(GetID(), iBonus/100);
 				}
 			}
 		}
@@ -36469,8 +36495,8 @@ PlayerTypes CvPlayer::GetBestGiftTarget(DomainTypes eUnitDomain)
 					continue;
 				}
 
-				EconomicAIStrategyTypes eNeedHappiness = (EconomicAIStrategyTypes)GC.getInfoTypeForString("ECONOMICAISTRATEGY_NEED_HAPPINESS");
-				EconomicAIStrategyTypes eNeedHappinessCritical = (EconomicAIStrategyTypes)GC.getInfoTypeForString("ECONOMICAISTRATEGY_NEED_HAPPINESS_CRITICAL");
+				static EconomicAIStrategyTypes eNeedHappiness = (EconomicAIStrategyTypes)GC.getInfoTypeForString("ECONOMICAISTRATEGY_NEED_HAPPINESS");
+				static EconomicAIStrategyTypes eNeedHappinessCritical = (EconomicAIStrategyTypes)GC.getInfoTypeForString("ECONOMICAISTRATEGY_NEED_HAPPINESS_CRITICAL");
 				bool bNeedHappiness = (eNeedHappiness != NO_ECONOMICAISTRATEGY) ? GetEconomicAI()->IsUsingStrategy(eNeedHappiness) : false;
 				bool bNeedHappinessCritical = (eNeedHappinessCritical != NO_ECONOMICAISTRATEGY) ? GetEconomicAI()->IsUsingStrategy(eNeedHappinessCritical) : false;
 
@@ -44396,11 +44422,6 @@ int CvPlayer::GetPlotDanger(const CvPlot& pPlot, bool bFixedDamageOnly)
 		m_pDangerPlots->UpdateDanger();
 
 	return m_pDangerPlots->GetDanger(pPlot, bFixedDamageOnly);
-}
-
-void CvPlayer::ResetDangerCache(const CvPlot & Plot, int iRange)
-{
-	m_pDangerPlots->ResetDangerCache(&Plot, iRange);
 }
 
 bool CvPlayer::IsVanishedUnit(const IDInfo& id) const

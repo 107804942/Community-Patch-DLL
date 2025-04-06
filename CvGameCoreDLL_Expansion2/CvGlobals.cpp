@@ -18,7 +18,6 @@
 #include "CvTeam.h"
 #include "CvInfos.h"
 #include "ICvDLLUtility.h"
-#include "CvPlayerAI.h"
 #include "CvGameTextMgr.h"
 #include "CvDiplomacyAI.h"
 #include "CvEconomicAI.h"
@@ -31,6 +30,7 @@
 #include "cvStopWatch.h"
 #include "CvReplayInfo.h"
 #include "CvTypes.h"
+#include "FCrc32.h"
 
 #include "CvDllDatabaseUtility.h"
 #include "CvDllScriptSystemUtility.h"
@@ -62,6 +62,18 @@ void deleteInfoArray(std::vector<T*>& array)
 	}
 
 	array.clear();
+}
+
+// Calculates a hash value for the string
+uint FStringHash(LPCWSTR pszStr)
+{
+	int len = (pszStr ? (int)wcslen(pszStr) : 0);
+	return (g_CRC32.Calc((void*)pszStr, len * sizeof(wchar)));
+}
+uint FStringHash(LPCSTR pszStr)
+{
+	int len = (pszStr ? (int)strlen(pszStr) : 0);
+	return (g_CRC32.Calc((void*)pszStr, len * sizeof(char)));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -825,10 +837,10 @@ CvGlobals::CvGlobals() :
 	GD_INT_INIT(OPINION_WEIGHT_VICTORY_WEAK, 20),
 	GD_INT_INIT(OPINION_WEIGHT_VICTORY_NONE, 0),
 	GD_INT_INIT(OPINION_WEIGHT_VICTORY_PER_ERA, 4),
+	GD_INT_INIT(OPINION_WEIGHT_VICTORY_NONE_PER_ERA, 0),
 	GD_INT_INIT(OPINION_WEIGHT_VICTORY_BLOCK_FIERCE, 40),
 	GD_INT_INIT(OPINION_WEIGHT_VICTORY_BLOCK_STRONG, 30),
 	GD_INT_INIT(OPINION_WEIGHT_VICTORY_BLOCK_WEAK, 20),
-	GD_INT_INIT(OPINION_WEIGHT_VICTORY_BLOCK_NONE, 0),
 	GD_INT_INIT(OPINION_WEIGHT_VICTORY_BLOCK_PER_ERA, 4),
 	GD_INT_INIT(OPINION_WEIGHT_WONDER_FIERCE, 50),
 	GD_INT_INIT(OPINION_WEIGHT_WONDER_STRONG, 35),
@@ -2052,7 +2064,7 @@ CvGlobals::CvGlobals() :
 	GD_INT_INIT(BALANCE_CS_PLEDGE_TO_PROTECT_DEFENSE_BONUS_MAX, 25),
 	GD_INT_INIT(BALANCE_CS_ALLIANCE_DEFENSE_BONUS, 25),
 	GD_INT_INIT(UNIT_AUTO_EXTRA_AUTOMATIONS_DISABLED, 0),
-	GD_INT_INIT(BALANCE_GPP_RATE_IN_CAPITAL_PER_MARRIAGE, 0),
+	GD_INT_INIT(BALANCE_GPP_RATE_IN_CAPITAL_PER_MARRIAGE, 15),
 	GD_INT_INIT(BALANCE_MARRIAGE_RESTING_POINT_INCREASE, 75),
 	GD_INT_INIT(BALANCE_SPY_RESPAWN_TIMER, 5),
 	GD_INT_INIT(BALANCE_SPY_TO_PLAYER_RATIO, 20),
@@ -2366,8 +2378,13 @@ CvGlobals::CvGlobals() :
 	GD_INT_INIT(IDEOLOGY_START_ERA, 4),
 	GD_INT_INIT(IDEOLOGY_PREREQ_ERA, 4),
 	GD_INT_INIT(ANCIENT_ERA, -1),
+	GD_INT_INIT(CLASSICAL_ERA, -1),
 	GD_INT_INIT(MEDIEVAL_ERA, -1),
+	GD_INT_INIT(RENAISSANCE_ERA, -1),
 	GD_INT_INIT(INDUSTRIAL_ERA, -1),
+	GD_INT_INIT(MODERN_ERA, -1),
+	GD_INT_INIT(ATOMIC_ERA, -1),
+	GD_INT_INIT(INFORMATION_ERA, -1),
 	GD_INT_INIT(TOURISM_START_TECH, 0),
 	GD_INT_INIT(TOURISM_START_ERA, 0),
 	GD_INT_INIT(JUGGERNAUT_PROMOTION, -1),
@@ -4044,7 +4061,7 @@ static void HashGameDataCombine(CvGlobals::GameDataHash& seed, std::size_t& word
 		if (*it == 0)
 			infoHash = fnv_offset_basis;
 		else
-			infoHash = FString::Hash((*it)->GetType());
+			infoHash = FStringHash((*it)->GetType());
 		seed[word] ^= (infoHash ^ fnv_offset_basis) * fnv_prime;
 		if (++word >= 4)
 			word = 0;
@@ -5748,10 +5765,10 @@ void CvGlobals::cacheGlobals()
 	GD_INT_CACHE(OPINION_WEIGHT_VICTORY_WEAK);
 	GD_INT_CACHE(OPINION_WEIGHT_VICTORY_NONE);
 	GD_INT_CACHE(OPINION_WEIGHT_VICTORY_PER_ERA);
+	GD_INT_CACHE(OPINION_WEIGHT_VICTORY_NONE_PER_ERA);
 	GD_INT_CACHE(OPINION_WEIGHT_VICTORY_BLOCK_FIERCE);
 	GD_INT_CACHE(OPINION_WEIGHT_VICTORY_BLOCK_STRONG);
 	GD_INT_CACHE(OPINION_WEIGHT_VICTORY_BLOCK_WEAK);
-	GD_INT_CACHE(OPINION_WEIGHT_VICTORY_BLOCK_NONE);
 	GD_INT_CACHE(OPINION_WEIGHT_VICTORY_BLOCK_PER_ERA);
 	GD_INT_CACHE(OPINION_WEIGHT_WONDER_FIERCE);
 	GD_INT_CACHE(OPINION_WEIGHT_WONDER_STRONG);
@@ -7289,8 +7306,13 @@ void CvGlobals::cacheGlobals()
 	GD_INT_CACHE(IDEOLOGY_START_ERA);
 	GD_INT_CACHE(IDEOLOGY_PREREQ_ERA);
 	GD_INT_CACHE(ANCIENT_ERA);
+	GD_INT_CACHE(CLASSICAL_ERA);
 	GD_INT_CACHE(MEDIEVAL_ERA);
+	GD_INT_CACHE(RENAISSANCE_ERA);
 	GD_INT_CACHE(INDUSTRIAL_ERA);
+	GD_INT_CACHE(MODERN_ERA);
+	GD_INT_CACHE(ATOMIC_ERA);
+	GD_INT_CACHE(INFORMATION_ERA);
 	GD_INT_CACHE(TOURISM_START_TECH);
 	GD_INT_CACHE(TOURISM_START_ERA);
 	GD_INT_CACHE(JUGGERNAUT_PROMOTION);
@@ -7492,7 +7514,7 @@ int CvGlobals::getInfoTypeForString(const char* szType, bool hideAssert) const
 void CvGlobals::setInfoTypeFromString(const char* szType, int idx)
 {
 	ASSERT_DEBUG(szType, "null info type string");
-	uint uiHash = FString::Hash(szType);
+	uint uiHash = FStringHash(szType);
 #ifdef _DEBUG
 	InfosMap::const_iterator it = m_infosMap.find(szType);
 	int iExisting = (it!=m_infosMap.end()) ? it->second : -1;

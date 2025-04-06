@@ -793,13 +793,13 @@ void CvGameReligions::DoPlayerTurn(CvPlayer& kPlayer)
 /// Time to create a pantheon?
 CvGameReligions::FOUNDING_RESULT CvGameReligions::CanCreatePantheon(PlayerTypes ePlayer, bool bCheckFaithTotal)
 {
-	if(ePlayer == NO_PLAYER)
+	if (ePlayer == NO_PLAYER)
 		return FOUNDING_INVALID_PLAYER;
 
 	CvPlayer& kPlayer = GET_PLAYER(ePlayer);
 	const int iFaith = kPlayer.GetFaith();
 
-	if(kPlayer.isMinorCiv())
+	if (kPlayer.isMinorCiv() || kPlayer.getCapitalCity() == NULL)
 	{
 		return FOUNDING_INVALID_PLAYER;
 	}
@@ -1346,7 +1346,7 @@ void CvGameReligions::FoundReligion(PlayerTypes ePlayer, ReligionTypes eReligion
 /// Can the supplied religion be created?
 CvGameReligions::FOUNDING_RESULT CvGameReligions::CanFoundReligion(PlayerTypes ePlayer, ReligionTypes eReligion, const char* szCustomName, BeliefTypes eBelief1, BeliefTypes eBelief2, BeliefTypes eBelief3, BeliefTypes eBelief4, CvCity* pkHolyCity)
 {
-	if (ePlayer == NO_PLAYER)
+	if (ePlayer == NO_PLAYER || GET_PLAYER(ePlayer).getCapitalCity() == NULL)
 		return FOUNDING_INVALID_PLAYER;
 
 	if (GET_PLAYER(ePlayer).GetReligions()->OwnsReligion())
@@ -1835,19 +1835,32 @@ const CvReligion* CvGameReligions::GetReligion(ReligionTypes eReligion, PlayerTy
 	if(eReligion == NO_RELIGION)
 		return NULL;
 
-	ReligionList::const_iterator it;
-	for(it = m_CurrentReligions.begin(); it != m_CurrentReligions.end(); it++)
+	//caching for performance (but only for real religions, not pantheons)
+	size_t pos = (size_t)eReligion;
+	if (m_religionIndex.size() > pos && m_religionIndex[pos] != -1)
+		return &m_CurrentReligions[m_religionIndex[pos]];
+
+	int iIndex = 0;
+	for(ReligionList::const_iterator it = m_CurrentReligions.begin(); 
+		it != m_CurrentReligions.end(); 
+		it++, iIndex++)
 	{
 		// If talking about a pantheon, make sure to match the player
 		if(it->m_eReligion == eReligion && it->m_eReligion == RELIGION_PANTHEON)
 		{
 			if(it->m_eFounder == ePlayer)
 			{
+				//do not cache pantheons, too complex
 				return &(*it);
 			}
 		}
 		else if(it->m_eReligion == eReligion)
 		{
+			//cache update
+			if (m_religionIndex.size() <= pos)
+				m_religionIndex.resize(pos + 1, -1);
+			m_religionIndex[pos] = iIndex;
+
 			return &(*it);
 		}
 	}
@@ -7030,7 +7043,7 @@ bool CvReligionAI::DoFaithPurchases()
 	int iDesireToSpread = (eReligionWeFounded != NO_RELIGION) ? GetSpreadScore() : 0;
 
 	//exceptions from the rule
-	UnitClassTypes eUnitClassMissionary = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_MISSIONARY");
+	static UnitClassTypes eUnitClassMissionary = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_MISSIONARY");
 	int iMaxMissionaries = /*2 in CP, 3 in VP*/ GD_INT_GET(RELIGION_MAX_MISSIONARIES);
 	if(m_pPlayer->GetPlayerTraits()->NoTrain(eUnitClassMissionary)) //india
 	{
@@ -7495,9 +7508,9 @@ CvWeightedVector<int> CvReligionAI::CalculatePlotWeightsForBeliefSelection(bool 
 	{
 		iExplorationRange = 9; // default
 		// which early game policy have we adopted?
-		PolicyBranchTypes eTradition = (PolicyBranchTypes)GC.getInfoTypeForString("POLICY_BRANCH_TRADITION", true);
-		PolicyBranchTypes eProgress = (PolicyBranchTypes)GC.getInfoTypeForString("POLICY_BRANCH_LIBERTY", true);
-		PolicyBranchTypes eAuthority = (PolicyBranchTypes)GC.getInfoTypeForString("POLICY_BRANCH_HONOR", true);
+		static PolicyBranchTypes eTradition = (PolicyBranchTypes)GC.getInfoTypeForString("POLICY_BRANCH_TRADITION", true);
+		static PolicyBranchTypes eProgress = (PolicyBranchTypes)GC.getInfoTypeForString("POLICY_BRANCH_LIBERTY", true);
+		static PolicyBranchTypes eAuthority = (PolicyBranchTypes)GC.getInfoTypeForString("POLICY_BRANCH_HONOR", true);
 		CvPlayerPolicies* pPlayerPolicies = m_pPlayer->GetPlayerPolicies();
 		if (pPlayerPolicies->IsPolicyBranchUnlocked(eTradition))
 			iExplorationRange -= 3;

@@ -47,6 +47,7 @@ int giKnownCostWeight = 1;
 int giHeuristicCostWeight = 1;
 int giLastStartIndex = 0;
 int giLastDestIndex = 0;
+int giLastStartSlice = 0;
 
 unsigned int saiRuntimeHistogram[100] = {0};
 
@@ -415,29 +416,28 @@ bool CvAStar::FindPathWithCurrentConfiguration(int iXstart, int iYstart, int iXd
 	saiRuntimeHistogram[iBin]++;
 
 	CvUnit* pUnit = m_sData.iUnitID > 0 ? GET_PLAYER(m_sData.ePlayer).getUnit(m_sData.iUnitID) : NULL;
+
 #if defined(VPDEBUG)
-	if (timer.GetDeltaInSeconds() > 0.2 && m_sData.ePath == PT_UNIT_MOVEMENT)
+	int iStartIndex = GC.getMap().plotNum(m_iXstart, m_iYstart);
+	if ( timer.GetDeltaInSeconds()>0.1 && m_sData.ePath==PT_UNIT_MOVEMENT && HasValidDestination() )
 	{
-		int iStartIndex = GC.getMap().plotNum(m_iXstart, m_iYstart);
 		int iDestIndex = GC.getMap().plotNum(m_iXdest, m_iYdest);
-		if (iStartIndex == giLastStartIndex && iDestIndex == giLastDestIndex && iStartIndex > 0 && iDestIndex > 0)
+		if (iStartIndex == giLastStartIndex && iDestIndex == giLastDestIndex && iStartIndex > 0 && iDestIndex > 0 && giLastStartSlice==GC.getGame().getTurnSlice())
 		{
+			// Add debug breakpoint here for investigation during development
 			OutputDebugString("Repeated pathfinding start\n");
-			// Add debug break point here for investigation during development
-			ASSERT_DEBUG(false && "Repeated pathfinding detected - investigate call path");
+			ASSERT_DEBUG(false, "Repeated pathfinding detected - investigate call path");
 		}
 		giLastStartIndex = iStartIndex;
 		giLastDestIndex = iDestIndex;
-
-		int iNumPlots = GC.getMap().numPlots();
+		giLastStartSlice = GC.getGame().getTurnSlice();
 
 		//in some cases we have no destination plot, so exhaustion is not always a "fail"
-		CvString msg = CvString::format("Run %d: Path type %d %s (%s from %d,%d to %d,%d - flags %d), tested %d, processed %d nodes in %d rounds (%d%% of map) in %.2f ms\n",
-			m_iCurrentGenerationID, m_sData.ePath, bSuccess||!HasValidDestination() ? "found" : "not found", pUnit ? pUnit->getName().c_str() : "unknown",
+		CvString msg = CvString::format("Run %d: Path type %d %s (%s %d from %d,%d to %d,%d - flags %d), tested %d, processed %d nodes in %d rounds (%d%% of map) in %.2f ms\n",
+			m_iCurrentGenerationID, m_sData.ePath, bSuccess || !HasValidDestination() ? "found" : "not found", pUnit ? pUnit->getName().c_str() : "unknown", pUnit->GetID(),
 			m_iXstart, m_iYstart, m_iXdest, m_iYdest, m_sData.iFlags, m_iTestedNodes, m_iProcessedNodes, m_iRounds,
-			(100 * m_iProcessedNodes) / iNumPlots, timer.GetDeltaInSeconds() * 1000);
-		OutputDebugString( msg.c_str() );
-
+			(100 * m_iProcessedNodes) / GC.getMap().numPlots(), timer.GetDeltaInSeconds() * 1000);
+		OutputDebugString(msg.c_str());
 	}
 #endif
 
@@ -1029,14 +1029,6 @@ bool CvPathFinder::DestinationReached(int iToX, int iToY) const
 		if (iDistance > 2 || iDistance < 1)
 			return false;
 
-		if (HaveFlag(CvUnit::MOVEFLAG_APPROX_TARGET_SAME_OWNER))
-		{
-			CvPlot* pTargetPlot = GC.getMap().plotUnchecked(GetDestX(), GetDestY());
-			CvPlot* pThisPlot = GC.getMap().plotUnchecked(iToX, iToY);
-			if (pTargetPlot->getOwner() != pThisPlot->getOwner())
-				return false;
-		}
-
 		//need to make sure there are no mountains/ice plots in between
 		return CommonNeighborIsPassable(GetNode(iToX, iToY), GetNode(GetDestX(), GetDestY()));
 	}
@@ -1052,14 +1044,6 @@ bool CvPathFinder::DestinationReached(int iToX, int iToY) const
 		//the main check (do not allow the actual target plot! it's probably occupied by the enemy)
 		if (iDistance != 1)
 			return false;
-
-		if (HaveFlag(CvUnit::MOVEFLAG_APPROX_TARGET_SAME_OWNER))
-		{
-			CvPlot* pTargetPlot = GC.getMap().plotUnchecked(GetDestX(), GetDestY());
-			CvPlot* pThisPlot = GC.getMap().plotUnchecked(iToX, iToY);
-			if (pTargetPlot->getOwner() != pThisPlot->getOwner())
-				return false;
-		}
 
 		return true;
 	}
@@ -1540,15 +1524,17 @@ int PathValid(const CvAStarNode* parent, const CvAStarNode* node, const SPathFin
 				return FALSE;
 		}
 	}
+	else if (finder->HaveFlag(CvUnit::MOVEFLAG_VISIBLE_ONLY))
+		return FALSE;
 
 	//some checks about terrain etc. needs to be revealed, otherwise we leak information in the UI
 	if (kToNodeCacheData.bIsRevealedToTeam)
 	{
 		// if we can't enter the plot even temporarily, that's it. 
 		// if we can enter, there's another check in PathCost once we know whether we need to stay here
-		if(!kToNodeCacheData.bCanEnterTerrainIntermediate)
+		if (!kToNodeCacheData.bCanEnterTerrainIntermediate)
 			return FALSE;
-		if(!kToNodeCacheData.bCanEnterTerritoryIntermediate)
+		if (!kToNodeCacheData.bCanEnterTerritoryIntermediate)
 			return FALSE;
 
 		//do not use DestinationReached() here, approximate destination won't do (also we don't use MOVEFLAG_DESTINATION in pathfinder)
@@ -1558,40 +1544,40 @@ int PathValid(const CvAStarNode* parent, const CvAStarNode* node, const SPathFin
 		if (kToNodeCacheData.bIsEnemyCity && !(bIsDestination && pUnit->IsCanAttackWithMove()))
 			return FALSE;
 
-		if(pCacheData->CanEverEmbark())
+		if (pCacheData->CanEverEmbark())
 		{
 			//don't embark if forbidden - but move along if already on water plot
 			if (finder->HaveFlag(CvUnit::MOVEFLAG_NO_EMBARK) && kToNodeCacheData.bIsNonNativeDomain && !kFromNodeCacheData.bIsNonNativeDomain)
 				return FALSE;
 
 			//embark required and possible?
-			if(!kFromNodeCacheData.bIsNonNativeDomain && kToNodeCacheData.bIsNonNativeDomain && kToNodeCacheData.bIsRevealedToTeam)
+			if (!kFromNodeCacheData.bIsNonNativeDomain && kToNodeCacheData.bIsNonNativeDomain && kToNodeCacheData.bIsRevealedToTeam)
 			{
 				if (!pUnit->canEmbarkOnto(*pFromPlot, *pToPlot, true, kToNodeCacheData.iMoveFlags))
 					return FALSE;
 
 				//in addition to the danger check (which increases path cost), a hard exclusion if the enemy navy dominates the area
-				if ( pCacheData->isAIControl() && pUnit->IsCombatUnit() && pToPlot->GetNumEnemyUnitsAdjacent(eUnitTeam,DOMAIN_SEA)>0)
+				if (pCacheData->isAIControl() && pUnit->IsCombatUnit() && pToPlot->GetNumEnemyUnitsAdjacent(eUnitTeam, DOMAIN_SEA) > 0)
 					return FALSE;
 			}
 
 			//disembark required and possible?
-			if(kFromNodeCacheData.bIsNonNativeDomain && !kToNodeCacheData.bIsNonNativeDomain && kToNodeCacheData.bIsRevealedToTeam)
-			{ 
+			if (kFromNodeCacheData.bIsNonNativeDomain && !kToNodeCacheData.bIsNonNativeDomain && kToNodeCacheData.bIsRevealedToTeam)
+			{
 				if (!pUnit->canDisembarkOnto(*pFromPlot, *pToPlot, true, kToNodeCacheData.iMoveFlags))
 					return FALSE;
 			}
 		}
 
 		//normally we would be able to enter enemy territory if at war
-		if( kToNodeCacheData.iMoveFlags & CvUnit::MOVEFLAG_NO_ENEMY_TERRITORY )
+		if (kToNodeCacheData.iMoveFlags & CvUnit::MOVEFLAG_NO_ENEMY_TERRITORY)
 		{
-			if(pToPlot->isOwned() && atWar(pToPlot->getTeam(), eUnitTeam))
+			if (pToPlot->isOwned() && atWar(pToPlot->getTeam(), eUnitTeam))
 				return FALSE;
 		}
 
 		//ocean allowed?
-		if ( (kToNodeCacheData.iMoveFlags & CvUnit::MOVEFLAG_NO_OCEAN) && pToPlot->isDeepWater() )
+		if ((kToNodeCacheData.iMoveFlags & CvUnit::MOVEFLAG_NO_OCEAN) && pToPlot->isDeepWater())
 		{
 			return FALSE;
 		}

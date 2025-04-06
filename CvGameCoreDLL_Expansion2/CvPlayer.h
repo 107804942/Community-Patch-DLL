@@ -197,6 +197,7 @@ public:
 	int GetNumUnitsWithUnitCombat(UnitCombatTypes eUnitCombat);
 	int GetNumUnitsOfType(UnitTypes eUnit, bool bIncludeBeingTrained = false);
 	int GetNumUnitPromotions(PromotionTypes ePromotion);
+	int GetNumUnitsInProduction(DomainTypes eDomain, bool bMilitaryOnly);
 	void UpdateDangerPlots();
 	void SetDangerPlotsDirty();
 
@@ -2506,7 +2507,6 @@ public:
 	int GetPlotDanger(const CvPlot& Plot, const CvUnit* pUnit, const UnitIdContainer& unitsToIgnore, int iExtraDamage, AirActionType iAirAction = AIR_ACTION_ATTACK);
 	int GetPlotDanger(const CvCity* pCity, const CvUnit* pPretendGarrison = NULL);
 	int GetPlotDanger(const CvPlot& Plot, bool bFixedDamageOnly);
-	void ResetDangerCache(const CvPlot& Plot, int iRange);
 	bool IsVanishedUnit(const IDInfo& id) const;
 	std::vector<CvUnit*> GetPossibleAttackers(const CvPlot& Plot, TeamTypes eTeamForVisibilityCheck);
 

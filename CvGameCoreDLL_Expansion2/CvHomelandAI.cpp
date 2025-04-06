@@ -686,6 +686,14 @@ void CvHomelandAI::PlotMovesToSafety()
 		if (!pUnit)
 			continue;
 
+		//special: move siege units away from border to make space for sentries
+		//also to protect them against surprise attacks
+		if (pUnit->AI_getUnitAIType() == UNITAI_CITY_BOMBARD)
+		{
+			if (ExecuteMoveUnitAwayFromBorder(pUnit))
+				continue;
+		}
+
 		//allow some danger from fog etc
 		int iDangerLevel = pUnit->GetDanger();
 		if (iDangerLevel < pUnit->GetCurrHitPoints() / 5)
@@ -702,12 +710,9 @@ void CvHomelandAI::PlotMovesToSafety()
 		}
 		else
 		{
-			//military units flee only in mortal danger (if we even get here)
+			//military units flee only in mortal danger - if we even get here
+			//normally combat units are handled by tactical ai if there's enemies around
 			if (iDangerLevel < pUnit->GetCurrHitPoints())
-				continue;
-
-			//land barbarians don't flee
-			if (pUnit->isBarbarian() && pUnit->getDomainType() == DOMAIN_LAND)
 				continue;
 		}
 
@@ -955,6 +960,10 @@ void CvHomelandAI::PlotWorkerMoves()
 
 	for (list<int>::iterator it = m_greatPeopleForImprovements.begin(); it != m_greatPeopleForImprovements.end(); ++it)
 	{
+		CvUnit* pUnit = m_pPlayer->getUnit(*it);
+		if (!pUnit)
+			continue;
+
 		CvHomelandUnit unit;
 		unit.SetID(*it);
 		m_CurrentMoveUnits.push_back(unit);
@@ -2294,10 +2303,15 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 
 		if (pPlot)
 		{
+			// Pillage both before and after, if it's a good idea
+			if (pUnit->shouldPillage(pUnit->plot()))
+				pUnit->PushMission(CvTypes::getMISSION_PILLAGE());
+
 			ExecuteMoveToTarget(pUnit, pPlot, 0, true);
+
 			if (pUnit->canMove() && pUnit->shouldPillage(pUnit->plot()))
 				pUnit->PushMission(CvTypes::getMISSION_PILLAGE());
-			
+
 			return true; //done for this turn
 		}
 	}
@@ -2536,61 +2550,58 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 		if (!pBestPlot)
 			pBestPlot = GetBestExploreTarget(pUnit, 5, 23);
 
-		//verify that we don't move into danger ...
-		if (pBestPlot)
+		if (pBestPlot && pBestPlot != pUnit->plot())
 		{
 			//this  must be the same moveflags as above so we can reuse the path next turn
 			if (pUnit->GeneratePath(pBestPlot, iMoveFlags))
 			{
+				//verify that we don't move into danger ...
 				CvPlot* pEndTurnPlot = pUnit->GetPathEndFirstTurnPlot();
 				if (pUnit->GetDanger(pEndTurnPlot) > pUnit->GetCurrHitPoints() / 2)
 				{
 					//move to safety instead
 					pBestPlot = TacticalAIHelpers::FindSafestPlotInReach(pUnit, true);
 				}
+
+				if (GC.getLogging() && GC.getAILogging())
+				{
+					CvString strLogString;
+					CvString strTemp = pUnit->getUnitInfo().GetDescription();
+					strLogString.Format("%s Explored to distant target, To X: %d, Y: %d, From X: %d, Y: %d",
+						strTemp.GetCString(), pBestPlot->getX(), pBestPlot->getY(), pUnit->getX(), pUnit->getY());
+					LogHomelandMessage(strLogString);
+				}
+
+				//again same flags
+				pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pBestPlot->getX(), pBestPlot->getY(), iMoveFlags, false, false, MISSIONAI_EXPLORE, pBestPlot);
+
+				//possibly movement was aborted because we ran into enemies, in that case flee ...
+				if (pUnit->canMove())
+					ExecuteMovesToSafestPlot(pUnit);
+
+				//done
+				UnitProcessed(pUnit->GetID());
+				return true;
 			}
-			else
-				pBestPlot = 0;
 		}
 	}
-
-	if(pBestPlot && pBestPlot != pUnit->plot())
+	
+	//no target
+	if (GC.getLogging() && GC.getAILogging())
 	{
-		if (GC.getLogging() && GC.getAILogging())
-		{
-			CvString strLogString;
-			CvString strTemp = pUnit->getUnitInfo().GetDescription();
-			strLogString.Format("%s Explored to distant target, To X: %d, Y: %d, From X: %d, Y: %d",
-				strTemp.GetCString(), pBestPlot->getX(), pBestPlot->getY(), pUnit->getX(), pUnit->getY());
-			LogHomelandMessage(strLogString);
-		}
-
-		//again same flags
-		CvPlot* pOldPlot = pUnit->plot();
-		pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pBestPlot->getX(), pBestPlot->getY(), iMoveFlags, false, false, MISSIONAI_EXPLORE, pBestPlot);
-		bool bStuck = (pUnit->plot() == pOldPlot);
-
-		//continue if can still move
-		return bStuck || !pUnit->canMove();
+		CvString strLogString;
+		CvString strTemp = pUnit->getUnitInfo().GetDescription();
+		strLogString.Format("%s Explorer found no target, X: %d, Y: %d", strTemp.GetCString(), pUnit->getX(), pUnit->getY());
+		LogHomelandMessage(strLogString);
 	}
-	else //no target
-	{
-		if(GC.getLogging() && GC.getAILogging())
-		{
-			CvString strLogString;
-			CvString strTemp = pUnit->getUnitInfo().GetDescription();
-			strLogString.Format("%s Explorer found no target, X: %d, Y: %d", strTemp.GetCString(), pUnit->getX(), pUnit->getY());
-			LogHomelandMessage(strLogString);
-		}
 
-		if (pUnit->isHuman())
-			pUnit->SetAutomateType(NO_AUTOMATE);
+	if (pUnit->isHuman())
+		pUnit->SetAutomateType(NO_AUTOMATE);
 
-		//in case it was non-native scout, reset the unit AI
-		pUnit->AI_setUnitAIType(pUnit->getUnitInfo().GetDefaultUnitAIType());
-		ExecuteMovesToSafestPlot(pUnit);
-		return true;
-	}
+	//in case it was non-native scout, reset the unit AI
+	pUnit->AI_setUnitAIType(pUnit->getUnitInfo().GetDefaultUnitAIType());
+	ExecuteMovesToSafestPlot(pUnit);
+	return true; //nothing left to do
 }
 
 // Higher weight means better directive
@@ -2630,18 +2641,15 @@ static int GetDirectiveWeight(BuilderDirective eDirective, int iBuildTurns, int 
 static bool IsBestDirectiveForPlot(BuilderDirective eDirective, CvPlayer* pPlayer, vector<BuilderDirective> aDirectives)
 {
 	CvPlot* pPlot = GC.getMap().plot(eDirective.m_sX, eDirective.m_sY);
-
 	if (eDirective.m_eBuild == NO_BUILD)
 		return false;
 
 	CvBuildInfo* pkBuildInfo = GC.getBuildInfo(eDirective.m_eBuild);
 
 	int iDirectiveScore = eDirective.GetPotentialScore();
-
 	for (vector<BuilderDirective>::iterator it = aDirectives.begin(); it != aDirectives.end(); ++it)
 	{
 		BuilderDirective eOtherDirective = *it;
-
 		if (eDirective.m_eBuild == eOtherDirective.m_eBuild)
 			continue;
 
@@ -2649,12 +2657,10 @@ static bool IsBestDirectiveForPlot(BuilderDirective eDirective, CvPlayer* pPlaye
 			continue;
 
 		CvPlot* pOtherPlot = GC.getMap().plot(eOtherDirective.m_sX, eOtherDirective.m_sY);
-
 		if (pOtherPlot != pPlot)
 			continue;
 
 		CvBuildInfo* pkOtherBuildInfo = eOtherDirective.m_eBuild != NO_BUILD ? GC.getBuildInfo(eOtherDirective.m_eBuild) : NULL;
-
 		RouteTypes eRoute = pkBuildInfo ? (RouteTypes)pkBuildInfo->getRoute() : NO_ROUTE;
 		RouteTypes eOtherRoute = pkOtherBuildInfo ? (RouteTypes)pkOtherBuildInfo->getRoute() : NO_ROUTE;
 
@@ -2662,87 +2668,60 @@ static bool IsBestDirectiveForPlot(BuilderDirective eDirective, CvPlayer* pPlaye
 			continue;
 
 		int iOtherDirectiveScore = eOtherDirective.GetPotentialScore();
-
-		if (iOtherDirectiveScore < iDirectiveScore)
-			continue;
-
-		if (iOtherDirectiveScore == iDirectiveScore)
-			if (eOtherDirective.m_eBuild > eDirective.m_eBuild)
+		if (iOtherDirectiveScore > iDirectiveScore)
+		{
+			if (eOtherDirective.m_eBuild != NO_BUILD && !pPlayer->canBuild(pPlot, eOtherDirective.m_eBuild, true))
 				continue;
 
-		if (eOtherDirective.m_eBuild != NO_BUILD && !pPlayer->canBuild(pPlot, eOtherDirective.m_eBuild, true))
-			continue;
-
-		return false;
+			return false;
+		}
 	}
 	return true;
 }
 
-int CvHomelandAI::GetBuilderNumTurnsAway(CvUnit* pUnit, BuilderDirective eDirective, int iMaxDistance)
+int CvHomelandAI::GetBuilderNumTurnsAway(CvUnit* pUnit, BuilderDirective eDirective, const std::map<CvUnit*, ReachablePlots>& allWorkersReachablePlots)
 {
-	if (iMaxDistance < 0)
-		return INT_MAX;
-
-	CvPlot* pStartPlot = pUnit->plot();
-	CvPlot* pTargetPlot = GC.getMap().plot(eDirective.m_sX, eDirective.m_sY);
-
-	if (pStartPlot == pTargetPlot)
-		return 0;
-
-	SPathFinderUserData data(pUnit, CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER, iMaxDistance);
-
-	if (pUnit->IsCombatUnit())
-		data.iMaxTurns = min(3, iMaxDistance);
-
-	SPath path = GC.GetPathFinder().GetPath(pStartPlot, pTargetPlot, data);
-
-	if (!path)
+	int iMoveTurns = INT_MAX;
+	CvPlot* pTarget = GC.getMap().plot(eDirective.m_sX, eDirective.m_sY);
+	if (pTarget == pUnit->plot())
+		iMoveTurns = 0;
+	else
 	{
-		CvBuildInfo* pkBuildInfo = GC.getBuildInfo(eDirective.m_eBuild);
+		std::map<CvUnit*, ReachablePlots>::const_iterator itPlots = allWorkersReachablePlots.find(pUnit);
+		if (itPlots == allWorkersReachablePlots.end())
+			return INT_MAX;
 
-		if (pkBuildInfo && pkBuildInfo->getTime() == 0 && (pkBuildInfo->isKill() || (pkBuildInfo->isKillOnlyCivilian() && pUnit->IsCivilianUnit())))
-		{
-			data.iMaxTurns = 0;
-			data.iFlags = CvUnit::MOVEFLAG_IGNORE_DANGER;
-			SPath path = GC.GetPathFinder().GetPath(pStartPlot, pTargetPlot, data);
+		ReachablePlots::const_iterator itPlot = itPlots->second.find(pTarget->GetPlotIndex());
+		if (itPlot == itPlots->second.end())
+			return INT_MAX;
 
-			if (GC.getLogging() && GC.getAILogging() && !!path)
-			{
-				CvString strLogString;
-				CvString strTemp = pkBuildInfo->GetDescription();
-				strLogString.Format(
-					"Ignoring danger to %s in (%d, %d)",
-					strTemp.GetCString(),
-					eDirective.m_sX,
-					eDirective.m_sY
-				);
-				LogHomelandMessage(strLogString);
-			}
-		}
+		iMoveTurns = itPlot->iPathLength;
 	}
 
-	if (!!path)
-		return path.iTotalTurns;
-	else
-		return INT_MAX;
+	return iMoveTurns;
 }
 
 // Rescale all directive weights depending on nearest usable worker
-vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> CvHomelandAI::GetWeightedDirectives(const vector<BuilderDirective> aDirectives, const set<BuilderDirective> ignoredDirectives, const list<int> allWorkers, const set<int> ignoredWorkers, map<pair<int, int>, int>&plotDistanceCache)
+vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> CvHomelandAI::GetWeightedDirectives(
+	const vector<BuilderDirective> aDirectives, 
+	const set<BuilderDirective> ignoredDirectives, 
+	const list<int> allWorkers, 
+	const set<int> ignoredWorkers, 
+	const std::map<CvUnit*, ReachablePlots>& allWorkersReachablePlots)
 {
 	vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> aWeightedDirectives;
+	aWeightedDirectives.reserve(aDirectives.size());
 
 	int iBestWeightedScore = INT_MIN;
 
+	//this is an ugly nested loop with quadratic complexity ...
 	for (vector<BuilderDirective>::const_iterator it = aDirectives.begin(); it != aDirectives.end(); ++it)
 	{
 		BuilderDirective eDirective = *it;
-
 		if (ignoredDirectives.find(eDirective) != ignoredDirectives.end())
 			continue;
 
 		const CvPlot* pDirectivePlot = GC.getMap().plot(eDirective.m_sX, eDirective.m_sY);
-
 		if (m_workedPlots.find(pDirectivePlot->GetPlotIndex()) != m_workedPlots.end())
 			continue;
 
@@ -2765,15 +2744,15 @@ vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> CvHomelandAI::GetWeight
 			continue;
 		}
 
-		list<OptionWithScore<CvUnit*>> sortedWorkers;
+		int iBestBuilderWeightedScore = INT_MIN;
+		CvUnit* pBestBuilder = NULL;
+		CvBuildInfo* pkBuildInfo = GC.getBuildInfo(eDirective.m_eBuild);
 
-		// First sort by plot distance between worker and directive, it's a good heuristic and reduces the number of needed calls to
-		// the pathfinder (and the max distance sent to the pathfinding algorithm when it is needed).
+		// Loop over all workers to find the one closest to the directive plot (including build time)
 		for (std::list<int>::const_iterator builderIterator = allWorkers.begin(); builderIterator != allWorkers.end(); ++builderIterator)
 		{
 			int iCurrentUnitId = *builderIterator;
 			CvUnit* pUnit = m_pPlayer->getUnit(iCurrentUnitId);
-
 			if (!pUnit)
 				continue;
 
@@ -2786,31 +2765,11 @@ vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> CvHomelandAI::GetWeight
 			if (pUnit->GetDanger(pDirectivePlot) > pUnit->GetCurrHitPoints())
 			{
 				CvUnit* pBestDefender = pDirectivePlot->getBestDefender(m_pPlayer->GetID());
-
-				if (!pBestDefender)
-					continue;
-
-				if (pBestDefender->GetDanger(pDirectivePlot) > pBestDefender->GetCurrHitPoints() / 2)
+				if (!pBestDefender || pBestDefender->GetDanger(pDirectivePlot) > pBestDefender->GetCurrHitPoints() / 2)
 					continue;
 			}
 
-			int iPlotDistance = plotDistance(pDirectivePlot->getX(), pDirectivePlot->getY(), pUnit->getX(), pUnit->getY());
-
-			sortedWorkers.push_back(OptionWithScore<CvUnit*>(pUnit, -iPlotDistance));
-		}
-		std::stable_sort(sortedWorkers.begin(), sortedWorkers.end());
-
-		int iBestBuilderWeightedScore = INT_MIN;
-		int iBestBuilderTotalTurns = INT_MAX;
-		CvUnit* pBestBuilder = NULL;
-		
-		CvBuildInfo* pkBuildInfo = GC.getBuildInfo(eDirective.m_eBuild);
-
-		// Loop over the sorted workers to find the one closest to the directive plot (including build time)
-		for (std::list<OptionWithScore<CvUnit*>>::iterator builderIterator = sortedWorkers.begin(); builderIterator != sortedWorkers.end() && iBestBuilderTotalTurns > 0; ++builderIterator)
-		{
-			CvUnit* pUnit = (*builderIterator).option;
-
+			//e.g., prisoners of war need longer to build ...
 			int iBuilderImprovementTime = pkBuildInfo->getRoute() == NO_ROUTE
 				? m_pPlayer->GetBuilderTaskingAI()->GetTurnsToBuild(pUnit, eDirective.m_eBuild, pDirectivePlot)
 				: m_pPlayer->GetBuilderTaskingAI()->GetTotalRouteBuildTime(pUnit, pDirectivePlot);
@@ -2821,56 +2780,16 @@ vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> CvHomelandAI::GetWeight
 			if (GetDirectiveWeight(eDirective, iBuilderImprovementTime, 0) <= max(iBestBuilderWeightedScore, iBestWeightedScore))
 				continue;
 
-			CvPlot* pStartPlot = pUnit->plot();
-
-			int iPlotDistance = plotDistance(pDirectivePlot->getX(), pDirectivePlot->getY(), pUnit->getX(), pUnit->getY());
-
-			pair<int, int> plotPair = make_pair<int, int>(pStartPlot->GetPlotIndex(), pDirectivePlot->GetPlotIndex());
-
-			int iCachedDistance = plotDistanceCache[plotPair];
-			int iApproximateDistance = (iPlotDistance * 2) / 3;
-
-			int iBuilderDistance;
-
-			if (iCachedDistance)
-				iBuilderDistance = iCachedDistance - 1;
-			else if (iPlotDistance <= 9)
-			{
-				iBuilderDistance = GetBuilderNumTurnsAway(pUnit, eDirective, iBestBuilderTotalTurns - iBuilderImprovementTime - 1);
-
-				if (iBuilderDistance == INT_MAX)
-					continue;
-
-				plotDistanceCache[plotPair] = iBuilderDistance + 1;
-			}
-			else if (pStartPlot->getLandmass() == pDirectivePlot->getLandmass() || pUnit->CanEverEmbark())
-				iBuilderDistance = iApproximateDistance;
-			else
+			int iBuilderMoveTime = GetBuilderNumTurnsAway(pUnit, eDirective, allWorkersReachablePlots);
+			if (iBuilderMoveTime == INT_MAX)
 				continue;
 
-			int iWeightedScore = GetDirectiveWeight(eDirective, iBuilderImprovementTime, iBuilderDistance);
-
-			// Use Unit ID as tie-breaker
-			if (iWeightedScore <= iBestBuilderWeightedScore)
-				continue;
-
-			// We need to actually calculate distance now, since we may not be able to reach the target
-			if (!iCachedDistance && iPlotDistance > 9)
+			int iWeightedScore = GetDirectiveWeight(eDirective, iBuilderImprovementTime, iBuilderMoveTime);
+			if (iWeightedScore > iBestBuilderWeightedScore)
 			{
-				iBuilderDistance = GetBuilderNumTurnsAway(pUnit, eDirective, iBestBuilderTotalTurns - iBuilderImprovementTime - 1);
-
-				if (iBuilderDistance == INT_MAX)
-					continue;
-
-				plotDistanceCache[plotPair] = iBuilderDistance + 1;
-				iWeightedScore = GetDirectiveWeight(eDirective, iBuilderImprovementTime, iBuilderDistance);
-
-				if (iWeightedScore < iBestBuilderWeightedScore)
-					continue;
+				iBestBuilderWeightedScore = iWeightedScore;
+				pBestBuilder = pUnit;
 			}
-			iBestBuilderWeightedScore = iWeightedScore;
-			iBestBuilderTotalTurns = iBuilderImprovementTime + iBuilderDistance;
-			pBestBuilder = pUnit;
 		}
 
 		if (iBestBuilderWeightedScore > iBestWeightedScore)
@@ -2880,7 +2799,6 @@ vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> CvHomelandAI::GetWeight
 	}
 
 	std::stable_sort(aWeightedDirectives.begin(), aWeightedDirectives.end());
-
 	return aWeightedDirectives;
 }
 
@@ -2890,14 +2808,21 @@ void CvHomelandAI::ExecuteWorkerMoves()
 	list<int> allWorkers;
 	set<int> processedWorkers;
 
+	// For performance only do pathfinding once per worker
+	// Alternatively we could postpone this and use GetMultiplePaths() instead of GetPlotsInReach()
+	std::map<CvUnit*, ReachablePlots> allWorkersReachablePlots;
+	const int BUILDER_MAX_TURNS = 7;
+
 	// Automated and AI controlled workers
-	for(CHomelandUnitArray::iterator it = m_CurrentMoveUnits.begin(); it != m_CurrentMoveUnits.end(); ++it)
+	for (CHomelandUnitArray::iterator it = m_CurrentMoveUnits.begin(); it != m_CurrentMoveUnits.end(); ++it)
 	{
 		CvUnit* pUnit = m_pPlayer->getUnit(it->GetID());
 		if (!pUnit)
 			continue;
 
 		allWorkers.push_back(pUnit->GetID());
+		SPathFinderUserData data(pUnit, CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER | CvUnit::MOVEFLAG_VISIBLE_ONLY, BUILDER_MAX_TURNS);
+		allWorkersReachablePlots[pUnit] = GC.GetPathFinder().GetPlotsInReach(pUnit->plot(), data);
 	}
 
 	// Humans also have non-automated workers. Pretend they are automated as well to avoid going where they are.
@@ -2914,6 +2839,8 @@ void CvHomelandAI::ExecuteWorkerMoves()
 			if (!pLoopUnit->TurnProcessed() && bIsBuilder && find(allWorkers.begin(), allWorkers.end(), pLoopUnit->GetID()) == allWorkers.end())
 			{
 				allWorkers.push_back(pLoopUnit->GetID());
+				SPathFinderUserData data(pLoopUnit, CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER | CvUnit::MOVEFLAG_VISIBLE_ONLY, BUILDER_MAX_TURNS);
+				allWorkersReachablePlots[pLoopUnit] = GC.GetPathFinder().GetPlotsInReach(pLoopUnit->plot(), data);
 			}
 		}
 	}
@@ -2924,9 +2851,6 @@ void CvHomelandAI::ExecuteWorkerMoves()
 
 	// Keep track of some states to recalculate directive scores during processing
 	SBuilderState sState;
-
-	// Cache plot to plot distance calculations for the workers to avoid unnecessary pathfinding calls
-	map<pair<int, int>, int> plotDistanceCache;
 
 	// First check if any workers were already assigned directives this turn (this happens e.g. when a unit is set to automated during a player's turn)
 	for (std::list<int>::iterator builderIterator = allWorkers.begin(); builderIterator != allWorkers.end(); ++builderIterator)
@@ -2956,21 +2880,19 @@ void CvHomelandAI::ExecuteWorkerMoves()
 		}
 	}
 
-	vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> aDistanceWeightedDirectives = GetWeightedDirectives(topDirectives, ignoredDirectives, allWorkers, processedWorkers, plotDistanceCache);
+	// This is the important part
+	vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> aDistanceWeightedDirectives = 
+		GetWeightedDirectives(topDirectives, ignoredDirectives, allWorkers, processedWorkers, allWorkersReachablePlots);
 
 	// Loop through all the directives sorted by weighted score and distance (see GetDirectiveWeight)
-	while (!aDistanceWeightedDirectives.empty() && aDistanceWeightedDirectives[0].score != INT_MIN && allWorkers.size() > processedWorkers.size())
+	while (!aDistanceWeightedDirectives.empty() && aDistanceWeightedDirectives.front().score != INT_MIN && allWorkers.size() > processedWorkers.size())
 	{
-		OptionWithScore<pair<CvUnit*, BuilderDirective>> pUnitAndDirectiveWithScore = aDistanceWeightedDirectives[0];
-
-		CvUnit* pBuilder = pUnitAndDirectiveWithScore.option.first;
-		BuilderDirective eDirective = pUnitAndDirectiveWithScore.option.second;
-		int iBuilderID = pBuilder->GetID();
+		CvUnit* pBuilder = aDistanceWeightedDirectives.front().option.first;
+		BuilderDirective eDirective = aDistanceWeightedDirectives.front().option.second;
 
 		// We may have planned an improvement that we can't build yet, but should still update other plots as if we've built it
 		// E.g. if we're planning to build an improvement with a no-two-adjacent requirement, we still want to build other improvements next to it.
 		bool bCanBuild = pBuilder->canBuild(GC.getMap().plot(eDirective.m_sX, eDirective.m_sY), eDirective.m_eBuild);
-
 		if (bCanBuild)
 		{
 			bool bIsAutomated = !m_pPlayer->isHuman() || pBuilder->IsAutomated();
@@ -2978,9 +2900,8 @@ void CvHomelandAI::ExecuteWorkerMoves()
 			{
 				if (pBuilderTaskingAI->ExecuteWorkerMove(pBuilder, eDirective))
 				{
-					UnitProcessed(iBuilderID);
-
-					processedWorkers.insert(iBuilderID);
+					UnitProcessed(pBuilder->GetID());
+					processedWorkers.insert(pBuilder->GetID());
 					m_workedPlots.insert(GC.getMap().plot(eDirective.m_sX, eDirective.m_sY)->GetPlotIndex());
 					ignoredDirectives.insert(eDirective);
 				}
@@ -2996,17 +2917,18 @@ void CvHomelandAI::ExecuteWorkerMoves()
 				// Assign non-automated worker to this directive
 				pBuilderTaskingAI->SetAssignedDirective(pBuilder, eDirective);
 
-				processedWorkers.insert(iBuilderID);
+				processedWorkers.insert(pBuilder->GetID());
 				ignoredDirectives.insert(eDirective);
 				m_workedPlots.insert(GC.getMap().plot(eDirective.m_sX, eDirective.m_sY)->GetPlotIndex());
 			}
+
 			if (GC.getLogging() && GC.getAILogging())
 			{
 				CvString strLogString;
 				CvBuildInfo* pkBuild = GC.getBuildInfo(eDirective.m_eBuild);
 				CvString strTemp = pkBuild->GetDescription();
 				strLogString.Format("Planning to %s at (%d, %d), value=%d, potential bonus=%d, penalty=%d, weighted value=%d", strTemp.GetCString(), eDirective.m_sX, eDirective.m_sY,
-					eDirective.m_iScore, eDirective.m_iPotentialBonusScore, eDirective.m_iScorePenalty, pUnitAndDirectiveWithScore.score);
+					eDirective.m_iScore, eDirective.m_iPotentialBonusScore, eDirective.m_iScorePenalty, aDistanceWeightedDirectives.front().score);
 				LogHomelandMessage(strLogString);
 			}
 		}
@@ -3019,10 +2941,11 @@ void CvHomelandAI::ExecuteWorkerMoves()
 				CvBuildInfo* pkBuild = GC.getBuildInfo(eDirective.m_eBuild);
 				CvString strTemp = pkBuild->GetDescription();
 				strLogString.Format("Planning to %s at (%d, %d), but can't build it yet, value=%d, potential bonus=%d, penalty=%d, weighted value=%d", strTemp.GetCString(), eDirective.m_sX, eDirective.m_sY,
-					eDirective.m_iScore, eDirective.m_iPotentialBonusScore, eDirective.m_iScorePenalty, pUnitAndDirectiveWithScore.score);
+					eDirective.m_iScore, eDirective.m_iPotentialBonusScore, eDirective.m_iScorePenalty, aDistanceWeightedDirectives.front().score);
 				LogHomelandMessage(strLogString);
 			}
 		}
+
 		if (allWorkers.size() > processedWorkers.size())
 		{
 			// We may want to recalculate some of the other directive scores
@@ -3040,7 +2963,6 @@ void CvHomelandAI::ExecuteWorkerMoves()
 			vector<BuilderDirective> aNewBuilderDirectives;
 
 			const CvCity* pOwningCity = pDirectivePlot->getEffectiveOwningCity();
-
 			if (!pOwningCity && eImprovement == NO_IMPROVEMENT)
 			{
 				// If we are performing a culture bomb, find which city will be owning the plot
@@ -3070,7 +2992,6 @@ void CvHomelandAI::ExecuteWorkerMoves()
 					}
 				}
 			}
-
 			if (pOwningCity)
 				pBuilderTaskingAI->UpdateCityWorstPlots(pOwningCity, sState);
 
@@ -3404,7 +3325,7 @@ void CvHomelandAI::ExecuteWorkerMoves()
 				aNewBuilderDirectives.push_back(eOtherDirective);
 			}
 
-			aDistanceWeightedDirectives = GetWeightedDirectives(aNewBuilderDirectives, ignoredDirectives, allWorkers, processedWorkers, plotDistanceCache);
+			aDistanceWeightedDirectives = GetWeightedDirectives(aNewBuilderDirectives, ignoredDirectives, allWorkers, processedWorkers, allWorkersReachablePlots);
 		}
 	}
 
@@ -3514,6 +3435,43 @@ void CvHomelandAI::ExecuteMovesToSafestPlot(CvUnit* pUnit)
 		strLogString.Format("Moved %s (%d) to safety, X: %d, Y: %d", strTemp.GetCString(), pUnit->GetID(), pBestPlot->getX(), pBestPlot->getY());
 		LogHomelandMessage(strLogString);
 	}
+}
+
+
+bool CvHomelandAI::ExecuteMoveUnitAwayFromBorder(CvUnit* pUnit)
+{
+	if (!pUnit || !pUnit->canMove())
+		return false;
+
+	int iBestScore = 0;
+	CvPlot* pBestPlot = NULL;
+
+	if (pUnit->plot()->IsAdjacentOwnedByTeamOtherThan(pUnit->getTeam()))
+	{
+		ReachablePlots reachablePlots = pUnit->GetAllPlotsInReachThisTurn();
+		for (ReachablePlots::iterator it = reachablePlots.begin(); it != reachablePlots.end(); ++it)
+		{
+			CvPlot* pFleePlot = GC.getMap().plotByIndexUnchecked(it->iPlotIndex);
+			if (pFleePlot->IsAdjacentOwnedByTeamOtherThan(pUnit->getTeam()))
+				continue;
+
+			//todo: allow unit swap / push ...
+			if (!pUnit->canEndTurnAtPlot(pFleePlot))
+				continue;
+
+			int iScore = TacticalAIHelpers::SentryScore(pFleePlot, pUnit->getOwner());
+			if (iScore > iBestScore)
+			{
+				iBestScore = iScore;
+				pBestPlot = pFleePlot;
+			}
+		}
+
+		if (pBestPlot)
+			return ExecuteMoveToTarget(pUnit, pBestPlot, 0, true);
+	}
+
+	return false;
 }
 
 //	---------------------------------------------------------------------------
@@ -5735,12 +5693,10 @@ bool CvHomelandAI::FindUnitsForThisMove(AIHomelandMove eMove)
 //	---------------------------------------------------------------------------
 /// Compute the best unit to reach a target in the current normal and high priority move list
 CvUnit* CvHomelandAI::GetBestUnitToReachTarget(CvPlot* pTarget, int iMaxTurns)
-	{
-	// Get the raw distance for all units
-	int iTargetX = pTarget->getX();
-	int iTargetY = pTarget->getY();
+{
+	int iBestTurns = INT_MAX;
+	CvUnit* pBestUnit = NULL;
 
-	// first check raw distance
 	for(CHomelandUnitArray::iterator it = m_CurrentMoveUnits.begin(); it != m_CurrentMoveUnits.end(); ++it)
 	{
 		CvUnit* pLoopUnit = m_pPlayer->getUnit(it->GetID());
@@ -5758,65 +5714,32 @@ CvUnit* CvHomelandAI::GetBestUnitToReachTarget(CvPlot* pTarget, int iMaxTurns)
 			{
 				it->SetMovesToTarget(MAX_INT);
 				continue;
-		}
+			}
 
 			if (pLoopUnit->plot() == pTarget)
-		{
+			{
 				return pLoopUnit;
 			}
 			else
 			{
-				// Make sure we can move into the destination.  The path finder will do a similar check near the beginning, but it is best to get this out of the way before then
+				// Make sure we can move into the destination.
+				// The path finder will do a similar check near the beginning, but it is best to get this out of the way before then
 				if (pLoopUnit->canMoveInto(*pTarget, CvUnit::MOVEFLAG_DESTINATION))
-					it->SetMovesToTarget(plotDistance(pLoopUnit->getX(), pLoopUnit->getY(), iTargetX, iTargetY));
+				{
+					int iTurns = pLoopUnit->TurnsToReachTarget(pTarget, CvUnit::MOVEFLAG_NO_ENEMY_TERRITORY, iMaxTurns);
+					it->SetMovesToTarget(iTurns);
+
+					if (iTurns < iBestTurns)
+					{
+						pBestUnit = pLoopUnit;
+						iBestTurns = iTurns;
+					}
+				}
 				else
 					it->SetMovesToTarget(MAX_INT);
 			}
 		}
 	}
-
-	// Sort by raw distance
-	std::stable_sort(m_CurrentMoveUnits.begin(), m_CurrentMoveUnits.end());
-
-	CvUnit* pBestUnit = NULL;
-	int iBestTurns = iMaxTurns;
-
-	int iFailedPaths = 0;
-	// If we see this many failed pathing attempts, we assume no unit can get to the target
-	const int MAX_FAILED_PATHS = 2;
-
-	// Now go through and figure out the actual number of turns, and as a result, even if it can get there at all.
-	// We will try and do as few as possible by stopping if we find a unit that can make it in one turn.
-	for(CHomelandUnitArray::iterator it = m_CurrentMoveUnits.begin(); it != m_CurrentMoveUnits.end(); ++it)
-	{
-		CvUnit* pLoopUnit = m_pPlayer->getUnit(it->GetID());
-		if (pLoopUnit)
-		{
-			int iDistance = it->GetMovesToTarget();	// Raw distance
-			if (iDistance == MAX_INT)
-				continue;
-			
-			//pretent turns are "moves" here
-			int iTurns = pLoopUnit->TurnsToReachTarget(pTarget, CvUnit::MOVEFLAG_NO_ENEMY_TERRITORY, iMaxTurns);
-			it->SetMovesToTarget(iTurns);
-
-			// Did we make it at all?
-			if (iTurns == MAX_INT)
-			{
-				++iFailedPaths;
-				if (iFailedPaths >= MAX_FAILED_PATHS)
-					break;
-				}
-
-			// Take the first one ...
-			if (iTurns < iBestTurns)
-				{
-					pBestUnit = pLoopUnit;
-				iBestTurns = iTurns;
-					break;
-			}
-			}
-		}
 
 	return pBestUnit;
 }
@@ -6351,7 +6274,7 @@ int HomelandAIHelpers::ScoreAirBase(CvPlot* pBasePlot, PlayerTypes ePlayer, bool
 	}
 
 	//check current targets during wartime
-	const TacticalList& allTargets = kPlayer.GetTacticalAI()->GetTacticalTargets();
+	const vector<CvTacticalTarget>& allTargets = kPlayer.GetTacticalAI()->GetTacticalTargets();
 	for(unsigned int iI = 0; iI < allTargets.size(); iI++)
 	{
 		if (iRange > 0)
@@ -6364,16 +6287,10 @@ int HomelandAIHelpers::ScoreAirBase(CvPlot* pBasePlot, PlayerTypes ePlayer, bool
 		// Is the target of an appropriate type?
 		switch (allTargets[iI].GetTargetType())
 		{
-		case AI_TACTICAL_TARGET_HIGH_PRIORITY_UNIT:
-			iBaseScore += 12;
-			break;
-		case AI_TACTICAL_TARGET_MEDIUM_PRIORITY_UNIT:
+		case AI_TACTICAL_TARGET_ENEMY_COMBAT_UNIT:
 			iBaseScore += 8;
 			break;
-		case AI_TACTICAL_TARGET_LOW_PRIORITY_UNIT:
-			iBaseScore += 4;
-			break;
-		case AI_TACTICAL_TARGET_CITY:
+		case AI_TACTICAL_TARGET_ENEMY_CITY:
 			{
 				//for nukes we want only cities, but ones we haven't recently nuked. for conventional air force cities are optional
 				CvPlot* pTargetPlot = GC.getMap().plot(allTargets[iI].GetTargetX(), allTargets[iI].GetTargetY());

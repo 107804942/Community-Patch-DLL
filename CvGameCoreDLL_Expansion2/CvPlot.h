@@ -336,7 +336,7 @@ public:
 	CvArea* area() const;
 	inline int getArea() const { return m_iArea; }
 	void setArea(int iNewValue);
-	std::vector<int> getAllAdjacentAreas() const;
+	const std::vector<int>& getAllAdjacentAreas() const;
 	bool hasSharedAdjacentArea(const CvPlot* pOther, bool bAllowLand, bool bAllowWater) const;
 
 	//multiple areas make up a landmass; a landmass can also be a body of water!
@@ -839,7 +839,7 @@ public:
 	bool IsEnemyCityAdjacent(TeamTypes eMyTeam, const CvCity* pSpecifyCity) const;
 	bool IsEnemyUnitAdjacent(TeamTypes eMyTeam) const;
 	int GetNumEnemyUnitsAdjacent(TeamTypes eMyTeam, DomainTypes eDomain, const CvUnit* pUnitToExclude = NULL, bool bConsiderFlanking = false, TeamTypes eSpecificTeam = NO_TEAM, bool bIncludeEmbarked = false) const;
-	vector<CvUnit*> GetAdjacentEnemyUnits(TeamTypes eMyTeam, DomainTypes eDomain) const;
+	vector<CvUnit*> GetAdjacentFriendlyCombatUnits(TeamTypes eMyTeam, int iRange, DomainTypes eDomain) const;
 	pair<int, int> GetLocalUnitPower(PlayerTypes ePlayer, int iRange, bool bSameDomain) const;
 
 	int GetNumFriendlyUnitsAdjacent(TeamTypes eMyTeam, DomainTypes eDomain, bool bCountRanged, const CvUnit* pUnitToExclude = NULL) const;

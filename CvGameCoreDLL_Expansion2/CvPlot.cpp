@@ -4806,29 +4806,26 @@ bool CvPlot::isCoastalCityOrPassableImprovement(PlayerTypes ePlayer, bool bCityM
 /// Is this a plot that's friendly to our team? (owned by us or someone we have Open Borders with)
 bool CvPlot::IsFriendlyTerritory(PlayerTypes ePlayer) const
 {
-	// No friendly territory for barbs!
-	if(ePlayer==NO_PLAYER || GET_PLAYER(ePlayer).isBarbarian())
-	{
-		return false;
-	}
-
-	TeamTypes eTeam = GET_PLAYER(ePlayer).getTeam();
 	TeamTypes ePlotOwner = getTeam();
-
 	// Nobody owns this plot
-	if(ePlotOwner == NO_TEAM)
-	{
+	if (ePlotOwner == NO_TEAM)
 		return false;
-	}
+
+	// Special cases
+	if (ePlayer == NO_PLAYER || ePlayer==BARBARIAN_PLAYER)
+		return false;
 
 	// Our territory
+	TeamTypes eTeam = GET_PLAYER(ePlayer).getTeam();
 	if(ePlotOwner == eTeam)
-	{
 		return true;
-	}
+
+	// Major's territory we have OB with
+	if (GET_TEAM(ePlotOwner).IsAllowsOpenBordersToTeam(eTeam))
+		return true;
 
 	// City State's territory we've earned OB with
-	if(!GET_PLAYER(ePlayer).isMinorCiv())
+	if(!GET_TEAM(eTeam).isMinorCiv())
 	{
 		if(GET_TEAM(ePlotOwner).isMinorCiv())
 		{
@@ -4839,12 +4836,6 @@ bool CvPlot::IsFriendlyTerritory(PlayerTypes ePlayer) const
 				return true;
 			}
 		}
-	}
-
-	// Major's territory we have OB with
-	if(GET_TEAM(ePlotOwner).IsAllowsOpenBordersToTeam(eTeam))
-	{
-		return true;
 	}
 
 	return false;
@@ -5563,9 +5554,12 @@ CvArea* CvPlot::area() const
 
 
 //	--------------------------------------------------------------------------------
-std::vector<int> CvPlot::getAllAdjacentAreas() const
+const std::vector<int>& CvPlot::getAllAdjacentAreas() const
 {
-	std::vector<int> result;
+	static std::vector<int> result;
+	//better safe than sorry
+	gDLL->GetGameCoreLock();
+	result.clear();
 
 	CvPlot** aNeighbors = GC.getMap().getNeighborsUnchecked(this);
 	for(int iI = 0; iI < NUM_DIRECTION_TYPES; ++iI)
@@ -5577,6 +5571,7 @@ std::vector<int> CvPlot::getAllAdjacentAreas() const
 				result.push_back(pAdjacentPlot->getArea());
 	}
 
+	gDLL->ReleaseGameCoreLock();
 	return result;
 }
 
@@ -11839,11 +11834,6 @@ bool CvPlot::setRevealed(TeamTypes eTeam, bool bNewValue, CvUnit* pUnit, bool bT
 			area()->changeNumRevealedTiles(eTeam, (bNewValue ? 1 : -1));
 		}
 
-		// Update tactical AI, let it know that the tile was revealed
-		PlayerTypes eCurrentPlayer = GetCurrentPlayer();
-		if (eCurrentPlayer != NO_PLAYER && GET_PLAYER(eCurrentPlayer).getTeam() == eTeam)
-			GET_PLAYER(eCurrentPlayer).GetTacticalAI()->UpdateVisibilityFromBorders(this);
-
 		// Natural Wonder
 		if(eTeam != BARBARIAN_TEAM && bNewValue && !GET_TEAM(eTeam).isObserver())
 		{
@@ -12100,6 +12090,11 @@ bool CvPlot::setRevealed(TeamTypes eTeam, bool bNewValue, CvUnit* pUnit, bool bT
 						}
 					}
 				}
+
+				// Update tactical AI, let it know that the tile was revealed
+				PlayerTypes eCurrentPlayer = GC.getGame().getActivePlayer();
+				if (eCurrentPlayer != NO_PLAYER)
+					GET_PLAYER(eCurrentPlayer).GetTacticalAI()->UpdateVisibilityFromBorders(this);
 
 				if (bEligibleForAchievement)
 				{
@@ -15416,42 +15411,29 @@ bool CvPlot::IsEnemyUnitAdjacent(TeamTypes eMyTeam) const
 	return false;
 }
 
-vector<CvUnit*> CvPlot::GetAdjacentEnemyUnits(TeamTypes eMyTeam, DomainTypes eDomain) const
+vector<CvUnit*> CvPlot::GetAdjacentFriendlyCombatUnits(TeamTypes eMyTeam, int iRange, DomainTypes eDomain) const
 {
 	vector<CvUnit*> result;
-	CvPlot** aPlotsToCheck = GC.getMap().getNeighborsShuffled(this);
-	for(int iCount=0; iCount<NUM_DIRECTION_TYPES; iCount++)
+	int iMaxDistance = min(5,iRange);
+	for (int iJ = RING1_PLOTS; iJ < RING_PLOTS[iMaxDistance]; iJ++)
 	{
-		CvPlot *pLoopPlot = aPlotsToCheck[iCount];
-		if(pLoopPlot != NULL && !pLoopPlot->isCity()) //ignore units in cities
+		CvPlot* pLoopPlot = iterateRingPlots(this, iJ);
+		if(pLoopPlot)
 		{
-			IDInfo* pUnitNode = pLoopPlot->headUnitNode();
-
-			// Loop through all units on this plot
-			while(pUnitNode != NULL)
+			const IDInfo* pUnitNode = pLoopPlot->headUnitNode();
+			while (pUnitNode != NULL)
 			{
 				CvUnit* pLoopUnit = ::GetPlayerUnit(*pUnitNode);
 				pUnitNode = pLoopPlot->nextUnitNode(pUnitNode);
 
-				if(pLoopUnit)
+				if (pLoopUnit && pLoopUnit->IsCanAttack() && pLoopUnit->getTeam()==eMyTeam)
 				{
-					// Must be a combat Unit
-					if(pLoopUnit->IsCombatUnit() && !pLoopUnit->isEmbarked() && !pLoopUnit->isDelayedDeath())
-					{
-						TeamTypes eTheirTeam = pLoopUnit->getTeam();
-
-						// This team which this unit belongs to must be at war with us
-						if(GET_TEAM(eTheirTeam).isAtWar(eMyTeam))
-						{
-							// Must be same domain
-							if (pLoopUnit->getDomainType() == eDomain || pLoopUnit->getDomainType() == DOMAIN_HOVER || eDomain == NO_DOMAIN)
-							{
-								result.push_back(pLoopUnit);
-							}
-						}
-					}
+					//this check skips air units ...
+					if (eDomain==NO_DOMAIN || pLoopUnit->getDomainType() == eDomain)
+						result.push_back(pLoopUnit);
 				}
 			}
+
 		}
 	}
 
