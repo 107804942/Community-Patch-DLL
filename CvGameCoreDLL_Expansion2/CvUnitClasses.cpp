@@ -1923,6 +1923,14 @@ void CvUnitEntry::DoUpdatePower()
 				iBonusPower += iTemp;
 			}
 
+			// Combat Strength per CS - add half of the maximum bonus
+			if (kPromotion->GetCombatModPerCSAlliance() > 0)
+			{
+				iTemp = (iBasePower * kPromotion->GetCombatModPerCSAlliance() * (/*5*/ GD_INT_GET(BALANCE_MAX_CS_ALLY_STRENGTH)) / 2);
+				iTemp /= 100;
+				iBonusPower += iTemp;
+			}
+
 			// Paradrop - add 25%
 			if(kPromotion->GetDropRange() > 0)
 			{
@@ -1958,16 +1966,16 @@ void CvUnitEntry::DoUpdatePower()
 			for(iLoop = 0; iLoop < GC.getNumTerrainInfos(); iLoop++)
 			{
 				// Terrain Attack - add one quarter of the bonus
-				if(kPromotion->GetTerrainAttackPercent(iLoop) > 0)
+				if(kPromotion->GetTerrainAttackPercent(iLoop) + kPromotion->GetTerrainModifierAttack(iLoop) > 0)
 				{
-					iTemp = (iBasePower * kPromotion->GetTerrainAttackPercent(iLoop) / 4);
+					iTemp = (iBasePower * (kPromotion->GetTerrainAttackPercent(iLoop) + kPromotion->GetTerrainModifierAttack(iLoop)) / 4);
 					iTemp /= 100;
 					iBonusPower += iTemp;
 				}
 				// Terrain Defense - add one quarter of the bonus
-				if(kPromotion->GetTerrainDefensePercent(iLoop) > 0)
+				if(kPromotion->GetTerrainDefensePercent(iLoop) + kPromotion->GetTerrainModifierDefense(iLoop) > 0)
 				{
-					iTemp = (iBasePower * kPromotion->GetTerrainDefensePercent(iLoop) / 4);
+					iTemp = (iBasePower * (kPromotion->GetTerrainDefensePercent(iLoop) + kPromotion->GetTerrainModifierDefense(iLoop)) / 4);
 					iTemp /= 100;
 					iBonusPower += iTemp;
 				}
@@ -1997,6 +2005,20 @@ void CvUnitEntry::DoUpdatePower()
 				if(kPromotion->GetUnitCombatModifierPercent(iLoop) > 0)
 				{
 					iTemp = (iBasePower * kPromotion->GetUnitCombatModifierPercent(iLoop) / 4);
+					iTemp /= 100;
+					iBonusPower += iTemp;
+				}
+
+				if (kPromotion->GetUnitCombatModifierPercentAttack(iLoop) > 0)
+				{
+					iTemp = (iBasePower * kPromotion->GetUnitCombatModifierPercentAttack(iLoop) / 8);
+					iTemp /= 100;
+					iBonusPower += iTemp;
+				}
+
+				if (kPromotion->GetUnitCombatModifierPercentDefense(iLoop) > 0)
+				{
+					iTemp = (iBasePower * kPromotion->GetUnitCombatModifierPercentDefense(iLoop) / 8);
 					iTemp /= 100;
 					iBonusPower += iTemp;
 				}

@@ -319,7 +319,8 @@ end
 
 local function StringFormatNeatFloat(x)
 	if math.floor(math.abs(x)) == math.abs(x) then return string.format("%d", x); end
-	return string.format("%.1f", x);
+	if math.floor(math.abs(x) * 10) == math.abs(x * 10) then return string.format("%.1f", x); end
+	return string.format("%.2f", x);
 end
 
 -------------------------------------------------
@@ -984,7 +985,7 @@ local function SetupBuildingList( city, buildings, buildingIM )
 				--END
 			end
 			cityYieldRateModifier = city:GetBaseYieldRateModifier( yieldID )
-			cityYieldRate = city:GetYieldPerPopTimes100( yieldID ) * population / 100 + city:GetBaseYieldRate( yieldID ) + city:GetYieldPerPopInEmpireTimes100( yieldID ) * populationEmpire / 100
+			cityYieldRate = city:GetYieldFromYieldPerBuildingTimes100(yieldID) / 100 + city:GetYieldPerPopTimes100( yieldID ) * population / 100 + city:GetBaseYieldRate( yieldID ) + city:GetYieldPerPopInEmpireTimes100( yieldID ) * populationEmpire / 100
 			if yieldID == YieldTypes.YIELD_PRODUCTION and city:IsIndustrialConnectedToCapital() then
 				cityYieldRate = cityYieldRate + city:GetConnectionGoldTimes100() / 100
 			end
@@ -1024,6 +1025,11 @@ local function SetupBuildingList( city, buildings, buildingIM )
 			buildingYieldPerPopInEmpire = 0
 			for row in GameInfo.Building_YieldChangesPerPopInEmpire( thisBuildingAndYieldTypes ) do
 				buildingYieldPerPopInEmpire = buildingYieldPerPopInEmpire + (row.Yield or 0)
+			end
+			buildingYieldRate = buildingYieldRate + buildingYieldPerPopInEmpire * populationEmpire / 100
+			-- Yield from buildings
+			for row in GameInfo.Building_YieldChangesPerXBuilding( thisBuildingAndYieldTypes ) do
+				buildingYieldRate = buildingYieldRate + city:GetNumBuildings() * (row.Yield or 0) / (row.NumRequired or 1);
 			end
 			buildingYieldRate = buildingYieldRate + buildingYieldPerPopInEmpire * populationEmpire / 100
 			-- Events
@@ -2135,7 +2141,7 @@ local function UpdateCityViewNow()
 		-- Blockaded ? / Sapped ?
 		Controls.CityIsBlockaded:SetHide( not city:IsBlockaded() )
 		if (city:GetSappedTurns() > 0) then
-			Controls.CityIsBlockaded:SetText("[ICON_VP_SAPPED]")
+			Controls.CityIsBlockaded:SetText("[ICON_SAPPED]")
 			Controls.CityIsBlockaded:LocalizeAndSetToolTip("TXT_KEY_CITY_SAPPED", city:GetSappedTurns())
 		else
 			Controls.CityIsBlockaded:SetText("[ICON_BLOCKADED]")

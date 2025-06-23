@@ -8890,7 +8890,7 @@ void CvLeague::CheckProjectsProgress()
 						if (pLoopCity->getProductionProcess() != pProjectInfo->GetProcess())
 							continue;
 
-						GC.getGame().GetGameLeagues()->DoLeagueProjectContribution(eLoopPlayer, it->eType, pLoopCity->getCurrentProductionDifferenceTimes100(false, true));
+						GC.getGame().GetGameLeagues()->DoLeagueProjectContribution(eLoopPlayer, it->eType, pLoopCity->getYieldRateTimes100(YIELD_PRODUCTION) + pLoopCity->getTotalOverflowProductionTimes100());
 
 					}
 				}
@@ -12128,7 +12128,6 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 		int iMight = 0;
 		int iOurProductionMight = GetPlayer()->GetProductionMight();
 		int iHigherProductionCivs = 0;
-		int iAliveCivs = 0;
 		int iHighestProduction = 0;
 		int iPercentofWinning = 0;
 		for (int i = 0; i < MAX_MAJOR_CIVS; i++)
@@ -12136,7 +12135,6 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 			PlayerTypes e = (PlayerTypes) i;
 			if (GET_PLAYER(e).isAlive() && !GET_PLAYER(e).isMinorCiv())
 			{
-				iAliveCivs++;
 				iMight = GET_PLAYER(e).GetProductionMight();
 				if (GetPlayer()->GetID() != e)
 				{
@@ -12174,7 +12172,7 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 			}
 			if (bCanSilver)
 			{
-				int iTurnsForPolicy = (GetPlayer()->getNextPolicyCost()) / (max(1, GetPlayer()->GetTotalJONSCulturePerTurn()));
+				int iTurnsForPolicy = (GetPlayer()->getNextPolicyCost() * 100) / (max(1, GetPlayer()->GetTotalJONSCulturePerTurnTimes100()));
 				iExtra += (70 * GC.getGame().getGameSpeedInfo().getCulturePercent())/(max(1, iTurnsForPolicy));
 			}
 			if (bCanBronze)
@@ -12446,7 +12444,6 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 		CvLeague* pLeague = GC.getGame().GetGameLeagues()->GetActiveLeague();
 
 		// Trade connections
-		int iCSDestinations = 0;
 		int iCSPartners = 0;
 		int iCivDestinations = 0;
 		for (int i = 0; i < MAX_CIV_PLAYERS; i++)
@@ -12456,7 +12453,6 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 			{
 				if (GET_PLAYER(e).isMinorCiv())
 				{
-					iCSDestinations++;
 					if (GC.getGame().GetGameTrade()->IsPlayerConnectedToPlayer(GetPlayer()->GetID(), e))
 					{
 						iCSPartners++;
@@ -13004,7 +13000,7 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 			}
 			// Holy City Tourism
 			const CvReligion* pkTargetReligion = GC.getGame().GetGameReligions()->GetReligion(eFoundedReligion, GetPlayer()->GetID());
-			int iHolyCityTourism = pkTargetReligion->GetHolyCity() ? min(50000,pkTargetReligion->GetHolyCity()->GetBaseTourism()) : 0;
+			int iHolyCityTourism = pkTargetReligion->GetHolyCity() ? min(50000,pkTargetReligion->GetHolyCity()->getYieldRateTimes100(YIELD_TOURISM)) : 0;
 			if (!bCultureVictoryEnabled)
 			{
 				iHolyCityTourism /= 10;
@@ -13153,7 +13149,6 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 		int iScienceMod = pProposal->GetEffects()->iScienceyGreatPersonRateMod;
 
 		// Do we have a sciencey Great Person unique unit? (ie. Merchant of Venice)
-		bool bScienceyUniqueUnit = false;
 		UnitClassTypes eScienceyUnitClass1 = (UnitClassTypes) GC.getInfoTypeForString("UNITCLASS_SCIENTIST", true);
 		UnitClassTypes eScienceyUnitClass2 = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_ENGINEER", true);
 		UnitClassTypes eScienceyUnitClass3 = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_MERCHANT", true);
@@ -13171,7 +13166,6 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 
 		if (eScienceyUnit1 != eDefault1 || eScienceyUnit2 != eDefault2 || eScienceyUnit3 != eDefault3)
 		{
-			bScienceyUniqueUnit = true;
 			iExtra += iScienceMod * 20;
 		}
 		int iNumGPImprovements = GetPlayer()->getGreatPersonImprovementCount();
@@ -13179,7 +13173,6 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 
 
 		// Do we have a artsy Great Person unique unit?
-		bool bArtsyUniqueUnit = false;
 		UnitClassTypes eArtsyUnitClass1 = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_WRITER", true);
 		UnitClassTypes eArtsyUnitClass2 = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_ARTIST", true);
 		UnitClassTypes eArtsyUnitClass3 = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_MUSICIAN", true);
@@ -13197,7 +13190,6 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 
 		if (eArtsyUnit1 != eDefault1 || eArtsyUnit2 != eDefault2 || eArtsyUnit3 != eDefault3)
 		{
-			bArtsyUniqueUnit = true;
 			iExtra += iArtsMod * 20;
 		}
 
@@ -13208,7 +13200,7 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 		{
 			if (iArtsMod > 0)
 			{
-				if (GetPlayer()->AidRankGeneric(1) != NO_PLAYER)
+				if (GetPlayer()->IsEligibleForLeagueBonus(1))
 				{
 					iExtra += 15 * max(0, GetPlayer()->ScoreDifferencePercent(1) - 40); 
 				}
@@ -13220,7 +13212,7 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 					}
 				}
 				// can't have arts and science funding
-				if (GetPlayer()->AidRankGeneric(2) != NO_PLAYER)
+				if (GetPlayer()->IsEligibleForLeagueBonus(2))
 				{
 					iExtra -= 8 * max(0, GetPlayer()->ScoreDifferencePercent(2) - 40);
 				}
@@ -13228,7 +13220,7 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 
 			if (iScienceMod > 0)
 			{
-				if (GetPlayer()->AidRankGeneric(2) != NO_PLAYER)
+				if (GetPlayer()->IsEligibleForLeagueBonus(2))
 				{ 
 					iExtra += 15 * max (0, GetPlayer()->ScoreDifferencePercent(2) - 40); 
 				}
@@ -13240,7 +13232,7 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 					}
 				}
 				// can't have arts and science funding
-				if (GetPlayer()->AidRankGeneric(1) != NO_PLAYER)
+				if (GetPlayer()->IsEligibleForLeagueBonus(1))
 				{
 					iExtra -= 8 * max(0, GetPlayer()->ScoreDifferencePercent(1) - 40);
 				}
@@ -14056,20 +14048,22 @@ void CvLeagueAI::AllocateProposals(CvLeague* pLeague)
 				ProposalConsideration consideration(/*bEnact*/ false, iResolutionIndex, LeagueHelpers::CHOICE_NONE);
 				int iScore = ScoreProposal(pLeague, &vActive[iResolutionIndex], GetPlayer()->GetID(), true);
 
-				for (EnactProposalList::iterator it = pLeague->m_vLastTurnEnactProposals.begin(); it != pLeague->m_vLastTurnEnactProposals.end(); ++it)
-				{
-					if (it->GetID() == vActive[iResolutionIndex].GetID())
-						iScore /= 2;
-				}
-
-				for (RepealProposalList::iterator it = pLeague->m_vLastTurnRepealProposals.begin(); it != pLeague->m_vLastTurnRepealProposals.end(); ++it)
-				{
-					if (it->GetID() == vActive[iResolutionIndex].GetID())
-						iScore /= 2;
-				}
-
 				if (iScore > 0)
+				{
+					for (EnactProposalList::iterator it = pLeague->m_vLastTurnEnactProposals.begin(); it != pLeague->m_vLastTurnEnactProposals.end(); ++it)
+					{
+						if (it->GetID() == vActive[iResolutionIndex].GetID())
+							iScore /= 2;
+					}
+
+					for (RepealProposalList::iterator it = pLeague->m_vLastTurnRepealProposals.begin(); it != pLeague->m_vLastTurnRepealProposals.end(); ++it)
+					{
+						if (it->GetID() == vActive[iResolutionIndex].GetID())
+							iScore /= 2;
+					}
+
 					vConsiderations.push_back(consideration, iScore);
+				}
 				else
 					vBadChoices.push_back(consideration, iScore * -1);
 			}
@@ -14092,20 +14086,22 @@ void CvLeagueAI::AllocateProposals(CvLeague* pLeague)
 						ProposalConsideration consideration(/*bEnact*/ true, iResolutionIndex, LeagueHelpers::CHOICE_NONE);
 						int iScore = ScoreProposal(pLeague, eResolution, LeagueHelpers::CHOICE_NONE, GetPlayer()->GetID(), true);
 
-						for (EnactProposalList::iterator it = pLeague->m_vLastTurnEnactProposals.begin(); it != pLeague->m_vLastTurnEnactProposals.end(); ++it)
-						{
-							if (it->GetID() == pkInfo->GetID())
-								iScore /= 2;
-						}
-
-						for (RepealProposalList::iterator it = pLeague->m_vLastTurnRepealProposals.begin(); it != pLeague->m_vLastTurnRepealProposals.end(); ++it)
-						{
-							if (it->GetID() == pkInfo->GetID())
-								iScore /= 2;
-						}
-
 						if (iScore > 0)
+						{
+							for (EnactProposalList::iterator it = pLeague->m_vLastTurnEnactProposals.begin(); it != pLeague->m_vLastTurnEnactProposals.end(); ++it)
+							{
+								if (it->GetID() == pkInfo->GetID())
+									iScore /= 2;
+							}
+
+							for (RepealProposalList::iterator it = pLeague->m_vLastTurnRepealProposals.begin(); it != pLeague->m_vLastTurnRepealProposals.end(); ++it)
+							{
+								if (it->GetID() == pkInfo->GetID())
+									iScore /= 2;
+							}
+
 							vConsiderations.push_back(consideration, iScore);
+						}
 						else
 							vBadChoices.push_back(consideration, iScore * -1);
 					}
@@ -14120,20 +14116,22 @@ void CvLeagueAI::AllocateProposals(CvLeague* pLeague)
 							ProposalConsideration consideration(/*bEnact*/ true, iResolutionIndex, iChoice);
 							int iScore = ScoreProposal(pLeague, eResolution, iChoice, GetPlayer()->GetID(), true);
 
-							for (EnactProposalList::iterator it = pLeague->m_vLastTurnEnactProposals.begin(); it != pLeague->m_vLastTurnEnactProposals.end(); ++it)
-							{
-								if (it->GetID() == pkInfo->GetID())
-									iScore /= 2;
-							}
-
-							for (RepealProposalList::iterator it = pLeague->m_vLastTurnRepealProposals.begin(); it != pLeague->m_vLastTurnRepealProposals.end(); ++it)
-							{
-								if (it->GetID() == pkInfo->GetID())
-									iScore /= 2;
-							}
-
 							if (iScore > 0)
+							{
+								for (EnactProposalList::iterator it = pLeague->m_vLastTurnEnactProposals.begin(); it != pLeague->m_vLastTurnEnactProposals.end(); ++it)
+								{
+									if (it->GetID() == pkInfo->GetID())
+										iScore /= 2;
+								}
+
+								for (RepealProposalList::iterator it = pLeague->m_vLastTurnRepealProposals.begin(); it != pLeague->m_vLastTurnRepealProposals.end(); ++it)
+								{
+									if (it->GetID() == pkInfo->GetID())
+										iScore /= 2;
+								}
+
 								vConsiderations.push_back(consideration, iScore);
+							}
 							else
 								vBadChoices.push_back(consideration, iScore * -1);
 						}

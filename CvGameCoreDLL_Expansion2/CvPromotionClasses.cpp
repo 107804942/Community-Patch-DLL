@@ -13,6 +13,52 @@
 // include this after all other headers!
 #include "LintFree.h"
 
+//====================================
+// PlagueInfo
+//====================================
+
+/// Equals operator
+bool PlagueInfo::operator==(const PlagueInfo& rhs) const
+{
+	return (ePlague == rhs.ePlague &&
+		eDomain == rhs.eDomain &&
+		bApplyOnAttack == rhs.bApplyOnAttack &&
+		bApplyOnDefense == rhs.bApplyOnDefense &&
+		iApplyChance == rhs.iApplyChance);
+}
+
+bool PlagueInfo::operator<(const PlagueInfo& rhs) const { return GC.getPromotionInfo(ePlague)->GetPlaguePriority() > GC.getPromotionInfo(rhs.ePlague)->GetPlaguePriority(); }
+
+template<typename PlagueInfoTemplate, typename Visitor>
+void PlagueInfo::Serialize(PlagueInfoTemplate& plagueInfo, Visitor& visitor)
+{
+	visitor(plagueInfo.ePlague);
+	visitor(plagueInfo.eDomain);
+	visitor(plagueInfo.bApplyOnAttack);
+	visitor(plagueInfo.bApplyOnDefense);
+	visitor(plagueInfo.iApplyChance);
+}
+
+/// Serialization read
+FDataStream& operator>>(FDataStream& loadFrom, PlagueInfo& writeTo)
+{
+	CvStreamLoadVisitor serialVisitor(loadFrom);
+	PlagueInfo::Serialize(writeTo, serialVisitor);
+	return loadFrom;
+}
+
+/// Serialization write
+FDataStream& operator<<(FDataStream& saveTo, const PlagueInfo& readFrom)
+{
+	CvStreamSaveVisitor serialVisitor(saveTo);
+	PlagueInfo::Serialize(readFrom, serialVisitor);
+	return saveTo;
+}
+
+//====================================
+// CvPromotionEntry
+//====================================
+
 /// Constructor
 CvPromotionEntry::CvPromotionEntry():
 	m_iLayerAnimationPath(ANIMATIONPATH_NONE),
@@ -97,6 +143,7 @@ CvPromotionEntry::CvPromotionEntry():
 	m_bNoSupply(false),
 	m_iMaxHitPointsChange(0),
 	m_iMaxHitPointsModifier(0),
+	m_iVsUnhappyMod(0),
 	m_iUpgradeDiscount(0),
 	m_iExperiencePercent(0),
 	m_iAdjacentMod(0),
@@ -104,18 +151,24 @@ CvPromotionEntry::CvPromotionEntry():
 	m_iAttackMod(0),
 	m_iDefenseMod(0),
 	m_iBorderMod(0),
+	m_iMarriageMod(0),
+	m_iMarriageModCap(0),
 	m_iGetGroundAttackDamage(0),
 	m_iDropRange(0),
 	m_iExtraNavalMoves(0),
 	m_iHPHealedIfDefeatEnemy(0),
 	m_iGoldenAgeValueFromKills(0),
 	m_iExtraWithdrawal(0),
+	m_iCombatChange(0),
+	m_iTileDamageIfNotMoved(0),
+	m_iFortifiedModifier(0),
+	m_iMinEffectiveHealth(0),
+	m_bRequiresLeadership(false),
+	m_bCannotHeal(false),
+	m_bPillageFortificationsOnKill(false),
 #if defined(MOD_BALANCE_CORE_JFD)
-	m_iPlagueChance(0),
-	m_iPlaguePromotion(NO_PROMOTION),
 	m_iPlagueID(NO_PROMOTION),
 	m_iPlaguePriority(0),
-	m_iPlagueIDImmunity(-1),
 #endif
 	m_iEmbarkExtraVisibility(0),
 	m_iEmbarkDefenseModifier(0),
@@ -131,7 +184,8 @@ CvPromotionEntry::CvPromotionEntry():
 	m_iGoodyHutYieldBonus(0),
 	m_iDiploMissionInfluence(0),
 	m_bGainsXPFromScouting(false),
-	m_bGainsXPFromPillaging(false),
+	m_iXPFromPillaging(0),
+	m_iExtraXPOnKill(0),
 	m_bGainsXPFromSpotting(false),
 	m_bCannotBeCaptured(false),
 	m_bIsLostOnMove(false),
@@ -180,6 +234,10 @@ CvPromotionEntry::CvPromotionEntry():
 	m_iWonderProductionModifier(0),
 	m_iAOEDamageOnKill(0),
 	m_iAOEDamageOnPillage(0),
+	m_iAOEHealOnPillage(0),
+	m_iCombatModPerCSAlliance(0),
+	m_iAttackModPerSamePromotionAttack(0),
+	m_iAttackModPerSamePromotionAttackCap(0),
 	m_iAoEDamageOnMove(0),
 	m_iPartialHealOnPillage(0),
 	m_iSplashDamage(0),
@@ -260,6 +318,8 @@ CvPromotionEntry::CvPromotionEntry():
 	m_iMilitaryProductionModifier(0),
 	m_piYieldModifier(NULL),
 	m_piYieldChange(NULL),
+	m_piYieldFromAncientRuins(NULL),
+	m_piYieldFromTRPlunder(NULL),
 	m_iGeneralGoldenAgeExpPercent(0),
 	m_iGiveCombatMod(0),
 	m_iGiveHPHealedIfEnemyKilled(0),
@@ -280,14 +340,19 @@ CvPromotionEntry::CvPromotionEntry():
 	m_piTerrainDefensePercent(NULL),
 	m_piFeatureAttackPercent(NULL),
 	m_piFeatureDefensePercent(NULL),
+	m_piTerrainModifierAttack(NULL),
+	m_piTerrainModifierDefense(NULL),
 #if defined(MOD_BALANCE_CORE)
 	m_piYieldFromScouting(NULL),
 #endif
 	m_piYieldFromKills(NULL),
 	m_piYieldFromBarbarianKills(NULL),
+	m_piYieldFromCombatExperienceTimes100(NULL),
 	m_piGarrisonYield(NULL),
 	m_piFortificationYield(NULL),
 	m_piUnitCombatModifierPercent(NULL),
+	m_piUnitCombatModifierPercentAttack(NULL),
+		m_piUnitCombatModifierPercentDefense(NULL),
 	m_piUnitClassModifierPercent(NULL),
 	m_piUnitClassAttackModifier(NULL),
 	m_piUnitClassDefenseModifier(NULL),
@@ -335,16 +400,23 @@ CvPromotionEntry::~CvPromotionEntry(void)
 	SAFE_DELETE_ARRAY(m_piTerrainDefensePercent);
 	SAFE_DELETE_ARRAY(m_piFeatureAttackPercent);
 	SAFE_DELETE_ARRAY(m_piFeatureDefensePercent);
+	SAFE_DELETE_ARRAY(m_piTerrainModifierAttack);
+	SAFE_DELETE_ARRAY(m_piTerrainModifierDefense);
 #if defined(MOD_BALANCE_CORE)
 	SAFE_DELETE_ARRAY(m_piYieldFromScouting);
 	SAFE_DELETE_ARRAY(m_piYieldModifier);
+	SAFE_DELETE_ARRAY(m_piYieldFromAncientRuins);
+	SAFE_DELETE_ARRAY(m_piYieldFromTRPlunder);
 	SAFE_DELETE_ARRAY(m_piYieldChange);
 #endif
 	SAFE_DELETE_ARRAY(m_piYieldFromKills);
 	SAFE_DELETE_ARRAY(m_piYieldFromBarbarianKills);
+	SAFE_DELETE_ARRAY(m_piYieldFromCombatExperienceTimes100);
 	SAFE_DELETE_ARRAY(m_piGarrisonYield);
 	SAFE_DELETE_ARRAY(m_piFortificationYield);
 	SAFE_DELETE_ARRAY(m_piUnitCombatModifierPercent);
+	SAFE_DELETE_ARRAY(m_piUnitCombatModifierPercentAttack);
+	SAFE_DELETE_ARRAY(m_piUnitCombatModifierPercentDefense);
 	SAFE_DELETE_ARRAY(m_piUnitClassModifierPercent);
 	SAFE_DELETE_ARRAY(m_piUnitClassAttackModifier);
 	SAFE_DELETE_ARRAY(m_piUnitClassDefenseModifier);
@@ -398,7 +470,8 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	m_iGoodyHutYieldBonus = kResults.GetInt("GoodyHutYieldBonus");
 	m_iDiploMissionInfluence = kResults.GetInt("DiploMissionInfluence");
 	m_bGainsXPFromScouting = kResults.GetBool("GainsXPFromScouting");
-	m_bGainsXPFromPillaging = kResults.GetBool("GainsXPFromPillaging");
+	m_iXPFromPillaging = kResults.GetInt("XPFromPillaging");
+	m_iExtraXPOnKill = kResults.GetInt("ExtraXPOnKill");
 	m_bGainsXPFromSpotting = kResults.GetBool("GainsXPFromSpotting");
 	m_bCannotBeCaptured = kResults.GetBool("CannotBeCaptured");
 	m_bIsLostOnMove = kResults.GetBool("IsLostOnMove");
@@ -454,6 +527,10 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	m_iWonderProductionModifier = kResults.GetInt("WonderProductionModifier");
 	m_iAOEDamageOnKill = kResults.GetInt("AOEDamageOnKill");
 	m_iAOEDamageOnPillage = kResults.GetInt("AOEDamageOnPillage");
+	m_iAOEHealOnPillage = kResults.GetInt("AoEHealOnPillage");
+	m_iCombatModPerCSAlliance = kResults.GetInt("CombatModPerCSAlliance");
+	m_iAttackModPerSamePromotionAttack = kResults.GetInt("AttackModPerSamePromotionAttack");
+	m_iAttackModPerSamePromotionAttackCap = kResults.GetInt("AttackModPerSamePromotionAttackCap");
 	m_iAoEDamageOnMove = kResults.GetInt("AoEDamageOnMove");
 	m_iPartialHealOnPillage = kResults.GetInt("PartialHealOnPillage");
 	m_iSplashDamage = kResults.GetInt("SplashDamage");
@@ -628,6 +705,7 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	m_bNoSupply = kResults.GetBool("NoSupply");
 	m_iMaxHitPointsChange = kResults.GetInt("MaxHitPointsChange");
 	m_iMaxHitPointsModifier = kResults.GetInt("MaxHitPointsModifier");
+	m_iVsUnhappyMod = kResults.GetInt("VsUnhappyMod");
 	m_iUpgradeDiscount = kResults.GetInt("UpgradeDiscount");
 	m_iExperiencePercent = kResults.GetInt("ExperiencePercent");
 	m_iAdjacentMod = kResults.GetInt("AdjacentMod");
@@ -635,21 +713,26 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	m_iAttackMod = kResults.GetInt("AttackMod");
 	m_iDefenseMod = kResults.GetInt("DefenseMod");
 	m_iBorderMod = kResults.GetInt("BorderMod");
+	m_iMarriageMod = kResults.GetInt("MarriageMod");
+	m_iMarriageModCap = kResults.GetInt("MarriageModCap");
 	m_iGetGroundAttackDamage = kResults.GetInt("GetGroundAttackDamage");
 	m_iDropRange = kResults.GetInt("DropRange");
 	m_iExtraNavalMoves = kResults.GetInt("ExtraNavalMovement");
 	m_iHPHealedIfDefeatEnemy = kResults.GetInt("HPHealedIfDestroyEnemy");
 	m_iGoldenAgeValueFromKills = kResults.GetInt("GoldenAgeValueFromKills");
 	m_iExtraWithdrawal = kResults.GetInt("ExtraWithdrawal");
+	m_iCombatChange = kResults.GetInt("CombatChange");
+	m_iTileDamageIfNotMoved = kResults.GetInt("TileDamageIfNotMoved");
+	m_iFortifiedModifier = kResults.GetInt("FortifiedModifier");
+	m_iMinEffectiveHealth = kResults.GetInt("MinEffectiveHealth");
+	m_bRequiresLeadership = kResults.GetBool("RequiresLeadership");
+	m_bCannotHeal = kResults.GetBool("CannotHeal");
+	m_bPillageFortificationsOnKill = kResults.GetBool("PillageFortificationsOnKill");
 #if defined(MOD_BALANCE_CORE_JFD)
-	m_iPlagueChance = kResults.GetInt("PlagueChance");
 
-	const char* szPlaguePromotion = kResults.GetText("PlaguePromotion");
-	m_iPlaguePromotion = GC.getInfoTypeForString(szPlaguePromotion, true);
 
 	m_iPlagueID = kResults.GetInt("PlagueID");
 	m_iPlaguePriority = kResults.GetInt("PlaguePriority");
-	m_iPlagueIDImmunity = kResults.GetInt("PlagueIDImmunity");
 #endif
 	m_iEmbarkExtraVisibility = kResults.GetInt("EmbarkExtraVisibility");
 	m_iEmbarkDefenseModifier = kResults.GetInt("EmbarkDefenseModifier");
@@ -718,6 +801,8 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	{
 		kUtility.InitializeArray(m_piTerrainAttackPercent, iNumTerrains, 0);
 		kUtility.InitializeArray(m_piTerrainDefensePercent, iNumTerrains, 0);
+		kUtility.InitializeArray(m_piTerrainModifierAttack, iNumTerrains, 0);
+		kUtility.InitializeArray(m_piTerrainModifierDefense, iNumTerrains, 0);
 		kUtility.InitializeArray(m_piTerrainPassableTech, iNumTerrains, NO_TECH);
 		kUtility.InitializeArray(m_pbIgnoreTerrainCostIn, iNumTerrains, false);
 		kUtility.InitializeArray(m_pbIgnoreTerrainCostFrom, iNumTerrains, false);
@@ -781,6 +866,37 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 
 			const int iPassableTechID = pResults->GetInt("PassableTechID");
 			m_piTerrainPassableTech[iTerrainID] = iPassableTechID;
+		}
+	}
+
+	//UnitPromotions_TerrainModifiers
+	{
+		kUtility.InitializeArray(m_piTerrainModifierAttack, iNumTerrains, 0);
+		kUtility.InitializeArray(m_piTerrainModifierDefense, iNumTerrains, 0);
+
+		std::string sqlKey = "UnitPromotions_TerrainModifiers";
+		Database::Results* pResults = kUtility.GetResults(sqlKey);
+		if (pResults == NULL)
+		{
+			const char* szSQL = "select Terrains.ID as TerrainID, UnitPromotions_TerrainModifiers.Attack, UnitPromotions_TerrainModifiers.Defense from UnitPromotions_TerrainModifiers inner join Terrains on TerrainType = Terrains.Type where PromotionType = ?";
+			pResults = kUtility.PrepareResults(sqlKey, szSQL);
+		}
+
+		ASSERT_DEBUG(pResults);
+		if (!pResults) return false;
+
+		pResults->Bind(1, szPromotionType);
+
+		while (pResults->Step())
+		{
+			const int iTerrainID = pResults->GetInt("TerrainID");
+			ASSERT_DEBUG(iTerrainID > -1 && iTerrainID < iNumTerrains);
+
+			const int iTerrainAttack = pResults->GetInt("Attack");
+			m_piTerrainModifierAttack[iTerrainID] = iTerrainAttack;
+
+			const int iTerrainDefense = pResults->GetInt("Defense");
+			m_piTerrainModifierDefense[iTerrainID] = iTerrainDefense;
 		}
 	}
 
@@ -856,6 +972,8 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 #if defined(MOD_BALANCE_CORE)
 	kUtility.SetYields(m_piYieldModifier, "UnitPromotions_YieldModifiers", "PromotionType", szPromotionType);
 	kUtility.SetYields(m_piYieldChange, "UnitPromotions_YieldChanges", "PromotionType", szPromotionType);
+	kUtility.SetYields(m_piYieldFromAncientRuins, "UnitPromotions_YieldFromAncientRuins", "PromotionType", szPromotionType);
+	kUtility.SetYields(m_piYieldFromTRPlunder, "UnitPromotions_YieldFromTRPlunder", "PromotionType", szPromotionType);
 
 	//UnitPromotions_YieldFromScouting
 	{
@@ -908,6 +1026,32 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 
 			const int iYield = pResults->GetInt("Yield");
 			m_piYieldFromKills[iYieldID] = iYield;
+		}
+	}
+	//UnitPromotions_YieldFromCombatExperienceTimes100
+	{
+		kUtility.InitializeArray(m_piYieldFromCombatExperienceTimes100, NUM_YIELD_TYPES, 0);
+
+		std::string sqlKey = "UnitPromotions_YieldFromCombatExperienceTimes100";
+		Database::Results* pResults = kUtility.GetResults(sqlKey);
+		if(pResults == NULL)
+		{
+			const char* szSQL = "select Yields.ID as YieldID, UnitPromotions_YieldFromCombatExperienceTimes100.* from UnitPromotions_YieldFromCombatExperienceTimes100 inner join Yields on YieldType = Yields.Type where PromotionType = ?";
+			pResults = kUtility.PrepareResults(sqlKey, szSQL);
+		}
+
+		ASSERT_DEBUG(pResults);
+		if(!pResults) return false;
+
+		pResults->Bind(1, szPromotionType);
+
+		while(pResults->Step())
+		{
+			const int iYieldID = pResults->GetInt("YieldID");
+			ASSERT_DEBUG(iYieldID > -1 && iYieldID < NUM_YIELD_TYPES);
+
+			const int iYield = pResults->GetInt("Yield");
+			m_piYieldFromCombatExperienceTimes100[iYieldID] = iYield;
 		}
 	}
 	//UnitPromotions_GarrisonYield
@@ -1137,12 +1281,14 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	//UnitPromotions_UnitCombatMods
 	{
 		kUtility.InitializeArray(m_piUnitCombatModifierPercent, iNumUnitCombatClasses, 0);
+		kUtility.InitializeArray(m_piUnitCombatModifierPercentAttack, iNumUnitCombatClasses, 0);
+		kUtility.InitializeArray(m_piUnitCombatModifierPercentDefense, iNumUnitCombatClasses, 0);
 
 		std::string sqlKey = "m_piUnitCombatModifierPercent";
 		Database::Results* pResults = kUtility.GetResults(sqlKey);
 		if(pResults == NULL)
 		{
-			const char* szSQL = "select UnitCombatInfos.ID, Modifier from UnitPromotions_UnitCombatMods inner join UnitCombatInfos on UnitCombatInfos.Type = UnitCombatType where PromotionType = ?;";
+			const char* szSQL = "select UnitCombatInfos.ID, Modifier, Attack, Defense from UnitPromotions_UnitCombatMods inner join UnitCombatInfos on UnitCombatInfos.Type = UnitCombatType where PromotionType = ?;";
 			pResults = kUtility.PrepareResults(sqlKey, szSQL);
 		}
 
@@ -1158,6 +1304,12 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 
 			const int iUnitCombatMod = pResults->GetInt(1);
 			m_piUnitCombatModifierPercent[iUnitCombatID] = iUnitCombatMod;
+
+			const int iUnitCombatModAttack = pResults->GetInt(2);
+			m_piUnitCombatModifierPercentAttack[iUnitCombatID] = iUnitCombatModAttack;
+
+			const int iUnitCombatModDefense = pResults->GetInt(3);
+			m_piUnitCombatModifierPercentDefense[iUnitCombatID] = iUnitCombatModDefense;
 		}
 
 		pResults->Reset();
@@ -1218,6 +1370,68 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 
 		pResults->Reset();
 	}
+
+	//UnitPromotions_BlockedPromotions
+	{
+		m_siBlockedPromotions.clear();
+
+		std::string sqlKey = "UnitPromotions_BlockedPromotions";
+		Database::Results* pResults = kUtility.GetResults(sqlKey);
+		if (pResults == NULL)
+		{
+			const char* szSQL = "select UnitPromotions.ID from UnitPromotions_BlockedPromotions inner join UnitPromotions On UnitPromotions.Type = BlockedPromotionType where UnitPromotions_BlockedPromotions.PromotionType = ?";
+			pResults = kUtility.PrepareResults(sqlKey, szSQL);
+		}
+
+		ASSERT_DEBUG(pResults);
+		if (!pResults) return false;
+
+		pResults->Bind(1, szPromotionType);
+
+		while (pResults->Step())
+		{
+			const int iBlockedPromotion = pResults->GetInt(0);
+
+			m_siBlockedPromotions.insert(iBlockedPromotion);
+		}
+
+		pResults->Reset();
+	}
+
+	//UnitPromotions_Plagues
+	{
+		m_vsPlagues.clear();
+
+		std::string sqlKey = "UnitPromotions_Plagues";
+		Database::Results* pResults = kUtility.GetResults(sqlKey);
+		if (pResults == NULL)
+		{
+			const char* szSQL = "select UnitPromotions.ID as PromotionID, Domains.ID as DomainID, ApplyOnAttack, ApplyOnDefense, ApplyChance from UnitPromotions_Plagues inner join UnitPromotions On UnitPromotions.Type = PlaguePromotionType inner join Domains on DomainType = Domains.Type where UnitPromotions_Plagues.PromotionType = ?";
+			pResults = kUtility.PrepareResults(sqlKey, szSQL);
+		}
+
+		ASSERT_DEBUG(pResults);
+		if (!pResults) return false;
+
+		pResults->Bind(1, szPromotionType);
+
+		while (pResults->Step())
+		{
+			PlagueInfo plagueInfo;
+
+			plagueInfo.ePlague = (PromotionTypes)pResults->GetInt(0);
+			plagueInfo.eDomain = (DomainTypes)pResults->GetInt(1);
+			plagueInfo.bApplyOnAttack = pResults->GetBool(2);
+			plagueInfo.bApplyOnDefense = pResults->GetBool(3);
+			plagueInfo.iApplyChance = pResults->GetInt(4);
+
+			m_vsPlagues.push_back(plagueInfo);
+		}
+
+		pResults->Reset();
+	}
+
+
 
 	//UnitPromotions_YieldFromPillage
 	{
@@ -1828,6 +2042,12 @@ int CvPromotionEntry::GetMaxHitPointsModifier() const
 	return m_iMaxHitPointsModifier;
 }
 
+/// Accessor: Modifier against units of unhappy empires
+int CvPromotionEntry::GetVsUnhappyMod() const
+{
+	return m_iVsUnhappyMod;
+}
+
 /// Accessor: How much upgrading this unit is discounted
 int CvPromotionEntry::GetUpgradeDiscount() const
 {
@@ -1869,6 +2089,19 @@ int CvPromotionEntry::GetBorderMod() const
 {
 	return m_iBorderMod;
 }
+
+/// Accessor: Per-Marriage combat strength change
+int CvPromotionEntry::GetMarriageMod() const
+{
+	return m_iMarriageMod;
+}
+
+/// Accessor: Per-Marriage combat strength change cap
+int CvPromotionEntry::GetMarriageModCap() const
+{
+	return m_iMarriageModCap;
+}
+
 /// Accessor: Percent defense change
 int CvPromotionEntry::GetGroundAttackDamage() const
 {
@@ -1904,17 +2137,51 @@ int CvPromotionEntry::GetExtraWithdrawal() const
 {
 	return m_iExtraWithdrawal;
 }
+
+/// Accessor: added base combat strength
+int CvPromotionEntry::GetCombatChange() const
+{
+	return m_iCombatChange;
+}
+
+/// Accessor: additional damage to all units on the target tile if the unit didn't move before the attack
+int CvPromotionEntry::GetTileDamageIfNotMoved() const
+{
+	return m_iTileDamageIfNotMoved;
+}
+
+/// Accessor: Percentage multiplier on fortify combat strength bonus
+int CvPromotionEntry::GetFortifiedModifier() const
+{
+	return m_iFortifiedModifier;
+}
+
+/// Accessor: promotion is only active if the unit starts its turn with a minimum percentage of their maximum health
+int CvPromotionEntry::GetMinEffectiveHealth() const
+{
+	return m_iMinEffectiveHealth;
+}
+
+/// Accessor: promotion is only active if the unit starts its turn affected by the leadership aura of a great general/admiral
+bool CvPromotionEntry::IsRequiresLeadership() const
+{
+	return m_bRequiresLeadership;
+}
+
+/// Accessor: units with this promotion cannot heal
+bool CvPromotionEntry::IsCannotHeal() const
+{
+	return m_bCannotHeal;
+}
+
+bool CvPromotionEntry::IsPillageFortificationsOnKill() const
+{
+	return m_bPillageFortificationsOnKill;
+}
+
 #if defined(MOD_BALANCE_CORE_JFD)
-/// Chance to transmit a promotion on attack (heyo)
-int CvPromotionEntry::GetPlagueChance() const
-{
-	return m_iPlagueChance;
-}
-/// Transmittable promotions
-int CvPromotionEntry::GetPlaguePromotion() const
-{
-	return m_iPlaguePromotion;
-}
+
+
 
 int CvPromotionEntry::GetPlagueID() const
 {
@@ -1924,11 +2191,6 @@ int CvPromotionEntry::GetPlagueID() const
 int CvPromotionEntry::GetPlaguePriority() const
 {
 	return m_iPlaguePriority;
-}
-
-int CvPromotionEntry::GetPlagueIDImmunity() const
-{
-	return m_iPlagueIDImmunity;
 }
 #endif
 
@@ -1996,9 +2258,15 @@ bool CvPromotionEntry::IsGainsXPFromScouting() const
 }
 
 /// Accessor: Can this Promotion grant XP from pillaging?
-bool CvPromotionEntry::IsGainsXPFromPillaging() const
+int CvPromotionEntry::GetXPFromPillaging() const
 {
-	return m_bGainsXPFromPillaging;
+	return m_iXPFromPillaging;
+}
+
+/// Accessor: Extra XP when killing a unit
+int CvPromotionEntry::GetExtraXPOnKill() const
+{
+	return m_iExtraXPOnKill;
 }
 
 /// Accessor: Can this Promotion grant XP from spotting?
@@ -2241,6 +2509,22 @@ int CvPromotionEntry::GetAOEDamageOnKill() const
 int CvPromotionEntry::GetAOEDamageOnPillage() const
 {
 	return m_iAOEDamageOnPillage;
+}
+int CvPromotionEntry::GetAOEHealOnPillage() const
+{
+	return m_iAOEHealOnPillage;
+}
+int CvPromotionEntry::GetCombatModPerCSAlliance() const
+{
+	return m_iCombatModPerCSAlliance;
+}
+int CvPromotionEntry::GetAttackModPerSamePromotionAttack() const
+{
+	return m_iAttackModPerSamePromotionAttack;
+}
+int CvPromotionEntry::GetAttackModPerSamePromotionAttackCap() const
+{
+	return m_iAttackModPerSamePromotionAttackCap;
 }
 int CvPromotionEntry::GetAoEDamageOnMove() const
 {
@@ -2659,6 +2943,18 @@ bool CvPromotionEntry::ArePostCombatPromotionsExclusive() const
 	return m_bPostCombatPromotionsExclusive;
 }
 
+/// Is the promotion only active if certain conditions are fulfilled?
+bool CvPromotionEntry::IsConditionalPromotion() const
+{
+	if (GetMinEffectiveHealth() > 0)
+		return true;
+
+	if (IsRequiresLeadership())
+		return true;
+
+	return false;
+}
+
 /// Accessor: Sound to play when the promotion is gained
 const char* CvPromotionEntry::GetSound() const
 {
@@ -2696,6 +2992,34 @@ int CvPromotionEntry::GetTerrainDefensePercent(int i) const
 	if(i > -1 && i < GC.getNumTerrainInfos() && m_piTerrainDefensePercent)
 	{
 		return m_piTerrainDefensePercent[i];
+	}
+
+	return 0;
+}
+
+/// Percentage bonus when attacking a tile of a given terrain
+int CvPromotionEntry::GetTerrainModifierAttack(int i) const
+{
+	ASSERT_DEBUG(i < GC.getNumTerrainInfos(), "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+
+	if(i > -1 && i < GC.getNumTerrainInfos() && m_piTerrainModifierAttack)
+	{
+		return m_piTerrainModifierAttack[i];
+	}
+
+	return 0;
+}
+
+/// Percentage bonus when when defending a tile of a given terrain
+int CvPromotionEntry::GetTerrainModifierDefense(int i) const
+{
+	ASSERT_DEBUG(i < GC.getNumTerrainInfos(), "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+
+	if(i > -1 && i < GC.getNumTerrainInfos() && m_piTerrainModifierDefense)
+	{
+		return m_piTerrainModifierDefense[i];
 	}
 
 	return 0;
@@ -2754,6 +3078,33 @@ int CvPromotionEntry::GetYieldChange(int i) const
 
 	return 0;
 }
+
+/// Instant yields when picking up ancient ruins
+int CvPromotionEntry::GetYieldFromAncientRuins(int i) const
+{
+	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	if (i > -1 && i < NUM_YIELD_TYPES && m_piYieldFromAncientRuins)
+	{
+		return m_piYieldFromAncientRuins[i];
+	}
+
+	return 0;
+}
+
+/// Instant yields when plundering a trade route
+int CvPromotionEntry::GetYieldFromTRPlunder(int i) const
+{
+	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	if (i > -1 && i < NUM_YIELD_TYPES && m_piYieldFromTRPlunder)
+	{
+		return m_piYieldFromTRPlunder[i];
+	}
+
+	return 0;
+}
+
 int CvPromotionEntry::GetYieldFromScouting(int i) const
 {
 	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
@@ -2775,6 +3126,19 @@ int CvPromotionEntry::GetYieldFromKills(int i) const
 	if(i > -1 && i < NUM_YIELD_TYPES && m_piYieldFromKills)
 	{
 		return m_piYieldFromKills[i];
+	}
+
+	return 0;
+}
+
+int CvPromotionEntry::GetYieldFromCombatExperienceTimes100(int i) const
+{
+	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+
+	if (i > -1 && i < NUM_YIELD_TYPES && m_piYieldFromCombatExperienceTimes100)
+	{
+		return m_piYieldFromCombatExperienceTimes100[i];
 	}
 
 	return 0;
@@ -2828,6 +3192,34 @@ int CvPromotionEntry::GetUnitCombatModifierPercent(int i) const
 	if(i > -1 && i < GC.getNumUnitCombatClassInfos() && m_piUnitCombatModifierPercent)
 	{
 		return m_piUnitCombatModifierPercent[i];
+	}
+
+	return 0;
+}
+
+/// Percentage bonus when attacking a specific unit *combat* class
+int CvPromotionEntry::GetUnitCombatModifierPercentAttack(int i) const
+{
+	ASSERT_DEBUG(i < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+
+	if(i > -1 && i < GC.getNumUnitCombatClassInfos() && m_piUnitCombatModifierPercentAttack)
+	{
+		return m_piUnitCombatModifierPercentAttack[i];
+	}
+
+	return 0;
+}
+
+/// Percentage bonus when defending against a specific unit *combat* class
+int CvPromotionEntry::GetUnitCombatModifierPercentDefense(int i) const
+{
+	ASSERT_DEBUG(i < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+
+	if(i > -1 && i < GC.getNumUnitCombatClassInfos() && m_piUnitCombatModifierPercentDefense)
+	{
+		return m_piUnitCombatModifierPercentDefense[i];
 	}
 
 	return 0;
@@ -3253,6 +3645,16 @@ std::pair<int, int> CvPromotionEntry::GetYieldFromPillage(YieldTypes eYield) con
 	return std::make_pair(0, 0);
 }
 
+std::set<int> CvPromotionEntry::GetBlockedPromotions() const
+{
+	return m_siBlockedPromotions;
+}
+
+std::vector<PlagueInfo> CvPromotionEntry::GetPlagues() const
+{
+	return m_vsPlagues;
+}
+
 #if defined(MOD_PROMOTIONS_UNIT_NAMING)
 /// If this a promotion that names a unit
 bool CvPromotionEntry::IsUnitNaming(int i) const
@@ -3358,6 +3760,7 @@ void CvUnitPromotions::Uninit()
 void CvUnitPromotions::Reset()
 {
 	m_kHasPromotion.SetSize(0);
+	m_kPromotionActive.SetSize(0);
 
 	m_unitClassDefenseMod.clear();
 	m_unitClassAttackMod.clear();
@@ -3372,6 +3775,7 @@ template<typename UnitPromotions, typename Visitor>
 void CvUnitPromotions::Serialize(UnitPromotions& unitPromotions, Visitor& visitor)
 {
 	visitor(unitPromotions.m_kHasPromotion);
+	visitor(unitPromotions.m_kPromotionActive);
 }
 
 /// Serialization read
@@ -3431,6 +3835,34 @@ void CvUnitPromotions::SetPromotion(PromotionTypes eIndex, bool bValue)
 	UpdateCache();
 }
 
+/// Accessor: Does the unit have a certain promotion
+bool CvUnitPromotions::IsPromotionActive(PromotionTypes eIndex) const
+{
+	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	ASSERT_DEBUG(eIndex < GC.getNumPromotionInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+
+	if (eIndex >= 0 && eIndex < GC.getNumPromotionInfos())
+	{
+		return m_kPromotionActive.GetBit(eIndex);
+	}
+
+	return false;
+}
+
+/// Sets the promotion to a certain value
+void CvUnitPromotions::SetPromotionActive(PromotionTypes eIndex, bool bValue)
+{
+	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	ASSERT_DEBUG(eIndex < GC.getNumPromotionInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+
+	if (eIndex >= 0 && eIndex < GC.getNumPromotionInfos())
+	{
+		m_kPromotionActive.SetBit(eIndex, bValue);
+	}
+	
+	UpdateCache();
+}
+
 /// determines if the terrain type is passable given the unit's current promotions
 void CvUnitPromotions::UpdateCache()
 {
@@ -3444,7 +3876,8 @@ void CvUnitPromotions::UpdateCache()
 		std::vector<TechTypes> reqTechs;
 		for(int iPromotion = 0; iPromotion < GC.getNumPromotionInfos(); iPromotion++)
 		{
-			if(m_kHasPromotion.GetBit(iPromotion))
+			PromotionTypes ePromotion = (PromotionTypes)iPromotion;
+			if (HasPromotion(ePromotion) && IsPromotionActive(ePromotion))
 			{
 				CvPromotionEntry* promotion = GC.getPromotionInfo((PromotionTypes)iPromotion);
 				if(promotion)
@@ -3467,9 +3900,10 @@ void CvUnitPromotions::UpdateCache()
 		std::vector<TechTypes> reqTechs;
 		for(int iPromotion = 0; iPromotion < GC.getNumPromotionInfos(); iPromotion++)
 		{
-			if(m_kHasPromotion.GetBit(iPromotion))
+			PromotionTypes ePromotion = (PromotionTypes)iPromotion;
+			if (HasPromotion(ePromotion) && IsPromotionActive(ePromotion))
 			{
-				CvPromotionEntry* promotion = GC.getPromotionInfo((PromotionTypes)iPromotion);
+				CvPromotionEntry* promotion = GC.getPromotionInfo(ePromotion);
 				if(promotion)
 				{
 					TechTypes eTech = (TechTypes) promotion->GetFeaturePassableTech(iFeature);

@@ -422,7 +422,7 @@ bool CvBarbarians::DoStealFromCity(CvUnit* pUnit, CvCity* pCity)
 	int iYield = GC.getGame().randRangeInclusive(1, 10, pCity->plot()->GetPseudoRandomSeed().mix(pUnit->plot()->GetPlotIndex()).mix(iDamageTaken).mix(iRemainingHP));
 	if (iYield <= 2)
 	{
-		int iGold = std::min(pCity->getBaseYieldRate(YIELD_GOLD) * iTheftTurns, iRemainingHP);
+		int iGold = std::min(pCity->getYieldRateTimes100(YIELD_GOLD) * iTheftTurns / 100, iRemainingHP);
 		if (iGold > 0)
 		{
 			pUnit->changeDamage(iDamageTaken);
@@ -448,7 +448,7 @@ bool CvBarbarians::DoStealFromCity(CvUnit* pUnit, CvCity* pCity)
 	}
 	else if (iYield <= 4)
 	{
-		int iCulture = std::min(pCity->getJONSCulturePerTurn() * iTheftTurns, iRemainingHP);
+		int iCulture = std::min(pCity->getYieldRateTimes100(YIELD_CULTURE) * iTheftTurns / 100, iRemainingHP);
 		if (iCulture > 0)
 		{
 			pUnit->changeDamage(iDamageTaken);
@@ -477,7 +477,7 @@ bool CvBarbarians::DoStealFromCity(CvUnit* pUnit, CvCity* pCity)
 		int iScience = 0;
 		if (eCurrentTech != NO_TECH)
 		{
-			iScience = std::min(pCity->getBaseYieldRate(YIELD_SCIENCE) * iTheftTurns, iRemainingHP);
+			iScience = std::min(pCity->getYieldRateTimes100(YIELD_SCIENCE) * iTheftTurns / 100, iRemainingHP);
 			if (iScience > 0)
 			{
 				pUnit->changeDamage(iDamageTaken);
@@ -504,7 +504,7 @@ bool CvBarbarians::DoStealFromCity(CvUnit* pUnit, CvCity* pCity)
 	}
 	else if (iYield <= 8)
 	{
-		int iFood = std::min(pCity->getBaseYieldRate(YIELD_FOOD) * iTheftTurns, iRemainingHP);
+		int iFood = std::min(pCity->getYieldRateTimes100(YIELD_FOOD) * iTheftTurns / 100, iRemainingHP);
 		if (iFood > 0)
 		{
 			pUnit->changeDamage(iDamageTaken);
@@ -532,7 +532,7 @@ bool CvBarbarians::DoStealFromCity(CvUnit* pUnit, CvCity* pCity)
 	{
 		if (pCity->getProduction() > 0 && pCity->getProductionTurnsLeft() >= 2 && pCity->getProductionTurnsLeft() != INT_MAX)
 		{
-			int iProduction = std::min(pCity->getBaseYieldRate(YIELD_PRODUCTION) * iTheftTurns, iRemainingHP);
+			int iProduction = std::min(pCity->getYieldRateTimes100(YIELD_PRODUCTION) * iTheftTurns / 100, iRemainingHP);
 			if (iProduction > 0)
 			{
 				pUnit->changeDamage(iDamageTaken);
@@ -585,7 +585,6 @@ void CvBarbarians::DoCamps()
 	CvGame& kGame = GC.getGame();
 	ImprovementTypes eCamp = (ImprovementTypes)GD_INT_GET(BARBARIAN_CAMP_IMPROVEMENT);
 	CvImprovementEntry* pkCampInfo = GC.getImprovementInfo(eCamp);
-	int iGameTurn = GC.getGame().getGameTurn();
 	int iInitialSpawnTurn = /*0 in CP, 2 in VP*/ std::max(GD_INT_GET(BARBARIAN_INITIAL_SPAWN_TURN), 0);
 	if (eCamp == NO_IMPROVEMENT || pkCampInfo == NULL)
 		return;
@@ -642,7 +641,6 @@ void CvBarbarians::DoCamps()
 
 	CvMap& theMap = GC.getMap();
 	int iNumCampsInExistence = 0;
-	int iNumCoastalCamps = 0;
 	int iNumWorldPlots = theMap.numPlots();
 	int iMajorCapitalMinDistance = /*4*/ GD_INT_GET(BARBARIAN_CAMP_MINIMUM_DISTANCE_CAPITAL);
 	int iBarbCampMinDistance = /*4*/ GD_INT_GET(BARBARIAN_CAMP_MINIMUM_DISTANCE_ANOTHER_CAMP);
@@ -681,9 +679,6 @@ void CvBarbarians::DoCamps()
 				BarbCamps.push_back(pLoopPlot->GetPlotIndex());
 
 			iNumCampsInExistence++;
-			if (pLoopPlot->isCoastalLand())
-				iNumCoastalCamps++;
-
 			continue;
 		}
 		// City here
@@ -979,8 +974,6 @@ void CvBarbarians::DoCamps()
 			break;
 
 		iNumCampsInExistence++;
-		if (pPlot->isCoastalLand())
-			iNumCoastalCamps++;
 
 		// Check to see if any plots in the list are now too close to the new camp, and remove any that are
 		vPotentialPlots = vValidPlots;

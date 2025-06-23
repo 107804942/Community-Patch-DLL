@@ -731,14 +731,14 @@ static int GetCapitalConnectionValue(CvPlayer* pPlayer, CvCity* pCity, RouteType
 	if (GC.getGame().GetIndustrialRoute() == eRoute)
 	{
 		int iProductionYieldBaseModifierTimes100 = GetYieldBaseModifierTimes100(YIELD_PRODUCTION);
-		int iProductionYieldTimes100 = pCity->getBasicYieldRateTimes100(YIELD_PRODUCTION);
+		int iBaseProductionYieldTimes100 = pCity->getBaseYieldRateTimes100(YIELD_PRODUCTION);
 		int iProductionYieldRateModifierTimes100 = /*25 in CP, 0 in VP*/ GD_INT_GET(INDUSTRIAL_ROUTE_PRODUCTION_MOD);
 
-		iConnectionValue += (iProductionYieldTimes100 * iProductionYieldRateModifierTimes100 * iProductionYieldBaseModifierTimes100) / 10000;
+		iConnectionValue += (iBaseProductionYieldTimes100 * iProductionYieldRateModifierTimes100) / 100;
 
 		if (MOD_BALANCE_VP)
 		{
-			int iGoldYieldTimes100 = pCity->getBasicYieldRateTimes100(YIELD_GOLD);
+			int iBaseGoldYieldTimes100 = pCity->getBaseYieldRateTimes100(YIELD_GOLD);
 			int iGoldYieldRateModifierTimes100 = 0;
 
 			// Target city would get a flat production bonus from the Industrial City Connection
@@ -762,9 +762,8 @@ static int GetCapitalConnectionValue(CvPlayer* pPlayer, CvCity* pCity, RouteType
 				iProductionYieldRateModifierTimes100 = pkBuilding->GetYieldModifier(YIELD_PRODUCTION);
 				iGoldYieldRateModifierTimes100 = pkBuilding->GetYieldModifier(YIELD_GOLD);
 
-				// Assumes current modifiers are 0%, should do some proper calculations that account for bonuses being additive rather than multiplicative
-				iConnectionValue += (iProductionYieldTimes100 * iProductionYieldRateModifierTimes100 * iProductionYieldBaseModifierTimes100) / 10000;
-				iConnectionValue += (iGoldYieldTimes100 * iGoldYieldRateModifierTimes100 * iGoldYieldBaseModifierTimes100) / 10000;
+				iConnectionValue += (iBaseProductionYieldTimes100 * iProductionYieldRateModifierTimes100) / 100;
+				iConnectionValue += (iBaseGoldYieldTimes100 * iGoldYieldRateModifierTimes100) / 100;
 			}
 		}
 	}
@@ -3477,9 +3476,6 @@ pair<int,int> CvBuilderTaskingAI::ScorePlotBuild(CvPlot* pPlot, ImprovementTypes
 				if (eBestPotentialAdjacentImprovement == NO_IMPROVEMENT)
 					continue;
 
-				fraction fBestBonusToAdjacentTile = 0;
-				fraction fBestBonusToThisTile = 0;
-
 				if (pkImprovementInfo->GetYieldPerXAdjacentImprovement(eYield, eBestPotentialAdjacentImprovement) != 0)
 				{
 					fPotentialBonusToThisTile += pkImprovementInfo->GetYieldPerXAdjacentImprovement(eYield, eBestPotentialAdjacentImprovement);
@@ -3684,8 +3680,10 @@ pair<int,int> CvBuilderTaskingAI::ScorePlotBuild(CvPlot* pPlot, ImprovementTypes
 	if (bNewIsDefensive)
 	{
 		int iDefenseBuildValue = pPlot->GetDefenseBuildValue(m_pPlayer->GetID(), eBuild, eImprovement, sState);
-		if (iDefenseBuildValue != 0)
+		if (iDefenseBuildValue > 0)
 			iSecondaryScore += iDefenseBuildValue;
+		else
+			iYieldScore /= 2; //de-emphasize yields if we're not close to the border
 	}
 
 	// How many tiles will be covered by an encampment bonus (or similar)
@@ -4487,12 +4485,12 @@ void CvBuilderTaskingAI::UpdateCurrentPlotYields(const CvPlot* pPlot)
 #endif
 		m_aiCurrentPlotYields[ui] = pPlot->getYield((YieldTypes)ui);
 
-		if(m_bLogging){
+		/*if (m_bLogging) {
 			CvString strLog;
 			YieldTypes yield = (YieldTypes) ui;
 			strLog.Format("Plot Yield Update, %s, %i, %i, %i", FSerialization::toString(yield).c_str(), m_aiCurrentPlotYields[ui], pPlot->getX(), pPlot->getY());
 			LogYieldInfo(strLog, m_pPlayer);
-		}
+		}*/
 #if defined(MOD_BALANCE_CORE)
 		}
 		else
@@ -4553,12 +4551,12 @@ void CvBuilderTaskingAI::UpdateProjectedPlotYields(const CvPlot* pPlot, BuildTyp
 				}
 #endif
 
-				if (m_bLogging){
+				/*if (m_bLogging) {
 					CvString strLog;
 					YieldTypes yield = (YieldTypes)ui;
 					strLog.Format("Plot Projected Yield Update, %s, %i, %i, %i", FSerialization::toString(yield).c_str(), m_aiProjectedPlotYields[ui], pPlot->getX(), pPlot->getY());
 					LogYieldInfo(strLog, m_pPlayer);
-				}
+				}*/
 #if defined(MOD_BALANCE_CORE)
 			}
 			else
@@ -4578,12 +4576,12 @@ void CvBuilderTaskingAI::UpdateProjectedPlotYields(const CvPlot* pPlot, BuildTyp
 				m_aiProjectedPlotYields[ui] = pPlot->getYieldWithBuild(eBuild, (YieldTypes)ui, false, eForceCityConnection, m_pPlayer->GetID(), NULL, NULL, NULL);
 				m_aiProjectedPlotYields[ui] = max(m_aiProjectedPlotYields[ui], 0);
 
-				if (m_bLogging){
+				/*if (m_bLogging) {
 					CvString strLog;
 					YieldTypes yield = (YieldTypes)ui;
 					strLog.Format("Plot Projected Yield Update, %s, %i, %i, %i", FSerialization::toString(yield).c_str(), m_aiProjectedPlotYields[ui], pPlot->getX(), pPlot->getY());
 					LogYieldInfo(strLog, m_pPlayer);
-				}
+				}*/
 #if defined(MOD_BALANCE_CORE)
 			}
 			else

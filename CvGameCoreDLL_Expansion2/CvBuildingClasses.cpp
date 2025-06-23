@@ -336,6 +336,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piYieldChangesPerLocalTheme(NULL),
 	m_piYieldFromUnitGiftGlobal(NULL),
 	m_piYieldFromWLTKD(NULL),
+	m_piInstantYieldFromWLTKDStart(NULL),
 	m_piYieldFromGPExpend(NULL),
 	m_piThemingYieldBonus(NULL),
 	m_piYieldFromSpyAttack(NULL),
@@ -365,14 +366,19 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piYieldFromPurchase(NULL),
 	m_piYieldFromPurchaseGlobal(NULL),
 	m_piYieldFromFaithPurchase(NULL),
+	m_piYieldFromUnitLevelUpGlobal(NULL),
 #endif
 	m_piYieldChange(NULL),
+	m_piYieldChangeEraScalingTimes100(NULL),
+	m_pfYieldChangePerBuilding(NULL),
+	m_pfYieldChangePerTile(NULL),
+	m_pfYieldChangePerCityStateStrategicResource(NULL),
 	m_piYieldChangePerPop(NULL),
-#if defined(MOD_BALANCE_CORE)
 	m_piYieldChangePerPopInEmpire(),
-#endif
+	m_miExtraPlayerInstancesFromAccomplishments(),
 	m_siUnitClassTrainingAllowed(),
 	m_sibResourceClaim(),
+	m_miWLTKDFromProject(),
 	m_piYieldChangePerReligion(NULL),
 	m_piYieldModifier(NULL),
 	m_piAreaYieldModifier(NULL),
@@ -398,6 +404,8 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_viResourceMonopolyOrs(),
 	m_iGPRateModifierPerXFranchises(0),
 	m_piResourceQuantityPerXFranchises(NULL),
+	m_piYieldChangePerMonopoly(NULL),
+	m_piYieldChangeFromPassingTR(NULL),
 	m_piYieldPerFranchise(NULL),
 #endif
 	m_piResourceQuantityFromPOP(NULL),
@@ -413,6 +421,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piYieldPerAlly(NULL),
 	m_piYieldChangeWorldWonder(NULL),
 	m_piYieldChangeWorldWonderGlobal(NULL),
+	m_piLuxuryYieldChanges(NULL),
 #endif
 	m_piNumFreeUnits(NULL),
 	m_bArtInfoEraVariation(false),
@@ -423,6 +432,8 @@ CvBuildingEntry::CvBuildingEntry(void):
 #if defined(MOD_BALANCE_CORE)
 	m_ppiResourceYieldChangeGlobal(),
 	m_miTechEnhancedYields(),
+	m_miBonusFromAccomplishments(),
+	m_miYieldChangesFromAccomplishments(),
 	m_miGreatPersonPointFromConstruction(),
 	m_ppaiImprovementYieldChange(NULL),
 	m_ppaiImprovementYieldChangeGlobal(NULL),
@@ -434,6 +445,8 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_ppaiTerrainYieldChange(NULL),
 	m_ppaiYieldPerXTerrain(NULL),
 	m_ppaiYieldPerXFeature(NULL),
+	m_ppYieldPerXImprovementLocal(),
+	m_ppYieldPerXImprovementGlobal(),
 	m_ppaiPlotYieldChange(NULL),
 	m_ppiBuildingClassYieldChanges(NULL),
 	m_ppiBuildingClassYieldModifiers(NULL),
@@ -492,6 +505,7 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piYieldChangesPerLocalTheme);
 	SAFE_DELETE_ARRAY(m_piYieldFromUnitGiftGlobal);
 	SAFE_DELETE_ARRAY(m_piYieldFromWLTKD);
+	SAFE_DELETE_ARRAY(m_piInstantYieldFromWLTKDStart);
 	SAFE_DELETE_ARRAY(m_piYieldFromGPExpend);
 	SAFE_DELETE_ARRAY(m_piThemingYieldBonus);
 	SAFE_DELETE_ARRAY(m_piYieldFromSpyAttack);
@@ -523,14 +537,19 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piYieldFromPurchase);
 	SAFE_DELETE_ARRAY(m_piYieldFromPurchaseGlobal);
 	SAFE_DELETE_ARRAY(m_piYieldFromFaithPurchase);
+	SAFE_DELETE_ARRAY(m_piYieldFromUnitLevelUpGlobal);
 #endif
 	SAFE_DELETE_ARRAY(m_piYieldChange);
+	SAFE_DELETE_ARRAY(m_piYieldChangeEraScalingTimes100);
+	SAFE_DELETE_ARRAY(m_pfYieldChangePerBuilding);
+	SAFE_DELETE_ARRAY(m_pfYieldChangePerTile);
+	SAFE_DELETE_ARRAY(m_pfYieldChangePerCityStateStrategicResource);
 	SAFE_DELETE_ARRAY(m_piYieldChangePerPop);
-#if defined(MOD_BALANCE_CORE)
 	m_piYieldChangePerPopInEmpire.clear();
-#endif
+	m_miExtraPlayerInstancesFromAccomplishments.clear();
 	m_siUnitClassTrainingAllowed.clear();
 	m_sibResourceClaim.clear();
+	m_miWLTKDFromProject.clear();
 	SAFE_DELETE_ARRAY(m_piYieldChangePerReligion);
 	SAFE_DELETE_ARRAY(m_piYieldModifier);
 	SAFE_DELETE_ARRAY(m_piAreaYieldModifier);
@@ -554,6 +573,8 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piLocalFeatureAnds);
 	m_viResourceMonopolyAnds.clear();
 	m_viResourceMonopolyOrs.clear();
+	SAFE_DELETE_ARRAY(m_piYieldChangePerMonopoly);
+	SAFE_DELETE_ARRAY(m_piYieldChangeFromPassingTR);
 	SAFE_DELETE_ARRAY(m_piYieldPerFranchise);
 	SAFE_DELETE_ARRAY(m_piResourceQuantityPerXFranchises);
 #endif
@@ -571,6 +592,7 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piYieldPerAlly);
 	SAFE_DELETE_ARRAY(m_piYieldChangeWorldWonder);
 	SAFE_DELETE_ARRAY(m_piYieldChangeWorldWonderGlobal);
+	SAFE_DELETE_ARRAY(m_piLuxuryYieldChanges);
 #endif
 	SAFE_DELETE_ARRAY(m_piNumFreeUnits);
 	SAFE_DELETE_ARRAY(m_paiBuildingClassHappiness);
@@ -586,6 +608,8 @@ CvBuildingEntry::~CvBuildingEntry(void)
 #if defined(MOD_BALANCE_CORE)
 	m_ppiResourceYieldChangeGlobal.clear();
 	m_miTechEnhancedYields.clear();
+	m_miBonusFromAccomplishments.clear();
+	m_miYieldChangesFromAccomplishments.clear();
 	m_miGreatPersonPointFromConstruction.clear();
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiImprovementYieldChange);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiImprovementYieldChangeGlobal);
@@ -596,6 +620,8 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiTerrainYieldChange);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiYieldPerXTerrain);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiYieldPerXFeature);
+	m_ppYieldPerXImprovementLocal.clear();
+	m_ppYieldPerXImprovementGlobal.clear();
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiPlotYieldChange);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppiBuildingClassYieldChanges);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppiBuildingClassYieldModifiers);
@@ -1011,6 +1037,8 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.SetYields(m_piYieldChangesPerLocalTheme, "Building_YieldChangesPerLocalTheme", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromUnitGiftGlobal, "Building_YieldFromUnitGiftGlobal", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromWLTKD, "Building_WLTKDYieldMod", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piInstantYieldFromWLTKDStart, "Building_InstantYieldFromWLTKDStart", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piInstantYieldFromWLTKDStart, "Building_InstantYieldFromWLTKDStart", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromGPExpend, "Building_YieldFromGPExpend", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piThemingYieldBonus, "Building_ThemingYieldBonus", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromSpyAttack, "Building_YieldFromSpyAttack", "BuildingType", szBuildingType);
@@ -1055,6 +1083,26 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 		//Trim extra memory off container since this is mostly read-only.
 		map<GreatPersonTypes, map<pair<YieldTypes, YieldTypes>, int>>(m_miYieldFromGPBirthScaledWithPerTurnYield).swap(m_miYieldFromGPBirthScaledWithPerTurnYield);
 	}
+	{
+		std::string strKey("Building_WLTKDFromProject");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select Projects.ID as ProjectID, Turns from Building_WLTKDFromProject inner join Projects on Projects.Type = ProjectType where BuildingType = ?");
+		}
+
+		pResults->Bind(1, szBuildingType);
+
+		while (pResults->Step())
+		{
+			const int iProjectID = pResults->GetInt(0);
+			const int iTurns = pResults->GetInt(1);
+
+			m_miWLTKDFromProject[(ProjectTypes)iProjectID] += iTurns;
+		}
+
+		pResults->Reset();
+	}
 	kUtility.SetYields(m_piYieldFromBirth, "Building_YieldFromBirth", "BuildingType", szBuildingType, "(IsEraScaling='false' or IsEraScaling='0')");
 	kUtility.SetYields(m_piYieldFromBirthEraScaling, "Building_YieldFromBirth", "BuildingType", szBuildingType, "(IsEraScaling='true' or IsEraScaling='1')");
 	kUtility.SetYields(m_piYieldFromBirthRetroactive, "Building_YieldFromBirthRetroactive", "BuildingType", szBuildingType);
@@ -1066,8 +1114,13 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.SetYields(m_piYieldFromPurchase, "Building_YieldFromPurchase", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromPurchaseGlobal, "Building_YieldFromPurchaseGlobal", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromFaithPurchase, "Building_YieldFromFaithPurchase", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piYieldFromUnitLevelUpGlobal, "Building_YieldFromUnitLevelUpGlobal", "BuildingType", szBuildingType);
 #endif
 	kUtility.SetYields(m_piYieldChange, "Building_YieldChanges", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piYieldChangeEraScalingTimes100, "Building_YieldChangesEraScalingTimes100", "BuildingType", szBuildingType);
+	kUtility.SetFractionYields(m_pfYieldChangePerBuilding, "Building_YieldChangesPerXBuilding", "BuildingType", szBuildingType, "NumRequired");
+	kUtility.SetFractionYields(m_pfYieldChangePerTile, "Building_YieldChangesPerXTiles", "BuildingType", szBuildingType, "NumRequired");
+	kUtility.SetFractionYields(m_pfYieldChangePerCityStateStrategicResource, "Building_YieldChangesFromXCityStateStrategicResource", "BuildingType", szBuildingType, "NumRequired");
 	kUtility.SetYields(m_piYieldChangePerPop, "Building_YieldChangesPerPop", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldChangePerReligion, "Building_YieldChangesPerReligion", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldModifier, "Building_YieldModifiers", "BuildingType", szBuildingType);
@@ -1126,6 +1179,8 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.PopulateVector(m_viResourceMonopolyAnds, "Resources", "Building_ResourceMonopolyAnds", "ResourceType", "BuildingType", szBuildingType);
 
 	kUtility.PopulateArrayByValue(m_piResourceQuantityPerXFranchises, "Resources", "Building_ResourceQuantityPerXFranchises", "ResourceType", "BuildingType", szBuildingType, "NumFranchises");
+	kUtility.SetYields(m_piYieldChangePerMonopoly, "Building_YieldChangesPerMonopoly", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piYieldChangeFromPassingTR, "Building_YieldChangesFromPassingTR", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldPerFranchise, "Building_YieldPerFranchise", "BuildingType", szBuildingType);
 
 	kUtility.SetYields(m_piYieldPerFriend, "Building_YieldPerFriend", "BuildingType", szBuildingType);
@@ -1133,6 +1188,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 
 	kUtility.SetYields(m_piYieldChangeWorldWonder, "Building_YieldChangeWorldWonder", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldChangeWorldWonderGlobal, "Building_YieldChangeWorldWonderGlobal", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piLuxuryYieldChanges, "Building_LuxuryYieldChanges", "BuildingType", szBuildingType);
 	
 	m_iGPRateModifierPerXFranchises = kResults.GetInt("GPRateModifierPerXFranchises");
 #endif
@@ -1177,31 +1233,31 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 		int idx = 0;
 
 		std::string strResourceTypesKey = "Building_YieldFromYieldPercentGlobal";
-		Database::Results* pResourceTypes = kUtility.GetResults(strResourceTypesKey);
-		if (pResourceTypes == NULL)
+		Database::Results* pResults = kUtility.GetResults(strResourceTypesKey);
+		if (pResults == NULL)
 		{
-			pResourceTypes = kUtility.PrepareResults(strResourceTypesKey, "select YieldIn, YieldOut, Value from Building_YieldFromYieldPercentGlobal where BuildingType = ?");
+			pResults = kUtility.PrepareResults(strResourceTypesKey, "select YieldIn, YieldOut, Value from Building_YieldFromYieldPercentGlobal where BuildingType = ?");
 		}
 
 		const size_t lenBuildingType = strlen(szBuildingType);
-		pResourceTypes->Bind(1, szBuildingType, lenBuildingType, false);
+		pResults->Bind(1, szBuildingType, lenBuildingType, false);
 
-		while (pResourceTypes->Step())
+		while (pResults->Step())
 		{
 			CvDoubleYieldInfo& pDoubleYieldInfo = m_paYieldFromYieldGlobal[idx];
 
-			const char* szYield = pResourceTypes->GetText("YieldIn");
+			const char* szYield = pResults->GetText("YieldIn");
 			pDoubleYieldInfo.m_iYieldIn = (YieldTypes)GC.getInfoTypeForString(szYield, true);
 
-			szYield = pResourceTypes->GetText("YieldOut");
+			szYield = pResults->GetText("YieldOut");
 			pDoubleYieldInfo.m_iYieldOut = (YieldTypes)GC.getInfoTypeForString(szYield, true);
 
-			pDoubleYieldInfo.m_iValue = pResourceTypes->GetInt("Value");
+			pDoubleYieldInfo.m_iValue = pResults->GetInt("Value");
 
 			idx++;
 		}
 
-		pResourceTypes->Reset();
+		pResults->Reset();
 	}
 
 	//ResourceYieldChanges
@@ -1296,6 +1352,91 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 
 		//Trim extra memory off container since this is mostly read-only.
 		std::map<int, std::map<int, int>>(m_miTechEnhancedYields).swap(m_miTechEnhancedYields);
+	}
+	// Building_YieldChangesFromAccomplishments
+	// Table structure (BuildingType, YieldType, Yield, AccomplishmentType)
+	// The building produces additional yields per turn once the corresponding accomplishment has been achieved
+	{
+		std::string strKey("Building_YieldChangesFromAccomplishments");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select Accomplishments.ID, Yields.ID as YieldID, Yield from Building_YieldChangesFromAccomplishments left join Accomplishments on Accomplishments.Type = AccomplishmentType inner join Yields on Yields.Type = YieldType where BuildingType = ?");
+		}
+
+		pResults->Bind(1, szBuildingType);
+
+		while (pResults->Step())
+		{
+			const int iAccomplishment = pResults->GetInt(0);
+			const int iYieldType = pResults->GetInt(1);
+			const int iYield = pResults->GetInt(2);
+
+			m_miYieldChangesFromAccomplishments[iAccomplishment][iYieldType] += iYield;
+		}
+
+		pResults->Reset();
+
+		//Trim extra memory off container since this is mostly read-only.
+		std::map<int, std::map<int, int>>(m_miYieldChangesFromAccomplishments).swap(m_miYieldChangesFromAccomplishments);
+	}
+	// Building_BonusFromAccomplishments
+	// Table structure (BuildingType, AccomplishmentType, Happiness, DomainType, DomainXP, UnitCombatType, UnitProductionModifier)
+	// The building gives additional bonuses once the corresponding accomplishment has been achieved
+	{
+		std::string strKey("Building_BonusFromAccomplishments");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select Accomplishments.ID, Happiness, coalesce(Domains.ID, -1), DomainXP, coalesce(UnitCombatInfos.ID, -1), UnitProductionModifier from Building_BonusFromAccomplishments inner join Accomplishments on Accomplishments.Type = AccomplishmentType left join Domains on Domains.Type = DomainType left join UnitCombatInfos on UnitCombatInfos.Type = UnitCombatType where BuildingType = ?");
+		}
+
+		pResults->Bind(1, szBuildingType);
+
+		while (pResults->Step())
+		{
+			AccomplishmentBonusInfo bonusInfo;
+
+			const int iAccomplishment = pResults->GetInt(0);
+			bonusInfo.iHappiness = pResults->GetInt(1);
+			bonusInfo.eDomainType = (DomainTypes)pResults->GetInt(2);
+			bonusInfo.iDomainXP = pResults->GetInt(3);
+			bonusInfo.eUnitCombatType = (UnitCombatTypes)pResults->GetInt(4);
+			bonusInfo.iUnitProductionModifier = pResults->GetInt(5);
+
+			m_miBonusFromAccomplishments[iAccomplishment] = bonusInfo;
+		}
+
+		pResults->Reset();
+
+		//Trim extra memory off container since this is mostly read-only.
+		std::map<int, AccomplishmentBonusInfo>(m_miBonusFromAccomplishments).swap(m_miBonusFromAccomplishments);
+	}
+	// Building_ExtraPlayerInstancesFromAccomplishments 
+	// Table structure (BuildingType, AccomplishmentType, ExtraInstances)
+	// The building can be built more often if an accomplishment has been achieved
+	{
+		std::string strKey("Building_ExtraPlayerInstancesFromAccomplishments");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select Accomplishments.ID, ExtraInstances from Building_ExtraPlayerInstancesFromAccomplishments inner join Accomplishments on Accomplishments.Type = AccomplishmentType where BuildingType = ?");
+		}
+
+		pResults->Bind(1, szBuildingType);
+
+		while (pResults->Step())
+		{
+			const int iAccomplishment = pResults->GetInt(0);
+			const int iExtraInstances = pResults->GetInt(1);
+
+			m_miExtraPlayerInstancesFromAccomplishments[iAccomplishment] = iExtraInstances;
+		}
+
+		pResults->Reset();
+
+		//Trim extra memory off container since this is mostly read-only.
+		std::map<int, int>(m_miExtraPlayerInstancesFromAccomplishments).swap(m_miExtraPlayerInstancesFromAccomplishments);
 	}
 
 	// Building_GreatPersonPointFromConstruction
@@ -1505,6 +1646,58 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 
 			m_ppaiYieldPerXFeature[FeatureID][YieldID] = yield;
 		}
+	}
+	//YieldPerXImprovementLocal
+	{
+		std::string strKey("Building_YieldPerXImprovementLocal");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select Improvements.ID as ImprovementID, Yields.ID as YieldID, Yield, NumRequired from Building_YieldPerXImprovementLocal inner join Improvements on Improvements.Type = ImprovementType inner join Yields on Yields.Type = YieldType where BuildingType = ?");
+		}
+
+		pResults->Bind(1, szBuildingType);
+
+		while (pResults->Step())
+		{
+			const ImprovementTypes eImprovementType = ImprovementTypes(pResults->GetInt(0));
+			const YieldTypes eYieldType = YieldTypes(pResults->GetInt(1));
+			const int iYield = pResults->GetInt(2);
+			const int iNumReq = pResults->GetInt(3);
+
+			m_ppYieldPerXImprovementLocal[eImprovementType][eYieldType] += fraction(iYield,iNumReq);
+		}
+
+		pResults->Reset();
+
+		//Trim extra memory off container since this is mostly read-only.
+		std::map<ImprovementTypes, std::map<YieldTypes, fraction>>(m_ppYieldPerXImprovementLocal).swap(m_ppYieldPerXImprovementLocal);
+	}
+	//YieldPerXImprovementGlobal
+	{
+		std::string strKey("Building_YieldPerXImprovementGlobal");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select Improvements.ID as ImprovementID, Yields.ID as YieldID, Yield, NumRequired from Building_YieldPerXImprovementGlobal inner join Improvements on Improvements.Type = ImprovementType inner join Yields on Yields.Type = YieldType where BuildingType = ?");
+		}
+
+		pResults->Bind(1, szBuildingType);
+
+		while (pResults->Step())
+		{
+			const ImprovementTypes eImprovementType = ImprovementTypes(pResults->GetInt(0));
+			const YieldTypes eYieldType = YieldTypes(pResults->GetInt(1));
+			const int iYield = pResults->GetInt(2);
+			const int iNumReq = pResults->GetInt(3);
+
+			m_ppYieldPerXImprovementGlobal[eImprovementType][eYieldType] += fraction(iYield,iNumReq);
+		}
+
+		pResults->Reset();
+
+		//Trim extra memory off container since this is mostly read-only.
+		std::map<ImprovementTypes, std::map<YieldTypes, fraction>>(m_ppYieldPerXImprovementGlobal).swap(m_ppYieldPerXImprovementGlobal);
 	}
 	//Building_DomainFreeExperiencesGlobal
 	{
@@ -3538,6 +3731,14 @@ int* CvBuildingEntry::GetGoldenAgeYieldModArray() const
 	return m_piGoldenAgeYieldMod;
 }
 
+/// Instant yield when WLTKD starts
+int CvBuildingEntry::GetInstantYieldFromWLTKDStart(int i) const
+{
+	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	return m_piInstantYieldFromWLTKDStart[i];
+}
+
 /// Change to yield during WLTKD
 int CvBuildingEntry::GetYieldFromWLTKD(int i) const
 {
@@ -3716,6 +3917,13 @@ int CvBuildingEntry::GetYieldFromFaithPurchase(int i) const
 int* CvBuildingEntry::GetYieldFromFaithPurchaseArray() const
 {
 	return m_piYieldFromFaithPurchase;
+}
+
+int CvBuildingEntry::GetYieldFromUnitLevelUpGlobal(int i) const
+{
+	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	return m_piYieldFromUnitLevelUpGlobal[i];
 }
 
 /// Instant yield granted when an international trade route ends
@@ -3924,6 +4132,38 @@ int* CvBuildingEntry::GetYieldChangeArray() const
 	return m_piYieldChange;
 }
 
+/// Change to yield per turn, scaling with era
+int CvBuildingEntry::GetYieldChangeEraScalingTimes100(int i) const
+{
+	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	return m_piYieldChangeEraScalingTimes100[i];
+}
+
+/// Change to yield per turn per non-dummy building in the city
+fraction CvBuildingEntry::GetYieldChangePerBuilding(int i) const
+{
+	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	return m_pfYieldChangePerBuilding[i];
+}
+
+/// Change to yield per turn per city tile
+fraction CvBuildingEntry::GetYieldChangePerTile(int i) const
+{
+	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	return m_pfYieldChangePerTile[i];
+}
+
+/// Change to yield per turn per strategic resource from city-states
+fraction CvBuildingEntry::GetYieldChangePerCityStateStrategicResource(int i) const
+{
+	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	return m_pfYieldChangePerCityStateStrategicResource[i];
+}
+
 /// Change to yield by type
 int CvBuildingEntry::GetYieldChangePerPop(int i) const
 {
@@ -3938,7 +4178,6 @@ int* CvBuildingEntry::GetYieldChangePerPopArray() const
 	return m_piYieldChangePerPop;
 }
 
-#if defined(MOD_BALANCE_CORE)
 /// Change to yield by type
 int CvBuildingEntry::GetYieldChangePerPopInEmpire(int i) const
 {
@@ -3953,7 +4192,11 @@ int CvBuildingEntry::GetYieldChangePerPopInEmpire(int i) const
 
 	return 0;
 }
-#endif
+
+std::map<int, int> CvBuildingEntry::GetExtraPlayerInstancesFromAccomplishments() const
+{
+	return m_miExtraPlayerInstancesFromAccomplishments;
+}
 
 /// Change to yield by type
 int CvBuildingEntry::GetYieldChangePerReligion(int i) const
@@ -3977,6 +4220,11 @@ set<int> CvBuildingEntry::GetUnitClassTrainingAllowed() const
 set<std::pair<int, bool>> CvBuildingEntry::GetResourceClaim() const
 {
 	return m_sibResourceClaim;
+}
+
+map<ProjectTypes, int> CvBuildingEntry::GetWLTKDFromProject() const
+{
+	return m_miWLTKDFromProject;
 }
 
 /// Modifier to yield by type
@@ -4305,6 +4553,18 @@ int CvBuildingEntry::GetResourceQuantityPerXFranchises(int i) const
 	ASSERT_DEBUG(i > -1, "Index out of bounds");
 	return m_piResourceQuantityPerXFranchises ? m_piResourceQuantityPerXFranchises[i] : -1;
 }
+int CvBuildingEntry::GetYieldChangePerMonopoly(int i) const
+{
+	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	return m_piYieldChangePerMonopoly[i];
+}
+int CvBuildingEntry::GetYieldChangeFromPassingTR(int i) const
+{
+	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	return m_piYieldChangeFromPassingTR[i];
+}
 int CvBuildingEntry::GetYieldPerFranchise(int i) const
 {
 	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
@@ -4411,6 +4671,12 @@ int CvBuildingEntry::GetYieldChangeWorldWonderGlobal(int i) const
 	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
 	ASSERT_DEBUG(i > -1, "Index out of bounds");
 	return m_piYieldChangeWorldWonderGlobal ? m_piYieldChangeWorldWonderGlobal[i] : 0;
+}
+int CvBuildingEntry::GetLuxuryYieldChanges(int i) const
+{
+	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	return m_piLuxuryYieldChanges ? m_piLuxuryYieldChanges[i] : 0;
 }
 #endif
 /// Free units which appear near the capital
@@ -4526,6 +4792,16 @@ int CvBuildingEntry::GetResourceYieldChangeGlobal(int iResource, int iYieldType)
 std::map<int, std::map<int, int>> CvBuildingEntry::GetTechEnhancedYields() const
 {
 	return m_miTechEnhancedYields;
+}
+
+std::map<int, AccomplishmentBonusInfo> CvBuildingEntry::GetBonusFromAccomplishments() const
+{
+	return m_miBonusFromAccomplishments;
+}
+
+std::map<int, std::map<int, int>> CvBuildingEntry::GetYieldChangesFromAccomplishments() const
+{
+	return m_miYieldChangesFromAccomplishments;
 }
 
 std::map<pair<GreatPersonTypes, EraTypes>, int> CvBuildingEntry::GetGreatPersonPointFromConstruction() const
@@ -4691,6 +4967,45 @@ int* CvBuildingEntry::GetYieldPerXFeatureArray(int i) const
 	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
 	ASSERT_DEBUG(i > -1, "Index out of bounds");
 	return m_ppaiYieldPerXFeature[i];
+}
+
+/// Change to Building Yield by Improvement Type
+fraction CvBuildingEntry::GetYieldPerXImprovementLocal(ImprovementTypes eImprovementType, YieldTypes eYieldType) const
+{
+	ASSERT_DEBUG(eImprovementType < GC.getNumImprovementInfos(), "Index out of bounds");
+	ASSERT_DEBUG(eImprovementType > -1, "Index out of bounds");
+	ASSERT_DEBUG(eYieldType < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(eYieldType > -1, "Index out of bounds");
+	std::map<ImprovementTypes, std::map<YieldTypes, fraction>>::const_iterator itImprovement = m_ppYieldPerXImprovementLocal.find(eImprovementType);
+	if (itImprovement != m_ppYieldPerXImprovementLocal.end()) // find returns the iterator to map::end if the key eImprovementType is not present in the map
+	{
+		std::map<YieldTypes, fraction>::const_iterator itYield = itImprovement->second.find(eYieldType);
+		if (itYield != itImprovement->second.end()) // find returns the iterator to map::end if the key eYieldType is not present in the map
+		{
+			return itYield->second;
+		}
+	}
+
+	return fraction(0);
+}
+/// Change to Building Yield by Improvement Type (Global)
+fraction CvBuildingEntry::GetYieldPerXImprovementGlobal(ImprovementTypes eImprovementType, YieldTypes eYieldType) const
+{
+	ASSERT_DEBUG(eImprovementType < GC.getNumImprovementInfos(), "Index out of bounds");
+	ASSERT_DEBUG(eImprovementType > -1, "Index out of bounds");
+	ASSERT_DEBUG(eYieldType < NUM_YIELD_TYPES, "Index out of bounds");
+	ASSERT_DEBUG(eYieldType > -1, "Index out of bounds");
+	std::map<ImprovementTypes, std::map<YieldTypes, fraction>>::const_iterator itImprovement = m_ppYieldPerXImprovementGlobal.find(eImprovementType);
+	if (itImprovement != m_ppYieldPerXImprovementGlobal.end()) // find returns the iterator to map::end if the key eImprovementType is not present in the map
+	{
+		std::map<YieldTypes, fraction>::const_iterator itYield = itImprovement->second.find(eYieldType);
+		if (itYield != itImprovement->second.end()) // find returns the iterator to map::end if the key eYieldType is not present in the map
+		{
+			return itYield->second;
+		}
+	}
+
+	return fraction(0);
 }
 
 /// Change to Plot yield by type
@@ -6256,7 +6571,8 @@ bool CvCityBuildings::GetNextAvailableGreatWorkSlot(GreatWorkSlotType eGreatWork
 }
 
 /// Accessor: How much of this yield are we generating from Great Works in our buildings?
-int CvCityBuildings::GetYieldFromGreatWorks(YieldTypes eYield) const
+/// If you change anything in the calculations here, don't forget to update CvGameCulture::GetGreatWorkTooltip
+int CvCityBuildings::GetYieldFromGreatWorksTimes100(YieldTypes eYield) const
 {
 	//Simplification - errata yields not worth considering.
 	if(eYield > YIELD_CULTURE_LOCAL && !MOD_BALANCE_CORE_JFD)
@@ -6264,10 +6580,13 @@ int CvCityBuildings::GetYieldFromGreatWorks(YieldTypes eYield) const
 		return 0;
 	}
 
-	int iRealWorkCount = 0;
-	int iStandardWorkCount = 0;
+	int iNumGreatWorks = 0;
+	int iNumGreatWorksWithBaseYieldsOfThisType = 0;
 	int iThemingBonusTotal = 0;
 	int iTypeBonuses = 0;
+
+	CvPlayer& kPlayer = GET_PLAYER(m_pCity->getOwner());
+
 	
 	for(std::vector<BuildingTypes>::const_iterator iI=m_buildingsThatExistAtLeastOnce.begin(); iI!=m_buildingsThatExistAtLeastOnce.end(); ++iI)
 	{
@@ -6275,7 +6594,7 @@ int CvCityBuildings::GetYieldFromGreatWorks(YieldTypes eYield) const
 		if (pkInfo && pkInfo->GetGreatWorkCount() > 0)
 		{
 			int iThisWork = GetNumGreatWorksInBuilding(pkInfo->GetBuildingClassType());
-			iRealWorkCount += iThisWork;
+			iNumGreatWorks += iThisWork;
 
 			int iThemingBonus = m_pCity->GetCityCulture()->GetThemingBonus(pkInfo->GetBuildingClassType());
 			if (iThemingBonus > 0)
@@ -6285,7 +6604,7 @@ int CvCityBuildings::GetYieldFromGreatWorks(YieldTypes eYield) const
 			
 			if ((MOD_GLOBAL_GREATWORK_YIELDTYPES && eYield == pkInfo->GetGreatWorkYieldType()) || (!MOD_GLOBAL_GREATWORK_YIELDTYPES && eYield == YIELD_CULTURE))
 			{
-				iStandardWorkCount += iThisWork;
+				iNumGreatWorksWithBaseYieldsOfThisType += iThisWork;
 			}
 		}
 	}
@@ -6293,51 +6612,20 @@ int CvCityBuildings::GetYieldFromGreatWorks(YieldTypes eYield) const
 	iThemingBonusTotal += m_pCity->GetYieldChangesPerLocalTheme(eYield) * GetTotalNumThemedBuildings();
 	
 	//No works? Abort!
-	if(iRealWorkCount <= 0)
+	if(iNumGreatWorks <= 0)
 	{
 		return 0;
 	}
-
-	int iArt = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_ART_ARTIFACT(), false, true);
-	if(iArt > 0)
-	{
-		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->GetArtYieldChanges(eYield) * iArt);
-		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).getArtYieldBonus(eYield) * iArt);
-	}
-	int iArtifact = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_ART_ARTIFACT(), true);
-	if(iArtifact > 0)
-	{
-		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->GetArtifactYieldChanges(eYield) * iArtifact);
-		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).getArtifactYieldBonus(eYield) * iArtifact);
-	}
-	int iLit = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_LITERATURE());
-	if(iLit > 0)
-	{
-		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->GetLitYieldChanges(eYield) * iLit);
-		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).getLitYieldBonus(eYield) * iLit);
-	}
-	int iMusic = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_MUSIC());
-	if(iMusic > 0)
-	{
-		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->GetMusicYieldChanges(eYield) * iMusic);
-		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).getMusicYieldBonus(eYield) * iMusic);
-	}
-	int iFilm = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_FILM());
-	if (iFilm > 0)
-	{
-		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).getFilmYieldBonus(eYield) * iFilm);
-	}
-	int iRelic = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_RELIC());
-	if (iRelic > 0)
-	{
-		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).getRelicYieldBonus(eYield) * iRelic);
-	}
 	
-	//Now grab the base yields.
-	int iBaseYield = /*2 in CP, 3 in VP*/ GD_INT_GET(BASE_CULTURE_PER_GREAT_WORK);
-	int iSecondaryYield = GET_PLAYER(m_pCity->getOwner()).GetGreatWorkYieldChange(eYield);
-	iSecondaryYield += GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->GetGreatWorkYieldChanges(eYield);
-	iSecondaryYield += m_pCity->GetGreatWorkYieldChange(eYield);
+	int iYieldPerGreatWorkWithBaseYieldsOfThisType = /*2 in CP, 3 in VP*/ GD_INT_GET(BASE_CULTURE_PER_GREAT_WORK);
+
+	int iYieldPerGreatWork = kPlayer.GetGreatWorkYieldChange(eYield);
+	iYieldPerGreatWork += kPlayer.GetPlayerTraits()->GetGreatWorkYieldChanges(eYield);
+	iYieldPerGreatWork += m_pCity->GetGreatWorkYieldChange(eYield);
+	if (eYield == YIELD_TOURISM)
+	{
+		iYieldPerGreatWork += /*2*/ GD_INT_GET(BASE_TOURISM_PER_GREAT_WORK);
+	}
 
 	ReligionTypes eMajority = m_pCity->GetCityReligions()->GetReligiousMajority();
 	BeliefTypes eSecondaryPantheon = NO_BELIEF;
@@ -6346,18 +6634,12 @@ int CvCityBuildings::GetYieldFromGreatWorks(YieldTypes eYield) const
 		const CvReligion* pReligion = GC.getGame().GetGameReligions()->GetReligion(eMajority, m_pCity->getOwner());
 		if (pReligion)
 		{
-			if (eYield == YIELD_CULTURE)
-				iBaseYield += pReligion->m_Beliefs.GetGreatWorkYieldChange(m_pCity->getPopulation(), eYield, m_pCity->getOwner(), m_pCity);
-			else
-				iSecondaryYield += pReligion->m_Beliefs.GetGreatWorkYieldChange(m_pCity->getPopulation(), eYield, m_pCity->getOwner(), m_pCity);
+			iYieldPerGreatWork += pReligion->m_Beliefs.GetGreatWorkYieldChange(m_pCity->getPopulation(), eYield, m_pCity->getOwner(), m_pCity);
 			
 			eSecondaryPantheon = m_pCity->GetCityReligions()->GetSecondaryReligionPantheonBelief();
 			if (eSecondaryPantheon != NO_BELIEF)
 			{
-				if (eYield == YIELD_CULTURE)
-					iBaseYield += GC.GetGameBeliefs()->GetEntry(eSecondaryPantheon)->GetGreatWorkYieldChange(eYield);
-				else
-					iSecondaryYield += GC.GetGameBeliefs()->GetEntry(eSecondaryPantheon)->GetGreatWorkYieldChange(eYield);
+				iYieldPerGreatWork += GC.GetGameBeliefs()->GetEntry(eSecondaryPantheon)->GetGreatWorkYieldChange(eYield);
 			}
 		}
 	}
@@ -6374,31 +6656,66 @@ int CvCityBuildings::GetYieldFromGreatWorks(YieldTypes eYield) const
 				const CvReligion* pReligion = GC.getGame().GetGameReligions()->GetReligion(eMajority, m_pCity->getOwner());
 				if (pReligion == NULL || (pReligion != NULL && !pReligion->m_Beliefs.IsPantheonBeliefInReligion(ePantheonBelief, eMajority, m_pCity->getOwner()))) // check that the our religion does not have our belief, to prevent double counting
 				{
-					if (eYield == YIELD_CULTURE)
-						iBaseYield += GC.GetGameBeliefs()->GetEntry(ePantheonBelief)->GetGreatWorkYieldChange(eYield);
-					else
-						iSecondaryYield += GC.GetGameBeliefs()->GetEntry(ePantheonBelief)->GetGreatWorkYieldChange(eYield);
+					iYieldPerGreatWork += GC.GetGameBeliefs()->GetEntry(ePantheonBelief)->GetGreatWorkYieldChange(eYield);
 				}
 			}
 		}
 	}
 
 	//First add up yields x works in city.
-	int iRtnValue = (iStandardWorkCount * iBaseYield);
-	iRtnValue += (iRealWorkCount * iSecondaryYield);
+	int iRtnValue = (iNumGreatWorksWithBaseYieldsOfThisType * iYieldPerGreatWorkWithBaseYieldsOfThisType) * 100;
+	iRtnValue += (iNumGreatWorks * iYieldPerGreatWork) * 100;
+
+	//Tourism modifiers
+	if (eYield == YIELD_TOURISM)
+	{
+		iRtnValue += ((m_pCity->GetCityBuildings()->GetGreatWorksTourismModifier() + kPlayer.GetGreatWorksTourismModifierGlobal()) * iRtnValue / 100);
+	}
+
+	// ---- YIELDS NOT AFFECTED BY TOURISM MODIFIER TO GREAT WORKS ----
+
 	//Then theming bonuses for the yield.
-	iRtnValue += GetCurrentThemingBonuses(eYield);
+	iRtnValue += GetCurrentThemingBonuses(eYield) * 100;
+
+	int iArt = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_ART_ARTIFACT(), false, true);
+	if (iArt > 0)
+	{
+		iTypeBonuses += (kPlayer.GetPlayerTraits()->GetArtYieldChanges(eYield) * iArt);
+		iTypeBonuses += (kPlayer.getArtYieldBonus(eYield) * iArt);
+	}
+	int iArtifact = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_ART_ARTIFACT(), true);
+	if (iArtifact > 0)
+	{
+		iTypeBonuses += (kPlayer.GetPlayerTraits()->GetArtifactYieldChanges(eYield) * iArtifact);
+		iTypeBonuses += (kPlayer.getArtifactYieldBonus(eYield) * iArtifact);
+	}
+	int iLit = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_LITERATURE());
+	if (iLit > 0)
+	{
+		iTypeBonuses += (kPlayer.GetPlayerTraits()->GetLitYieldChanges(eYield) * iLit);
+		iTypeBonuses += (kPlayer.getLitYieldBonus(eYield) * iLit);
+	}
+	int iMusic = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_MUSIC());
+	if (iMusic > 0)
+	{
+		iTypeBonuses += (kPlayer.GetPlayerTraits()->GetMusicYieldChanges(eYield) * iMusic);
+		iTypeBonuses += (kPlayer.getMusicYieldBonus(eYield) * iMusic);
+	}
+	int iFilm = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_FILM());
+	if (iFilm > 0)
+	{
+		iTypeBonuses += (kPlayer.getFilmYieldBonus(eYield) * iFilm);
+	}
+	int iRelic = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_RELIC());
+	if (iRelic > 0)
+	{
+		iTypeBonuses += (kPlayer.getRelicYieldBonus(eYield) * iRelic);
+	}
 
 	//Next add in any UA or extra theming bonuses.
-	iRtnValue += (iTypeBonuses + iThemingBonusTotal);
+	iRtnValue += (iTypeBonuses + iThemingBonusTotal) * 100;
 
 	return iRtnValue;
-}
-
-/// Accessor: How much culture are we generating from Great Works in our buildings?
-int CvCityBuildings::GetCultureFromGreatWorks() const
-{
-	return GetYieldFromGreatWorks(YIELD_CULTURE);
 }
 
 /// Accessor: How many Great Works of specific slot type present in this city?
@@ -6523,7 +6840,7 @@ int CvCityBuildings::GetCurrentThemingBonuses(YieldTypes eYield) const
 		CvBuildingEntry *pkBuilding = GC.getBuildingInfo(*iI);
 		if (pkBuilding)
 		{
-			if (pkBuilding->GetGreatWorkYieldType() == eYield)
+			if (pkBuilding->GetGreatWorkYieldType() == eYield || eYield == YIELD_TOURISM)
 			{
 				int iIndex = GetThemingBonusIndex(*iI);
 				if (iIndex < 0)

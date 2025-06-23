@@ -36,11 +36,13 @@
 		<!-- Vote Commitments cannot be cancelled by war. If the resolution becomes invalid, the votes are abstained instead of given back. -->
 		<Row Class="5" Name="BALANCE_PERMANENT_VOTE_COMMITMENTS" Value="0"/>
 
+		<!-- Turn off animations for diplomats, missionaries, great persons etc. when playing with quick movement enabled. -->
+		<Row Class="4" Name="UI_QUICK_ANIMATIONS" Value="0"/>
+		
 		<!-- Make the UI show moves remaining in the form (exact movement points / 60) for the tile currently being moused over. -->
 		<Row Class="2" Name="UI_DISPLAY_PRECISE_MOVEMENT_POINTS" Value="0"/>
 
 		<!-- Changes in Milae's Alternative Difficulty Mod -->
-		<!-- Adds more Difficulty Options including extra columns in HandicapInfos -->
 		<Row Class="4" Name="ALTERNATIVE_DIFFICULTY" Value="0" DbUpdates="1"/>
 
 		<!-- Changes the stacking limits based on what the tile is (city, fort, plain, etc) (v19) -->

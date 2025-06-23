@@ -391,8 +391,8 @@ private:
 ///------------------------------
 //	unify these?
 ///------------------------------
-	void PlotGarrisonMoves(int iNumTurnsAway, bool bEmergencyOnly);
-	void PlotBastionMoves(int iNumTurnsAway, bool bEmergencyOnly);
+	void PlotGarrisonMoves(int iNumTurnsAway);
+	void PlotBastionMoves(int iNumTurnsAway);
 	void PlotGuardImprovementMoves(int iNumTurnsAway);
 //--------------------------------
 
@@ -457,7 +457,7 @@ private:
 	CvPlot* GetBestRepositionPlot(CvUnit* pUnit, CvPlot* plotTarget, int iAcceptableDanger);
 	CvUnit* FindUnitForThisMove(AITacticalMove eMove, CvPlot* pTargetPlot, int iNumTurnsAway=0);
 	bool FindUnitsWithinStrikingDistance(CvPlot *pTargetPlot);
-	bool FindUnitsForHarassing(CvPlot* pTarget, int iNumTurnsAway, int iMinHitpoints, int iMaxHitpoints, DomainTypes eDomain, bool bMustHaveMovesLeft, bool bAllowEmbarkation, int iMaxNumUnits=3);
+	bool FindUnitsForHarassing(CvPlot* pTarget, int iNumTurnsAway, int iMinHitpoints, int iMaxHitpoints, DomainTypes eDomain, bool bMustHaveMovesLeft, bool bAllowEmbarkation, int iMaxNumUnits=3, bool bPlunderTradeRoute=false);
 	bool FindParatroopersWithinStrikingDistance(CvPlot *pTargetPlot, bool bCheckDanger);
 	bool FindEmbarkedUnitsAroundTarget(CvPlot *pTargetPlot, int iMaxDistance);
 	bool FindCitiesWithinStrikingDistance(CvPlot* pTargetPlot);
@@ -706,7 +706,7 @@ public:
 	void setNextToEnemyCitadel(bool bValue) { bAdjacentToEnemyCitadel = bValue; }
 	bool hasAirCover() const { return bHasAirCover; }
 	bool isVisibleToEnemy() const { return bIsVisibleToEnemy; }
-	bool isBlockedByNonSimUnit(eTactPlotDomain eDomain = TD_BOTH) const;
+	bool isBlockedByNonSimUnit(eTactPlotDomain eDomain = TD_BOTH, bool bMustBeFriendly = false) const;
 	bool isNicePlotForCitadel() const { return bMightWantCitadel; }
 
 	bool hasFriendlyCombatUnit() const;
@@ -757,19 +757,21 @@ protected:
 
 	//set once and not changed afterwards
 	unsigned char bfBlockedByNonSimCombatUnit; //bitfield per domain
+	//avoid these
 	bool bIsVisibleToEnemy:1;
+	//avoid these
 	bool bHasAirCover:1;
-
 	//this is updated if the civilian is captured
 	bool bEnemyCivilianPresent:1;
-	//when a new plot is created we don't know its status yet
-	bool bEdgeOfTheKnownWorldUnknown:1;
 	//so generals know where to plant themselves
 	bool bMightWantCitadel:1;
-
-	//updated if an enemy is killed, after pillage or after adding a newly visible plot
-	bool bEdgeOfTheKnownWorld:1; //neighboring plot is not part of sim and invisible
+	//when a new plot is created we don't know its status yet
+	bool bEdgeOfTheKnownWorldUnknown : 1;
+	//neighboring plot is not part of sim and invisible, updated after adding a newly visible plot
+	bool bEdgeOfTheKnownWorld : 1;
+	//updated after pillage
 	bool bAdjacentToEnemyCitadel:1;
+	//updated on turn end
 	bool bFriendlyDefenderEndTurn:1; 
 };
 
@@ -860,7 +862,7 @@ protected:
 	//set in constructor, constant afterwards
 	PlayerTypes ePlayer;
 	eAggressionLevel eAggression;
-	unsigned char nOurOriginalUnits; //movable units included in sim. only valid for root position.
+	unsigned char nOurOriginalUnits; //movable units included in sim (inherited from root)
 	unsigned char nOriginalEnemies; //enemy units and cities. ignoring garrisons. not updated after sim-kills!
 	unsigned char nFirstInterestingAssignment; //in case we want to skip INITIALs and BLOCKEDs
 	CvPlot* pTargetPlot;
@@ -947,7 +949,7 @@ public:
 
 	bool isExhausted() const;
 	bool isEarlyFinish() const;
-	bool wantToFight() const;
+	bool haveEnemies() const;
 	bool addFinishMovesIfAcceptable(bool bEarlyFinish, int& iBadUnitID);
 	bool isKillOrImprovedPosition() const;
 	void countEnemiesAndCheckVisibility();
@@ -962,7 +964,7 @@ public:
 	const vector<SUnitStats>& getAvailableUnits() const { return availableUnits; }
 	int countChildren() const;
 	float getAggressionBias() const;
-	bool canProbablyEndTurnInPlot(const STacticalAssignment& assignment, const CvTacticalPlot& endPlot) const;
+	bool canProbablyEndTurnAfterAssignment(const STacticalAssignment& assignment, const CvTacticalPlot& endPlot) const;
 	int countBlockingUnitsAtPlot(int iPlotIndex, eUnitMovementStrategy moveType) const;
 	int getFirstBlockingUnitIDAtPlot(int iPlotIndex, eUnitMovementStrategy moveType) const;
 	pair<int,int> doVisibilityUpdate(const STacticalAssignment& newAssignment);
@@ -995,9 +997,10 @@ public:
 	const vector<CvTacticalPosition*>& getChildren() const { return childPositions; }
 	const vector<STacticalAssignment>& getAssignments() const { return assignedMoves; }
 	const UnitIdContainer& getKilledEnemies() const { return killedEnemies; }
-	const int getNumEnemies() const { return nOriginalEnemies - killedEnemies.size(); }
 	const PlotIndexContainer& getFreedPlots() const { return freedPlots; }
-	const int getNumPlots() const { return (int)tactPlots.size(); }
+	int getNumEnemies() const { return nOriginalEnemies - killedEnemies.size(); }
+	int getNumPlots() const { return (int)tactPlots.size(); }
+	int getTotalNumFriendlyUnits() const { return (int)nOurOriginalUnits; }
 
 	//sort descending cumulative score. only makes sense for "completed" positions
 	bool operator<(const CvTacticalPosition& rhs) { return iTotalScore>rhs.iTotalScore; }

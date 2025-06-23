@@ -956,6 +956,8 @@ public:
 	CvMinorCivInfo();
 	virtual ~CvMinorCivInfo();
 
+	bool IsPlayable() const;
+
 	int getDefaultPlayerColor() const;
 	int getArtStyleType() const;
 	int getNumCityNames() const;
@@ -994,17 +996,13 @@ public:
 	virtual bool CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility);
 
 protected:
+	bool m_bPlayable;
 	int m_iDefaultPlayerColor;
 	int m_iArtStyleType;
 	int m_iNumLeaders;				 // the number of leaders the Civ has, this is needed so that random leaders can be generated easily
 	int m_iMinorCivTrait;
 	MinorCivPersonalityTypes m_eFixedPersonality;
-#if defined(MOD_BALANCE_CORE)
 	int m_iBullyUnit;
-#endif
-
-	bool m_bAIPlayable;
-	bool m_bPlayable;
 
 	CvString m_strArtDefineTag;
 	CvString m_strArtStylePrefix;

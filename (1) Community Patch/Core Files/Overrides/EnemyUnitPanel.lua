@@ -560,6 +560,12 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 			iModifier = pMyUnit:GetResistancePower(pTheirUnit);
 			nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_RESISTANCE_POWER", nBonus, iMiscModifier, true, true);
 		end
+		
+		-- They are unhappy
+		if pTheirUnit and pTheirPlayer:IsEmpireUnhappy() then
+			iModifier = pMyUnit:GetVsUnhappyMod();
+			nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_VS_UNHAPPY_MOD", nBonus, iMiscModifier, true, true);
+		end
 
 		-- Lacking strategic resources
 		iModifier = pMyUnit:GetStrategicResourceCombatPenalty();
@@ -696,7 +702,7 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 			-- General modifier
 			iModifier = pMyUnit:GetFriendlyLandsModifier();
 			nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_FIGHT_AT_HOME_BONUS", nBonus, iMiscModifier, true, true);
-
+			
 			-- Attack modifier
 			iModifier = pMyUnit:GetFriendlyLandsAttackModifier();
 			nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_ATTACK_IN_FRIEND_LANDS", nBonus, iMiscModifier, true, true);
@@ -713,6 +719,10 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 			iModifier = pMyPlayer:GetFoundedReligionEnemyCityCombatMod(pBattlePlot);
 			nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_ENEMY_CITY_BELIEF_BONUS", nBonus, iMiscModifier, true, true);
 		end
+		
+		-- Bonus for attacks by units with the same promotion in the previous turn
+		iModifier = pMyUnit:GetStrengthThisTurnFromPreviousSamePromotionAttacks();
+		nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_SAME_PROMOTION_ATTACK_BONUS", nBonus, iMiscModifier, true, true);
 
 		if pTheirUnit then
 			-- Target is in friendly lands (+ following a different religion)
@@ -756,6 +766,10 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 			end
 		end
 
+		-- Bonus from marriages to city states not at war
+		iModifier = pMyUnit:GetCSMarriageStrength()
+		nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_MARRIAGES", nBonus, iMiscModifier, true, true);
+
 		-- Nearby unit modifier
 		iModifier = pMyUnit:GetGiveCombatModToUnit();
 		nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_NEARBYPROMOTION_COMBAT_BONUS", nBonus, iMiscModifier, true, true);
@@ -791,13 +805,13 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 			-- VS unit combat modifier
 			local eTheirUnitCombat = pTheirUnit:GetUnitCombatType();
 			if eTheirUnitCombat ~= -1 then
-				iModifier = pMyUnit:UnitCombatModifier(eTheirUnitCombat);
+				iModifier = pMyUnit:UnitCombatModifier(eTheirUnitCombat) + pMyUnit:GetExtraUnitCombatModifierAttack(eTheirUnitCombat);
 				sDescription = Locale.ConvertTextKey(GameInfo.UnitCombatInfos[eTheirUnitCombat].Description);
 				nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_VS_CLASS", nBonus, iMiscModifier, true, true, nil, sDescription);
 
 				-- Skirmishers count as both Archery and Mounted Units
 				if pTheirUnit:IsMounted() then
-					iModifier = pMyUnit:UnitCombatModifier(GameInfoTypes.UNITCOMBAT_MOUNTED);
+					iModifier = pMyUnit:UnitCombatModifier(GameInfoTypes.UNITCOMBAT_MOUNTED) + pMyUnit:GetExtraUnitCombatModifierAttack(GameInfoTypes.UNITCOMBAT_MOUNTED);
 					sDescription = Locale.ConvertTextKey(GameInfo.UnitCombatInfos.UNITCOMBAT_MOUNTED.Description);
 					nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_VS_CLASS", nBonus, iMiscModifier, true, true, nil, sDescription);
 				end
@@ -898,6 +912,19 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 				sDescription = Locale.ConvertTextKey(GameInfo.Terrains.TERRAIN_HILL.Description);
 				nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_ATTACK_INTO_BONUS", nBonus, iMiscModifier, true, true, nil, sDescription);
 			end
+			
+			-- VP terrain attack modifier
+			local eToTerrainVP = bRanged and pFromPlot:GetTerrainType() or pToPlot:GetTerrainType();
+			iModifier = pMyUnit:GetTerrainModifierAttack(eToTerrainVP);
+			sDescription = Locale.ConvertTextKey(GameInfo.Terrains[eToTerrainVP].Description);
+			nBonus, iMiscModifier = ProcessModifier(iModifier, bRanged and "TXT_KEY_EUPANEL_RANGED_ATTACK_IN_BONUS" or "TXT_KEY_EUPANEL_ATTACK_INTO_BONUS", nBonus, iMiscModifier, true, true, nil, sDescription);
+			
+			if bRanged and pFromPlot:IsHills() or pToPlot:IsHills() then
+				iModifier = pMyUnit:GetTerrainModifierAttack(GameInfoTypes.TERRAIN_HILL);
+				sDescription = Locale.ConvertTextKey(GameInfo.Terrains.TERRAIN_HILL.Description);
+				nBonus, iMiscModifier = ProcessModifier(iModifier, bRanged and "TXT_KEY_EUPANEL_RANGED_ATTACK_IN_BONUS" or "TXT_KEY_EUPANEL_ATTACK_INTO_BONUS", nBonus, iMiscModifier, true, true, nil, sDescription);
+			end
+
 		end
 
 		-- Fighting in rough/open terrain
@@ -1011,6 +1038,12 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 				if pMyUnit then
 					iModifier = pTheirUnit:GetResistancePower(pMyUnit);
 					nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_RESISTANCE_POWER", nBonus, iMiscModifier, false, true);
+				end
+				
+				-- We are unhappy
+				if pMyUnit and pMyPlayer:IsEmpireUnhappy() then
+					iModifier = pTheirUnit:GetVsUnhappyMod();
+					nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_VS_UNHAPPY_MOD", nBonus, iMiscModifier, false, true);
 				end
 
 				-- Lacking strategic resources
@@ -1140,6 +1173,14 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 					nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_ENEMY_CITY_BELIEF_BONUS_CBP", nBonus, iMiscModifier, false, true);
 				end
 
+				-- Bonus from marriages to city states not at war
+				iModifier = pTheirUnit:GetCSMarriageStrength()
+				nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_MARRIAGES", nBonus, iMiscModifier, false, true);
+				
+				-- Bonus from marriages to city states not at war
+				iModifier = pTheirUnit:GetCSMarriageStrength()
+				nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_MARRIAGES", nBonus, iMiscModifier, false, true);
+
 				-- Adjacent to X unit combat modifier
 				iModifier = pTheirUnit:PerAdjacentUnitCombatModifier() + pTheirUnit:PerAdjacentUnitCombatDefenseMod();
 				nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_PER_ADJACENT_UNIT_COMBAT", nBonus, iMiscModifier, false, true);
@@ -1179,13 +1220,13 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 					-- VS unit combat modifier
 					local eMyUnitCombat = pMyUnit:GetUnitCombatType();
 					if eMyUnitCombat ~= -1 then
-						iModifier = pTheirUnit:UnitCombatModifier(pMyUnit:GetUnitCombatType());
+						iModifier = pTheirUnit:UnitCombatModifier(eMyUnitCombat) + pTheirUnit:GetExtraUnitCombatModifierDefense(eMyUnitCombat);
 						sDescription = Locale.ConvertTextKey(GameInfo.UnitCombatInfos[eMyUnitCombat].Description);
 						nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_VS_CLASS", nBonus, iMiscModifier, false, true, nil, sDescription);
 
 						-- Skirmishers count as both Archery and Mounted Units
 						if pMyUnit:IsMounted() then
-							iModifier = pTheirUnit:UnitCombatModifier(GameInfoTypes.UNITCOMBAT_MOUNTED);
+							iModifier = pTheirUnit:UnitCombatModifier(GameInfoTypes.UNITCOMBAT_MOUNTED) + pTheirUnit:GetExtraUnitCombatModifierDefense(GameInfoTypes.UNITCOMBAT_MOUNTED);
 							sDescription = Locale.ConvertTextKey(GameInfo.UnitCombatInfos.UNITCOMBAT_MOUNTED.Description);
 							nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_VS_CLASS", nBonus, iMiscModifier, false, true, nil, sDescription);
 						end
@@ -1239,10 +1280,23 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 					sDescription = Locale.ConvertTextKey(GameInfo.Terrains[eToTerrain].Description);
 					nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN", nBonus, iMiscModifier, false, true, nil, sDescription);
 				end
+				
+				-- VP Defending on terrain
+				iModifier = pTheirUnit:GetTerrainModifierDefense(eToTerrain);
+				sDescription = Locale.ConvertTextKey(GameInfo.Terrains[eToTerrain].Description);
+				nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN", nBonus, iMiscModifier, false, true, nil, sDescription);
+
 
 				-- Defending on featureless hill
 				if eToFeature == FeatureTypes.NO_FEATURE and pToPlot:IsHills() then
-					iModifier = pTheirUnit:TerrainAttackModifier(GameInfoTypes.TERRAIN_HILL);
+					iModifier = pTheirUnit:TerrainDefenseModifier(GameInfoTypes.TERRAIN_HILL);
+					sDescription = Locale.ConvertTextKey(GameInfo.Terrains.TERRAIN_HILL.Description);
+					nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN", nBonus, iMiscModifier, false, true, nil, sDescription);
+				end
+				
+				-- VP Defending on hill
+				if pToPlot:IsHills() then
+					iModifier = pTheirUnit:GetTerrainModifierDefense(GameInfoTypes.TERRAIN_HILL);
 					sDescription = Locale.ConvertTextKey(GameInfo.Terrains.TERRAIN_HILL.Description);
 					nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN", nBonus, iMiscModifier, false, true, nil, sDescription);
 				end

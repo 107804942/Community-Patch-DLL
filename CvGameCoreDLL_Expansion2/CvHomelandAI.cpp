@@ -646,7 +646,7 @@ void CvHomelandAI::PlotHealMoves()
 	{
 		CvUnit* pUnit = m_pPlayer->getUnit(*it);
 		//this is very simple, we know there are no enemies around, else tactical AI would have kicked in
-		if(pUnit && !pUnit->isHuman() && pUnit->IsHurt())
+		if(pUnit && !pUnit->isHuman() && pUnit->IsHurt() && !pUnit->IsCannotHeal())
 		{
 			//workers may get hurt a bit
 			if (pUnit->GetCurrHitPoints() > pUnit->GetMaxHitPoints() / 2)
@@ -2326,7 +2326,7 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 
 			ExecuteMoveToTarget(pUnit, pPlot, 0, true);
 
-			if (pUnit->canMove() && pUnit->shouldPillage(pUnit->plot()))
+			if (pUnit->shouldPillage(pUnit->plot(), false, true))
 				pUnit->PushMission(CvTypes::getMISSION_PILLAGE());
 
 			return true; //done for this turn
@@ -2392,12 +2392,10 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 	int iBestPlotScore = 0;
 
 	//first check our immediate neighborhood (ie the tiles we can reach within one turn)
-	//if the scout is already embarked, we need to allow it so we don't get stuck!
-	int iMoveFlagsLocal = CvUnit::MOVEFLAG_NO_ENEMY_TERRITORY;
-	if (!pUnit->isEmbarked())
-		iMoveFlagsLocal |= CvUnit::MOVEFLAG_NO_EMBARK;
+	//moveflags should be the same everywhere so we can reuse paths
+	int iMoveFlags = CvUnit::MOVEFLAG_MAXIMIZE_EXPLORE | CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER;
 
-	ReachablePlots eligiblePlots = TacticalAIHelpers::GetAllPlotsInReachThisTurn(pUnit, pUnit->plot(), iMoveFlagsLocal);
+	ReachablePlots eligiblePlots = TacticalAIHelpers::GetAllPlotsInReachThisTurn(pUnit, pUnit->plot(), iMoveFlags);
 	for (ReachablePlots::iterator tile = eligiblePlots.begin(); tile != eligiblePlots.end(); ++tile)
 	{
 		CvPlot* pEvalPlot = GC.getMap().plotByIndexUnchecked(tile->iPlotIndex);
@@ -2443,13 +2441,29 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 				return !pUnit->canMove();
 			}
 
-			//if there is an improvement to plunder and we can flee
-			if (tile->iMovesLeft > GD_INT_GET(MOVE_DENOMINATOR) &&
+			//if there is an unguarded improvement to plunder and we can flee
+			if (tile->iMovesLeft > (pUnit->hasFreePillageMove() ? 0 : GD_INT_GET(MOVE_DENOMINATOR)) &&
 				pUnit->canPillage(pEvalPlot) &&
+				!pEvalPlot->isEnemyUnit(pUnit->getOwner(), true, true, false))
+			{
+				// do we heal when pillaging this tile?
+				int iHealAmount = pUnit->getPillageHealAmount(pEvalPlot);
+				if (pUnit->GetDanger(pEvalPlot) < pUnit->GetCurrHitPoints() + iHealAmount)
+				{
+					pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pEvalPlot->getX(), pEvalPlot->getY());
+					pUnit->PushMission(CvTypes::getMISSION_PILLAGE());
+					// we can still move
+					return true;
+				}
+			}
+
+			// if there's a trade route we can plunder
+			if (pUnit->canPlunderTradeRoute(pEvalPlot) && !pEvalPlot->isEnemyUnit(pUnit->getOwner(), true, true, false) && tile->iMovesLeft > 0 &&
 				pUnit->GetDanger(pEvalPlot) < pUnit->GetCurrHitPoints())
 			{
 				pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pEvalPlot->getX(), pEvalPlot->getY());
-				pUnit->PushMission(CvTypes::getMISSION_PILLAGE());
+				pUnit->PushMission(CvTypes::getMISSION_PLUNDER_TRADE_ROUTE());
+				// we can still move
 				return true;
 			}
 		}
@@ -2509,9 +2523,6 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 		}
 	}
 
-	//should be the same everywhere so we can reuse paths
-	int iMoveFlags = CvUnit::MOVEFLAG_NO_ENEMY_TERRITORY | CvUnit::MOVEFLAG_MAXIMIZE_EXPLORE | CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER;
-
 	//step 1: ignore the near target for now - if we have a leftover path to a far-away (expensive) target an it's still good, then reuse it!
 	if (pUnit->GetMissionAIType() == MISSIONAI_EXPLORE && pUnit->GetMissionAIPlot() && plotDistance(*pUnit->plot(), *pUnit->GetMissionAIPlot()) > 10)
 	{
@@ -2521,13 +2532,19 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 		SPlotWithScore dummy(pDestPlot, 0);
 		if (std::find(vExplorePlots.begin(), vExplorePlots.end(), dummy) != vExplorePlots.end())
 		{
-			pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pDestPlot->getX(), pDestPlot->getY(),
-				iMoveFlags, false, false, MISSIONAI_EXPLORE, pDestPlot);
-
-			if (!pUnit->canMove())
+			pUnit->GeneratePath(pDestPlot, iMoveFlags);
+			//verify that we don't move into danger ...
+			CvPlot* pEndTurnPlot = pUnit->GetPathEndFirstTurnPlot();
+			if (pUnit->GetDanger(pEndTurnPlot) < pUnit->GetCurrHitPoints() / 2)
 			{
-				UnitProcessed(pUnit->GetID());
-				return true;
+				pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pDestPlot->getX(), pDestPlot->getY(),
+					iMoveFlags, false, false, MISSIONAI_EXPLORE, pDestPlot);
+
+				if (!pUnit->canMove())
+				{
+					UnitProcessed(pUnit->GetID());
+					return true;
+				}
 			}
 		}
 	}
@@ -2544,7 +2561,6 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 			LogHomelandMessage(strLogString);
 		}
 
-		//again same flags
 		CvPlot* pOldPlot = pUnit->plot();
 		pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pBestPlot->getX(), pBestPlot->getY(), iMoveFlags, false, false, MISSIONAI_EXPLORE, pBestPlot);
 		bool bStuck = (pUnit->plot() == pOldPlot);
@@ -3408,7 +3424,9 @@ void CvHomelandAI::ExecuteHeals()
 
 		if (pBestPlot && pBestPlot!=pUnit->plot())
 			pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pBestPlot->getX(), pBestPlot->getY());
-		if (pUnit->shouldPillage(pUnit->plot()))
+		if (pUnit->canPillage(pUnit->plot()))
+			pUnit->PushMission(CvTypes::getMISSION_PILLAGE());
+		if (pUnit->canPillage(pUnit->plot())) // if possible, pillage both improvement and road
 			pUnit->PushMission(CvTypes::getMISSION_PILLAGE());
 		if (pUnit->canMove())
 			pUnit->PushMission(CvTypes::getMISSION_SKIP());
@@ -4211,7 +4229,7 @@ void CvHomelandAI::ExecuteMessengerMoves()
 				if(GC.getLogging() && GC.getAILogging())
 				{
 					CvString strLogString;
-					strLogString.Format("Diplomatic Unit moving to finish Diplomatic Mission at (%d:%d)", pTarget->getX(), pTarget->getY());
+					strLogString.Format("Diplomatic Unit moving to finish Diplomatic Mission in %s (%d:%d)", pTarget->getOwner() ? GET_PLAYER(pTarget->getOwner()).getCivilizationShortDescription() : "", pTarget->getX(), pTarget->getY());
 					LogHomelandMessage(strLogString);
 				}
 			}
@@ -4887,6 +4905,7 @@ void CvHomelandAI::ExecuteAircraftMoves()
 	if (m_CurrentMoveUnits.empty())
 		return;
 	
+	// TODO: verify if these variables are really supposed to be unused
 	int nAirUnitsInCarriers = 0;
 	int nAirUnitsInCities = 0;
 	int nSlotsInCarriers = 0;
@@ -5996,17 +6015,15 @@ bool CvHomelandAI::IsValidExplorerEndTurnPlot(const CvUnit* pUnit, CvPlot* pPlot
 			return false;
 	}
 
-	// see if we can capture a civilian?
 	int iFlags = CvUnit::MOVEFLAG_DESTINATION;
-	if (!pPlot->isVisibleEnemyDefender(pUnit) && pPlot->isVisibleEnemyUnit(pUnit))
+	if (pPlot->isVisibleEnemyDefender(pUnit))
+		// don't bump into enemies
+		return false;
+	else if (pPlot->isVisibleEnemyUnit(pUnit))
+		// but maybe capture a civilian?
 		iFlags |= CvUnit::MOVEFLAG_ATTACK;
 
-	if(!pUnit->canMoveInto(*pPlot, iFlags))
-	{
-		return false;
-	}
-
-	return true;
+	return pUnit->canMoveInto(*pPlot, iFlags);
 }
 
 /// Move an exploring unit to a designated target (special function exposed to Lua)

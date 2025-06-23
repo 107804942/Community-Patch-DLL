@@ -1156,11 +1156,14 @@ int PathHeuristic(int /*iCurrentX*/, int /*iCurrentY*/, int iNextX, int iNextY, 
 
 //	--------------------------------------------------------------------------------
 /// Standard path finder - cost for ending the turn on a given plot
-int PathEndTurnCost(CvPlot* pToPlot, const CvPathNodeCacheData& kToNodeCacheData, const UnitPathCacheData* pUnitDataCache, int iTurnsInFuture, bool bAbortInDanger)
+int PathEndTurnCost(CvPlot* pToPlot, const CvPathNodeCacheData& kToNodeCacheData, const UnitPathCacheData* pUnitDataCache, int iTurnsInFuture, int iFlags)
 {
 	CvUnit* pUnit = pUnitDataCache->pUnit;
 	TeamTypes eUnitTeam = pUnitDataCache->getTeam();
 	DomainTypes eUnitDomain = pUnitDataCache->getDomainType();
+
+	bool bAbortInDanger = (iFlags & CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER) != 0;
+	bool bOnlySafeEmbark = (iFlags & CvUnit::MOVEFLAG_SAFE_EMBARK_ONLY) != 0;
 
 	//human knows best, don't try to be smart, just try to keep combat units attack-ready
 	if (!pUnitDataCache->isAIControl())
@@ -1247,9 +1250,11 @@ int PathEndTurnCost(CvPlot* pToPlot, const CvPathNodeCacheData& kToNodeCacheData
 			else if (iPlotDanger*iScale > pUnit->GetCurrHitPoints()/3)
 				iCost += PATH_END_TURN_LOW_DANGER_WEIGHT*iFutureFactor;
 		}
-		else //civilian
+		else //civilian or embarked
 		{
-			if (iPlotDanger == INT_MAX && iTurnsInFuture < 2 && bAbortInDanger)
+			if (bOnlySafeEmbark && iPlotDanger>0 && !pUnit->isNativeDomain(pToPlot))
+				return -1; //don't expose ourselves
+			else if (iPlotDanger == INT_MAX && iTurnsInFuture < 2 && bAbortInDanger)
 				return -1; //don't ever do this
 			else if (iPlotDanger > pUnit->GetCurrHitPoints())
 				iCost += PATH_END_TURN_HIGH_DANGER_WEIGHT * 4 * iFutureFactor;
@@ -1376,7 +1381,7 @@ int PathCost(const CvAStarNode* parent, const CvAStarNode* node, const SPathFind
 			return -1; //forbidden
 
 		//extra cost for ending the turn on various types of undesirable plots
-		int iEndTurnCost = PathEndTurnCost(pToPlot, kToNodeCacheData, pUnitDataCache, node->m_iTurns, finder->HaveFlag(CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER));
+		int iEndTurnCost = PathEndTurnCost(pToPlot, kToNodeCacheData, pUnitDataCache, node->m_iTurns, finder->GetData().iFlags);
 		if (iEndTurnCost < 0)
 			return -1; //don't get killed
 
@@ -2383,20 +2388,8 @@ int BuildRouteValid(const CvAStarNode* parent, const CvAStarNode* node, const SP
 	PlayerTypes ePlotOwnerPlayer = pNewPlot->getOwner();
 	if(ePlotOwnerPlayer != NO_PLAYER && pNewPlot->getTeam() != kPlayer.getTeam() && !GET_TEAM(pNewPlot->getTeam()).IsVassal(kPlayer.getTeam()))
 	{
-		PlayerTypes eMajorPlayer = NO_PLAYER;
-		PlayerTypes eMinorPlayer = NO_PLAYER;
 		bool bPlotOwnerIsMinor = GET_PLAYER(ePlotOwnerPlayer).isMinorCiv();
-		if(bThisPlayerIsMinor && !bPlotOwnerIsMinor)
-		{
-			eMajorPlayer = ePlotOwnerPlayer;
-			eMinorPlayer = ePlayer;
-		}
-		else if(bPlotOwnerIsMinor && !bThisPlayerIsMinor)
-		{
-			eMajorPlayer = ePlayer;
-			eMinorPlayer = ePlotOwnerPlayer;
-		}
-		else
+		if ((bThisPlayerIsMinor && bPlotOwnerIsMinor) || (!bThisPlayerIsMinor && !bPlotOwnerIsMinor))
 		{
 			return FALSE;
 		}
@@ -2654,7 +2647,7 @@ bool CvTwoLayerPathFinder::AddStopNodeIfRequired(const CvAStarNode* current, con
 	if (bBlockAhead || bTempPlotAhead || bAttrition)
 	{
 		CvPlot* pToPlot = GC.getMap().plot(current->m_iX, current->m_iY);
-		int iEndTurnCost = PathEndTurnCost(pToPlot, current->m_kCostCacheData, pUnitDataCache, current->m_iTurns, HaveFlag(CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER));
+		int iEndTurnCost = PathEndTurnCost(pToPlot, current->m_kCostCacheData, pUnitDataCache, current->m_iTurns, GetData().iFlags);
 		if (iEndTurnCost < 0)
 			return false;
 
@@ -3284,7 +3277,7 @@ int TradePathLandCost(const CvAStarNode* parent, const CvAStarNode* node, const 
 {
 	CvMap& kMap = GC.getMap();
 	CvPlot* pFromPlot = kMap.plotUnchecked(parent->m_iX, parent->m_iY);
-	CvPlot* pToPlot = kMap.plotUnchecked( node->m_iX,  node->m_iY);
+	CvPlot* pToPlot = kMap.plotUnchecked(node->m_iX, node->m_iY);
 
 	const TradePathCacheData* pCacheData = reinterpret_cast<const TradePathCacheData*>(finder->GetScratchBuffer());
 	FeatureTypes eFeature = pToPlot->getFeatureType();
@@ -3300,9 +3293,9 @@ int TradePathLandCost(const CvAStarNode* parent, const CvAStarNode* node, const 
 	else if (pFromPlot->getRouteType() == ROUTE_ROAD && pToPlot->isRoute())
 		iRouteDiscountTimes120 = 54; //can't get better than this even if next plot is railroad
 	// Iroquois ability
-	else if (((eFeature == FEATURE_FOREST || eFeature == FEATURE_JUNGLE) && pCacheData->IsWoodlandMovementBonus()) && 
-				(MOD_BALANCE_VP || pToPlot->getTeam() == GET_PLAYER(finder->GetData().ePlayer).getTeam()) && 
-				!(pFromPlot->isRiverCrossing(directionXY(pFromPlot, pToPlot))))
+	else if (((eFeature == FEATURE_FOREST || eFeature == FEATURE_JUNGLE) && pCacheData->IsWoodlandMovementBonus()) &&
+		(MOD_BALANCE_VP || pToPlot->getTeam() == GET_PLAYER(finder->GetData().ePlayer).getTeam()) &&
+		!(pFromPlot->isRiverCrossing(directionXY(pFromPlot, pToPlot))))
 		iRouteDiscountTimes120 = 40;
 	// ignore terrain cost for moving along rivers
 	else if (pFromPlot->IsAlongSameRiver(pToPlot))
@@ -3314,6 +3307,34 @@ int TradePathLandCost(const CvAStarNode* parent, const CvAStarNode* node, const 
 	}
 	else if (pToPlot->isCity())
 		bIgnoreTerrain = true;
+
+	// extra yields on a plot when a trade route passes over it
+	int iExtraYieldDiscount = 0;
+	if (finder->GetData().ePlayer == pToPlot->getOwner())
+	{
+		if (pToPlot->isCity())
+		{
+			for (int iYield = 0; iYield < NUM_YIELD_TYPES; iYield++)
+			{
+				if (pToPlot->getPlotCity()->GetYieldFromPassingTR((YieldTypes)iYield) > 0)
+				{
+					iExtraYieldDiscount += pToPlot->getPlotCity()->GetYieldFromPassingTR((YieldTypes)iYield);
+					break;
+				}
+			}
+		}
+
+		// see CvPlot::calculateImprovementYield
+		if (pToPlot->getImprovementType() != NO_IMPROVEMENT)
+		{
+			RouteTypes eRouteTypeForImprovement = (GET_PLAYER(finder->GetData().ePlayer).GetCurrentEra() >= 4) ? ROUTE_RAILROAD : ROUTE_ROAD;
+			for (int iYield = 0; iYield < NUM_YIELD_TYPES; iYield++)
+			{
+				iExtraYieldDiscount += GC.getImprovementInfo(pToPlot->getImprovementType())->GetRouteYieldChanges(eRouteTypeForImprovement, iYield);
+			}
+		}
+	}
+	iRouteDiscountTimes120 += min(20, iExtraYieldDiscount);
 
 	if (iRouteDiscountTimes120 > 0)
 		bIgnoreTerrain = true;

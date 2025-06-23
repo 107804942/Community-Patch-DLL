@@ -1,5 +1,7 @@
 -- TODO: Documentation
 
+ALTER TABLE UnitPromotions ADD CombatChange integer DEFAULT 0;
+
 ALTER TABLE UnitPromotions ADD IgnoreTerrainDamage boolean DEFAULT 0;
 ALTER TABLE UnitPromotions ADD IgnoreFeatureDamage boolean DEFAULT 0;
 ALTER TABLE UnitPromotions ADD ExtraTerrainDamage boolean DEFAULT 0;
@@ -160,10 +162,6 @@ ALTER TABLE UnitPromotions ADD LandAirDefenseBonus integer DEFAULT 0;
 
 ALTER TABLE UnitPromotions ADD DiploMissionInfluence integer DEFAULT 0;
 
--- OBSOLETE: to be removed in VP5.0, replaced by UnitPromotions_Plagues and UnitPromotions_BlockedPromotions tables
-ALTER TABLE UnitPromotions ADD PlagueChance integer DEFAULT 0;
-ALTER TABLE UnitPromotions ADD PlaguePromotion text REFERENCES UnitPromotions (Type);
-ALTER TABLE UnitPromotions ADD PlagueIDImmunity integer DEFAULT -1;
 
 ALTER TABLE UnitPromotions ADD PlagueID integer DEFAULT -1;
 ALTER TABLE UnitPromotions ADD PlaguePriority integer DEFAULT 0;
@@ -280,18 +278,12 @@ ALTER TABLE UnitPromotions ADD XPFromPillaging integer DEFAULT 0;
 -- Unit cannot have its HP increased by any means
 ALTER TABLE UnitPromotions ADD CannotHeal boolean DEFAULT 0;
 
--- % Multiplier on fortify combat strength bonus (FORTIFY_MODIFIER_PER_TURN)
-ALTER TABLE UnitPromotions ADD FortifyEffectiveness integer DEFAULT 100;
+-- Additional combat strength while fortified
+ALTER TABLE UnitPromotions ADD FortifiedModifier integer DEFAULT 0;
 
 -- Extra damage on all units on target tile when unit attacks without having moved this turn
 -- This damage is not affected by any damage modifying effects on the target(s), and sets off all on-kill triggers
 ALTER TABLE UnitPromotions ADD TileDamageIfNotMoved integer DEFAULT 0;
-
--- When unit is expended, the current yields from the tile (after factoring in the improvement that might be built by the unit) is added to the player's capital
-ALTER TABLE UnitPromotions ADD CopyYieldsFromExpendTile boolean DEFAULT 0;
-
--- When unit is expended, all owned units on the same tile gain XP
-ALTER TABLE UnitPromotions ADD TileXPOnExpend integer DEFAULT 0;
 
 -- This promotion is only effective if the unit starts its turn affected by leadership aura (great general or great admiral depending on domain)
 ALTER TABLE UnitPromotions ADD RequiresLeadership boolean DEFAULT 0;
@@ -329,6 +321,10 @@ ALTER TABLE UnitPromotions ADD IsVisibleAboveFlag boolean DEFAULT 1;
 -- Attack and defense modifiers against units of this domain
 ALTER TABLE UnitPromotions_Domains ADD Attack integer DEFAULT 0;
 ALTER TABLE UnitPromotions_Domains ADD Defense integer DEFAULT 0;
+
+-- Attack and defense modifiers against units of this combat
+ALTER TABLE UnitPromotions_UnitCombatMods ADD Attack integer DEFAULT 0;
+ALTER TABLE UnitPromotions_UnitCombatMods ADD Defense integer DEFAULT 0;
 
 -- Heal rate is doubled for units with this promotion on tiles of the specified terrain/feature
 ALTER TABLE UnitPromotions_Terrains ADD DoubleHeal boolean DEFAULT 0;

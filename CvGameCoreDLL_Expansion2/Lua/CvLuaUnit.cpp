@@ -376,6 +376,8 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(OpenFromModifier);
 	Method(TerrainAttackModifier);
 	Method(TerrainDefenseModifier);
+	Method(GetTerrainModifierAttack);
+	Method(GetTerrainModifierDefense);
 	Method(FeatureAttackModifier);
 	Method(FeatureDefenseModifier);
 	Method(UnitClassAttackModifier);
@@ -482,8 +484,13 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetAdjacentTileHeal);
 
 	Method(GetExtraCombatPercent);
+	Method(GetVsUnhappyMod);
 	Method(GetBorderCombatStrengthModifier);
+	Method(GetCombatStrengthModifierPerMarriage);
+	Method(GetCombatStrengthModifierPerMarriageCap);
+	Method(GetCSMarriageStrength);
 	Method(GetFriendlyLandsModifier);
+	Method(GetStrengthThisTurnFromPreviousSamePromotionAttacks);
 	Method(GetFriendlyLandsAttackModifier);
 	Method(GetOutsideFriendlyLandsModifier);
 	Method(GetExtraCityAttackPercent);
@@ -573,6 +580,8 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetExtraFeatureAttackPercent);
 	Method(GetExtraFeatureDefensePercent);
 	Method(GetExtraUnitCombatModifier);
+	Method(GetExtraUnitCombatModifierAttack);
+	Method(GetExtraUnitCombatModifierDefense);
 	Method(GetUnitClassModifier);
 
 	Method(CanAcquirePromotion);
@@ -2147,24 +2156,46 @@ int CvLuaUnit::lGetGivePoliciesCulture(lua_State* L)
 //int GetBlastTourism()
 int CvLuaUnit::lGetBlastTourism(lua_State* L)
 {
-	CvUnit* pUnit = GetInstance(L);
-	int iResult = pUnit->GetTourismBlastStrength();
-
-	if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES && iResult > 0)
+	CvUnit* pkUnit = GetInstance(L);
+	int iResult = 0;
+	if (pkUnit)
 	{
-		CvPlot* pPlot = pUnit->plot();
-		if (pPlot && pUnit->canBlastTourism(pPlot))
-		{
-			CvCity* pCapital = GET_PLAYER(pUnit->getOwner()).getCapitalCity();
-			PlayerTypes eOtherPlayer = pPlot->getOwner();
+		iResult = pkUnit->getBlastTourism();
 
-			// Player to player modifier
-			if (pCapital)
+#if defined(MOD_BALANCE_CORE)
+		if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES && pkUnit && pkUnit->getBlastTourism() > 0)
+		{
+			CvPlot* pPlot = pkUnit->plot();
+			if (pPlot && pkUnit->canBlastTourism(pPlot))
 			{
-				int iModifier = pCapital->GetCityCulture()->GetTourismMultiplier(eOtherPlayer, false, false, false, false, false);
-				iResult = iResult * (100 + iModifier) / 100;
+				CvPlayer& kUnitOwner = GET_PLAYER(pkUnit->getOwner());
+				PlayerTypes eOtherPlayer = pPlot->getOwner();
+				
+
+				// below logic based on CvPlayerCulture::ChangeInfluenceOn()
+				if (eOtherPlayer != NO_PLAYER)
+				{
+					// gamespeed modifier
+					iResult = iResult * GC.getGame().getGameSpeedInfo().getCulturePercent() / 100;
+
+					// player to player modifier (eg religion, open borders, ideology)
+					int iModifier = kUnitOwner.GetCulture()->GetTourismModifierWith(eOtherPlayer);
+					if (iModifier != 0)
+					{
+						iResult = iResult * (100 + iModifier) / 100;
+					}
+
+					// IsNoOpenTrade trait modifier (half tourism if trait owner does not send a trade route to the unit owner)
+					CvPlayer& kOtherPlayer = GET_PLAYER(eOtherPlayer);
+					if (eOtherPlayer != pkUnit->getOwner() && kOtherPlayer.isMajorCiv() && kOtherPlayer.GetPlayerTraits()->IsNoOpenTrade())
+					{
+						if (!GC.getGame().GetGameTrade()->IsPlayerConnectedToPlayer(eOtherPlayer, pkUnit->getOwner(), true))
+							iResult /= 2;
+					}
+				}
 			}
 		}
+#endif
 	}
 	
 	lua_pushinteger(L, iResult);
@@ -3669,35 +3700,45 @@ int CvLuaUnit::lGetMovementRules(lua_State* L)
 	CvString text = "";
 	int iChance = -1;
 
-	if (pkUnit != NULL && pkOtherUnit != NULL && pkOtherUnit->CanPlague(pkUnit))
+	if (pkUnit != NULL && pkOtherUnit != NULL && !pkOtherUnit->isDelayedDeath())
 	{
-		vector<int> vInflictedPlagues = pkOtherUnit->GetInflictedPlagueIDs();
+		vector<PlagueInfo> vInflictedPlagues = pkOtherUnit->GetPlaguesToInflict();
 		if (vInflictedPlagues.size() > 0)
 		{
-			//FIXME: The UI currently supports only one plague being inflicted.
-			//If anyone is inclined to do so, they can write the code to make the UI support this.
-			//For now, just grab the first plague.
-			int iPlagueChance = 0;
-			PromotionTypes ePlague = pkOtherUnit->GetInflictedPlague(vInflictedPlagues[0], iPlagueChance);
-			CvPromotionEntry* pkPlaguePromotionInfo = GC.getPromotionInfo(ePlague);
-			int iPlagueID = pkPlaguePromotionInfo->GetPlagueID();
-			if (pkPlaguePromotionInfo)
+			for (std::vector<PlagueInfo>::iterator it = vInflictedPlagues.begin(); it != vInflictedPlagues.end(); it++)
 			{
-				// Already have this plague, or a stronger version of this plague?
-				if (pkUnit->HasPlague(iPlagueID, pkPlaguePromotionInfo->GetPlaguePriority()))
+				if (pkOtherUnit->getDomainType() != (*it).eDomain)
+					continue;
+
+				if (!(*it).bApplyOnAttack)
+					continue;
+
+				PromotionTypes ePlague = (*it).ePlague;
+				CvPromotionEntry* pkPlaguePromotionInfo = GC.getPromotionInfo(ePlague);
+				int iPlagueID = pkPlaguePromotionInfo->GetPlagueID();
+				if (pkPlaguePromotionInfo)
 				{
-					text = GetLocalizedText("TXT_KEY_UNIT_ALREADY_PLAGUED", pkPlaguePromotionInfo->GetText());
+					// Already have this plague, or a stronger version of this plague?
+					if (pkUnit->HasPlague(iPlagueID, pkPlaguePromotionInfo->GetPlaguePriority()))
+					{
+						text = GetLocalizedText("TXT_KEY_UNIT_ALREADY_PLAGUED", pkPlaguePromotionInfo->GetText());
+					}
+					// Immune to this plague?
+					else if (pkUnit->IsPromotionBlocked(ePlague))
+					{
+						text = GetLocalizedText("TXT_KEY_UNIT_IMMUNE_PLAGUED", pkPlaguePromotionInfo->GetText());
+					}
+					else
+					{
+						text = GetLocalizedText("TXT_KEY_UNIT_PLAGUE_CHANCE", pkPlaguePromotionInfo->GetText());
+						iChance = (*it).iApplyChance;
+					}
 				}
-				// Immune to this plague?
-				else if (pkUnit->ImmuneToPlague(iPlagueID))
-				{
-					text = GetLocalizedText("TXT_KEY_UNIT_IMMUNE_PLAGUED", pkPlaguePromotionInfo->GetText());
-				}
-				else
-				{
-					text = GetLocalizedText("TXT_KEY_UNIT_PLAGUE_CHANCE", pkPlaguePromotionInfo->GetText());
-					iChance = iPlagueChance;
-				}
+
+				//FIXME: The UI currently supports only one plague being inflicted.
+				//If anyone is inclined to do so, they can write the code to make the UI support this.
+				//For now, just grab the first plague.
+				break;
 			}
 		}
 	}
@@ -4198,6 +4239,28 @@ int CvLuaUnit::lTerrainDefenseModifier(lua_State* L)
 	const TerrainTypes eTerrain = (TerrainTypes)lua_tointeger(L, 2);
 
 	const int iResult = pkUnit->terrainDefenseModifier(eTerrain);
+	lua_pushinteger(L, iResult);
+	return 1;
+
+}//------------------------------------------------------------------------------
+//int GetTerrainModifierAttack(int /*TerrainTypes*/ eTerrain);
+int CvLuaUnit::lGetTerrainModifierAttack(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const TerrainTypes eTerrain = (TerrainTypes)lua_tointeger(L, 2);
+
+	const int iResult = pkUnit->GetTerrainModifierAttack(eTerrain);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+//int GetTerrainModifierDefense(int /*TerrainTypes*/ eTerrain);
+int CvLuaUnit::lGetTerrainModifierDefense(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const TerrainTypes eTerrain = (TerrainTypes)lua_tointeger(L, 2);
+
+	const int iResult = pkUnit->GetTerrainModifierDefense(eTerrain);
 	lua_pushinteger(L, iResult);
 	return 1;
 }
@@ -5235,10 +5298,38 @@ int CvLuaUnit::lGetExtraCombatPercent(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
+//int GetVsUnhappyMod();
+int CvLuaUnit::lGetVsUnhappyMod(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+
+	const int iResult = pkUnit->GetVsUnhappyMod();
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
 //int GetBorderCombatStrengthModifier();
 int CvLuaUnit::lGetBorderCombatStrengthModifier(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvUnit::getBorderCombatStrengthModifier);
+}
+//------------------------------------------------------------------------------
+//int GetCombatStrengthModifierPerMarriage();
+int CvLuaUnit::lGetCombatStrengthModifierPerMarriage(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvUnit::getCombatStrengthModifierPerMarriage);
+}
+//------------------------------------------------------------------------------
+//int GetCombatStrengthModifierPerMarriageCap();
+int CvLuaUnit::lGetCombatStrengthModifierPerMarriageCap(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvUnit::getCombatStrengthModifierPerMarriageCap);
+}
+//------------------------------------------------------------------------------
+//int GetCSMarriageStrength();
+int CvLuaUnit::lGetCSMarriageStrength(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvUnit::getCSMarriageStrength);
 }
 //------------------------------------------------------------------------------
 //int GetFriendlyLandsModifier();
@@ -5247,6 +5338,16 @@ int CvLuaUnit::lGetFriendlyLandsModifier(lua_State* L)
 	CvUnit* pkUnit = GetInstance(L);
 
 	const int iResult = pkUnit->getFriendlyLandsModifier();
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+//int GetStrengthThisTurnFromPreviousSamePromotionAttacks();
+int CvLuaUnit::lGetStrengthThisTurnFromPreviousSamePromotionAttacks(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+
+	const int iResult = pkUnit->GetStrengthThisTurnFromPreviousSamePromotionAttacks();
 	lua_pushinteger(L, iResult);
 	return 1;
 }
@@ -6006,6 +6107,28 @@ int CvLuaUnit::lGetExtraUnitCombatModifier(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
+//int getExtraUnitCombatModifierAttack(int /*UnitCombatTypes*/ eIndex);
+int CvLuaUnit::lGetExtraUnitCombatModifierAttack(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const UnitCombatTypes eIndex = (UnitCombatTypes)lua_tointeger(L, 2);
+
+	const int iResult = pkUnit->getExtraUnitCombatModifierAttack(eIndex);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+//int getExtraUnitCombatModifierDefense(int /*UnitCombatTypes*/ eIndex);
+int CvLuaUnit::lGetExtraUnitCombatModifierDefense(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const UnitCombatTypes eIndex = (UnitCombatTypes)lua_tointeger(L, 2);
+
+	const int iResult = pkUnit->getExtraUnitCombatModifierDefense(eIndex);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
 //int GetUnitClassModifier(int /*UnitClassTypes*/ eIndex);
 int CvLuaUnit::lGetUnitClassModifier(lua_State* L)
 {
@@ -6431,29 +6554,7 @@ int CvLuaUnit::lGetAllianceCSStrength(lua_State* L)
 			int iCSBonus = GET_PLAYER(eAlly).GetPlayerTraits()->GetAllianceCSStrength();
 			if(iCSBonus > 0)
 			{
-				int iNumAllies = 0;
-				// Loop through all minors and get the total number we've met.
-				for(int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
-				{
-					PlayerTypes eMinor = (PlayerTypes) iPlayerLoop;
-
-					if (GET_PLAYER(eMinor).isAlive() && GET_PLAYER(eMinor).isMinorCiv())
-					{
-						if (GET_PLAYER(eMinor).GetMinorCivAI()->IsAllies(eAlly))
-						{
-							iNumAllies++;
-							if(iNumAllies >= /*5*/ GD_INT_GET(BALANCE_MAX_CS_ALLY_STRENGTH))
-							{
-								break;
-							}
-						}
-					}
-				}
-				if(iNumAllies > /*5*/ GD_INT_GET(BALANCE_MAX_CS_ALLY_STRENGTH))
-				{
-					iNumAllies = /*5*/ GD_INT_GET(BALANCE_MAX_CS_ALLY_STRENGTH);
-				}
-				iStrengthMod = (iCSBonus * iNumAllies);
+				iStrengthMod = iCSBonus * min(GET_PLAYER(eAlly).GetNumCSAllies(), /*5*/ GD_INT_GET(BALANCE_MAX_CS_ALLY_STRENGTH));
 			}
 		}
 	}
@@ -6462,31 +6563,15 @@ int CvLuaUnit::lGetAllianceCSStrength(lua_State* L)
 		int iCSBonus = GET_PLAYER(pkUnit->getOwner()).GetPlayerTraits()->GetAllianceCSStrength();
 		if(iCSBonus > 0)
 		{
-			int iNumAllies = 0;
-			// Loop through all minors and get the total number we've met.
-			for(int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
-			{
-				PlayerTypes eMinor = (PlayerTypes) iPlayerLoop;
-
-				if (GET_PLAYER(eMinor).isAlive() && GET_PLAYER(eMinor).isMinorCiv())
-				{
-					if (GET_PLAYER(eMinor).GetMinorCivAI()->IsAllies(pkUnit->getOwner()))
-					{
-						iNumAllies++;
-						if(iNumAllies >= /*5*/ GD_INT_GET(BALANCE_MAX_CS_ALLY_STRENGTH))
-						{
-							break;
-						}
-					}
-				}
-			}
-			if(iNumAllies > /*5*/ GD_INT_GET(BALANCE_MAX_CS_ALLY_STRENGTH))
-			{
-				iNumAllies = /*5*/ GD_INT_GET(BALANCE_MAX_CS_ALLY_STRENGTH);
-			}
-			iStrengthMod = (iCSBonus * iNumAllies);
+			iStrengthMod = iCSBonus * min(GET_PLAYER(pkUnit->getOwner()).GetNumCSAllies(), /*5*/ GD_INT_GET(BALANCE_MAX_CS_ALLY_STRENGTH));
 		}
 	}
+
+	if (pkUnit->GetCombatModPerCSAlliance() > 0 && !GET_PLAYER(pkUnit->getOwner()).isMinorCiv())
+	{
+		iStrengthMod += (pkUnit->GetCombatModPerCSAlliance() * min(GET_PLAYER(pkUnit->getOwner()).GetNumCSAllies(), /*5*/ GD_INT_GET(BALANCE_MAX_CS_ALLY_STRENGTH)));
+	}
+
 	lua_pushinteger(L, iStrengthMod);
 
 	return 1;

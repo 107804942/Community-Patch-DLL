@@ -2444,6 +2444,17 @@ void CvMilitaryAI::DisbandObsoleteUnits()
 	if (GC.getGame().getGameTurn() <= 25)
 		return;
 
+	// delete low-life units that can't heal
+	int iUnitLoop = 0;
+	for (CvUnit* pLoopUnit = m_pPlayer->firstUnit(&iUnitLoop); pLoopUnit != NULL; pLoopUnit = m_pPlayer->nextUnit(&iUnitLoop))
+	{
+		if (pLoopUnit->IsCannotHeal() && !pLoopUnit->isDelayedDeath() && pLoopUnit->canScrap() && !pLoopUnit->HasPlague())
+		{
+			if (pLoopUnit->GetCurrHitPoints() < 75 || (GetNumberCivsAtWarWith(m_pPlayer->isMinorCiv()) > 0 && pLoopUnit->GetCurrHitPoints() < 25))
+				pLoopUnit->scrap();
+		}
+	}
+
 	// Don't do this if at war
 	if (GetNumberCivsAtWarWith(m_pPlayer->isMinorCiv()) > 0)
 	{
@@ -2972,6 +2983,7 @@ void CvMilitaryAI::LogAvailableForces()
 {
 	if(GC.getLogging() && GC.getAILogging())
 	{
+		/*
 		int iCapitalX = 0;
 		int iCapitalY = 0;
 		CvCity* pCapital = GetPlayer()->getCapitalCity();
@@ -2980,6 +2992,7 @@ void CvMilitaryAI::LogAvailableForces()
 			iCapitalX = pCapital->getX();
 			iCapitalY = pCapital->getY();
 		}
+		*/
 
 		// Open the right file
 		CvString playerName = GetPlayer()->getCivilizationShortDescription();

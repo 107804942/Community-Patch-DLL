@@ -1,6 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <GameData>
 	<Language_en_US>
+
+		<Row Tag="TXT_KEY_YIELD_MODIFIED">
+			<Text>[COLOR_POSITIVE_TEXT]{1_Num} {2_IconString} after Modifiers[ENDCOLOR]</Text>
+		</Row>
+		<Row Tag="TXT_KEY_YIELD_FROM_EXCESS_FOOD">
+			<Text>{1_Num} {2_IconString} from excess [ICON_FOOD] Food</Text>
+		</Row>
+		<Row Tag="TXT_KEY_YIELD_FROM_POLICIES">
+			<Text>{1_Num} {2_IconString} from Policies</Text>
+		</Row>
+		<Row Tag="TXT_KEY_YIELD_FROM_CULTURE">
+			<Text>{1_Num} {2_IconString} from [ICON_CULTURE] Culture</Text>
+		</Row>
+		<Row Tag="TXT_KEY_YIELD_FROM_WORLD_CONGRESS">
+			<Text>{1_Num} {2_IconString} from active Resolutions</Text>
+		</Row>
+		<Row Tag="TXT_KEY_YIELD_CONVERTED_TO_PRODUCTION">
+			<Text>[COLOR_NEGATIVE_TEXT]-{1_Num}[ENDCOLOR] {2_IconString} converted to [ICON_PRODUCTION] Production</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EXCESS_FOOD_BEFORE_GROWTH">
+			<Text>[COLOR_POSITIVE_TEXT]{1_Num} {2_IconString} Excess Food[ENDCOLOR]</Text>
+		</Row>
+		<Row Tag="TXT_KEY_YIELD_FROM_NON_SPECIALISTS">
+			<Text>{1_Num} {2_IconString} from non-Specialist Citizens</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PRODMOD_HOLY_CITY">
+			<Text>[NEWLINE][ICON_BULLET]Modifier for Holy City: {1_Num}%</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PRODMOD_TECHNOLOGIES">
+			<Text>[NEWLINE][ICON_BULLET]Internet Modifier: {1_Num}%</Text>
+		</Row>
+		<Row Tag="TXT_KEY_CO_PLAYER_GREAT_FIREWALL">
+			<Text>{1_Num}% Penalty from Great Firewall[NEWLINE]</Text>
+		</Row>
+
 		<!-- Save menu -->
 		<!-- Hopefully removed if option is not needed or better solution in place -->
 		<Row Tag="TXT_KEY_FORCE_MP_SAVE">
@@ -475,6 +510,15 @@
 		<Row Tag="TXT_KEY_EUPANEL_WITHDRAW_CHANCE">
 			<Text>[COLOR_CYAN]Withdraw Chance[ENDCOLOR]</Text>
 		</Row>
+		<Row Tag="TXT_KEY_EUPANEL_SAME_PROMOTION_ATTACK_BONUS">
+			<Text>Bonus from Attacks Last Turn</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EUPANEL_VS_UNHAPPY_MOD">
+			<Text>Target Empire Unhappy</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EUPANEL_RANGED_ATTACK_IN_BONUS">
+			<Text>Bonus Attacking in {1_TerrainType}</Text>
+		</Row>
 		<Row Tag="TXT_KEY_EUPANEL_WITHDRAW_CHANCE_100_PERCENT">
 			<Text>[COLOR_CYAN]Unit will withdraw from the attack[ENDCOLOR]</Text>
 		</Row>
@@ -534,6 +578,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_EUPANEL_BONUS_BORDER">
 			<Text>Bonus on Borders</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EUPANEL_BONUS_MARRIAGES">
+			<Text>Bonus from Marriages</Text>
 		</Row>
 		<Row Tag="TXT_KEY_EUPANEL_MONOPOLY_POWER_ATTACK">
 			<Text>Resource Monopoly</Text>
@@ -1616,6 +1663,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_MISC_YOU_UNIT_WAS_DAMAGED_SPLASH">
 			<Text>Splash Damage</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MISC_TILE_DAMAGE_NOT_MOVED">
+			<Text>Crouching Tiger</Text>
 		</Row>
 		<Row Tag="TXT_KEY_MISC_YOU_ENEMY_UNITS_DEFECT">
 			<Text>Enemy Defection</Text>

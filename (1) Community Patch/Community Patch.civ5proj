@@ -8,7 +8,7 @@
     <Guid>d1b6328c-ff44-4b0d-aad7-c657f83610cd</Guid>
     <ModVersion>143</ModVersion>
     <Stability>Stable</Stability>
-    <Teaser>(4.21) Bugfixes, AI Improvements, Game Optimizations and API Extensions for Civ V</Teaser>
+    <Teaser>(4.21.1) Bugfixes, AI Improvements, Game Optimizations and API Extensions for Civ V</Teaser>
     <Description>Contains core AI improvements and bugfixes for the Civ 5 BNW DLL. Also contains support for the Vox Populi unofficial expansion and its associated mods.</Description>
     <Authors>CivFanatics Community Patch Project Team</Authors>
     <SpecialThanks>
@@ -475,7 +475,7 @@
       <Action>
         <Set>OnModActivated</Set>
         <Type>UpdateDatabase</Type>
-        <FileName>Database Changes\Units\GreatPeople\NewGreatPeople.xml</FileName>
+        <FileName>Database Changes\Units\GreatPeople\CoreNewGreatPeople.xml</FileName>
       </Action>
       <Action>
         <Set>OnModActivated</Set>
@@ -1031,11 +1031,11 @@
       <SubType>Lua</SubType>
       <ImportIntoVFS>True</ImportIntoVFS>
     </Content>
-    <Content Include="Assets\FontIcons\CultureLocal.dds">
+    <Content Include="Assets\FontIcons\CommunityFontIconAtlas.dds">
       <SubType>Lua</SubType>
       <ImportIntoVFS>True</ImportIntoVFS>
     </Content>
-    <Content Include="Assets\FontIcons\CultureLocal.ggxml">
+    <Content Include="Assets\FontIcons\CommunityFontIconAtlas.ggxml">
       <SubType>Lua</SubType>
       <ImportIntoVFS>True</ImportIntoVFS>
     </Content>
@@ -3175,7 +3175,7 @@
       <SubType>Lua</SubType>
       <ImportIntoVFS>False</ImportIntoVFS>
     </Content>
-    <Content Include="Database Changes\Units\GreatPeople\NewGreatPeople.xml">
+    <Content Include="Database Changes\Units\GreatPeople\CoreNewGreatPeople.xml">
       <SubType>Lua</SubType>
       <ImportIntoVFS>False</ImportIntoVFS>
     </Content>

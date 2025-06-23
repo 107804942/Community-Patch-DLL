@@ -282,7 +282,7 @@ function RefreshCityBanner(cityBanner, iActiveTeam, iActivePlayer)
 		if (city:IsBlockaded()) then
 			if (city:GetSappedTurns() > 0) then
 				controls.BlockadedIcon:SetHide(false);
-				controls.BlockadedIcon:SetText("[ICON_VP_SAPPED]");
+				controls.BlockadedIcon:SetText("[ICON_SAPPED]");
 				controls.BlockadedIcon:SetToolTipString(Locale.ConvertTextKey("TXT_KEY_CITY_SAPPED", city:GetSappedTurns()));
 			else
 				controls.BlockadedIcon:SetHide(false);
@@ -528,7 +528,7 @@ function RefreshCityBanner(cityBanner, iActiveTeam, iActivePlayer)
 			local buildGrowth = "-";
 
 			if (city:IsProduction() and not city:IsProductionProcess()) then
-				if (city:GetCurrentProductionDifferenceTimes100(false, false) > 0) then
+				if (city:GetYieldRateTimes100(YieldTypes.YIELD_PRODUCTION) > 0) then
 					buildGrowth = city:GetProductionTurnsLeft();
 				end
 			end
@@ -561,10 +561,7 @@ function RefreshCityBanner(cityBanner, iActiveTeam, iActivePlayer)
 
 			local iCurrentProduction = city:GetProduction();
 			local iProductionNeeded = city:GetProductionNeeded();
-			local iProductionPerTurn = city:GetYieldRate(YieldTypes.YIELD_PRODUCTION);
-			if (city:IsFoodProduction()) then
-				iProductionPerTurn = iProductionPerTurn + city:GetYieldRate(YieldTypes.YIELD_FOOD) - city:FoodConsumption(true);
-			end
+			local iProductionPerTurn = city:GetYieldRateTimes100(YieldTypes.YIELD_PRODUCTION) / 100;
 			local iCurrentProductionPlusThisTurn = iCurrentProduction + iProductionPerTurn;
 
 			local fProductionProgressPercent = iCurrentProduction / iProductionNeeded;

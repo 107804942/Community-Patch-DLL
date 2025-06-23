@@ -1805,14 +1805,10 @@ CvString CvPlayerEspionage::GetEventHelpText(CityEventTypes eEvent, int uiSpyInd
 
 	CvPlot* pCityPlot = GC.getMap().plot(pSpy->m_iCityX, pSpy->m_iCityY);
 	CvCity* pCity = NULL;
-	CvCityEspionage* pCityEspionage = NULL;
-	PlayerTypes eCityOwner = NO_PLAYER;
 
 	if (pCityPlot)
 	{
 		pCity = pCityPlot->getPlotCity();
-		eCityOwner = pCity->getOwner();
-		pCityEspionage = pCity->GetCityEspionage();
 	}
 	CvModCityEventInfo* pkEventInfo = GC.getCityEventInfo(eEvent);
 	if (pkEventInfo == NULL || pCity == NULL)
@@ -1984,14 +1980,12 @@ void CvPlayerEspionage::UncoverIntrigue(uint uiSpyIndex)
 	CvEspionageSpy* pSpy = GetSpyByID(uiSpyIndex);
 	CvPlot* pCityPlot = GC.getMap().plot(pSpy->m_iCityX, pSpy->m_iCityY);
 	CvCity* pCity = NULL;
-	CvCityEspionage* pCityEspionage = NULL;
 	PlayerTypes ePlayer = m_pPlayer->GetID();
 	PlayerTypes eCityOwner = NO_PLAYER;
 	if(pCityPlot)
 	{
 		pCity = pCityPlot->getPlotCity();
 		eCityOwner = pCity->getOwner();
-		pCityEspionage = pCity->GetCityEspionage();
 	}
 
 	ASSERT_DEBUG(pCity, "Spy needs to be in city to uncover intrigue");
@@ -2311,7 +2305,7 @@ void CvPlayerEspionage::UncoverCityBuildingWonder(uint uiSpyIndex)
 		return;
 	}
 
-	if (!MOD_BALANCE_VP || pCity->GetCityEspionage()->GetRevealCityScreen(m_pPlayer->GetID()))
+	if (!MOD_BALANCE_VP || pCityEspionage->GetRevealCityScreen(m_pPlayer->GetID()))
 	{
 		ProjectTypes eProject = pCity->getProductionProject();
 		BuildingTypes eBuilding = pCity->getProductionBuilding();
@@ -3076,7 +3070,7 @@ int CvPlayerEspionage::CalcPerTurn(int iSpyState, CvCity* pCity, int iSpyIndex, 
 			else
 			{
 				PlayerTypes eCityOwner = pCity->getOwner();
-				int iBaseYieldRate = pCity->getYieldRateTimes100(YIELD_SCIENCE, false);
+				int iBaseYieldRate = pCity->getYieldRateTimes100(YIELD_SCIENCE);
 				iBaseYieldRate *= GD_INT_GET(ESPIONAGE_GATHERING_INTEL_RATE_BASE_PERCENT);
 				iBaseYieldRate /= 100;
 				iBaseYieldRate *= GC.getGame().getGameSpeedInfo().getSpyRatePercent();
@@ -8562,7 +8556,7 @@ int CvEspionageAI::GetMissionScore(CvCity* pCity, CityEventChoiceTypes eMission,
 		{
 			if (GET_PLAYER(eTargetPlayer).GetDiplomacyAI()->IsCloseToCultureVictory())
 			{
-				iScore += min(pCity->GetBaseTourism() / 5, 100);
+				iScore += min(pCity->getYieldRateTimes100(YIELD_TOURISM) / 5, 100);
 			}
 		}
 		if (pkMissionInfo->getRandomBarbs() > 0)
@@ -8715,20 +8709,19 @@ int CvEspionageAI::GetMissionScore(CvCity* pCity, CityEventChoiceTypes eMission,
 				}
 			}
 		}
-		for (int iYield = 0; iYield < GC.getNUM_YIELD_TYPES(); iYield++)
+
+		int iNumYieldTypes = GC.getNUM_YIELD_TYPES(true);
+		for (int iYield = 0; iYield < iNumYieldTypes; iYield++)
 		{
 			YieldTypes eYield = (YieldTypes)iYield;
-			// Simplification - errata yields not worth considering.
-			if (eYield > YIELD_GOLDEN_AGE_POINTS)
-				break;
 
 			int iSiphonYield = pkMissionInfo->getYieldSiphon(eYield);
 			if (iSiphonYield <= 0)
 				continue;
 
-			int iCityYield = pCity->getYieldRate(eYield, false);
+			int iCityYield = pCity->getYieldRateTimes100(eYield);
 			iCityYield *= iSiphonYield;
-			iCityYield /= 100;
+			iCityYield /= 10000;
 			iCityYield *= pkMissionInfo->getEventDuration();
 			// the value of yields decreases with era
 			iCityYield /= max(1, (int)GET_PLAYER(ePlayer).GetCurrentEra());

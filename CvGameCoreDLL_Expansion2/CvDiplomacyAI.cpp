@@ -3348,13 +3348,16 @@ int CvDiplomacyAI::GetLowestTourismInfluence() const
 
 		if (eLoopPlayer != GetID() && kPlayer.isAlive() && kPlayer.isMajorCiv())
 		{
-			int iInfluenceOn = GetPlayer()->GetCulture()->GetInfluenceOn(eLoopPlayer);
-			int iLifetimeCulture = kPlayer.GetJONSCultureEverGenerated();
+			long long lInfluenceOn = GetPlayer()->GetCulture()->GetInfluenceOnTimes100(eLoopPlayer);
+			long long lLifetimeCulture = kPlayer.GetJONSCultureEverGeneratedTimes100();
 			int iPercent = 0;
 
-			if (iInfluenceOn > 0)
+			if (lInfluenceOn > 0)
 			{
-				iPercent = (iInfluenceOn * 100) / max(1, iLifetimeCulture);
+				if (lLifetimeCulture > 0)
+				{
+					iPercent = (int)(lInfluenceOn * 100 / lLifetimeCulture);
+				}
 			}
 			if (iPercent < 0)
 			{
@@ -12067,7 +12070,7 @@ int CvDiplomacyAI::ComputeDynamicStrengthModifier(PlayerTypes ePlayer, PlayerTyp
 				// Can we actually see this Unit?
 				if (eTeam != eOurTeam)
 				{
-					if (!pUnitPlot->isVisible(eOurTeam) || pLoopUnit->isInvisible(eOurTeam, false))
+					if (!pUnitPlot->isVisible(eOurTeam) || pLoopUnit->isInvisible(eOurTeam, false) || (pLoopUnit->isCargo() && pLoopUnit->getTransportUnit()->isInvisible(eOurTeam, false)))
 						continue;
 				}
 
@@ -12662,7 +12665,7 @@ int CvDiplomacyAI::CountAggressiveMilitaryScore(PlayerTypes ePlayer, bool bHalve
 
 		CvPlot* pUnitPlot = pLoopUnit->plot();
 		// Can we actually see this Unit? No cheating!
-		if (!pUnitPlot->isVisible(eOurTeam) || pLoopUnit->isInvisible(eOurTeam, false))
+		if (!pUnitPlot->isVisible(eOurTeam) || pLoopUnit->isInvisible(eOurTeam, false) || (pLoopUnit->isCargo() && pLoopUnit->getTransportUnit()->isInvisible(eOurTeam, false)))
 			continue;
 
 		// Must be close to us
@@ -18561,7 +18564,7 @@ void CvDiplomacyAI::SelectBestApproachTowardsMajorCiv(PlayerTypes ePlayer, bool 
 
 	int iGDPEstimate = GetPlayer()->GetTreasury()->GetGoldFromCitiesTimes100(false);
 	int iScienceEstimate = GetPlayer()->GetScienceFromCitiesTimes100(false);
-	int iCultureEstimate = GetPlayer()->GetJONSCultureFromCitiesTimes100(false) + (GetPlayer()->GetJONSCulturePerTurnForFree() * 100);
+	int iCultureEstimate = GetPlayer()->GetYieldRateFromCitiesTimes100(YIELD_CULTURE) + (GetPlayer()->GetJONSCulturePerTurnForFree() * 100);
 
 	// Scale factor is hard to guess ...
 	int iGoldDelta = (5 * (iCurrentGoldIn - iCurrentGoldOut)) / max(iGDPEstimate,1);
@@ -23136,7 +23139,6 @@ void CvDiplomacyAI::DoUpdatePrimeLeagueAlly()
 	int iGoodVotingHistoryThreshold = /*200*/ GD_INT_GET(VOTING_HISTORY_SCORE_MAX) / max(1, GD_INT_GET(VOTING_HISTORY_SCORE_PRIME_COMPETITOR_THRESHOLD));
 	int iBadVotingHistoryThreshold = iGoodVotingHistoryThreshold * -1;
 	int iMyVotes = pLeague->CalculateStartingVotesForMember(GetID());
-	int iPrimeScore = 0;
 	int iPrimeVotes = 0;
 	CvLeagueAI::AlignmentLevels ePrimeAlignment = CvLeagueAI::ALIGNMENT_NEUTRAL;
 
@@ -23190,7 +23192,6 @@ void CvDiplomacyAI::DoUpdatePrimeLeagueAlly()
 		if (ePrimeLeagueAlly == NO_PLAYER)
 		{
 			ePrimeLeagueAlly = ePlayer;
-			iPrimeScore = GetVotingHistoryScore(ePlayer);
 			iPrimeVotes = iVotes;
 			ePrimeAlignment = eAlignment;
 			continue;
@@ -23199,7 +23200,6 @@ void CvDiplomacyAI::DoUpdatePrimeLeagueAlly()
 		else if (GetVotingHistoryScore(ePlayer) > GetVotingHistoryScore(ePrimeLeagueAlly) && GetVotingHistoryScore(ePlayer) >= (GetVotingHistoryScore(ePrimeLeagueAlly) + iGoodVotingHistoryThreshold))
 		{
 			ePrimeLeagueAlly = ePlayer;
-			iPrimeScore = GetVotingHistoryScore(ePlayer);
 			iPrimeVotes = iVotes;
 			ePrimeAlignment = eAlignment;
 			continue;
@@ -23214,7 +23214,6 @@ void CvDiplomacyAI::DoUpdatePrimeLeagueAlly()
 		if (eAlignment > ePrimeAlignment)
 		{
 			ePrimeLeagueAlly = ePlayer;
-			iPrimeScore = GetVotingHistoryScore(ePlayer);
 			iPrimeVotes = iVotes;
 			ePrimeAlignment = eAlignment;
 		}
@@ -23224,7 +23223,6 @@ void CvDiplomacyAI::DoUpdatePrimeLeagueAlly()
 			if (iVotes > iPrimeVotes)
 			{
 				ePrimeLeagueAlly = ePlayer;
-				iPrimeScore = GetVotingHistoryScore(ePlayer);
 				iPrimeVotes = iVotes;
 				ePrimeAlignment = eAlignment;
 			}
@@ -23234,7 +23232,6 @@ void CvDiplomacyAI::DoUpdatePrimeLeagueAlly()
 				if (GetCachedOpinionWeight(ePlayer) < GetCachedOpinionWeight(ePrimeLeagueAlly))
 				{
 					ePrimeLeagueAlly = ePlayer;
-					iPrimeScore = GetVotingHistoryScore(ePlayer);
 					iPrimeVotes = iVotes;
 					ePrimeAlignment = eAlignment;
 				}
@@ -32016,7 +32013,6 @@ void CvDiplomacyAI::DoContactPlayer(PlayerTypes ePlayer)
 
 	// These can be used for info about deal items, e.g. what Minor Civ we're telling the guy to stay away from, etc.
 	int iData1 = 0;
-	int iData2 = 0;
 
 	// If this is the same turn we've met a player, don't send anything his way quite yet - wait until we've said hello at least
 	if (GET_TEAM(GetTeam()).GetTurnsSinceMeetingTeam(GET_PLAYER(ePlayer).getTeam()) == 0)
@@ -32032,7 +32028,6 @@ void CvDiplomacyAI::DoContactPlayer(PlayerTypes ePlayer)
 	SetCantMatchDeal(ePlayer, false);
 
 	iData1 = -1;
-	iData2 = -1;
 
 	pDeal->ClearItems();
 	pDeal->SetFromPlayer(GetID());
@@ -32392,7 +32387,6 @@ void CvDiplomacyAI::DoContactMinorCivs()
 		bool bWantsToConnect = false;
 		bool bWantsToGiveGoldToThisMinor = false;
 		bool bWantsToBullyUnitFromThisMinor = false;
-		bool bWantsToBullyGoldFromThisMinor = false;
 		bool bWantsToBuyoutThisMinor = false;
 		bool bWantsToMarryThisMinor = false;
 		bool bWantsToBullyAnnexThisMinor = false;
@@ -33107,7 +33101,6 @@ void CvDiplomacyAI::DoContactMinorCivs()
 						if(iValue > 100)  //antonjs: todo: XML for threshold
 						{
 							veMinorsToBullyGold.push_back(eMinor, iValue);
-							bWantsToBullyGoldFromThisMinor = true;
 						}
 					}
 				}
@@ -41221,7 +41214,7 @@ const char* CvDiplomacyAI::GetInsultHumanMessage()
 		veValidInsults.push_back(DIPLO_MESSAGE_INSULT_POPULATION);
 
 	// They have less Culture than us
-	if (kPlayer.GetJONSCultureEverGenerated() * 2 <= m_pPlayer->GetJONSCultureEverGenerated())
+	if (kPlayer.GetJONSCultureEverGeneratedTimes100() * 2 <= m_pPlayer->GetJONSCultureEverGeneratedTimes100())
 		veValidInsults.push_back(DIPLO_MESSAGE_INSULT_CULTURE);
 
 	// Pick a random insult from the valid ones
@@ -56330,18 +56323,12 @@ bool CvDiplomacyAI::IsVoluntaryVassalageRequestAcceptable(PlayerTypes ePlayer)
 		return false;
 
 	vector<PlayerTypes> vTheirTeam = GET_TEAM(GET_PLAYER(ePlayer).getTeam()).getPlayers();
-	int iNumCaps = 0;
 	bool bWeLikeOneOfThem = false;
 
 	for (size_t i=0; i<vTheirTeam.size(); i++)
 	{
 		if (!GET_PLAYER(vTheirTeam[i]).isAlive() || !GET_PLAYER(vTheirTeam[i]).isMajorCiv() || GET_PLAYER(vTheirTeam[i]).getNumCities() <= 0)
 			continue;
-
-		if (!GET_PLAYER(vTheirTeam[i]).IsHasLostCapital())
-			iNumCaps++;
-
-		iNumCaps += GET_PLAYER(vTheirTeam[i]).GetNumCapitalCities();
 
 		bool bWeLikeThem = IsDoFAccepted(vTheirTeam[i]) || IsHasDefensivePact(vTheirTeam[i]) || (GetCivOpinion(vTheirTeam[i]) >= CIV_OPINION_FRIEND && GetCivApproach(vTheirTeam[i]) == CIV_APPROACH_FRIENDLY);
 
@@ -56490,7 +56477,6 @@ bool CvDiplomacyAI::IsEndVassalageAcceptable(PlayerTypes ePlayer)
 		return true;
 
 	int iOurCivs = 0;
-	int iTheirCivs = 0;
 	int iOurCapitals = 0;
 	int iTheirCapitals = 0;
 	int iMastersWantIndependenceFrom = 0;
@@ -56521,7 +56507,6 @@ bool CvDiplomacyAI::IsEndVassalageAcceptable(PlayerTypes ePlayer)
 		if (!GET_PLAYER(vTheirTeam[i]).IsHasLostCapital())
 			iTheirCapitals++;
 
-		iTheirCivs++;
 		iTheirCapitals += GET_PLAYER(vTheirTeam[i]).GetNumCapitalCities();
 
 		if (IsEndVassalageWithPlayerAcceptable(ePlayer))

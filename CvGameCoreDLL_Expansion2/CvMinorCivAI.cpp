@@ -1243,7 +1243,7 @@ int CvMinorCivQuest::GetContestValueForPlayer(PlayerTypes ePlayer) const
 	case MINOR_CIV_QUEST_CONTEST_CULTURE:
 	{
 		int iStartCulture = pMinor->GetMinorCivAI()->GetQuestData1(ePlayer, eType);
-		int iEndCulture = GET_PLAYER(ePlayer).GetJONSCultureEverGenerated();
+		int iEndCulture = (int)(GET_PLAYER(ePlayer).GetJONSCultureEverGeneratedTimes100() / 100);
 		iValue = iEndCulture - iStartCulture;
 		break;
 	}
@@ -1264,7 +1264,7 @@ int CvMinorCivQuest::GetContestValueForPlayer(PlayerTypes ePlayer) const
 		else
 		{
 			int iStartFaith = pMinor->GetMinorCivAI()->GetQuestData1(ePlayer, eType);
-			int iEndFaith = GET_PLAYER(ePlayer).GetFaithEverGenerated();
+			int iEndFaith = GET_PLAYER(ePlayer).GetFaithEverGeneratedTimes100();
 			iValue = iEndFaith - iStartFaith;
 		}
 		break;
@@ -2559,7 +2559,7 @@ void CvMinorCivQuest::DoStartQuest(int iStartTurn, PlayerTypes pCallingPlayer)
 	}
 	case MINOR_CIV_QUEST_CONTEST_CULTURE:
 	{
-		m_iData1 = pAssignedPlayer->GetJONSCultureEverGenerated();
+		m_iData1 = (int)(pAssignedPlayer->GetJONSCultureEverGeneratedTimes100() / 100);
 
 		int iTurnsRemaining = GetEndTurn() - GC.getGame().getGameTurn();
 
@@ -2579,7 +2579,7 @@ void CvMinorCivQuest::DoStartQuest(int iStartTurn, PlayerTypes pCallingPlayer)
 		}
 		else
 		{
-			m_iData1 = pAssignedPlayer->GetFaithEverGenerated();
+			m_iData1 = pAssignedPlayer->GetFaithEverGeneratedTimes100();
 		}
 
 		int iTurnsRemaining = GetEndTurn() - GC.getGame().getGameTurn();
@@ -9734,7 +9734,7 @@ PlayerTypes CvMinorCivAI::SpawnHorde()
 			iTarget = pCity->getPopulation();
 
 			// Gold increases proclivity.
-			iTarget += pCity->getYieldRateTimes100(YIELD_GOLD, true, false) / 100;
+			iTarget += pCity->getYieldRateTimes100(YIELD_GOLD, true) / 100;
 			iTarget += pMinorLoop->GetTrade()->GetNumDifferentTradingPartners() * 3;
 
 			// Less military units = higher score.
@@ -11239,8 +11239,8 @@ CvCity* CvMinorCivAI::GetBestSpyTarget(PlayerTypes ePlayer, bool bMinor)
 				continue;
 
 			int iValue = pLoopCity->getPopulation();
-			iValue += pLoopCity->getBaseYieldRate(YIELD_GOLD);
-			iValue += pLoopCity->getBaseYieldRate(YIELD_SCIENCE);
+			iValue += pLoopCity->getBaseYieldRateTimes100(YIELD_GOLD) / 100;
+			iValue += pLoopCity->getBaseYieldRateTimes100(YIELD_SCIENCE) / 100;
 
 			if (iValue > iBestValue)
 			{
@@ -11293,7 +11293,6 @@ CvPlot* CvMinorCivAI::GetTargetPlot(PlayerTypes ePlayer)
 
 	int iWorldWidth = GC.getMap().getGridWidth() / 5;
 
-	CvArea* pBestArea = NULL;
 	CvPlot* pBestPlot = NULL;
 	int iBestAreaValue = 0;
 	int iBestPlotValue = 0;
@@ -11368,7 +11367,6 @@ CvPlot* CvMinorCivAI::GetTargetPlot(PlayerTypes ePlayer)
 					if (!bAreaHasValidPlot)
 					{
 						iBestAreaValue = iValue;
-						pBestArea = pLoopArea;
 						iBestPlotValue = 0;
 						pBestPlot = NULL;
 						bAreaHasValidPlot = true;
@@ -12059,7 +12057,7 @@ int CvMinorCivAI::GetFriendshipAnchorWithMajor(PlayerTypes eMajor)
 	// Diplomatic Marriage? (VP)
 	if (!GetPlayer()->IsAtWarWith(pMajor->GetID()) && pMajor->GetPlayerTraits()->IsDiplomaticMarriage() && IsMarried(eMajor))
 	{
-		iAnchor += /*75*/ GD_INT_GET(BALANCE_MARRIAGE_RESTING_POINT_INCREASE) * iEra;
+		iAnchor += /*200*/ GD_INT_GET(BALANCE_MARRIAGE_RESTING_POINT_INCREASE);
 	}
 	// United Front? (VP)
 	if (IsAllies(eMajor) && pMajor->IsAtWar())
@@ -12782,7 +12780,6 @@ void CvMinorCivAI::DoFriendshipChangeEffects(const PlayerTypes ePlayer, const in
 		else if (bWasAllies && iNewFriendshipTimes100 < iOldFriendshipTimes100 && GetPermanentAlly() != ePlayer && GetPlayer()->isAlive())
 		{
 			int iMaxFriendship = GetEffectiveFriendshipWithMajorTimes100(eOldAlly);
-			PlayerTypes eNewAlly = eOldAlly;
 			for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 			{
 				PlayerTypes ePlayerLoop = (PlayerTypes)iPlayerLoop;
@@ -18968,13 +18965,12 @@ void CvMinorCivAI::SetDisableNotifications(bool bDisableNotifications)
 //					CvMinorCivInfo
 //======================================================================================================
 CvMinorCivInfo::CvMinorCivInfo() :
+	m_bPlayable(false),
 	m_iDefaultPlayerColor(NO_PLAYERCOLOR),
 	m_iArtStyleType(NO_ARTSTYLE),
 	m_iMinorCivTrait(NO_MINOR_CIV_TRAIT_TYPE),
 	m_eFixedPersonality(NO_MINOR_CIV_PERSONALITY_TYPE),
-#if defined(MOD_BALANCE_CORE)
 	m_iBullyUnit(NO_UNITCLASS),
-#endif
 	m_piFlavorValue(NULL)
 {
 }
@@ -18982,6 +18978,11 @@ CvMinorCivInfo::CvMinorCivInfo() :
 CvMinorCivInfo::~CvMinorCivInfo()
 {
 	SAFE_DELETE_ARRAY(m_piFlavorValue);
+}
+//------------------------------------------------------------------------------
+bool CvMinorCivInfo::IsPlayable() const
+{
+	return m_bPlayable;
 }
 //------------------------------------------------------------------------------
 int CvMinorCivInfo::getDefaultPlayerColor() const
@@ -19102,12 +19103,10 @@ MinorCivPersonalityTypes CvMinorCivInfo::MinorCivPersonalityFromString(const cha
 	return NO_MINOR_CIV_PERSONALITY_TYPE;
 }
 //------------------------------------------------------------------------------
-#if defined(MOD_BALANCE_CORE)
 int CvMinorCivInfo::GetBullyUnit() const
 {
 	return m_iBullyUnit;
 }
-#endif
 //------------------------------------------------------------------------------
 int CvMinorCivInfo::getFlavorValue(int i) const
 {
@@ -19137,6 +19136,7 @@ bool CvMinorCivInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 		return false;
 
 	//Basic Properties
+	m_bPlayable = kResults.GetBool("Playable");
 	const char* szTextVal = NULL;
 
 	szTextVal = kResults.GetText("ShortDescription");
@@ -19167,10 +19167,8 @@ bool CvMinorCivInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 	szTextVal = kResults.GetText("FixedPersonality");
 	m_eFixedPersonality = MinorCivPersonalityFromString(szTextVal);
 
-#if defined(MOD_BALANCE_CORE)
 	szTextVal = kResults.GetText("BullyUnitClass");
 	m_iBullyUnit = GC.getInfoTypeForString(szTextVal, true);
-#endif
 
 	//Arrays
 	const char* szType = GetType();
