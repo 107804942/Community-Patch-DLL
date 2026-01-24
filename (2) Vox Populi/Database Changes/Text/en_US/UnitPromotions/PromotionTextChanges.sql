@@ -284,7 +284,7 @@ SET Text = '+25% [ICON_STRENGTH] Combat Strength when defending.[NEWLINE]+5 HP w
 WHERE Tag = 'TXT_KEY_PROMOTION_SURVIVALISM_2_HELP';
 
 UPDATE Language_en_US
-SET Text = 'Unit will [COLOR_POSITIVE_TEXT]Heal Every Turn[ENDCOLOR], even if it performs an action.[NEWLINE]Pillaging costs no [ICON_MOVES] Movement.'
+SET Text = 'Unit will [COLOR_POSITIVE_TEXT]Heal Every Turn[ENDCOLOR], even if it performs an action.[NEWLINE][ICON_RAZING] Pillaging costs no [ICON_MOVES] Movement.'
 WHERE Tag = 'TXT_KEY_PROMOTION_SURVIVALISM_3_HELP';
 
 UPDATE Language_en_US
@@ -468,7 +468,7 @@ WHERE Tag = 'TXT_KEY_PROMOTION_MORALE_HELP';
 
 -- Statue Of Zeus
 UPDATE Language_en_US
-SET Text = '[COLOR_POSITIVE_TEXT]Military Units:[ENDCOLOR] +25% [ICON_STRENGTH] Combat Strength when attacking [COLOR_POSITIVE_TEXT]Cities[ENDCOLOR].[NEWLINE][COLOR_POSITIVE_TEXT]Workers:[ENDCOLOR] Immune to the [COLOR_NEGATIVE_TEXT]{TXT_KEY_PROMOTION_PRISONER_WAR}[ENDCOLOR] status.'
+SET Text = '[COLOR_POSITIVE_TEXT]Military Units:[ENDCOLOR] +25% [ICON_STRENGTH] Combat Strength when attacking [COLOR_POSITIVE_TEXT]Cities[ENDCOLOR].[NEWLINE][COLOR_POSITIVE_TEXT]Workers:[ENDCOLOR] Immune to the [COLOR_NEGATIVE_TEXT]{TXT_KEY_PROMOTION_PRISONERS_OF_WAR}[ENDCOLOR] status.'
 WHERE Tag = 'TXT_KEY_PROMOTION_STATUE_ZEUS_HELP';
 
 -- Himeji Castle
@@ -660,7 +660,7 @@ WHERE Tag = 'TXT_KEY_PROMOTION_SKI_INFANTRY_HELP';
 
 -- Haka War Dance
 UPDATE Language_en_US
-SET Text = '-15% [ICON_STRENGTH] Combat Strength for [COLOR_POSITIVE_TEXT]Adjacent Enemy Units[ENDCOLOR].'
+SET Text = '-20% [ICON_STRENGTH] Combat Strength for [COLOR_POSITIVE_TEXT]Adjacent Enemy Units[ENDCOLOR].[NEWLINE]Embarking and Disembarking cost only 1 [ICON_MOVES] Movement.'
 WHERE Tag = 'TXT_KEY_PROMOTION_HAKA_WAR_DANCE_HELP';
 
 UPDATE Language_en_US
@@ -703,7 +703,7 @@ WHERE Tag = 'TXT_KEY_PROMOTION_HOMELAND_GUARDIAN_HELP';
 
 -- Full Moon Striker
 UPDATE Language_en_US
-SET Text = '+1 [ICON_MOVES] Movement.[NEWLINE]Gain 200 [ICON_RESEARCH] Science when [COLOR_POSITIVE_TEXT]pillaging improvements[ENDCOLOR].'
+SET Text = '+1 [ICON_MOVES] Movement.[NEWLINE]Gain 200 [ICON_RESEARCH] Science when [ICON_RAZING] Pillaging Improvements.'
 WHERE Tag = 'TXT_KEY_PROMOTION_MOON_STRIKER_HELP';
 
 -- Mystic Blade
@@ -738,7 +738,7 @@ WHERE Tag = 'TXT_KEY_PROMOTION_FLANK_ATTACK_BONUS_HELP';
 
 -- Near Capital Bonus
 UPDATE Language_en_US
-SET Text = '+30% [ICON_STRENGTH] Combat Strength in your [ICON_CAPITAL] Capital; bonus falls off by 3% per tile away from your [ICON_CAPITAL] Capital, up to 9 tiles away.'
+SET Text = '+30% [ICON_STRENGTH] Combat Strength in your [ICON_CAPITAL] Capital; bonus falls off by 1% per tile away from your [ICON_CAPITAL] Capital, up to 29 tiles away.'
 WHERE Tag = 'TXT_KEY_PROMOTION_DEFEND_NEAR_CAPITAL_HELP';
 
 -- Great General Combat Bonus
@@ -782,10 +782,7 @@ UPDATE Language_en_US
 SET Text = '+1 [ICON_WAR] Attack.[NEWLINE]+1 [ICON_MOVES] Movement.'
 WHERE Tag = 'TXT_KEY_PROMOTION_RESTLESSNESS_HELP';
 
-UPDATE Language_en_US
-SET Text = 'Enemy Blade'
-WHERE Tag = 'TXT_KEY_PROMOTION_ENEMY_BLADE';
-
+-- Enemy Blade
 UPDATE Language_en_US
 SET Text = 'Heal 10 HP when starting turn [COLOR_POSITIVE_TEXT]Inside Enemy Territory[ENDCOLOR].[NEWLINE]Deal 10 Damage to Enemy Units ending their turn adjacent to this Unit.[NEWLINE]This Damage ignores damage reduction.'
 WHERE Tag = 'TXT_KEY_PROMOTION_ENEMY_BLADE_HELP';

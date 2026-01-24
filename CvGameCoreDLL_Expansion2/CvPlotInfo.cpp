@@ -7,18 +7,14 @@
 CvPlotInfo::CvPlotInfo() :
 	m_bWater(false),
 	m_bImpassable(false),
-#if defined(MOD_PLOTS_EXTENSIONS)
 	m_pppiAdjacentFeatureYieldChange(),
-#endif
 	m_piYields(NULL)
 {
 }
 
 CvPlotInfo::~CvPlotInfo()
 {
-#if defined(MOD_PLOTS_EXTENSIONS)
 	m_pppiAdjacentFeatureYieldChange.clear();
-#endif
 	SAFE_DELETE_ARRAY(m_piYields);
 }
 
@@ -34,19 +30,18 @@ bool CvPlotInfo::isImpassable() const
 
 int CvPlotInfo::getYield(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYields ? m_piYields[i] : -1;
 }
 
-#if defined(MOD_PLOTS_EXTENSIONS)
 //------------------------------------------------------------------------------
 int CvPlotInfo::GetAdjacentFeatureYieldChange(FeatureTypes eFeature, YieldTypes eYield, bool bNaturalWonderPlot) const
 {
-	ASSERT_DEBUG(eFeature < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eFeature > -1, "Index out of bounds");
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield > -1, "Index out of bounds");
+	PRECONDITION(eFeature < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(eFeature > -1, "Index out of bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield > -1, "Index out of bounds");
 
 	std::map<FeatureTypes, std::map<IgnoreNaturalWonders, std::map<YieldTypes, int>>>::const_iterator itFeature = m_pppiAdjacentFeatureYieldChange.find(eFeature);
 	int iYieldChange = 0;
@@ -103,8 +98,8 @@ bool CvPlotInfo::IsAdjacentFeatureYieldChange(bool bNaturalWonderPlot) const
 /// Check if a plot gains yields from a particular feature
 bool CvPlotInfo::IsAdjacentFeatureYieldChange(FeatureTypes eFeature, bool bNaturalWonderPlot) const
 {
-	ASSERT_DEBUG(eFeature < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eFeature > -1, "Index out of bounds");
+	PRECONDITION(eFeature < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(eFeature > -1, "Index out of bounds");
 
 	std::map<FeatureTypes, std::map<IgnoreNaturalWonders, std::map<YieldTypes, int>>>::const_iterator itFeature = m_pppiAdjacentFeatureYieldChange.find(eFeature);
 	if (itFeature != m_pppiAdjacentFeatureYieldChange.end())
@@ -125,7 +120,6 @@ bool CvPlotInfo::IsAdjacentFeatureYieldChange(FeatureTypes eFeature, bool bNatur
 
 	return false;
 }
-#endif
 
 bool CvPlotInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility)
 {
@@ -139,7 +133,6 @@ bool CvPlotInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& kU
 	const char* szPlotType = GetType();
 	kUtility.SetYields(m_piYields, "Plot_Yields", "PlotType", szPlotType);
 
-#if defined(MOD_PLOTS_EXTENSIONS)
 	//Plot_AdjacentFeatureYieldChanges
 	{
 		std::string strKey("Plot_AdjacentFeatureYieldChanges");
@@ -169,7 +162,6 @@ bool CvPlotInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& kU
 		//Trim extra memory off container since this is mostly read-only.
 		std::map<FeatureTypes, std::map<IgnoreNaturalWonders, std::map<YieldTypes, int>>>(m_pppiAdjacentFeatureYieldChange).swap(m_pppiAdjacentFeatureYieldChange);
 	}
-#endif
 
 	return true;
 }

@@ -153,17 +153,13 @@ public:
 	int GetEmptyTradeRouteIndex (void);
 	bool IsTradeRouteIndexEmpty (int iIndex);
 	bool ClearTradeRoute (int iIndex);
-#if defined(MOD_BALANCE_CORE)
 	void UpdateTradePlots();
 	int GetTradeRouteTurns(CvCity* pOriginCity, CvCity* pDestCity, DomainTypes eDomain, int* piCircuitsToComplete = NULL);
-#endif
 	void ClearAllCityTradeRoutes (CvPlot* pPlot, bool bIncludeTransits = false); // called when a city is captured or traded
 	void ClearAllCivTradeRoutes (PlayerTypes ePlayer, bool bFromEmbargo = false); // called from world congress code
 	void ClearAllCityStateTradeRoutes (void); // called from world congress code
-#if defined(MOD_BALANCE_CORE)
 	void ClearAllCityStateTradeRoutesSpecial(void); // called from world congress code
 	void ClearTradePlayerToPlayer(PlayerTypes ePlayer, PlayerTypes eToPlayer); // called from world congress code
-#endif
 	void CancelTradeBetweenTeams (TeamTypes eTeam1, TeamTypes eTeam2);
 
 	void DoAutoWarPlundering(TeamTypes eTeam1, TeamTypes eTeam2); // when war is declared, both sides plunder each others trade routes for cash!
@@ -289,9 +285,7 @@ public:
 	int GetTradeConnectionGPTValueTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer, bool bOriginCity);
 	int GetTradeConnectionResourceValueTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer);
 	int GetTradeConnectionYourBuildingValueTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer);
-#if defined(MOD_BALANCE_CORE)
 	int GetMinorCivGoldBonus(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer);
-#endif
 	int GetTradeConnectionTheirBuildingValueTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer) const;
 	int GetTradeConnectionExclusiveValueTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield);
 	int GetTradeConnectionPolicyValueTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield) const;
@@ -299,11 +293,9 @@ public:
 	int GetTradeConnectionDomainValueModifierTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield);
 	int GetTradeConnectionRiverValueModifierTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer);
 	int GetTradeConnectionDiplomatModifierTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield);
-#if defined(MOD_BALANCE_CORE)
 	int GetTradeConnectionDistanceValueModifierTimes100(const TradeConnection& kTradeConnection) const;
 	int GetTradeConnectionCorporationModifierTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer);
 	int GetTradeConnectionOpenBordersModifierTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer);
-#endif
 #if defined(HH_MOD_API_TRADEROUTE_MODIFIERS)
 	int GetTradeConnectionPolicyModifierTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer);
 #endif
@@ -334,11 +326,10 @@ public:
 	int GetNumberOfTradeRoutesCity(const CvCity* pCity);
 
 	bool IsCityAlreadyConnectedByTrade(CvCity* pOtherCity) const;
-#if defined(MOD_BALANCE_CORE_POLICIES)
+
 	int GetNumberOfInternalTradeRoutes();
 	int GetNumberOfInternationalTradeRoutes(bool bOutgoing);
 	int GetNumberOfTradeRoutes();
-#endif
 
 	bool IsPreviousTradeRoute(CvCity* pOriginCity, CvCity* pDestCity, DomainTypes eDomain, TradeConnectionType eConnectionType);
 
@@ -366,9 +357,7 @@ public:
 	int GetNumTradeUnitsRemaining (bool bIncludeBeingBuilt);
 
 	int GetNumDifferentTradingPartners (void) const;
-#if defined(MOD_BALANCE_CORE)
 	int GetNumDifferentMajorCivTradingPartners(void) const;
-#endif
 
 	void UpdateTradeConnectionWasPlundered();
 	void AddTradeConnectionWasPlundered(const TradeConnection& kTradeConnection);
@@ -439,17 +428,13 @@ public:
 	TRSortElement ScoreInternationalTR(const TradeConnection& kTradeConnection, bool bHaveTourism) const;
 
 	//generic method
-	int ScoreInternalTR (const TradeConnection& kTradeConnection, const std::vector<CvCity*>& aTargetCityList);
+	int ScoreInternalTR(const TradeConnection& kTradeConnection, const std::vector<CvCity*>& aTargetCityList);
 
 	//wrapper for different types of trade route
-	int ScoreFoodTR (const TradeConnection& kTradeConnection, const std::vector<CvCity*>& aTargetCityList);
-	int ScoreProductionTR (const TradeConnection& kTradeConnection, const std::vector<CvCity*>& aTargetCityList);
-#if defined(MOD_TRADE_WONDER_RESOURCE_ROUTES)
-	int ScoreWonderTR (const TradeConnection& kTradeConnection, const std::vector<CvCity*>& aTargetCityList);
-#endif
-#if defined(MOD_BALANCE_CORE) && defined(MOD_BALANCE_CORE_GOLD_INTERNAL_TRADE_ROUTES)
+	int ScoreFoodTR(const TradeConnection& kTradeConnection, const std::vector<CvCity*>& aTargetCityList);
+	int ScoreProductionTR(const TradeConnection& kTradeConnection, const std::vector<CvCity*>& aTargetCityList);
+	int ScoreWonderTR(const TradeConnection& kTradeConnection, const std::vector<CvCity*>& aTargetCityList);
 	TRSortElement ScoreGoldInternalTR(const TradeConnection& kTradeConnection) const;
-#endif
 
 	int m_iRemovableValue;
 

@@ -774,8 +774,8 @@ int CvSpecialistInfo::getExperience() const
 //------------------------------------------------------------------------------
 int CvSpecialistInfo::getYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYieldChange ? m_piYieldChange[i] : -1;
 }
 //------------------------------------------------------------------------------
@@ -1295,7 +1295,7 @@ CvHotKeyInfo* CvActionInfo::getHotkeyInfo() const
 	break;
 	}
 
-	ASSERT_DEBUG((0) ,"Unknown Action Subtype in CvActionInfo::getHotkeyInfo");
+	ASSERT((0) ,"Unknown Action Subtype in CvActionInfo::getHotkeyInfo");
 	return NULL;
 }
 //------------------------------------------------------------------------------
@@ -1620,15 +1620,15 @@ bool CvSpecialUnitInfo::isCityLoad() const
 //------------------------------------------------------------------------------
 bool CvSpecialUnitInfo::isCarrierUnitAIType(int i) const
 {
-	ASSERT_DEBUG(i < NUM_UNITAI_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_UNITAI_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbCarrierUnitAITypes ? m_pbCarrierUnitAITypes[i] : false;
 }
 //------------------------------------------------------------------------------
 int CvSpecialUnitInfo::getProductionTraits(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumTraitInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTraitInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piProductionTraits ? m_piProductionTraits[i] : -1;
 }
 //------------------------------------------------------------------------------
@@ -1656,9 +1656,7 @@ CvUnitClassInfo::CvUnitClassInfo() :
 	m_iMaxPlayerInstances(0),
 	m_iInstanceCostModifier(0),
 	m_iDefaultUnitIndex(NO_UNIT)
-#if defined(MOD_BALANCE_CORE)
 	, m_iUnitInstancePerCity(0)
-#endif
 {
 }
 //------------------------------------------------------------------------------
@@ -1692,12 +1690,10 @@ void CvUnitClassInfo::setDefaultUnitIndex(int i)
 	m_iDefaultUnitIndex = i;
 }
 //------------------------------------------------------------------------------
-#if defined(MOD_BALANCE_CORE)
 int CvUnitClassInfo::getUnitInstancePerCity() const
 {
 	return m_iUnitInstancePerCity;
 }
-#endif
 //------------------------------------------------------------------------------
 bool CvUnitClassInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility)
 {
@@ -1708,9 +1704,7 @@ bool CvUnitClassInfo::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iMaxTeamInstances = kResults.GetInt("MaxTeamInstances");
 	m_iMaxPlayerInstances = kResults.GetInt("MaxPlayerInstances");
 	m_iInstanceCostModifier = kResults.GetInt("InstanceCostModifier");
-#if defined(MOD_BALANCE_CORE)
 	m_iUnitInstancePerCity = kResults.GetInt("UnitInstancePerCity");
-#endif
 	m_iDefaultUnitIndex = GC.getInfoTypeForString(kResults.GetText("DefaultUnit"), true);
 
 	return true;
@@ -1727,12 +1721,10 @@ CvBuildingClassInfo::CvBuildingClassInfo() :
 	m_iDefaultBuildingIndex(NO_BUILDING),
 	m_bNoLimit(false),
 	m_bMonument(false),
-#if defined(MOD_BALANCE_CORE)
 	m_eCorporationType(NO_CORPORATION),
 	m_bIsHeadquarters(false),
 	m_bIsOffice(false),
 	m_bIsFranchise(false),
-#endif
 	m_piVictoryThreshold(NULL)
 {
 }
@@ -1784,11 +1776,10 @@ bool CvBuildingClassInfo::isMonument() const
 //------------------------------------------------------------------------------
 int CvBuildingClassInfo::getVictoryThreshold(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumVictoryInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumVictoryInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piVictoryThreshold ? m_piVictoryThreshold[i] : -1;
 }
-#if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
 CorporationTypes CvBuildingClassInfo::getCorporationType() const
 {
@@ -1806,7 +1797,6 @@ bool CvBuildingClassInfo::IsFranchise() const
 {
 	return m_bIsFranchise;
 }
-#endif
 //------------------------------------------------------------------------------
 bool CvBuildingClassInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility)
 {
@@ -1855,7 +1845,7 @@ void BuildingClassArrayHelpers::Read(FDataStream& kStream, int* paiArray)
 				CvString szError;
 				szError.Format("LOAD ERROR: Building Class Type not found");
 				GC.LogMessage(szError.GetCString());
-				ASSERT_DEBUG(false, szError);
+				ASSERT(false, szError);
 				int iDummy = 0;
 				kStream >> iDummy;	// Skip it.
 			}
@@ -1907,7 +1897,7 @@ void UnitClassArrayHelpers::Read(FDataStream& kStream, int* paiArray)
 				CvString szError;
 				szError.Format("LOAD ERROR: Unit Class Type not found");
 				GC.LogMessage(szError.GetCString());
-				ASSERT_DEBUG(false, szError);
+				ASSERT(false, szError);
 
 				int iDummy = 0;
 				kStream >> iDummy;
@@ -2200,78 +2190,78 @@ ReligionTypes CvCivilizationInfo::GetReligion() const
 //------------------------------------------------------------------------------
 int CvCivilizationInfo::getCivilizationBuildings(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piCivilizationBuildings && i>=0 ? m_piCivilizationBuildings[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvCivilizationInfo::getCivilizationUnits(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumUnitClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumUnitClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piCivilizationUnits && i>=0 ? m_piCivilizationUnits[i] : -1;
 }
 //------------------------------------------------------------------------------
 bool CvCivilizationInfo::isCivilizationBuildingOverridden(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_CivilizationBuildingOverridden[i];
 }
 //------------------------------------------------------------------------------
 bool CvCivilizationInfo::isCivilizationUnitOverridden(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumUnitClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumUnitClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_CivilizationUnitOverridden[i];
 }
 //------------------------------------------------------------------------------
 int CvCivilizationInfo::getCivilizationFreeUnitsClass(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumUnitClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumUnitClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piCivilizationFreeUnitsClass && i>=0 ? m_piCivilizationFreeUnitsClass[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvCivilizationInfo::getCivilizationFreeUnitsDefaultUnitAI(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumUnitClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumUnitClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piCivilizationFreeUnitsDefaultUnitAI && i>=0 ? m_piCivilizationFreeUnitsDefaultUnitAI[i] : -1;
 }
 //------------------------------------------------------------------------------
 bool CvCivilizationInfo::isLeaders(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumLeaderHeadInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumLeaderHeadInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbLeaders && i>=0 ? m_pbLeaders[i] : false;
 }
 //------------------------------------------------------------------------------
 bool CvCivilizationInfo::IsBlocksMinor(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumMinorCivInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumMinorCivInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_BlockedMinors[i];
 }
 //------------------------------------------------------------------------------
 bool CvCivilizationInfo::isCivilizationFreeBuildingClass(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbCivilizationFreeBuildingClass && i>=0 ? m_pbCivilizationFreeBuildingClass[i] : false;
 }
 //------------------------------------------------------------------------------
 bool CvCivilizationInfo::isCivilizationFreeTechs(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumTechInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTechInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbCivilizationFreeTechs && i>=0 ? m_pbCivilizationFreeTechs[i] : false;
 }
 //------------------------------------------------------------------------------
 bool CvCivilizationInfo::isCivilizationDisableTechs(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumTechInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTechInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbCivilizationDisableTechs && i>=0 ? m_pbCivilizationDisableTechs[i] : false;
 }
 //------------------------------------------------------------------------------
@@ -2723,7 +2713,7 @@ bool CvVictoryInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 		int i = 0;
 		while(pVictoryPointResults->Step())
 		{
-			ASSERT_DEBUG(i < iNumVictoryPoints);
+			ASSERT(i < iNumVictoryPoints);
 			m_piVictoryPointAwards[i++] = pVictoryPointResults->GetInt(0);
 		}
 
@@ -2744,7 +2734,6 @@ CvSmallAwardInfo::CvSmallAwardInfo() :
 	m_iNumVictoryPoints(0),
 	m_iNumCities(0),
 	m_iCityPopulation(0),
-#if defined(MOD_BALANCE_CORE)
 	m_iCSInfluence(0),
 	m_iDuration(0),
 	m_iGPPointsGlobal(0),
@@ -2763,7 +2752,6 @@ CvSmallAwardInfo::CvSmallAwardInfo() :
 	m_iAdmiralPoints(0),
 	m_iJuggernauts(0),
 	m_iRand(0)
-#endif
 {
 }
 //------------------------------------------------------------------------------
@@ -2795,7 +2783,6 @@ int CvSmallAwardInfo::GetCityPopulation() const
 {
 	return m_iCityPopulation;
 }
-#if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
 int CvSmallAwardInfo::GetInfluence() const
 {
@@ -2885,7 +2872,6 @@ int CvSmallAwardInfo::GetRandom() const
 {
 	return m_iRand;
 }
-#endif
 //------------------------------------------------------------------------------
 bool CvSmallAwardInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility)
 {
@@ -2900,7 +2886,6 @@ bool CvSmallAwardInfo::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	m_iNumCities = kResults.GetInt("NumCities");
 	m_iCityPopulation = kResults.GetInt("CityPopulation");
 
-#if defined(MOD_BALANCE_CORE)
 	m_iCSInfluence = kResults.GetInt("Influence");
 	m_iDuration = kResults.GetInt("QuestDuration");
 	m_iGPPointsGlobal = kResults.GetInt("GlobalGPPoints");
@@ -2919,7 +2904,6 @@ bool CvSmallAwardInfo::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	m_iJuggernauts = kResults.GetInt("Juggernauts");
 	m_iTourism = kResults.GetInt("Tourism");
 	m_iRand = kResults.GetInt("RandomMod");
-#endif
 
 	return true;
 }
@@ -3483,9 +3467,9 @@ int CvHandicapInfo::getYieldAmountForDifficultyBonus(int iEra, int iHistoricEven
 	const int x = GC.getNumEraInfos();
 	const int y = NUM_HISTORIC_EVENT_TYPES;
 	const int z = NUM_YIELD_TYPES;
-	ASSERT_DEBUG(iEra >= 0 && iEra < x);
-	ASSERT_DEBUG(iHistoricEvent >= 0 && iHistoricEvent < y);
-	ASSERT_DEBUG(iYield >= 0 && iYield < z);
+	ASSERT(iEra >= 0 && iEra < x);
+	ASSERT(iHistoricEvent >= 0 && iHistoricEvent < y);
+	ASSERT(iYield >= 0 && iYield < z);
 	const int index = iEra * y * z + iHistoricEvent * z + iYield;
 	return m_pppiDifficultyBonus[index];
 }
@@ -3793,9 +3777,9 @@ int CvHandicapInfo::getYieldAmountForAIDifficultyBonus(int iEra, int iHistoricEv
 	const int x = GC.getNumEraInfos();
 	const int y = NUM_HISTORIC_EVENT_TYPES;
 	const int z = NUM_YIELD_TYPES;
-	ASSERT_DEBUG(iEra >= 0 && iEra < x);
-	ASSERT_DEBUG(iHistoricEvent >= 0 && iHistoricEvent < y);
-	ASSERT_DEBUG(iYield >= 0 && iYield < z);
+	ASSERT(iEra >= 0 && iEra < x);
+	ASSERT(iHistoricEvent >= 0 && iHistoricEvent < y);
+	ASSERT(iYield >= 0 && iYield < z);
 	const int index = iEra * y * z + iHistoricEvent * z + iYield;
 	return m_pppiAIDifficultyBonus[index];
 }
@@ -4245,22 +4229,22 @@ int CvHandicapInfo::getNumGoodies() const
 //------------------------------------------------------------------------------
 int CvHandicapInfo::getGoodies(int i) const
 {
-	ASSERT_DEBUG(i < getNumGoodies(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < getNumGoodies(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piGoodies[i];
 }
 //------------------------------------------------------------------------------
 int CvHandicapInfo::isFreeTechs(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumTechInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTechInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbFreeTechs[i];
 }
 //------------------------------------------------------------------------------
 int CvHandicapInfo::isAIFreeTechs(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumTechInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTechInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbAIFreeTechs[i];
 }
 
@@ -4489,6 +4473,50 @@ bool CvHandicapInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 	m_iAIFriendlyApproachChangeFlat = kResults.GetInt("AIFriendlyApproachChangeFlat");
 	m_iAIFriendlyApproachChangePercent = kResults.GetInt("AIFriendlyApproachChangePercent");
 
+	// Add backwards compatibility for some renamed, previously used columns (as much as we reasonably can)
+	m_iStartingGold += kResults.GetInt("Gold");
+	m_iMaintenanceFreeUnits += kResults.GetInt("GoldFreeUnits");
+	m_iUnitSupplyBase += kResults.GetInt("ProductionFreeUnits");
+	m_iUnitSupplyPerCity += kResults.GetInt("ProductionFreeUnitsPerCity");
+	m_iUnitSupplyPopulationPercent += kResults.GetInt("ProductionFreeUnitsPopulationPercent");
+	m_iAIUnitSupplyBonusPercent += kResults.GetInt("AIUnitSupplyPercent");
+	m_iBonusVSBarbarians += kResults.GetInt("BarbarianBonus");
+	m_iAIBonusVSBarbarians += kResults.GetInt("AIBarbarianBonus");
+	m_iBarbarianCampGold += kResults.GetInt("BarbCampGold");
+	m_iBarbarianSpawnDelay += kResults.GetInt("BarbSpawnMod");
+
+	// The "per era modifier" affects a bunch of things in vanilla BNW - most of these are retained, some of the functionality is removed
+	// Omitted: production discount to World Wonders and two additional discounts the AI had to portions of unit maintenance costs
+	int iAIPerEraModifier = kResults.GetInt("AIPerEraModifier");
+	m_iAICivilianPerEraModifier += iAIPerEraModifier;
+	m_iAITrainPerEraModifier += iAIPerEraModifier;
+	m_iAIConstructPerEraModifier += iAIPerEraModifier;
+	m_iAICreatePerEraModifier += iAIPerEraModifier;
+	m_iAIGrowthPerEraModifier += iAIPerEraModifier;
+	m_iAIUnitUpgradePerEraModifier += iAIPerEraModifier;
+
+	// ... more complicated for multiplicative columns
+	int iNumCitiesUnhappinessMod = kResults.GetInt("NumCitiesUnhappinessMod");
+	if (iNumCitiesUnhappinessMod != 0)
+	{
+		m_iEmpireSizeUnhappinessMod = (iNumCitiesUnhappinessMod * (100 + m_iEmpireSizeUnhappinessMod) / 100) - 100;
+	}
+	int iRouteCostPercent = kResults.GetInt("RouteCostPercent");
+	if (iRouteCostPercent != 0)
+	{
+		// We can probably assume that if a modmod specified RouteCostPercent, they don't also have special tile improvements that cost maintenance
+		// Note that in vanilla BNW, ImprovementCostPercent is supposed to be the player version of AIWorkRateModifier - VP adds WorkRateModifier and repurposes this to be the maintenance cost
+		// A better fix here would be to separate cost from Roads and Tile Improvements
+		m_iImprovementCostPercent *= iRouteCostPercent;
+		m_iImprovementCostPercent /= 100;
+	}
+	int iAIUnhappinessPercent = kResults.GetInt("AIUnhappinessPercent");
+	if (iAIUnhappinessPercent != 0)
+	{
+		m_iAIPopulationUnhappinessMod = (iAIUnhappinessPercent * (100 + m_iAIPopulationUnhappinessMod) / 100) - 100;
+		m_iAIEmpireSizeUnhappinessMod = (iAIUnhappinessPercent * (100 + m_iAIEmpireSizeUnhappinessMod) / 100) - 100;
+	}
+
 	//Arrays
 	const char* szHandicapType = GetType();
 
@@ -4541,13 +4569,13 @@ bool CvHandicapInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 		while (pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int historicevent_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(historicevent_idx > -1);
+			PRECONDITION(historicevent_idx > -1);
 
 			const int era_idx = pResults->GetInt(2);
-			ASSERT_DEBUG(era_idx > -1);
+			PRECONDITION(era_idx > -1);
 
 			const int amount = pResults->GetInt(3);
 
@@ -4572,13 +4600,13 @@ bool CvHandicapInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 		while (pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int historicevent_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(historicevent_idx > -1);
+			PRECONDITION(historicevent_idx > -1);
 
 			const int era_idx = pResults->GetInt(2);
-			ASSERT_DEBUG(era_idx > -1);
+			PRECONDITION(era_idx > -1);
 
 			const int amount = pResults->GetInt(3);
 
@@ -4596,13 +4624,12 @@ bool CvHandicapInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 //======================================================================================================
 CvGameSpeedInfo::CvGameSpeedInfo() :
 	m_iDealDuration(0),
-#if defined(MOD_BALANCE_CORE)
 	m_iStartingHappiness(0),
-#endif
 	m_iGrowthPercent(0),
 	m_iTrainPercent(0),
 	m_iInstantYieldPercent(0),
 	m_iDifficultyBonusPercent(0),
+	m_iExperiencePercent(0),
 	m_iConstructPercent(0),
 	m_iCreatePercent(0),
 	m_iResearchPercent(0),
@@ -4625,13 +4652,9 @@ CvGameSpeedInfo::CvGameSpeedInfo() :
 	m_iReligiousPressureAdjacentCity(0),
 	m_iVictoryDelayPercent(0),
 	m_iMinorCivElectionFreqMod(0),
-#if defined(MOD_TRADE_ROUTE_SCALING)
 	m_iTradeRouteSpeedMod(100),
-#endif
-#if defined(MOD_BALANCE_CORE)
 	m_iPietyMax(0),
 	m_iPietyMin(0),
-#endif
 	m_iMilitaryRatingDecayPercent(0),
 	m_iTechCostPerTurnMultiplier(0),
 	m_iMinimumVoluntaryVassalTurns(15),
@@ -4654,12 +4677,10 @@ int CvGameSpeedInfo::GetDealDuration() const
 {
 	return m_iDealDuration;
 }
-#if defined(MOD_BALANCE_CORE)
 int CvGameSpeedInfo::GetStartingHappiness() const
 {
 	return m_iStartingHappiness;
 }
-#endif
 //------------------------------------------------------------------------------
 int CvGameSpeedInfo::getGrowthPercent() const
 {
@@ -4679,6 +4700,11 @@ int CvGameSpeedInfo::getInstantYieldPercent() const
 int CvGameSpeedInfo::getDifficultyBonusPercent() const
 {
 	return m_iDifficultyBonusPercent;
+}
+//------------------------------------------------------------------------------
+int CvGameSpeedInfo::getExperiencePercent() const
+{
+	return m_iExperiencePercent;
 }
 //------------------------------------------------------------------------------
 int CvGameSpeedInfo::getConstructPercent() const
@@ -4810,19 +4836,16 @@ int CvGameSpeedInfo::getRelationshipDuration() const
 {
 	return m_iRelationshipDuration;
 }
-#if defined(MOD_TRADE_ROUTE_SCALING)
 //------------------------------------------------------------------------------
 int CvGameSpeedInfo::getTradeRouteSpeedMod() const
 {
 	return m_iTradeRouteSpeedMod;
 }
-#endif
 //------------------------------------------------------------------------------
 int CvGameSpeedInfo::getMilitaryRatingDecayPercent() const
 {
 	return m_iMilitaryRatingDecayPercent;
 }
-#if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
 int CvGameSpeedInfo::getPietyMax() const
 {
@@ -4833,7 +4856,6 @@ int CvGameSpeedInfo::getPietyMin() const
 {
 	return m_iPietyMin;
 }
-#endif
 //------------------------------------------------------------------------------
 int CvGameSpeedInfo::getLeaguePercent() const
 {
@@ -4861,13 +4883,12 @@ bool CvGameSpeedInfo::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 		return false;
 
 	m_iDealDuration					= kResults.GetInt("DealDuration");
-#if defined(MOD_BALANCE_CORE)
 	m_iStartingHappiness			= kResults.GetInt("StartingHappiness");
-#endif
 	m_iGrowthPercent				= kResults.GetInt("GrowthPercent");
 	m_iTrainPercent					= kResults.GetInt("TrainPercent");
 	m_iInstantYieldPercent			= kResults.GetInt("InstantYieldPercent");
 	m_iDifficultyBonusPercent		= kResults.GetInt("DifficultyBonusPercent");
+	m_iExperiencePercent			= kResults.GetInt("ExperiencePercent");
 	m_iConstructPercent				= kResults.GetInt("ConstructPercent");
 	m_iCreatePercent				= kResults.GetInt("CreatePercent");
 	m_iResearchPercent				= kResults.GetInt("ResearchPercent");
@@ -4894,24 +4915,17 @@ bool CvGameSpeedInfo::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iSpyRatePercent				= kResults.GetInt("SpyRatePercent");
 	m_iPeaceDealDuration			= kResults.GetInt("PeaceDealDuration");
 	m_iRelationshipDuration			= kResults.GetInt("RelationshipDuration");
-#if defined(MOD_TRADE_ROUTE_SCALING)
-	if (MOD_TRADE_ROUTE_SCALING) {
-		m_iTradeRouteSpeedMod		= kResults.GetInt("TradeRouteSpeedMod");
-	}
-#endif
+	m_iTradeRouteSpeedMod			= kResults.GetInt("TradeRouteSpeedMod");
 	m_iMilitaryRatingDecayPercent	= kResults.GetInt("MilitaryRatingDecayPercent");
-#if defined(MOD_BALANCE_CORE)
 	m_iPietyMin						= kResults.GetInt("PietyMin");
 	m_iPietyMax						= kResults.GetInt("PietyMax");
-#endif
 	m_iLeaguePercent				= kResults.GetInt("LeaguePercent");
-
 	m_iTechCostPerTurnMultiplier	= kResults.GetInt("TechCostPerTurnMultiplier");
 	m_iMinimumVoluntaryVassalTurns	= kResults.GetInt("MinimumVoluntaryVassalTurns");
 	m_iMinimumVassalTurns			= kResults.GetInt("MinimumVassalTurns");
 	m_iMinimumVassalTaxTurns		= kResults.GetInt("MinimumVassalTaxTurns");
 	m_iNumTurnsBetweenVassals		= kResults.GetInt("NumTurnsBetweenVassals");
-	m_iMinimumVassalLiberateTurns		= kResults.GetInt("MinimumVassalLiberateTurns");
+	m_iMinimumVassalLiberateTurns	= kResults.GetInt("MinimumVassalLiberateTurns");
 
 	//GameTurnInfos
 	{
@@ -5038,8 +5052,6 @@ FDataStream& operator>>(FDataStream& loadFrom, CvTurnTimerInfo& writeTo)
 	return loadFrom;
 }
 
-
-#if defined(MOD_EVENTS_DIPLO_MODIFIERS)
 //======================================================================================================
 //					CvDiploModifierInfo
 //======================================================================================================
@@ -5117,7 +5129,6 @@ FDataStream& operator>>(FDataStream& loadFrom, CvDiploModifierInfo& writeTo)
 	writeTo.readFrom(loadFrom);
 	return loadFrom;
 }
-#endif
 
 
 //======================================================================================================
@@ -5126,17 +5137,13 @@ FDataStream& operator>>(FDataStream& loadFrom, CvDiploModifierInfo& writeTo)
 CvBuildInfo::CvBuildInfo() :
 	m_iTime(0),
 	m_iCost(0),
-#if defined(MOD_CIV6_WORKER)
 	m_iBuilderCost(0),
-#endif
 	m_iCostIncreasePerImprovement(0),
 	m_iTechPrereq(NO_TECH),
-#if defined(MOD_BALANCE_CORE)
 	m_iTechObsolete(NO_TECH),
 	m_bKillOnlyCivilian(false),
 	m_bFreeBestDomainUnit(false),
 	m_bCultureBoost(false),
-#endif
 	m_iImprovement(NO_IMPROVEMENT),
 	m_iRoute(NO_ROUTE),
 	m_iEntityEvent(ENTITY_EVENT_NONE),
@@ -5178,13 +5185,11 @@ int CvBuildInfo::getCost() const
 {
 	return m_iCost;
 }
-#if defined(MOD_CIV6_WORKER)
 //------------------------------------------------------------------------------
 int CvBuildInfo::getBuilderCost() const
 {
 	return m_iBuilderCost;
 }
-#endif
 //------------------------------------------------------------------------------
 int CvBuildInfo::getCostIncreasePerImprovement() const
 {
@@ -5196,7 +5201,6 @@ int CvBuildInfo::getTechPrereq() const
 	return m_iTechPrereq;
 }
 
-#if defined(MOD_BALANCE_CORE)
 bool CvBuildInfo::IsFreeBestDomainUnit() const
 {
 	return m_bFreeBestDomainUnit;
@@ -5210,7 +5214,6 @@ int CvBuildInfo::getTechObsolete() const
 {
 	return m_iTechObsolete;
 }
-#endif
 //------------------------------------------------------------------------------
 int CvBuildInfo::getImprovement() const
 {
@@ -5241,13 +5244,11 @@ bool CvBuildInfo::isKill() const
 {
 	return m_bKill;
 }
-#if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
 bool CvBuildInfo::isKillOnlyCivilian() const
 {
 	return m_bKillOnlyCivilian;
 }
-#endif
 //------------------------------------------------------------------------------
 bool CvBuildInfo::isRepair() const
 {
@@ -5272,58 +5273,58 @@ bool CvBuildInfo::IsCanBeEmbarked() const
 //------------------------------------------------------------------------------
 int CvBuildInfo::getFeatureTech(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_paiFeatureTech ? m_paiFeatureTech[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvBuildInfo::getFeatureTime(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_paiFeatureTime ? m_paiFeatureTime[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvBuildInfo::getFeatureProduction(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_paiFeatureProduction ? m_paiFeatureProduction[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvBuildInfo::getFeatureCost(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_paiFeatureCost ? m_paiFeatureCost[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvBuildInfo::getTechTimeChange(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumTechInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTechInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_paiTechTimeChange ? m_paiTechTimeChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 bool CvBuildInfo::isFeatureRemove(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pabFeatureRemove ? m_pabFeatureRemove[i] : false;
 }
 
 //------------------------------------------------------------------------------
 int CvBuildInfo::getFeatureObsoleteTech(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_paiFeatureObsoleteTech ? m_paiFeatureObsoleteTech[i] : -1;
 }
 //------------------------------------------------------------------------------
 bool CvBuildInfo::isFeatureRemoveOnly(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pabFeatureRemoveOnly ? m_pabFeatureRemoveOnly[i] : false;
 }
 
@@ -5335,9 +5336,7 @@ bool CvBuildInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 
 	m_iTime = kResults.GetInt("Time");
 	m_iCost = kResults.GetInt("Cost");
-#if defined(MOD_CIV6_WORKER)
 	m_iBuilderCost = kResults.GetInt("BuilderCost");
-#endif
 	m_iCostIncreasePerImprovement = kResults.GetInt("CostIncreasePerImprovement");
 	m_bKill = kResults.GetBool("Kill");
 	m_bRepair = kResults.GetBool("Repair");
@@ -5348,13 +5347,11 @@ bool CvBuildInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 	const char* szPrereqTech = kResults.GetText("PrereqTech");
 	m_iTechPrereq = GC.getInfoTypeForString(szPrereqTech, true);
 
-#if defined(MOD_BALANCE_CORE)
 	m_bKillOnlyCivilian = kResults.GetBool("KillOnlyCivilian");
 	const char* szObsoleteTech = kResults.GetText("ObsoleteTech");
 	m_iTechObsolete = GC.getInfoTypeForString(szObsoleteTech, true);
 	m_bFreeBestDomainUnit = kResults.GetBool("IsFreeBestDomainUnit");
 	m_bCultureBoost = kResults.GetBool("CultureBoost");
-#endif
 
 	const char* szImprovementType = kResults.GetText("ImprovementType");
 	m_iImprovement = GC.getInfoTypeForString(szImprovementType, true);
@@ -5391,7 +5388,7 @@ bool CvBuildInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 
 				const char* szFeatureTech			= kArrayResults.GetText("PrereqTech");
 
-				ASSERT_DEBUG(iFeatureIdx > -1);
+				PRECONDITION(iFeatureIdx > -1);
 				m_paiFeatureTech[iFeatureIdx]		= GC.getInfoTypeForString(szFeatureTech, true);
 				m_paiFeatureTime[iFeatureIdx]		= kArrayResults.GetInt("Time");
 				m_paiFeatureProduction[iFeatureIdx] = kArrayResults.GetInt("Production");
@@ -5432,7 +5429,7 @@ void BuildArrayHelpers::Read(FDataStream& kStream, short* paiBuildArray)
 				CvString szError;
 				szError.Format("LOAD ERROR: Build Type not found");
 				GC.LogMessage(szError.GetCString());
-				ASSERT_DEBUG(false, szError);
+				ASSERT(false, szError);
 
 				int iDummy = 0;
 				kStream >> iDummy;
@@ -5484,7 +5481,6 @@ CvGoodyInfo::CvGoodyInfo() : CvBaseInfo()
 	, m_iHealing(0)
 	, m_iDamagePrereq(0)
 	, m_iPopulation(0)
-#if defined(MOD_BALANCE_CORE)
 	, m_iProduction(0)
 	, m_iGoldenAge(0)
 	, m_iFreeTiles(0)
@@ -5492,7 +5488,6 @@ CvGoodyInfo::CvGoodyInfo() : CvBaseInfo()
 // New Goodies modmod
 	, m_iFood(0)
 	, m_iBorderGrowth(0)
-#endif
 	, m_iCulture(0)
 	, m_iFaith(0)
 	, m_iProphetPercent(0)
@@ -5584,7 +5579,6 @@ int CvGoodyInfo::getPopulation() const
 {
 	return m_iPopulation;
 }
-#if defined(MOD_BALANCE_CORE)
 int CvGoodyInfo::getProduction() const
 {
 	return m_iProduction;
@@ -5610,7 +5604,6 @@ int CvGoodyInfo::getBorderGrowth() const
 {
 	return m_iBorderGrowth;
 }
-#endif
 //
 int CvGoodyInfo::getBarbarianUnitProb() const
 {
@@ -5702,14 +5695,12 @@ bool CvGoodyInfo::CacheResults(Database::Results& results, CvDatabaseUtility& kU
 	m_iHealing = results.GetInt("Healing");
 	m_iDamagePrereq = results.GetInt("DamagePrereq");
 	m_iPopulation = results.GetInt("Population");
-#if defined(MOD_BALANCE_CORE)
 	m_iProduction = results.GetInt("Production");
 	m_iGoldenAge = results.GetInt("GoldenAge");
 	m_iFreeTiles = results.GetInt("FreeTiles");
 	m_iScience = results.GetInt("Science");
 	m_iFood = results.GetInt("Food");
 	m_iBorderGrowth = results.GetInt("BorderGrowth");
-#endif
 	m_iCulture = results.GetInt("Culture");
 	m_iFaith = results.GetInt("Faith");
 	m_iProphetPercent = results.GetInt("ProphetPercent");
@@ -5780,22 +5771,22 @@ bool CvRouteInfo::IsIndustrial() const
 //------------------------------------------------------------------------------
 int CvRouteInfo::getYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYieldChange ? m_piYieldChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvRouteInfo::getTechMovementChange(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumTechInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTechInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piTechMovementChange ? m_piTechMovementChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvRouteInfo::getResourceQuantityRequirement(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piResourceQuantityRequirements ? m_piResourceQuantityRequirements[i] : -1;
 }
 //------------------------------------------------------------------------------
@@ -5849,11 +5840,9 @@ CvResourceInfo::CvResourceInfo() :
 	m_iMinLatitude(0),
 	m_iMaxLatitude(0),
 	m_eResourceUsage(RESOURCEUSAGE_BONUS),
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	m_iMonopolyHappiness(0),
 	m_iMonopolyGALength(0),
 	m_bIsMonopoly(false),
-#endif
 	m_bPresentOnAllValidPlots(false),
 	m_bOneArea(false),
 	m_bHills(false),
@@ -5862,17 +5851,13 @@ CvResourceInfo::CvResourceInfo() :
 	m_bOnlyMinorCivs(false),
 	m_eRequiredCivilization(NO_CIVILIZATION),
 	m_piYieldChange(NULL),
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	m_piYieldChangeFromMonopoly(NULL),
 	m_piCityYieldModFromMonopoly(NULL),
 	m_piiMonopolyCombatModifiers(),
 	m_piMonopolyGreatPersonRateModifiers(),
 	m_piMonopolyGreatPersonRateChanges(),
-#endif
-#if defined(MOD_RESOURCES_PRODUCTION_COST_MODIFIERS)
 	m_piiiUnitCombatProductionCostModifiersLocal(),
 	m_aiiiBuildingProductionCostModifiersLocal(),
-#endif
 	m_piResourceQuantityTypes(NULL),
 	m_piImprovementChange(NULL),
 	m_pbTerrain(NULL),
@@ -5884,17 +5869,13 @@ CvResourceInfo::CvResourceInfo() :
 CvResourceInfo::~CvResourceInfo()
 {
 	SAFE_DELETE_ARRAY(m_piYieldChange);
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	SAFE_DELETE_ARRAY(m_piYieldChangeFromMonopoly);
 	SAFE_DELETE_ARRAY(m_piCityYieldModFromMonopoly);
 	m_piiMonopolyCombatModifiers.clear();
 	m_piMonopolyGreatPersonRateModifiers.clear();
 	m_piMonopolyGreatPersonRateChanges.clear();
-#endif
-#if defined(MOD_RESOURCES_PRODUCTION_COST_MODIFIERS)
 	m_piiiUnitCombatProductionCostModifiersLocal.clear();
 	m_aiiiBuildingProductionCostModifiersLocal.clear();
-#endif
 	SAFE_DELETE_ARRAY(m_piResourceQuantityTypes);
 	SAFE_DELETE_ARRAY(m_piImprovementChange);
 	SAFE_DELETE_ARRAY(m_pbTerrain);
@@ -5986,7 +5967,6 @@ ResourceUsageTypes CvResourceInfo::getResourceUsage() const
 {
 	return m_eResourceUsage;
 }
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 int CvResourceInfo::getMonopolyHappiness() const
 {
 	return m_iMonopolyHappiness;
@@ -6019,7 +5999,6 @@ bool CvResourceInfo::isMonopoly() const
 {
 	return m_bIsMonopoly;
 }
-#endif
 //------------------------------------------------------------------------------
 bool CvResourceInfo::isPresentOnAllValidPlots() const
 {
@@ -6108,8 +6087,8 @@ void CvResourceInfo::setAltArtDefineTagHeavy(const char* szVal)
 //------------------------------------------------------------------------------
 int CvResourceInfo::getYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYieldChange ? m_piYieldChange[i] : -1;
 }
 //------------------------------------------------------------------------------
@@ -6117,12 +6096,11 @@ int* CvResourceInfo::getYieldChangeArray()
 {
 	return m_piYieldChange;
 }
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 //------------------------------------------------------------------------------
 int CvResourceInfo::getYieldChangeFromMonopoly(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYieldChangeFromMonopoly ? m_piYieldChangeFromMonopoly[i] : -1;
 }
 //------------------------------------------------------------------------------
@@ -6133,8 +6111,8 @@ int* CvResourceInfo::getYieldChangeFromMonopolyArray()
 //------------------------------------------------------------------------------
 int CvResourceInfo::getCityYieldModFromMonopoly(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piCityYieldModFromMonopoly ? m_piCityYieldModFromMonopoly[i] : -1;
 }
 //------------------------------------------------------------------------------
@@ -6358,9 +6336,7 @@ int CvResourceInfo::getMonopolyGreatPersonRateChange(SpecialistTypes eSpecialist
 
 	return iMod;
 }
-#endif
 
-#if defined(MOD_RESOURCES_PRODUCTION_COST_MODIFIERS)
 //------------------------------------------------------------------------------
 bool CvResourceInfo::isHasUnitCombatProductionCostModifiersLocal() const
 {
@@ -6369,11 +6345,11 @@ bool CvResourceInfo::isHasUnitCombatProductionCostModifiersLocal() const
 //------------------------------------------------------------------------------
 int CvResourceInfo::getUnitCombatProductionCostModifiersLocal(UnitCombatTypes eUnitCombat, EraTypes eUnitEra) const
 {
-	ASSERT_DEBUG(eUnitCombat < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eUnitCombat > -1, "Index out of bounds");
+	PRECONDITION(eUnitCombat < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
+	PRECONDITION(eUnitCombat > -1, "Index out of bounds");
 
-	ASSERT_DEBUG(eUnitEra < GC.getNumEraInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eUnitEra > -1, "Index out of bounds");
+	PRECONDITION(eUnitEra < GC.getNumEraInfos(), "Index out of bounds");
+	PRECONDITION(eUnitEra > -1, "Index out of bounds");
 
 	int iUnitCombat = (int)eUnitCombat;
 	int iUnitEra = (int)eUnitEra;
@@ -6411,8 +6387,8 @@ int CvResourceInfo::getUnitCombatProductionCostModifiersLocal(UnitCombatTypes eU
 //------------------------------------------------------------------------------
 std::vector<ProductionCostModifiers> CvResourceInfo::getUnitCombatProductionCostModifiersLocal(UnitCombatTypes eUnitCombat) const
 {
-	ASSERT_DEBUG(eUnitCombat < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eUnitCombat > -1, "Index out of bounds");
+	PRECONDITION(eUnitCombat < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
+	PRECONDITION(eUnitCombat > -1, "Index out of bounds");
 
 	int iUnitCombat = (int)eUnitCombat;
 
@@ -6432,8 +6408,8 @@ bool CvResourceInfo::isHasBuildingProductionCostModifiersLocal() const
 //------------------------------------------------------------------------------
 int CvResourceInfo::getBuildingProductionCostModifiersLocal(EraTypes eBuildingEra) const
 {
-	ASSERT_DEBUG(eBuildingEra < GC.getNumEraInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eBuildingEra > -1, "Index out of bounds");
+	PRECONDITION(eBuildingEra < GC.getNumEraInfos(), "Index out of bounds");
+	PRECONDITION(eBuildingEra > -1, "Index out of bounds");
 
 	int iBuildingEra = (int)eBuildingEra;
 	int iMod = 0;
@@ -6469,40 +6445,40 @@ std::vector<ProductionCostModifiers> CvResourceInfo::getBuildingProductionCostMo
 {
 	return m_aiiiBuildingProductionCostModifiersLocal;
 }
-#endif
+
 //------------------------------------------------------------------------------
 int CvResourceInfo::getResourceQuantityType(int i) const
 {
-	ASSERT_DEBUG(i < /*4*/ GD_INT_GET(NUM_RESOURCE_QUANTITY_TYPES), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < /*4*/ GD_INT_GET(NUM_RESOURCE_QUANTITY_TYPES), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piResourceQuantityTypes ? m_piResourceQuantityTypes[i] : -1;
 }
 
 int CvResourceInfo::getImprovementChange(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumImprovementInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumImprovementInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piImprovementChange ? m_piImprovementChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 bool CvResourceInfo::isTerrain(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumTerrainInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTerrainInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbTerrain ?	m_pbTerrain[i] : false;
 }
 //------------------------------------------------------------------------------
 bool CvResourceInfo::isFeature(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbFeature ? m_pbFeature[i] : false;
 }
 //------------------------------------------------------------------------------
 bool CvResourceInfo::isFeatureTerrain(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumTerrainInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTerrainInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbFeatureTerrain ?	m_pbFeatureTerrain[i] : false;
 }
 //------------------------------------------------------------------------------
@@ -6522,8 +6498,6 @@ bool CvResourceInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 	m_iMinAreaSize = kResults.GetInt("MinAreaSize");
 	m_iMinLatitude = kResults.GetInt("MinLatitude");
 	m_iMaxLatitude = kResults.GetInt("MaxLatitude");
-
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	m_iMonopolyHappiness = kResults.GetInt("MonopolyHappiness");
 	m_iMonopolyGALength = kResults.GetInt("MonopolyGALength");
 	m_iMonopolyAttackBonus = kResults.GetInt("MonopolyAttackBonus");
@@ -6532,7 +6506,6 @@ bool CvResourceInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 	m_iMonopolyHealBonus = kResults.GetInt("MonopolyHealBonus");
 	m_iMonopolyXPBonus = kResults.GetInt("MonopolyXPBonus");
 	m_bIsMonopoly = kResults.GetBool("IsMonopoly");
-#endif
 	m_bPresentOnAllValidPlots = kResults.GetBool("PresentOnAllValidPlots");
 	m_bOneArea = kResults.GetBool("Area");
 	m_bHills = kResults.GetBool("Hills");
@@ -6585,10 +6558,8 @@ bool CvResourceInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 	//Arrays
 	const char* szResourceType = GetType();
 	kUtility.SetYields(m_piYieldChange, "Resource_YieldChanges", "ResourceType", szResourceType);
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	kUtility.SetYields(m_piYieldChangeFromMonopoly, "Resource_YieldChangeFromMonopoly", "ResourceType", szResourceType);
 	kUtility.SetYields(m_piCityYieldModFromMonopoly, "Resource_CityYieldModFromMonopoly", "ResourceType", szResourceType);
-#endif
 
 	kUtility.PopulateArrayByExistence(m_pbTerrain, "Terrains", "Resource_TerrainBooleans", "TerrainType", "ResourceType", szResourceType);
 	kUtility.PopulateArrayByExistence(m_pbFeature, "Features", "Resource_FeatureBooleans", "FeatureType", "ResourceType", szResourceType);
@@ -6611,15 +6582,13 @@ bool CvResourceInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 			int i = 0;
 			while(kArrayResults.Step())
 			{
-				ASSERT_DEBUG(i < iNumQuantityTypes, "Too many resource quantities.");
+				ASSERT(i < iNumQuantityTypes, "Too many resource quantities.");
 				const int quantity = kArrayResults.GetInt(0);
 				m_piResourceQuantityTypes[i++] = quantity;
 			}
 		}
-
 	}
 
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	//Resource_MonopolyCombatModifiers
 	{
 
@@ -6690,7 +6659,6 @@ bool CvResourceInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 
 	//Resource_MonopolyGreatPersonRateChanges
 	{
-
 		std::string sqlKey = "Resource_MonopolyGreatPersonRateChanges";
 		Database::Results* pResults = kUtility.GetResults(sqlKey);
 		if (pResults == NULL)
@@ -6721,12 +6689,9 @@ bool CvResourceInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 		//Trim extra memory off container since this is mostly read-only.
 		std::map<MonopolyGreatPersonRateModifierKey, int>(m_piMonopolyGreatPersonRateChanges).swap(m_piMonopolyGreatPersonRateChanges);
 	}
-#endif
 
-#if defined(MOD_RESOURCES_PRODUCTION_COST_MODIFIERS)
 	//Resource_UnitCombatProductionCostModifiersLocal
 	{
-
 		std::string sqlKey = "Resource_UnitCombatProductionCostModifiersLocal";
 		Database::Results* pResults = kUtility.GetResults(sqlKey);
 		if (pResults == NULL)
@@ -6759,36 +6724,33 @@ bool CvResourceInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 	}
 
 	//Resource_BuildingProductionCostModifiersLocal
+	{
+		std::string sqlKey = "Resource_BuildingProductionCostModifiersLocal";
+		Database::Results* pResults = kUtility.GetResults(sqlKey);
+		if (pResults == NULL)
 		{
-
-			std::string sqlKey = "Resource_BuildingProductionCostModifiersLocal";
-			Database::Results* pResults = kUtility.GetResults(sqlKey);
-			if (pResults == NULL)
-			{
-				const char* szSQL = "select RequiredEra, ObsoleteEra, CostModifier from Resource_BuildingProductionCostModifiersLocal where ResourceType = ?";
-				pResults = kUtility.PrepareResults(sqlKey, szSQL);
-			}
-
-			pResults->Bind(1, szResourceType);
-
-			while (pResults->Step())
-			{
-				const int iRequiredEra = GC.getInfoTypeForString(pResults->GetText(0), true);
-				const int iObsoleteEra = GC.getInfoTypeForString(pResults->GetText(1), true);
-				const int iCostMod = pResults->GetInt(2);
-
-				ProductionCostModifiers sElement;
-				sElement.m_iRequiredEra = iRequiredEra;
-				sElement.m_iObsoleteEra = iObsoleteEra;
-				sElement.m_iCostModifier = iCostMod;
-
-				m_aiiiBuildingProductionCostModifiersLocal.push_back(sElement);
-			}
-
-			pResults->Reset();
+			const char* szSQL = "select RequiredEra, ObsoleteEra, CostModifier from Resource_BuildingProductionCostModifiersLocal where ResourceType = ?";
+			pResults = kUtility.PrepareResults(sqlKey, szSQL);
 		}
-#endif
 
+		pResults->Bind(1, szResourceType);
+
+		while (pResults->Step())
+		{
+			const int iRequiredEra = GC.getInfoTypeForString(pResults->GetText(0), true);
+			const int iObsoleteEra = GC.getInfoTypeForString(pResults->GetText(1), true);
+			const int iCostMod = pResults->GetInt(2);
+
+			ProductionCostModifiers sElement;
+			sElement.m_iRequiredEra = iRequiredEra;
+			sElement.m_iObsoleteEra = iObsoleteEra;
+			sElement.m_iCostModifier = iCostMod;
+
+			m_aiiiBuildingProductionCostModifiersLocal.push_back(sElement);
+		}
+
+		pResults->Reset();
+	}
 
 	return true;
 }
@@ -6811,13 +6773,11 @@ CvFeatureInfo::CvFeatureInfo() :
 	m_iFirstFinderGold(0),
 	m_iInBorderHappiness(0),
 	m_iAdjacentUnitFreePromotion(NO_PROMOTION),
-#if defined(MOD_BALANCE_CORE)
 	m_iPrereqTechPassable(NO_TECH),
 	m_iPromotionIfOwned(NO_PROMOTION),
 	m_iLocationUnitFreePromotion(NO_PROMOTION),
 	m_iSpawnLocationUnitFreePromotion(NO_PROMOTION),
 	m_iAdjacentSpawnLocationUnitFreePromotion(NO_PROMOTION),
-#endif
 	m_bYieldNotAdditive(false),
 	m_bNoCoast(false),
 	m_bNoRiver(false),
@@ -6832,9 +6792,7 @@ CvFeatureInfo::CvFeatureInfo() :
 	m_bNukeImmune(false),
 	m_bRough(false),
 	m_bNaturalWonder(false),
-#if defined(MOD_PSEUDO_NATURAL_WONDER)
 	m_bPseudoNaturalWonder(false),
-#endif
 	m_iWorldSoundscapeScriptId(0),
 	m_iEffectProbability(0),
 	m_piYieldChange(NULL),
@@ -6934,7 +6892,6 @@ int CvFeatureInfo::getAdjacentUnitFreePromotion() const
 {
 	return m_iAdjacentUnitFreePromotion;
 }
-#if defined(MOD_BALANCE_CORE)
 int CvFeatureInfo::getPromotionIfOwned() const
 {
 	return m_iPromotionIfOwned;
@@ -6951,7 +6908,6 @@ int CvFeatureInfo::getAdjacentSpawnLocationUnitFreePromotion() const
 {
 	return m_iAdjacentSpawnLocationUnitFreePromotion;
 }
-#endif
 //------------------------------------------------------------------------------
 bool CvFeatureInfo::isYieldNotAdditive() const
 {
@@ -6992,13 +6948,11 @@ bool CvFeatureInfo::isImpassable() const
 {
 	return m_bImpassable;
 }
-#if defined(MOD_BALANCE_CORE)
 /// Techs required for this feature to become passable
 int CvFeatureInfo::GetPrereqPassable() const
 {
 	return m_iPrereqTechPassable;
 }
-#endif
 //------------------------------------------------------------------------------
 bool CvFeatureInfo::isNoCity() const
 {
@@ -7062,66 +7016,66 @@ int CvFeatureInfo::getEffectProbability() const
 //------------------------------------------------------------------------------
 int CvFeatureInfo::getYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYieldChange ? m_piYieldChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvFeatureInfo::getRiverYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piRiverYieldChange ? m_piRiverYieldChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvFeatureInfo::getHillsYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piHillsYieldChange ? m_piHillsYieldChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvFeatureInfo::getCoastalLandYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piCoastalLandYieldChange ? m_piCoastalLandYieldChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvFeatureInfo::getFreshWaterYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piFreshWaterChange ? m_piFreshWaterChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvFeatureInfo::GetTechYieldChanges(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumTechInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTechInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiTechYieldChanges[i][j];
 }
 //------------------------------------------------------------------------------
 int CvFeatureInfo::GetEraYieldChanges(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piEraYieldChange ? m_piEraYieldChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvFeatureInfo::get3DAudioScriptFootstepIndex(int i) const
 {
-	//	ASSERT_DEBUG(i < ?, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	//	ASSERT(i < ?, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pi3DAudioScriptFootstepIndex ? m_pi3DAudioScriptFootstepIndex[i] : -1;
 }
 //------------------------------------------------------------------------------
 bool CvFeatureInfo::isTerrain(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumTerrainInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTerrainInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbTerrain ? m_pbTerrain[i] : false;
 }
 
@@ -7169,7 +7123,6 @@ bool CvFeatureInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	szTextVal = kResults.GetText("AdjacentUnitFreePromotion");
 	m_iAdjacentUnitFreePromotion = GC.getInfoTypeForString(szTextVal, true);
 
-#if defined(MOD_BALANCE_CORE)
 	szTextVal = kResults.GetText("PassableTechFeature");
 	m_iPrereqTechPassable = GC.getInfoTypeForString(szTextVal, true);
 
@@ -7184,7 +7137,6 @@ bool CvFeatureInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 
 	szTextVal = kResults.GetText("AdjacentSpawnLocationUnitFreePromotion");
 	m_iAdjacentSpawnLocationUnitFreePromotion = GC.getInfoTypeForString(szTextVal, true);
-#endif
 
 	const char* szTerrainType = kResults.GetText("GrowthTerrainType");
 	if(szTerrainType != NULL)
@@ -7207,9 +7159,7 @@ bool CvFeatureInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_bNukeImmune = kResults.GetBool("NukeImmune");
 	m_bRough = kResults.GetBool("Rough");
 	m_bNaturalWonder = kResults.GetBool("NaturalWonder");
-#if defined(MOD_PSEUDO_NATURAL_WONDER)
 	m_bPseudoNaturalWonder = kResults.GetBool("PseudoNaturalWonder");
-#endif
 	m_strEffectType = kResults.GetText("EffectType");
 	m_strEffectTypeTag = kResults.GetText("EffectTypeTag");
 
@@ -7234,7 +7184,7 @@ bool CvFeatureInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 
 	const int iNumYields = kUtility.MaxRows("Yields");
 	const int iNumTechs = GC.getNumTechInfos();
-	ASSERT_DEBUG(iNumTechs > 0, "Num Tech Infos <= 0");
+	ASSERT(iNumTechs > 0, "Num Tech Infos <= 0");
 
 	//TechYieldChanges
 	{
@@ -7252,10 +7202,10 @@ bool CvFeatureInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 		while(pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int tech_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(tech_idx > -1);
+			PRECONDITION(tech_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 
@@ -7284,14 +7234,12 @@ CvYieldInfo::CvYieldInfo() :
 	m_iPopulationChangeOffset(0),
 	m_iPopulationChangeDivisor(0),
 	m_iMinCity(0),
-#if defined(MOD_BALANCE_CORE)
 	m_iMinCityFlatFreshWater(0),
 	m_iMinCityFlatNoFreshWater(0),
 	m_iMinCityHillFreshWater(0),
 	m_iMinCityHillNoFreshWater(0),
 	m_iMinCityMountainFreshWater(0),
 	m_iMinCityMountainNoFreshWater(0),
-#endif
 	m_iGoldenAgeYield(0),
 	m_iGoldenAgeYieldThreshold(0),
 	m_iGoldenAgeYieldMod(0)
@@ -7342,7 +7290,6 @@ int CvYieldInfo::getMinCity() const
 {
 	return m_iMinCity;
 }
-#if defined (MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
 int CvYieldInfo::getMinCityFlatFreshWater() const
 {
@@ -7373,7 +7320,6 @@ int CvYieldInfo::getMinCityMountainNoFreshWater() const
 {
 	return m_iMinCityMountainNoFreshWater;
 }
-#endif
 //------------------------------------------------------------------------------
 int CvYieldInfo::getGoldenAgeYield() const
 {
@@ -7404,14 +7350,12 @@ bool CvYieldInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 	kResults.GetValue("PopulationChangeOffset", m_iPopulationChangeOffset);
 	kResults.GetValue("PopulationChangeDivisor", m_iPopulationChangeDivisor);
 	kResults.GetValue("MinCity", m_iMinCity);
-#if defined(MOD_BALANCE_CORE)
 	kResults.GetValue("MinCityFlatFreshWater", m_iMinCityFlatFreshWater);
 	kResults.GetValue("MinCityFlatNoFreshWater", m_iMinCityFlatNoFreshWater);
 	kResults.GetValue("MinCityHillFreshWater", m_iMinCityHillFreshWater);
 	kResults.GetValue("MinCityHillNoFreshWater", m_iMinCityHillNoFreshWater);
 	kResults.GetValue("MinCityMountainFreshWater", m_iMinCityMountainFreshWater);
 	kResults.GetValue("MinCityMountainNoFreshWater", m_iMinCityMountainNoFreshWater);
-#endif
 	kResults.GetValue("GoldenAgeYield", m_iGoldenAgeYield);
 	kResults.GetValue("GoldenAgeYieldThreshold", m_iGoldenAgeYieldThreshold);
 	kResults.GetValue("GoldenAgeYieldMod", m_iGoldenAgeYieldMod);
@@ -7432,13 +7376,11 @@ CvTerrainInfo::CvTerrainInfo() :
 	m_iInfluenceCost(0),
 	m_iTurnDamage(0),
 	m_iExtraTurnDamage(0),
-#if defined(MOD_BALANCE_CORE)
 	m_iPrereqTechPassable(NO_TECH),
 	m_iLocationUnitFreePromotionTerrain(NO_PROMOTION),
 	m_iSpawnLocationUnitFreePromotionTerrain(NO_PROMOTION),
 	m_iAdjacentSpawnLocationUnitFreePromotionTerrain(NO_PROMOTION),
 	m_iAdjacentUnitFreePromotionTerrain(NO_PROMOTION),
-#endif
 	m_bWater(false),
 	m_bImpassable(false),
 	m_bFound(false),
@@ -7508,7 +7450,6 @@ int CvTerrainInfo::getExtraTurnDamage() const
 {
 	return m_iExtraTurnDamage;
 }
-#if defined(MOD_BALANCE_CORE)
 int CvTerrainInfo::getLocationUnitFreePromotion() const
 {
 	return m_iLocationUnitFreePromotionTerrain;
@@ -7526,7 +7467,6 @@ int CvTerrainInfo::getAdjacentUnitFreePromotion() const
 {
 	return m_iAdjacentUnitFreePromotionTerrain;
 }
-#endif
 //------------------------------------------------------------------------------
 bool CvTerrainInfo::isWater() const
 {
@@ -7537,13 +7477,11 @@ bool CvTerrainInfo::isImpassable() const
 {
 	return m_bImpassable;
 }
-#if defined(MOD_BALANCE_CORE)
 /// Techs required for this terrain to become passable
 int CvTerrainInfo::GetPrereqPassable() const
 {
 	return m_iPrereqTechPassable;
 }
-#endif
 //------------------------------------------------------------------------------
 bool CvTerrainInfo::isFound() const
 {
@@ -7582,52 +7520,52 @@ const char* CvTerrainInfo::getEffectTypeTag() const
 //------------------------------------------------------------------------------
 int CvTerrainInfo::getYield(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYields ? m_piYields[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvTerrainInfo::getRiverYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piRiverYieldChange ? m_piRiverYieldChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvTerrainInfo::getHillsYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piHillsYieldChange ? m_piHillsYieldChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvTerrainInfo::getCoastalLandYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piCoastalLandYieldChange ? m_piCoastalLandYieldChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvTerrainInfo::getFreshWaterYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piFreshWaterChange ? m_piFreshWaterChange[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvTerrainInfo::GetTechYieldChanges(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumTechInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTechInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiTechYieldChanges[i][j];
 }
 //------------------------------------------------------------------------------
 int CvTerrainInfo::get3DAudioScriptFootstepIndex(int i) const
 {
-//	ASSERT_DEBUG(i < ?, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+//	ASSERT(i < ?, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pi3DAudioScriptFootstepIndex ? m_pi3DAudioScriptFootstepIndex[i] : -1;
 }
 //------------------------------------------------------------------------------
@@ -7662,7 +7600,6 @@ bool CvTerrainInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	{
 		m_iWorldSoundscapeScriptId = -1;
 	}
-#if defined(MOD_BALANCE_CORE)
 	szTextVal = kResults.GetText("PassableTechTerrain");
 	m_iPrereqTechPassable = GC.getInfoTypeForString(szTextVal, true);
 
@@ -7677,7 +7614,6 @@ bool CvTerrainInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 
 	szTextVal = kResults.GetText("AdjacentUnitFreePromotion");
 	m_iAdjacentUnitFreePromotionTerrain = GC.getInfoTypeForString(szTextVal, true);
-#endif
 
 	//Arrays
 	const char* szTerrainType = GetType();
@@ -7689,7 +7625,7 @@ bool CvTerrainInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 
 	const int iNumYields = kUtility.MaxRows("Yields");
 	const int iNumTechs = GC.getNumTechInfos();
-	ASSERT_DEBUG(iNumTechs > 0, "Num Tech Infos <= 0");
+	ASSERT(iNumTechs > 0, "Num Tech Infos <= 0");
 
 	//TechYieldChanges
 	{
@@ -7707,10 +7643,10 @@ bool CvTerrainInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 		while(pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int tech_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(tech_idx > -1);
+			PRECONDITION(tech_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 
@@ -7997,15 +7933,15 @@ VictoryPursuitTypes CvLeaderHeadInfo::VictoryPursuitTypeFromString(const char* s
 //------------------------------------------------------------------------------
 bool CvLeaderHeadInfo::hasTrait(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumTraitInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTraitInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbTraits ? m_pbTraits[i] : false;
 }
 //------------------------------------------------------------------------------
 int CvLeaderHeadInfo::getFlavorValue(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFlavorTypes(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFlavorTypes(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piFlavorValue ? m_piFlavorValue[i] : 0;
 }
 //------------------------------------------------------------------------------
@@ -8090,16 +8026,12 @@ CvWorldInfo::CvWorldInfo() :
 	m_iNumCitiesUnhappinessPercent(100),
 	m_iNumCitiesPolicyCostMod(10),
 	m_iNumCitiesTechCostMod(5),
-#if defined(MOD_TRADE_ROUTE_SCALING)
 	m_iNumCitiesTourismCostMod(5),
 	m_iNumCitiesUnitSupplyMod(5),
 	m_iTradeRouteDistanceMod(100),
-#endif
-#if defined(MOD_BALANCE_CORE)
 	m_iMinDistanceCities(3),
 	m_iMinDistanceCityStates(3),
 	m_iReformationPercent(100),
-#endif
 	m_iEstimatedNumCities(0)
 {
 }
@@ -8188,7 +8120,6 @@ int CvWorldInfo::GetNumCitiesTechCostMod() const
 {
 	return m_iNumCitiesTechCostMod;
 }
-#if defined(MOD_TRADE_ROUTE_SCALING)
 //------------------------------------------------------------------------------
 int CvWorldInfo::GetNumCitiesTourismCostMod() const
 {
@@ -8204,8 +8135,6 @@ int CvWorldInfo::getTradeRouteDistanceMod() const
 {
 	return m_iTradeRouteDistanceMod;
 }
-#endif
-#if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
 int CvWorldInfo::getMinDistanceCities() const
 {
@@ -8221,7 +8150,6 @@ int CvWorldInfo::getReformationPercent() const
 {
 	return m_iReformationPercent;
 }
-#endif
 //------------------------------------------------------------------------------
 int CvWorldInfo::GetEstimatedNumCities() const
 {
@@ -8270,18 +8198,12 @@ bool CvWorldInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 	m_iNumCitiesUnhappinessPercent	= kResults.GetInt("NumCitiesUnhappinessPercent");
 	m_iNumCitiesPolicyCostMod		= kResults.GetInt("NumCitiesPolicyCostMod");
 	m_iNumCitiesTechCostMod			= kResults.GetInt("NumCitiesTechCostMod");
-#if defined(MOD_TRADE_ROUTE_SCALING)
-	if (MOD_TRADE_ROUTE_SCALING) {
-		m_iTradeRouteDistanceMod	= kResults.GetInt("TradeRouteDistanceMod");
-	}
-#endif
-#if defined(MOD_BALANCE_CORE)
-	m_iNumCitiesTourismCostMod = kResults.GetInt("NumCitiesTourismCostMod");
-	m_iNumCitiesUnitSupplyMod = kResults.GetInt("NumCitiesUnitSupplyMod");
-	m_iMinDistanceCities = kResults.GetInt("MinDistanceCities");
-	m_iMinDistanceCityStates = kResults.GetInt("MinDistanceCityStates");
-	m_iReformationPercent = kResults.GetInt("ReformationPercentRequired");
-#endif
+	m_iTradeRouteDistanceMod		= kResults.GetInt("TradeRouteDistanceMod");
+	m_iNumCitiesTourismCostMod		= kResults.GetInt("NumCitiesTourismCostMod");
+	m_iNumCitiesUnitSupplyMod		= kResults.GetInt("NumCitiesUnitSupplyMod");
+	m_iMinDistanceCities			= kResults.GetInt("MinDistanceCities");
+	m_iMinDistanceCityStates		= kResults.GetInt("MinDistanceCityStates");
+	m_iReformationPercent			= kResults.GetInt("ReformationPercentRequired");
 	m_iEstimatedNumCities			= kResults.GetInt("EstimatedNumCities");
 
 	return true;
@@ -8307,16 +8229,12 @@ bool CvWorldInfo::operator==(const CvWorldInfo& rhs) const
 	if(m_iResearchPercent != rhs.m_iResearchPercent) return false;
 	if(m_iNumCitiesUnhappinessPercent != rhs.m_iNumCitiesUnhappinessPercent) return false;
 	if(m_iNumCitiesPolicyCostMod != rhs.m_iNumCitiesPolicyCostMod) return false;
-#if defined(MOD_TRADE_ROUTE_SCALING)
 	if(m_iTradeRouteDistanceMod != rhs.m_iTradeRouteDistanceMod) return false;
-#endif
-#if defined(MOD_BALANCE_CORE)
 	if (m_iNumCitiesTourismCostMod != rhs.m_iNumCitiesTourismCostMod) return false;
 	if (m_iNumCitiesUnitSupplyMod != rhs.m_iNumCitiesUnitSupplyMod) return false;
 	if(m_iMinDistanceCities != rhs.m_iMinDistanceCities) return false;
 	if(m_iMinDistanceCityStates != rhs.m_iMinDistanceCityStates) return false;
 	if(m_iReformationPercent != rhs.m_iReformationPercent) return false;
-#endif
 	if(m_iNumCitiesTechCostMod != rhs.m_iNumCitiesTechCostMod) return false;
 	return true;
 }
@@ -8538,9 +8456,7 @@ CvProcessInfo::CvProcessInfo() :
 	m_iTechPrereq(NO_TECH),
 	m_iRequiredPolicy(NO_POLICY),
 	m_iDefenseValue(0),
-#if defined(MOD_CIVILIZATIONS_UNIQUE_PROCESSES)
 	m_eRequiredCivilization(NO_CIVILIZATION),
-#endif
 	m_paiProductionToYieldModifier(NULL),
 	m_paiFlavorValue(NULL)
 {
@@ -8569,27 +8485,25 @@ int CvProcessInfo::getDefenseValue() const
 	return m_iDefenseValue;
 }
 
-#if defined(MOD_CIVILIZATIONS_UNIQUE_PROCESSES)
 //------------------------------------------------------------------------------
 CivilizationTypes CvProcessInfo::GetRequiredCivilization() const
 {
 	return m_eRequiredCivilization;
 }
-#endif
 
 //------------------------------------------------------------------------------
 int CvProcessInfo::getProductionToYieldModifier(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_paiProductionToYieldModifier ? m_paiProductionToYieldModifier[i] : -1;
 }
 
 //------------------------------------------------------------------------------
 int CvProcessInfo::GetFlavorValue(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFlavorTypes(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFlavorTypes(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_paiFlavorValue ? m_paiFlavorValue[i] : -1;
 }
 
@@ -8608,10 +8522,8 @@ bool CvProcessInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 
 	m_iDefenseValue = kResults.GetInt("DefenseValue");
 
-#if defined(MOD_CIVILIZATIONS_UNIQUE_PROCESSES)
 	const char* szCivilizationType = kResults.GetText("CivilizationType");
 	m_eRequiredCivilization = (CivilizationTypes)GC.getInfoTypeForString(szCivilizationType, true);
-#endif
 
 	const char* szProcessType = GetType();
 
@@ -8715,8 +8627,8 @@ bool CvVoteInfo::isAssignCity() const
 //------------------------------------------------------------------------------
 bool CvVoteInfo::isVoteSourceType(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumVoteSourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumVoteSourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_abVoteSourceTypes ? m_abVoteSourceTypes[i] : false;
 }
 //------------------------------------------------------------------------------
@@ -9373,7 +9285,7 @@ bool CvVoteSourceInfo::CacheResults(Database::Results& kResults, CvDatabaseUtili
 
 	return true;
 }
-#if defined(MOD_BALANCE_CORE_EVENTS)
+
 //======================================================================================================
 //		CvModEventInfo
 //======================================================================================================
@@ -9602,22 +9514,22 @@ bool CvModEventInfo::isRequiresHolyCity() const
 //------------------------------------------------------------------------------
 int CvModEventInfo::getYieldMinimum(YieldTypes eYield) const
 {
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield > -1, "Index out of bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield > -1, "Index out of bounds");
 	return m_piMinimumYield ? m_piMinimumYield[eYield] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventInfo::getResourceRequired(ResourceTypes eResource) const
 {
-	ASSERT_DEBUG(eResource < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eResource > -1, "Index out of bounds");
+	PRECONDITION(eResource < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(eResource > -1, "Index out of bounds");
 	return m_piRequiredResource ? m_piRequiredResource[eResource] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventInfo::getFeatureRequired(FeatureTypes eFeature) const
 {
-	ASSERT_DEBUG(eFeature < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eFeature > -1, "Index out of bounds");
+	PRECONDITION(eFeature < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(eFeature > -1, "Index out of bounds");
 	return m_piRequiredFeature ? m_piRequiredFeature[eFeature] : -1;
 }
 //------------------------------------------------------------------------------
@@ -9662,8 +9574,8 @@ bool CvModEventInfo::isTradeCapped() const
 }
 CvEventLinkingInfo *CvModEventInfo::GetLinkerInfo(int i) const
 {
-	ASSERT_DEBUG(i < GetNumLinkers(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GetNumLinkers(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 
 	if (m_paLinkerInfo[0].GetCityLinkingEvent() == -1 && m_paLinkerInfo[0].GetCityLinkingEventChoice() == -1 && m_paLinkerInfo[0].GetLinkingEvent() == -1 && m_paLinkerInfo[0].GetLinkingEventChoice() == -1)
 	{
@@ -9930,8 +9842,8 @@ CvModEventChoiceInfo::~CvModEventChoiceInfo()
 //------------------------------------------------------------------------------
 bool CvModEventChoiceInfo::isParentEvent(EventTypes eEvent) const
 {
-	ASSERT_DEBUG(eEvent < GC.getNumEventInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eEvent > -1, "Index out of bounds");
+	PRECONDITION(eEvent < GC.getNumEventInfos(), "Index out of bounds");
+	PRECONDITION(eEvent > -1, "Index out of bounds");
 	return m_pbParentEventIDs ? m_pbParentEventIDs[eEvent] : false;
 }
 
@@ -9984,35 +9896,35 @@ int CvModEventChoiceInfo::getEventBuilding() const
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getFlavorValue(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFlavorTypes(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFlavorTypes(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piFlavor ? m_piFlavor[i] : 0;
 }
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getEventResourceChange(ResourceTypes eResource) const
 {
-	ASSERT_DEBUG(eResource < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eResource > -1, "Index out of bounds");
+	PRECONDITION(eResource < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(eResource > -1, "Index out of bounds");
 	return m_piResourceChange ? m_piResourceChange[eResource] : 0;
 }
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getEventYield(YieldTypes eYield) const
 {
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield > -1, "Index out of bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield > -1, "Index out of bounds");
 	return m_piEventYield ? m_piEventYield[eYield] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getPreCheckEventYield(YieldTypes eYield) const
 {
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield > -1, "Index out of bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield > -1, "Index out of bounds");
 	return m_piPreCheckEventYield ? m_piPreCheckEventYield[eYield] : -1;
 }
 CvEventNotificationInfo *CvModEventChoiceInfo::GetNotificationInfo(int i) const
 {
-//	ASSERT_DEBUG(i < GC.getNumNotificationInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+//	ASSERT(i < GC.getNumNotificationInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 
 	if (m_paNotificationInfo[0].GetNotificationString().empty() || m_paNotificationInfo[0].GetNotificationString() == NULL)
 	{
@@ -10111,95 +10023,95 @@ int CvModEventChoiceInfo::getReligiousUnrestModifierGlobal() const
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getNumFreeSpecificUnits(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumUnitInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumUnitInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piNumFreeSpecificUnits ? m_piNumFreeSpecificUnits [i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getNumFreeUnits(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumUnitClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumUnitClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piNumFreeUnits ? m_piNumFreeUnits[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getEventConvertReligion(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumReligionInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumReligionInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piConvertReligion ? m_piConvertReligion[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getEventConvertReligionPercent(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumReligionInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumReligionInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piConvertReligionPercent ? m_piConvertReligionPercent[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getCityYield(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piCityYield ? m_piCityYield[i] : -1;
 }
 /// Yield change for a specific BuildingClass by yield type
 int CvModEventChoiceInfo::getBuildingClassYield(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiBuildingClassYield[i][j];
 }
 /// Yield modifier change for a specific BuildingClass by yield type
 int CvModEventChoiceInfo::getBuildingClassYieldModifier(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiBuildingClassYieldModifier[i][j];
 }
 int CvModEventChoiceInfo::getTerrainYield(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumTerrainInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTerrainInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiTerrainYield[i][j];
 }
 int CvModEventChoiceInfo::getFeatureYield(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiFeatureYield[i][j];
 }
 int CvModEventChoiceInfo::getImprovementYield(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumImprovementInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumImprovementInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiImprovementYield[i][j];
 }
 int CvModEventChoiceInfo::getResourceYield(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiResourceYield[i][j];
 }
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getGlobalSpecialistYieldChange(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumSpecialistInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumSpecialistInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiSpecialistYield[i][j];
 }
 // Filters
@@ -10246,8 +10158,8 @@ int CvModEventChoiceInfo::getObsoleteEra() const
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getYieldMinimum(YieldTypes eYield) const
 {
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield > -1, "Index out of bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield > -1, "Index out of bounds");
 	return m_piMinimumYield ? m_piMinimumYield[eYield] : -1;
 }
 //------------------------------------------------------------------------------
@@ -10308,15 +10220,15 @@ bool CvModEventChoiceInfo::isRequiresWarMinor() const
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getResourceRequired(ResourceTypes eResource) const
 {
-	ASSERT_DEBUG(eResource < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eResource > -1, "Index out of bounds");
+	PRECONDITION(eResource < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(eResource > -1, "Index out of bounds");
 	return m_piRequiredResource ? m_piRequiredResource[eResource] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getFeatureRequired(FeatureTypes eFeature) const
 {
-	ASSERT_DEBUG(eFeature < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eFeature > -1, "Index out of bounds");
+	PRECONDITION(eFeature < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(eFeature > -1, "Index out of bounds");
 	return m_piRequiredFeature ? m_piRequiredFeature[eFeature] : -1;
 }
 
@@ -10402,8 +10314,8 @@ const char* CvModEventChoiceInfo::getDisabledTooltip() const
 }
 CvEventChoiceLinkingInfo *CvModEventChoiceInfo::GetLinkerInfo(int i) const
 {
-	ASSERT_DEBUG(i < GetNumLinkers(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GetNumLinkers(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 
 	if (m_paLinkerInfo[0].GetCityLinkingEvent() == -1 && m_paLinkerInfo[0].GetCityLinkingEventChoice() == -1 && m_paLinkerInfo[0].GetLinkingEvent() == -1 && m_paLinkerInfo[0].GetLinkingEventChoice() == -1)
 	{
@@ -10916,8 +10828,8 @@ int CvModCityEventInfo::getObsoleteEra() const
 //------------------------------------------------------------------------------
 int CvModCityEventInfo::getYieldMinimum(YieldTypes eYield) const
 {
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield > -1, "Index out of bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield > -1, "Index out of bounds");
 	return m_piMinimumYield ? m_piMinimumYield[eYield] : -1;
 }
 //------------------------------------------------------------------------------
@@ -11171,8 +11083,8 @@ bool CvModCityEventInfo::IsCounterSpy() const
 }
 CvCityEventLinkingInfo *CvModCityEventInfo::GetLinkerInfo(int i) const
 {
-	ASSERT_DEBUG(i < GetNumLinkers(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GetNumLinkers(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 
 	if (m_paCityLinkerInfo[0].GetCityLinkingEvent() == -1 && m_paCityLinkerInfo[0].GetCityLinkingEventChoice() == -1 && m_paCityLinkerInfo[0].GetLinkingEvent() == -1 && m_paCityLinkerInfo[0].GetLinkingEventChoice() == -1)
 	{
@@ -11511,8 +11423,8 @@ CvModEventCityChoiceInfo::~CvModEventCityChoiceInfo()
 //------------------------------------------------------------------------------
 bool CvModEventCityChoiceInfo::isParentEvent(CityEventTypes eCityEvent) const
 {
-	ASSERT_DEBUG(eCityEvent < GC.getNumCityEventInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eCityEvent > -1, "Index out of bounds");
+	PRECONDITION(eCityEvent < GC.getNumCityEventInfos(), "Index out of bounds");
+	PRECONDITION(eCityEvent > -1, "Index out of bounds");
 	return m_pbParentEventIDs ? m_pbParentEventIDs[eCityEvent] : false;
 }
 //------------------------------------------------------------------------------
@@ -11639,22 +11551,22 @@ int CvModEventCityChoiceInfo::getEventBuildingDestruction() const
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getEventYield(YieldTypes eYield) const
 {
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield > -1, "Index out of bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield > -1, "Index out of bounds");
 	return m_piEventYield ? m_piEventYield[eYield] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getPreCheckEventYield(YieldTypes eYield) const
 {
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield > -1, "Index out of bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield > -1, "Index out of bounds");
 	return m_piPreCheckEventYield ? m_piPreCheckEventYield[eYield] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getFlavorValue(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFlavorTypes(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFlavorTypes(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piFlavor ? m_piFlavor[i] : 0;
 }
 //------------------------------------------------------------------------------
@@ -11740,50 +11652,50 @@ int CvModEventCityChoiceInfo::getEventPromotion() const
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getNumFreeUnits(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumUnitClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumUnitClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piNumFreeUnits ? m_piNumFreeUnits[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getNumFreeSpecificUnits(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumUnitInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumUnitInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piNumFreeSpecificUnits ? m_piNumFreeSpecificUnits[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getEventConvertReligion(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumReligionInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumReligionInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piConvertReligion ? m_piConvertReligion[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getEventConvertReligionPercent(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumReligionInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumReligionInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piConvertReligionPercent ? m_piConvertReligionPercent[i] : -1;
 }
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getEventGPChange(SpecialistTypes eSpecialist) const
 {
-	ASSERT_DEBUG(eSpecialist < GC.getNumSpecialistInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eSpecialist > -1, "Index out of bounds");
+	PRECONDITION(eSpecialist < GC.getNumSpecialistInfos(), "Index out of bounds");
+	PRECONDITION(eSpecialist > -1, "Index out of bounds");
 	return m_piGPChange ? m_piGPChange[eSpecialist] : 0;
 }
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getImprovementDestruction(ImprovementTypes eImprovement) const
 {
-	ASSERT_DEBUG(eImprovement < GC.getNumImprovementInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eImprovement > -1, "Index out of bounds");
+	PRECONDITION(eImprovement < GC.getNumImprovementInfos(), "Index out of bounds");
+	PRECONDITION(eImprovement > -1, "Index out of bounds");
 	return m_piDestroyImprovement ? m_piDestroyImprovement[eImprovement] : 0;
 }
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getBuildingDestructionChance(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piBuildingDestructionChance ? m_piBuildingDestructionChance[i] : -1;
 }
 //------------------------------------------------------------------------------
@@ -11824,8 +11736,8 @@ int CvModEventCityChoiceInfo::getBlockBuildingTurns() const
 
 CvCityEventNotificationInfo *CvModEventCityChoiceInfo::GetNotificationInfo(int i) const
 {
-//	ASSERT_DEBUG(i < GC.getNumNotificationInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+//	ASSERT(i < GC.getNumNotificationInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 
 	if (m_paCityNotificationInfo[0].GetNotificationString().empty() || m_paCityNotificationInfo[0].GetNotificationString() == NULL)
 	{
@@ -11839,8 +11751,8 @@ CvCityEventNotificationInfo *CvModEventCityChoiceInfo::GetNotificationInfo(int i
 
 CvCityEventChoiceLinkingInfo *CvModEventCityChoiceInfo::GetLinkerInfo(int i) const
 {
-	ASSERT_DEBUG(i < GetNumLinkers(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GetNumLinkers(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 
 	if (m_paCityLinkerInfo[0].GetCityLinkingEvent() == -1 && m_paCityLinkerInfo[0].GetCityLinkingEventChoice() == -1 && m_paCityLinkerInfo[0].GetLinkingEvent() == -1 && m_paCityLinkerInfo[0].GetLinkingEventChoice() == -1)
 	{
@@ -11854,102 +11766,102 @@ CvCityEventChoiceLinkingInfo *CvModEventCityChoiceInfo::GetLinkerInfo(int i) con
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getCityYield(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piCityYield ? m_piCityYield[i] : -1;
 }
 
 int CvModEventCityChoiceInfo::getCityYieldModifier(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piCityYieldModifier ? m_piCityYieldModifier[i] : -1;
 }
 
 int CvModEventCityChoiceInfo::getYieldSiphon(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYieldSiphon ? m_piYieldSiphon[i] : -1;
 }
 
 int CvModEventCityChoiceInfo::getYieldOnSpyIdentified(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYieldOnSpyIdentified ? m_piYieldOnSpyIdentified[i] : -1;
 }
 int CvModEventCityChoiceInfo::getYieldOnSpyKilled(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYieldOnSpyKilled ? m_piYieldOnSpyKilled[i] : -1;
 }
 
 /// Yield change for a specific BuildingClass by yield type
 int CvModEventCityChoiceInfo::getBuildingClassYield(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiBuildingClassYield[i][j];
 }
 /// Yield modifier change for a specific BuildingClass by yield type
 int CvModEventCityChoiceInfo::getBuildingClassYieldModifier(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiBuildingClassYieldModifier[i][j];
 }
 int CvModEventCityChoiceInfo::getTerrainYield(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumTerrainInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTerrainInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiTerrainYield[i][j];
 }
 int CvModEventCityChoiceInfo::getFeatureYield(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiFeatureYield[i][j];
 }
 int CvModEventCityChoiceInfo::getImprovementYield(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumImprovementInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumImprovementInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiImprovementYield[i][j];
 }
 int CvModEventCityChoiceInfo::getResourceYield(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiResourceYield[i][j];
 }
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getCitySpecialistYieldChange(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumSpecialistInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumSpecialistInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiSpecialistYield[i][j];
 }
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getEventResourceChange(ResourceTypes eResource) const
 {
-	ASSERT_DEBUG(eResource < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eResource > -1, "Index out of bounds");
+	PRECONDITION(eResource < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(eResource > -1, "Index out of bounds");
 	return m_piResourceChange ? m_piResourceChange[eResource] : 0;
 }
 // Filters
@@ -11986,8 +11898,8 @@ int CvModEventCityChoiceInfo::getObsoleteEra() const
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getYieldMinimum(YieldTypes eYield) const
 {
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield > -1, "Index out of bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield > -1, "Index out of bounds");
 	return m_piMinimumYield ? m_piMinimumYield[eYield] : -1;
 }
 //------------------------------------------------------------------------------
@@ -12662,7 +12574,7 @@ bool CvModEventCityChoiceInfo::CacheResults(Database::Results& kResults, CvDatab
 
 	return true;
 }
-#endif
+
 //------------------------------------------------------------------------------
 bool CvEraInfo::getVassalageEnabled() const
 {
@@ -12723,7 +12635,7 @@ void FeatureArrayHelpers::Read(FDataStream& kStream, int* paiFeatureArray)
 				CvString szError;
 				szError.Format("LOAD ERROR: Feature Type not found");
 				GC.LogMessage(szError.GetCString());
-				ASSERT_DEBUG(false, szError);
+				ASSERT(false, szError);
 
 				int iDummy = 0;
 				kStream >> iDummy;
@@ -12779,7 +12691,7 @@ void FeatureArrayHelpers::ReadYieldArray(FDataStream& kStream, int** ppaaiFeatur
 				CvString szError;
 				szError.Format("LOAD ERROR: Feature Type not found: %08x", iHash);
 				GC.LogMessage(szError.GetCString());
-				ASSERT_DEBUG(false, szError);
+				ASSERT(false, szError);
 
 				for(int jJ = 0; jJ < iNumYields; jJ++)
 				{
@@ -12840,7 +12752,7 @@ void TerrainArrayHelpers::Read(FDataStream& kStream, int* paiTerrainArray)
 				CvString szError;
 				szError.Format("LOAD ERROR: Terrain Type not found");
 				GC.LogMessage(szError.GetCString());
-				ASSERT_DEBUG(false, szError);
+				ASSERT(false, szError);
 
 				int iDummy = 0;
 				kStream >> iDummy;
@@ -12896,7 +12808,7 @@ void TerrainArrayHelpers::ReadYieldArray(FDataStream& kStream, int** ppaaiTerrai
 				CvString szError;
 				szError.Format("LOAD ERROR: Terrain Type not found: %08x", iHash);
 				GC.LogMessage(szError.GetCString());
-				ASSERT_DEBUG(false, szError);
+				ASSERT(false, szError);
 
 				for(int jJ = 0; jJ < iNumYields; jJ++)
 				{

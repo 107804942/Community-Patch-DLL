@@ -37,7 +37,7 @@ void ReadV0DataArray(FDataStream& kStream, TData* paArray, int iArraySize, const
 			CvString szError;
 			szError.Format("LOAD ERROR: Type not found: %s", ppszV0Tags[iI]);
 			GC.LogMessage(szError.GetCString());
-			ASSERT_DEBUG(false, szError);
+			ASSERT(false, szError);
 		}
 	}
 }
@@ -66,7 +66,7 @@ void ReadV0DataArray(FDataStream& kStream, std::vector<TData>& aiArray, uint uiM
 			CvString szError;
 			szError.Format("LOAD ERROR: Type not found: %s", ppszV0Tags[iI]);
 			GC.LogMessage(szError.GetCString());
-			ASSERT_DEBUG(false, szError);
+			ASSERT(false, szError);
 		}
 	}
 }
@@ -95,7 +95,7 @@ void ReadV0DataArray(FDataStream& kStream, TData** ppaArray, int iSubArraySize, 
 				CvString szError;
 				szError.Format("LOAD ERROR: Type mapping outside the supplied array bounds: %s", ppszV0Tags[iI]);
 				GC.LogMessage(szError.GetCString());
-				ASSERT_DEBUG(false, szError);
+				ASSERT(false, szError);
 
 				// Burn through the data so we can continue on a type outside the bounds
 				for(int iJ = 0; iJ < iSubArraySize; ++iJ)
@@ -107,7 +107,7 @@ void ReadV0DataArray(FDataStream& kStream, TData** ppaArray, int iSubArraySize, 
 			CvString szError;
 			szError.Format("LOAD ERROR: Type not found: %s", ppszV0Tags[iI]);
 			GC.LogMessage(szError.GetCString());
-			ASSERT_DEBUG(false, szError);
+			ASSERT(false, szError);
 
 			for(int iJ = 0; iJ < iSubArraySize; ++iJ)
 				kStream >> tValue;
@@ -146,7 +146,7 @@ void ReadV0TypeArray(FDataStream& kStream, std::vector<TType>& aiArray, uint uiM
 					CvString szError;
 					szError.Format("LOAD ERROR: Type not found: %d", eType);
 					GC.LogMessage(szError.GetCString());
-					ASSERT_DEBUG(false, szError);
+					ASSERT(false, szError);
 				}
 			}
 			else
@@ -181,7 +181,7 @@ void ReadV0TypeArray(FDataStream& kStream, TType* paArray, uint uiSize, const ch
 					CvString szError;
 					szError.Format("LOAD ERROR: Type not found: %d", eType);
 					GC.LogMessage(szError.GetCString());
-					ASSERT_DEBUG(false, szError);
+					ASSERT(false, szError);
 				}
 			}
 			else
@@ -206,7 +206,7 @@ TType ConvertV0(TType eType, const char** ppszV0Tags, uint uiV0TagCount)
 			CvString szError;
 			szError.Format("LOAD ERROR: Type not found: %d", (int)eType);
 			GC.LogMessage(szError.GetCString());
-			ASSERT_DEBUG(false, szError);
+			ASSERT(false, szError);
 		}
 	}
 
@@ -298,7 +298,7 @@ void ReadDataArray(FDataStream& kStream, TData** ppaArray, int iSubArraySize, in
 				CvString szError;
 				szError.Format("LOAD ERROR: Type mapping outside the supplied array bounds: %d", iType);
 				GC.LogMessage(szError.GetCString());
-				ASSERT_DEBUG(false, szError);
+				ASSERT(false, szError);
 				bValid = false;
 			}
 
@@ -341,7 +341,7 @@ void ReadHashedDataArray(FDataStream& kStream, TData** ppaArray, int iSubArraySi
 				CvString szError;
 				szError.Format("LOAD ERROR: Type mapping outside the supplied array bounds: %d", iType);
 				GC.LogMessage(szError.GetCString());
-				ASSERT_DEBUG(false, szError);
+				ASSERT(false, szError);
 				bValid = false;
 			}
 		}
@@ -737,7 +737,6 @@ DECLARE_SERIALIZATION_INFO_TYPE_HELPER(RouteTypes);
 DECLARE_SERIALIZATION_INFO_TYPE_HELPER(BuildTypes);
 DECLARE_SERIALIZATION_INFO_TYPE_HELPER(ProcessTypes);
 DECLARE_SERIALIZATION_INFO_TYPE_HELPER(ImprovementTypes);
-#if defined(MOD_BALANCE_CORE)
 DECLARE_SERIALIZATION_INFO_TYPE_HELPER(EventTypes);
 DECLARE_SERIALIZATION_INFO_TYPE_HELPER(EventChoiceTypes);
 DECLARE_SERIALIZATION_INFO_TYPE_HELPER(CityEventTypes);
@@ -746,7 +745,6 @@ DECLARE_SERIALIZATION_INFO_TYPE_HELPER(EventClassTypes);
 DECLARE_SERIALIZATION_INFO_TYPE_HELPER(BuildingClassTypes);
 DECLARE_SERIALIZATION_INFO_TYPE_HELPER(CorporationTypes);
 DECLARE_SERIALIZATION_INFO_TYPE_HELPER(ContractTypes);
-#endif
 // Can't use this because nothing ever respects the values.  They are all hard-coded in the enum
 //DECLARE_SERIALIZATION_INFO_TYPE_HELPER(UnitAITypes);
 

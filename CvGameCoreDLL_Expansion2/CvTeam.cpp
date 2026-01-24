@@ -32,6 +32,7 @@
 #include "CvPlayerManager.h"
 #include "CvCitySpecializationAI.h"
 #include "CvEnumMapSerialization.h"
+#include "CvDllNetMessageExt.h"
 
 #include "CvDllUnit.h"
 
@@ -42,8 +43,8 @@ CvTeam* CvTeam::m_aTeams = NULL;
 
 CvTeam& CvTeam::getTeam(TeamTypes eTeam)
 {
-	ASSERT_DEBUG(eTeam != NO_TEAM, "eTeam is not assigned a valid value");
-	ASSERT_DEBUG(eTeam < MAX_TEAMS, "eTeam is not assigned a valid value");
+	PRECONDITION(eTeam != NO_TEAM, "eTeam is not assigned a valid value");
+	PRECONDITION(eTeam < MAX_TEAMS, "eTeam is not assigned a valid value");
 
 	if (eTeam == NO_TEAM || eTeam >= MAX_TEAMS)
 		eTeam = BARBARIAN_TEAM;
@@ -179,17 +180,11 @@ void CvTeam::uninit()
 	m_iOpenBordersTradingAllowedCount = 0;
 	m_iDefensivePactTradingAllowedCount = 0;
 	m_iResearchAgreementTradingAllowedCount = 0;
-#if defined(MOD_TECHS_CITY_WORKING)
 	m_iCityWorkingChange = 0;
-#endif
-#if defined(MOD_TECHS_CITY_AUTOMATON_WORKERS)
 	m_iCityAutomatonWorkersChange = 0;
-#endif
 	m_iBridgeBuildingCount = 0;
-#if defined(MOD_BALANCE_CORE_EMBARK_CITY_NO_COST)
 	m_iCityLessEmbarkCost = 0;
 	m_iCityNoEmbarkCost = 0;
-#endif
 	m_iWaterWorkCount = 0;
 	m_iRiverTradeCount = 0;
 	m_iBorderObstacleCount = 0;
@@ -202,9 +197,11 @@ void CvTeam::uninit()
 	m_iNumLandmarksBuilt = 0;
 	m_iBestPossibleRoute = NO_ROUTE;
 	m_iNumMinorCivsAttacked = 0;
+	m_iBuildingDefenseModifier = 0;
 
 	m_bMapCentering = false;
 	m_bHasTechForWorldCongress = false;
+	m_bCanBuildOceanCrossingUnit = false;
 
 	m_iVassalageTradingAllowedCount = 0;
 
@@ -243,12 +240,10 @@ void CvTeam::uninit()
 
 	m_eID = NO_TEAM;
 
-#if defined(MOD_BALANCE_CORE)
 	m_members.clear();
 	m_bIsMinorTeam = false;
 	m_bIsObserverTeam = false;
 	m_iCorporationsEnabledCount = 0;
-#endif
 
 	m_bIsVoluntaryVassal = false;
 	m_iNumTurnsIsVassal = -1;
@@ -426,8 +421,8 @@ void CvTeam::addTeam(TeamTypes eTeam)
 	int iI = 0;
 	int iJ = 0;
 
-	ASSERT_DEBUG(eTeam != NO_TEAM);
-	ASSERT_DEBUG(eTeam != GetID());
+	PRECONDITION(eTeam != NO_TEAM);
+	ASSERT(eTeam != GetID());
 
 	for(iI = 0; iI < MAX_PLAYERS; iI++)
 	{
@@ -454,24 +449,6 @@ void CvTeam::addTeam(TeamTypes eTeam)
 
 	shareItems(eTeam);
 	GET_TEAM(eTeam).shareItems(GetID());
-
-	for(iI = 0; iI < MAX_TEAMS; iI++)
-	{
-		if((iI != GetID()) && (iI != eTeam))
-		{
-			if(GET_TEAM((TeamTypes)iI).isAlive())
-			{
-				if(GET_TEAM(eTeam).isHasMet((TeamTypes)iI))
-				{
-					meet(((TeamTypes)iI), false);
-				}
-				else if(isHasMet((TeamTypes)iI))
-				{
-					GET_TEAM(eTeam).meet((TeamTypes)iI, false);
-				}
-			}
-		}
-	}
 
 	for(iI = 0; iI < MAX_TEAMS; iI++)
 	{
@@ -629,8 +606,8 @@ void CvTeam::shareItems(TeamTypes eTeam)
 	int iJ = 0;
 	int iK = 0;
 
-	ASSERT_DEBUG(eTeam != NO_TEAM);
-	ASSERT_DEBUG(eTeam != GetID());
+	PRECONDITION(eTeam != NO_TEAM);
+	ASSERT(eTeam != GetID());
 
 	CvTeam& kTeam = GET_TEAM(eTeam);
 
@@ -775,28 +752,14 @@ void CvTeam::processBuilding(BuildingTypes eBuilding, int iChange)
 		}
 	}
 
-	// Effects in every City on this Team
-	for(int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
-	{
-		CvPlayerAI& kPlayer = GET_PLAYER((PlayerTypes) iPlayerLoop);
-		if(kPlayer.getTeam() == m_eID && kPlayer.isAlive())
-		{
-			CvCity* pLoopCity = NULL;
-			int iLoop = 0;
-
-			for(pLoopCity = kPlayer.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kPlayer.nextCity(&iLoop))
-			{
-				pLoopCity->GetCityBuildings()->ChangeBuildingDefenseMod(pBuildingInfo->GetGlobalDefenseModifier() * iChange);
-			}
-		}
-	}
+	ChangeBuildingDefenseModifier(pBuildingInfo->GetGlobalDefenseModifier() * iChange);
 }
 
 
 //	--------------------------------------------------------------------------------
 void CvTeam::doTurn()
 {
-	ASSERT_DEBUG(isAlive(), "isAlive is expected to be true");
+	PRECONDITION(isAlive(), "isAlive is expected to be true");
 
 	// Barbarians get all Techs that 3/4 of alive players get
 	if (isBarbarian())
@@ -880,19 +843,16 @@ void CvTeam::doTurn()
 	{
 		GetTeamTechs()->SetNoTradeTech(((TechTypes)iI), false);
 	}
-#if !defined(MOD_BALANCE_CORE)
-	DoTestSmallAwards();
-#endif
 
 	testCircumnavigated();
 
-#ifndef FINAL_RELEASE
+#if !defined(FINAL_RELEASE) || defined(VPDEBUG)
 	for(int iMinorLoop = MAX_MAJOR_CIVS; iMinorLoop < MAX_CIV_PLAYERS; iMinorLoop++)
 	{
 		if(!isAtWar(GET_PLAYER((PlayerTypes) iMinorLoop).getTeam()))
 			continue;
 
-		ASSERT_DEBUG(GET_PLAYER((PlayerTypes) iMinorLoop).GetMinorCivAI()->GetAlly() != getLeaderID(), "Major civ is now at war with a minor it is allied with! This is dumb and bad.");
+		ASSERT(GET_PLAYER((PlayerTypes) iMinorLoop).GetMinorCivAI()->GetAlly() != getLeaderID(), "Major civ is now at war with a minor it is allied with! This is dumb and bad.");
 	}
 #endif
 }
@@ -923,7 +883,7 @@ void CvTeam::DoBarbarianTech()
 		}
 	}
 
-	ASSERT_DEBUG(iPossibleCount > 0, "Zero possible players? Uhhh...");
+	ASSERT(iPossibleCount > 0, "Zero possible players? Uhhh...");
 
 	// x% of majors (rounded down) need the tech for the Barbs to get it
 	int iTechPercent = /*75 in CP, 80 in VP*/ GD_INT_GET(BARBARIAN_TECH_PERCENT);
@@ -989,7 +949,7 @@ void CvTeam::DoMinorCivTech()
 		}
 	}
 
-	ASSERT_DEBUG(iPossibleCount > 0, "Zero possible players? Uhhh...");
+	ASSERT(iPossibleCount > 0, "Zero possible players? Uhhh...");
 
 	// x% of majors (rounded down) need the tech for the Minors to get it
 	int iTechPercent = /*40 in CP, 60 in VP*/ GD_INT_GET(MINOR_CIV_TECH_PERCENT);
@@ -1078,7 +1038,6 @@ bool CvTeam::canChangeWarPeace(TeamTypes eTeam) const
 	return true;
 }
 
-#if defined(MOD_BALANCE_CORE)
 void CvTeam::ClearWarDeclarationCache()
 {
 	m_cacheCanDeclareWar.clear();
@@ -1116,9 +1075,8 @@ void CvTeam::changeCorporationsEnabledCount(int iChange)
 		}
 	}
 	m_iCorporationsEnabledCount = m_iCorporationsEnabledCount + iChange;
-	ASSERT_DEBUG(getCorporationsEnabledCount() >= 0);
+	ASSERT(getCorporationsEnabledCount() >= 0);
 }
-#endif
 
 //	--------------------------------------------------------------------------------
 bool CvTeam::canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer)
@@ -1163,7 +1121,7 @@ bool CvTeam::canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer)
 		return false;
 	}
 
-	if (eOriginatingPlayer != NO_PLAYER && !GET_PLAYER(eOriginatingPlayer).isHuman())
+	if (eOriginatingPlayer != NO_PLAYER && !GET_PLAYER(eOriginatingPlayer).isHuman(ISHUMAN_MECHANICS))
 	{
 		if (GC.getGame().IsAIPassiveMode())
 		{
@@ -1171,7 +1129,7 @@ bool CvTeam::canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer)
 		}
 		else if (GC.getGame().IsAIPassiveTowardsHumans())
 		{
-			if (GET_TEAM(eTeam).isHuman())
+			if (GET_TEAM(eTeam).isHuman(ISHUMAN_MECHANICS))
 			{
 				return false;
 			}
@@ -1184,7 +1142,7 @@ bool CvTeam::canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer)
 		TeamTypes eLoopTeam = (TeamTypes) iTeamLoop;
 		if (eLoopTeam != NO_TEAM && eLoopTeam != GetID() && eLoopTeam != eTeam && (GET_TEAM(eTeam).IsHasDefensivePact(eLoopTeam) || GET_TEAM(eTeam).IsVassal(eLoopTeam) || GET_TEAM(eLoopTeam).IsVassal(eTeam)))
 		{
-			if (GET_TEAM(eTeam).isHuman() && eOriginatingPlayer != NO_PLAYER && !GET_PLAYER(eOriginatingPlayer).isHuman() && GC.getGame().IsAIPassiveTowardsHumans())
+			if (GET_TEAM(eTeam).isHuman(ISHUMAN_MECHANICS) && eOriginatingPlayer != NO_PLAYER && !GET_PLAYER(eOriginatingPlayer).isHuman(ISHUMAN_MECHANICS) && GC.getGame().IsAIPassiveTowardsHumans())
 				return false;
 
 			// Exploit prevention: Can't bypass a Peace Treaty!
@@ -1232,6 +1190,9 @@ bool CvTeam::canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer)
 //	-----------------------------------------------------------------------------------------------
 void CvTeam::declareWar(TeamTypes eTeam, bool bDefensivePact, PlayerTypes eOriginatingPlayer)
 {
+	if (GET_TEAM(eTeam).getNumMembers() == 0)
+		return;
+
 	DoDeclareWar(eOriginatingPlayer, true, eTeam, bDefensivePact);
 
 	CvPlayerManager::Refresh(true);
@@ -1244,8 +1205,8 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 	Localization::String locSummary;
 	int iI = 0;
 
-	ASSERT_DEBUG(eTeam != NO_TEAM, "eTeam is not assigned a valid value");
-	ASSERT_DEBUG(eTeam != GetID(), "eTeam is not expected to be equal with GetID()");
+	PRECONDITION(eTeam != NO_TEAM, "eTeam is not assigned a valid value");
+	PRECONDITION(eTeam != GetID(), "eTeam is not expected to be equal with GetID()");
 
 	// War declarations on vassals are redirected to the master
 	if (!isMinorCiv())
@@ -1267,14 +1228,12 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 	SetWonLatestWar(eTeam, false);
 	GET_TEAM(eTeam).SetWonLatestWar(GetID(), false);
 
-#if defined(MOD_EVENTS_WAR_AND_PEACE)
 	if (MOD_EVENTS_WAR_AND_PEACE)
 	{
 		GAMEEVENTINVOKE_HOOK(GAMEEVENT_DeclareWar, eOriginatingPlayer, eTeam, bAggressor);
 	}
 	else
 	{
-#endif
 		ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
 		if (pkScriptSystem)
 		{
@@ -1285,9 +1244,7 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 			bool bResult = false;
 			LuaSupport::CallHook(pkScriptSystem, "DeclareWar", args.get(), bResult);
 		}
-#if defined(MOD_EVENTS_WAR_AND_PEACE)
 	}
-#endif
 
 	// anyone who WANTED to declare war becomes aggressive now
 	for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
@@ -1314,7 +1271,7 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 							if (GET_PLAYER(eLoopTarget).isMajorCiv())
 							{
 								bool bHaveOffensiveOperation = GET_PLAYER(eLoopPlayer).HasAnyOffensiveOperationsAgainstPlayer(eLoopTarget);
-								bool bWarApproach = !GET_PLAYER(eLoopPlayer).isHuman() && pDiplo->GetCivApproach(eLoopTarget) == CIV_APPROACH_WAR;
+								bool bWarApproach = !GET_PLAYER(eLoopPlayer).isHuman(ISHUMAN_AI_DIPLOMACY) && pDiplo->GetCivApproach(eLoopTarget) == CIV_APPROACH_WAR;
 
 								if (bHaveOffensiveOperation || bWarApproach || pDiplo->IsArmyInPlaceForAttack(eLoopTarget) || pDiplo->GetGlobalCoopWarAgainstState(eLoopTarget) >= COOP_WAR_STATE_PREPARING)
 								{
@@ -1324,7 +1281,7 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 							else if (GET_PLAYER(eLoopTarget).isMinorCiv())
 							{
 								bool bHaveOperation = GET_PLAYER(eLoopPlayer).HasAnyOffensiveOperationsAgainstPlayer(eLoopTarget);
-								bool bWarApproach = !GET_PLAYER(eLoopPlayer).isHuman() && pDiplo->GetCivApproach(eLoopTarget) == CIV_APPROACH_WAR;
+								bool bWarApproach = !GET_PLAYER(eLoopPlayer).isHuman(ISHUMAN_AI_DIPLOMACY) && pDiplo->GetCivApproach(eLoopTarget) == CIV_APPROACH_WAR;
 
 								if (bHaveOperation || bWarApproach || pDiplo->IsArmyInPlaceForAttack(eLoopTarget))
 								{
@@ -1342,7 +1299,7 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 						if (GET_PLAYER(eLoopPlayer).isMajorCiv())
 						{
 							bool bHaveOffensiveOperation = GET_PLAYER(eLoopTarget).HasAnyOffensiveOperationsAgainstPlayer(eLoopPlayer);
-							bool bWarApproach = !GET_PLAYER(eLoopTarget).isHuman() && pDiplo->GetCivApproach(eLoopPlayer) == CIV_APPROACH_WAR;
+							bool bWarApproach = !GET_PLAYER(eLoopTarget).isHuman(ISHUMAN_AI_DIPLOMACY) && pDiplo->GetCivApproach(eLoopPlayer) == CIV_APPROACH_WAR;
 
 							if (bHaveOffensiveOperation || bWarApproach || pDiplo->IsArmyInPlaceForAttack(eLoopPlayer) || pDiplo->GetGlobalCoopWarAgainstState(eLoopPlayer) >= COOP_WAR_STATE_PREPARING)
 							{
@@ -1352,7 +1309,7 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 						else if (GET_PLAYER(eLoopPlayer).isMinorCiv() && pDiplo->GetCivApproach(eLoopPlayer) == CIV_APPROACH_WAR)
 						{
 							bool bHaveOperation = GET_PLAYER(eLoopTarget).HasAnyOffensiveOperationsAgainstPlayer(eLoopPlayer);
-							bool bWarApproach = !GET_PLAYER(eLoopTarget).isHuman() && pDiplo->GetCivApproach(eLoopPlayer) == CIV_APPROACH_WAR;
+							bool bWarApproach = !GET_PLAYER(eLoopTarget).isHuman(ISHUMAN_AI_DIPLOMACY) && pDiplo->GetCivApproach(eLoopPlayer) == CIV_APPROACH_WAR;
 
 							if (bHaveOperation || bWarApproach || pDiplo->IsArmyInPlaceForAttack(eLoopPlayer))
 							{
@@ -1375,21 +1332,20 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 	GET_TEAM(eTeam).CancelResearchAgreement(m_eID);
 	EvacuateDiplomatsAtTeam(eTeam);
 	GET_TEAM(eTeam).EvacuateDiplomatsAtTeam(m_eID);
-	if (MOD_BALANCE_DEFENSIVE_PACTS_AGGRESSION_ONLY && IsHasDefensivePact(eTeam))
+	if (MOD_CORE_PERSISTENT_DEFENSIVE_PACTS && IsHasDefensivePact(eTeam))
 	{
 		SetHasDefensivePact(eTeam, false);
 		GET_TEAM(eTeam).SetHasDefensivePact(GetID(), false);
 	}
 
-	//Diplo Stuff ONLY triggers if we were the aggressor AND this wasn't a defensive pact/vassal (C4DF)
+	// Diplo Stuff ONLY triggers if we were the aggressor AND this wasn't a defensive pact/vassal declaration
 	if (!bDefensivePact && bAggressor && !GET_TEAM(eTeam).isMinorCiv())
 	{
-		cancelDefensivePacts();
+		if (!MOD_CORE_PERSISTENT_DEFENSIVE_PACTS)
+			cancelDefensivePacts();
 
 		if (GET_TEAM(eTeam).GetLiberatedByTeam() == m_eID)
-		{
 			GET_TEAM(eTeam).SetLiberatedByTeam(NO_TEAM);
-		}
 	}
 
 	GC.getGame().GetGameTrade()->DoAutoWarPlundering(m_eID, eTeam);
@@ -1596,11 +1552,11 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 				if(kDefendingPlayer.isAlive() && kDefendingPlayer.getTeam() == eTeam)
 				{
 					//Setup our defenses!
-					if(!kAttackingPlayer.isHuman())
+					if(!kAttackingPlayer.isHuman(ISHUMAN_AI_UNITS))
 					{
 						kAttackingPlayer.GetMilitaryAI()->SetupInstantDefenses(eDefendingPlayer);
 					}
-					if(!kDefendingPlayer.isHuman())
+					if(!kDefendingPlayer.isHuman(ISHUMAN_AI_UNITS))
 					{
 						kDefendingPlayer.GetMilitaryAI()->SetupInstantDefenses(eAttackingPlayer);
 					}
@@ -1773,7 +1729,17 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 	}
 
 	// Meet the team if we haven't already
-	meet(eTeam, false);
+	if (!isHasMet(eTeam))
+	{
+		meet(eTeam, false);
+		PlayerTypes eMeeter = getLeaderID();
+		PlayerTypes eMeeted = GET_TEAM(eTeam).getLeaderID();
+		PRECONDITION(eMeeter != NO_PLAYER && eMeeted != NO_PLAYER);
+		if (GET_PLAYER(eMeeter).isMinorCiv())
+			GET_PLAYER(eMeeter).GetMinorCivAI()->DoFirstContactWithMajor(eMeeted, true);
+		else if (GET_PLAYER(eMeeted).isMinorCiv())
+			GET_PLAYER(eMeeted).GetMinorCivAI()->DoFirstContactWithMajor(eMeeter, true);
+	}
 
 	// Update interface stuff
 	if((GetID() == GC.getGame().getActiveTeam()) || (eTeam == GC.getGame().getActiveTeam()))
@@ -2050,9 +2016,7 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 //	--------------------------------------------------------------------------------
 void CvTeam::DoNowAtWarOrPeace(TeamTypes eTeam, bool bWar)
 {
-#if defined(MOD_BALANCE_CORE)
 	ClearWarDeclarationCache();
-#endif
 
 	// Major is at war with a minor
 	if(isMinorCiv())
@@ -2140,8 +2104,8 @@ void CvTeam::makePeace(TeamTypes eTeam, bool bBumpUnits, bool bSuppressNotificat
 //	The make peace handler, can be called recursively
 void CvTeam::DoMakePeace(PlayerTypes eOriginatingPlayer, bool bPacifier, TeamTypes eTeam, bool bBumpUnits, bool bSuppressNotification)
 {
-	ASSERT_DEBUG(eTeam != NO_TEAM, "eTeam is not assigned a valid value");
-	ASSERT_DEBUG(eTeam != GetID(), "eTeam is not expected to be equal with GetID()");
+	PRECONDITION(eTeam != NO_TEAM, "eTeam is not assigned a valid value");
+	PRECONDITION(eTeam != GetID(), "eTeam is not expected to be equal with GetID()");
 
 	// Not at war? Do nothing!
 	if (!isAtWar(eTeam))
@@ -2399,7 +2363,7 @@ void CvTeam::DoMakePeace(PlayerTypes eOriginatingPlayer, bool bPacifier, TeamTyp
 			CvNotifications* pNotifications = kPlayer.GetNotifications();
 
 			// Somehow not initialized yet? It doesn't make sense here!
-			ASSERT_DEBUG(pNotifications);
+			ASSERT(pNotifications);
 			if (!pNotifications)
 				continue;
 			
@@ -2639,7 +2603,7 @@ int CvTeam::getAtWarCount(bool bIgnoreMinors) const
 			{
 				if(isAtWar((TeamTypes)iI))
 				{
-					ASSERT_DEBUG(iI != GetID());
+					ASSERT(iI != GetID());
 					iCount++;
 				}
 			}
@@ -2668,7 +2632,7 @@ int CvTeam::getHasMetCivCount(bool bIgnoreMinors) const
 				{
 					if(isHasMet((TeamTypes)iI))
 					{
-						ASSERT_DEBUG(iI != GetID());
+						ASSERT(iI != GetID());
 						iCount++;
 					}
 				}
@@ -2695,7 +2659,7 @@ bool CvTeam::hasMetHuman() const
 				{
 					if(isHasMet((TeamTypes)iI))
 					{
-						ASSERT_DEBUG(iI != GetID());
+						ASSERT(iI != GetID());
 						return true;
 					}
 				}
@@ -2903,12 +2867,12 @@ CvTeamTechs* CvTeam::GetTeamTechs() const
 }
 
 //	--------------------------------------------------------------------------------
-bool CvTeam::isHuman() const
+bool CvTeam::isHuman(IsHumanReason eIsHumanReason) const
 {
 	for (int iI = 0; iI < MAX_PLAYERS; iI++)
 	{
 		PlayerTypes ePlayer = (PlayerTypes)iI;
-		if (GET_PLAYER(ePlayer).isAlive() && GET_PLAYER(ePlayer).isHuman() && GET_PLAYER(ePlayer).getTeam() == GetID())
+		if (GET_PLAYER(ePlayer).isAlive() && GET_PLAYER(ePlayer).isHuman(eIsHumanReason) && GET_PLAYER(ePlayer).getTeam() == GetID())
 		{
 			return true;
 		}
@@ -3072,7 +3036,7 @@ HandicapTypes CvTeam::getHandicapType() const
 
 	if(iCount > 0)
 	{
-		ASSERT_DEBUG((iGameHandicap / iCount) >= 0, "(iGameHandicap / iCount) is expected to be non-negative (invalid Index)");
+		PRECONDITION((iGameHandicap / iCount) >= 0, "(iGameHandicap / iCount) is expected to be non-negative (invalid Index)");
 		return ((HandicapTypes)(iGameHandicap / iCount));
 	}
 	else
@@ -3156,7 +3120,6 @@ int CvTeam::getNumMembers() const
 	return int(m_members.size());
 }
 
-#if defined(MOD_BALANCE_CORE)
 bool CvTeam::addPlayer(PlayerTypes eID)
 {
 	if (eID==NO_PLAYER)
@@ -3194,7 +3157,6 @@ bool CvTeam::isMember(PlayerTypes eID) const
 	return ( pos != m_members.end() );
 }
 
-#endif
 
 //	--------------------------------------------------------------------------------
 int CvTeam::getAliveCount() const
@@ -3206,7 +3168,7 @@ int CvTeam::getAliveCount() const
 void CvTeam::changeAliveCount(int iChange)
 {
 	m_iAliveCount = (m_iAliveCount + iChange);
-	ASSERT_DEBUG(getAliveCount() >= 0);
+	ASSERT(getAliveCount() >= 0);
 }
 
 
@@ -3228,7 +3190,7 @@ int CvTeam::isEverAlive() const
 void CvTeam::changeEverAliveCount(int iChange)
 {
 	m_iEverAliveCount = (m_iEverAliveCount + iChange);
-	ASSERT_DEBUG(getEverAliveCount() >= 0);
+	ASSERT(getEverAliveCount() >= 0);
 }
 
 
@@ -3243,7 +3205,7 @@ int CvTeam::getNumCities() const
 void CvTeam::changeNumCities(int iChange)
 {
 	m_iNumCities = (m_iNumCities + iChange);
-	ASSERT_DEBUG(getNumCities() >= 0);
+	ASSERT(getNumCities() >= 0);
 }
 
 
@@ -3258,7 +3220,7 @@ int CvTeam::getTotalPopulation() const
 void CvTeam::changeTotalPopulation(int iChange)
 {
 	m_iTotalPopulation = (m_iTotalPopulation + iChange);
-	ASSERT_DEBUG(getTotalPopulation() >= 0);
+	ASSERT(getTotalPopulation() >= 0);
 }
 
 
@@ -3273,7 +3235,7 @@ int CvTeam::getTotalLand() const
 void CvTeam::changeTotalLand(int iChange)
 {
 	m_iTotalLand = (m_iTotalLand + iChange);
-	ASSERT_DEBUG(getTotalLand() >= 0);
+	ASSERT(getTotalLand() >= 0);
 }
 
 
@@ -3288,7 +3250,7 @@ int CvTeam::getNukeInterception() const
 void CvTeam::changeNukeInterception(int iChange)
 {
 	m_iNukeInterception = (m_iNukeInterception + iChange);
-	ASSERT_DEBUG(getNukeInterception() >= 0);
+	ASSERT(getNukeInterception() >= 0);
 }
 
 
@@ -3310,7 +3272,7 @@ bool CvTeam::isForceTeamVoteEligible(VoteSourceTypes eVoteSource) const
 void CvTeam::changeForceTeamVoteEligibilityCount(VoteSourceTypes eVoteSource, int iChange)
 {
 	m_aiForceTeamVoteEligibilityCount[eVoteSource] += iChange;
-	ASSERT_DEBUG(getForceTeamVoteEligibilityCount(eVoteSource) >= 0);
+	ASSERT(getForceTeamVoteEligibilityCount(eVoteSource) >= 0);
 }
 
 
@@ -3336,7 +3298,7 @@ void CvTeam::changeExtraWaterSeeFromCount(int iChange)
 		GC.getMap().updateSight(false);
 
 		m_iExtraWaterSeeFromCount = (m_iExtraWaterSeeFromCount + iChange);
-		ASSERT_DEBUG(getExtraWaterSeeFromCount() >= 0);
+		ASSERT(getExtraWaterSeeFromCount() >= 0);
 
 		GC.getMap().updateSight(true);
 	}
@@ -3361,7 +3323,7 @@ bool CvTeam::isMapTrading()	const
 void CvTeam::changeMapTradingCount(int iChange)
 {
 	m_iMapTradingCount = (m_iMapTradingCount + iChange);
-	ASSERT_DEBUG(getMapTradingCount() >= 0);
+	ASSERT(getMapTradingCount() >= 0);
 }
 
 
@@ -3383,7 +3345,7 @@ bool CvTeam::isTechTrading() const
 void CvTeam::changeTechTradingCount(int iChange)
 {
 	m_iTechTradingCount = (m_iTechTradingCount + iChange);
-	ASSERT_DEBUG(getTechTradingCount() >= 0);
+	ASSERT(getTechTradingCount() >= 0);
 }
 
 
@@ -3405,7 +3367,7 @@ bool CvTeam::isGoldTrading() const
 void CvTeam::changeGoldTradingCount(int iChange)
 {
 	m_iGoldTradingCount = (m_iGoldTradingCount + iChange);
-	ASSERT_DEBUG(getGoldTradingCount() >= 0);
+	ASSERT(getGoldTradingCount() >= 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -3448,7 +3410,7 @@ bool CvTeam::isAllowEmbassyTradingAllowed() const
 void CvTeam::changeAllowEmbassyTradingAllowedCount(int iChange)
 {
 	m_iAllowEmbassyTradingAllowedCount = (m_iAllowEmbassyTradingAllowedCount + iChange);
-	ASSERT_DEBUG(getAllowEmbassyTradingAllowedCount() >= 0);
+	ASSERT(getAllowEmbassyTradingAllowedCount() >= 0);
 }
 
 
@@ -3475,7 +3437,7 @@ bool CvTeam::isOpenBordersTradingAllowedWithTeam(TeamTypes eTeam) const
 void CvTeam::changeOpenBordersTradingAllowedCount(int iChange)
 {
 	m_iOpenBordersTradingAllowedCount = (m_iOpenBordersTradingAllowedCount + iChange);
-	ASSERT_DEBUG(getOpenBordersTradingAllowedCount() >= 0);
+	ASSERT(getOpenBordersTradingAllowedCount() >= 0);
 }
 
 
@@ -3505,7 +3467,7 @@ bool CvTeam::isDefensivePactTradingAllowedWithTeam(TeamTypes eTeam) const
 void CvTeam::changeDefensivePactTradingAllowedCount(int iChange)
 {
 	m_iDefensivePactTradingAllowedCount = (m_iDefensivePactTradingAllowedCount + iChange);
-	ASSERT_DEBUG(getDefensivePactTradingAllowedCount() >= 0);
+	ASSERT(getDefensivePactTradingAllowedCount() >= 0);
 }
 
 
@@ -3532,10 +3494,9 @@ bool CvTeam::IsResearchAgreementTradingAllowedWithTeam(TeamTypes eTeam) const
 void CvTeam::ChangeResearchAgreementTradingAllowedCount(int iChange)
 {
 	m_iResearchAgreementTradingAllowedCount = (m_iResearchAgreementTradingAllowedCount + iChange);
-	ASSERT_DEBUG(GetResearchAgreementTradingAllowedCount() >= 0);
+	ASSERT(GetResearchAgreementTradingAllowedCount() >= 0);
 }
 
-#if defined(MOD_TECHS_CITY_WORKING)
 //	--------------------------------------------------------------------------------
 int CvTeam::GetCityWorkingChange() const
 {
@@ -3582,9 +3543,7 @@ void CvTeam::changeCityWorkingChange(int iChange)
 		m_iCityWorkingChange = (m_iCityWorkingChange + iChange);
 	}
 }
-#endif
 
-#if defined(MOD_TECHS_CITY_AUTOMATON_WORKERS)
 //	--------------------------------------------------------------------------------
 int CvTeam::GetCityAutomatonWorkersChange() const
 {
@@ -3616,7 +3575,6 @@ void CvTeam::changeCityAutomatonWorkersChange(int iChange)
 		m_iCityAutomatonWorkersChange = (m_iCityAutomatonWorkersChange + iChange);
 	}
 }
-#endif
 	
 //	--------------------------------------------------------------------------------
 int CvTeam::getBridgeBuildingCount() const
@@ -3638,7 +3596,7 @@ void CvTeam::changeBridgeBuildingCount(int iChange)
 	if(iChange != 0)
 	{
 		m_iBridgeBuildingCount = (m_iBridgeBuildingCount + iChange);
-		ASSERT_DEBUG(getBridgeBuildingCount() >= 0);
+		ASSERT(getBridgeBuildingCount() >= 0);
 
 		if(m_eID == GC.getGame().getActiveTeam())
 		{
@@ -3656,7 +3614,6 @@ void CvTeam::changeBridgeBuildingCount(int iChange)
 		}
 	}
 }
-#if defined(MOD_BALANCE_CORE_EMBARK_CITY_NO_COST)
 //	--------------------------------------------------------------------------------
 int CvTeam::getCityLessEmbarkCost() const
 {
@@ -3673,7 +3630,7 @@ void CvTeam::changeCityLessEmbarkCost(int iChange)
 	if(iChange != 0)
 	{
 		m_iCityLessEmbarkCost = (m_iCityLessEmbarkCost + iChange);
-		ASSERT_DEBUG(getCityLessEmbarkCost() >= 0);
+		ASSERT(getCityLessEmbarkCost() >= 0);
 	}
 }
 //	--------------------------------------------------------------------------------
@@ -3692,10 +3649,9 @@ void CvTeam::changeCityNoEmbarkCost(int iChange)
 	if(iChange != 0)
 	{
 		m_iCityNoEmbarkCost = (m_iCityNoEmbarkCost + iChange);
-		ASSERT_DEBUG(getCityNoEmbarkCost() >= 0);
+		ASSERT(getCityNoEmbarkCost() >= 0);
 	}
 }
-#endif
 //	--------------------------------------------------------------------------------
 int CvTeam::getWaterWorkCount() const
 {
@@ -3716,7 +3672,7 @@ void CvTeam::changeWaterWorkCount(int iChange)
 	if(iChange != 0)
 	{
 		m_iWaterWorkCount = (m_iWaterWorkCount + iChange);
-		ASSERT_DEBUG(getWaterWorkCount() >= 0);
+		ASSERT(getWaterWorkCount() >= 0);
 	}
 }
 
@@ -3738,7 +3694,7 @@ void CvTeam::changeBorderObstacleCount(int iChange)
 	if(iChange != 0)
 	{
 		m_iBorderObstacleCount = (m_iBorderObstacleCount + iChange);
-		ASSERT_DEBUG(getBorderObstacleCount() >= 0);
+		ASSERT(getBorderObstacleCount() >= 0);
 	}
 }
 
@@ -3775,8 +3731,8 @@ TeamTypes CvTeam::GetID() const
 //	--------------------------------------------------------------------------------
 int CvTeam::getTechShareCount(int iIndex) const
 {
-	ASSERT_DEBUG(iIndex >= 0, "iIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(iIndex < MAX_TEAMS, "iIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(iIndex >= 0, "iIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(iIndex < MAX_TEAMS, "iIndex is expected to be within maximum bounds (invalid Index)");
 	if(iIndex < 0 || iIndex >= MAX_TEAMS) return 0; // as set in reset()
 	return m_aiTechShareCount[iIndex];
 }
@@ -3792,13 +3748,13 @@ bool CvTeam::isTechShare(int iIndex) const
 //	--------------------------------------------------------------------------------
 void CvTeam::changeTechShareCount(int iIndex, int iChange)
 {
-	ASSERT_DEBUG(iIndex >= 0, "iIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(iIndex < MAX_TEAMS, "iIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(iIndex >= 0, "iIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(iIndex < MAX_TEAMS, "iIndex is expected to be within maximum bounds (invalid Index)");
 	if(iIndex < 0 || iIndex >= MAX_TEAMS) return;
 	if(iChange != 0)
 	{
 		m_aiTechShareCount[iIndex] = (m_aiTechShareCount[iIndex] + iChange);
-		ASSERT_DEBUG(getTechShareCount(iIndex) >= 0);
+		ASSERT(getTechShareCount(iIndex) >= 0);
 
 		if(isTechShare(iIndex))
 		{
@@ -3811,8 +3767,8 @@ void CvTeam::changeTechShareCount(int iIndex, int iChange)
 //	--------------------------------------------------------------------------------
 int CvTeam::getExtraMoves(DomainTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < NUM_DOMAIN_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < NUM_DOMAIN_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_aiExtraMoves[eIndex];
 }
 
@@ -3820,10 +3776,10 @@ int CvTeam::getExtraMoves(DomainTypes eIndex) const
 //	--------------------------------------------------------------------------------
 void CvTeam::changeExtraMoves(DomainTypes eIndex, int iChange)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < NUM_DOMAIN_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < NUM_DOMAIN_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_aiExtraMoves[eIndex] = (m_aiExtraMoves[eIndex] + iChange);
-	ASSERT_DEBUG(getExtraMoves(eIndex) >= 0);
+	ASSERT(getExtraMoves(eIndex) >= 0);
 }
 
 
@@ -3926,9 +3882,9 @@ void CvTeam::changeDefensiveEmbarkCount(int iChange)
 								pLoopUnit->setHasPromotion((PromotionTypes)GD_INT_GET(PROMOTION_ALLWATER_EMBARKATION), false);
 								pLoopUnit->setHasPromotion(ePromotionDefensiveEmbarkation, true);
 							}
-							
-#if defined(MOD_PROMOTIONS_DEEP_WATER_EMBARKATION)
-							if (MOD_PROMOTIONS_DEEP_WATER_EMBARKATION && GD_INT_GET(PROMOTION_DEEPWATER_EMBARKATION) != -1) {
+
+							if (MOD_PROMOTIONS_DEEP_WATER_EMBARKATION && GD_INT_GET(PROMOTION_DEEPWATER_EMBARKATION) != -1)
+							{
 								// If the unit has Deep Water Embarkation, change it to Defensive Deep Water Embarkation
 								// This is very unlikely to happen in reality as it implies the player got the helicopter BEFORE the embarkation tech!!!
 								if(pLoopUnit->isHasPromotion((PromotionTypes)GD_INT_GET(PROMOTION_DEEPWATER_EMBARKATION)))
@@ -3937,14 +3893,13 @@ void CvTeam::changeDefensiveEmbarkCount(int iChange)
 									pLoopUnit->setHasPromotion((PromotionTypes)GD_INT_GET(PROMOTION_DEFENSIVE_DEEPWATER_EMBARKATION), true);
 								}
 							}
-#endif
 						}
 					}
 				}
 			}
 		}
 	}
-	ASSERT_DEBUG(getDefensiveEmbarkCount() >= 0);
+	ASSERT(getDefensiveEmbarkCount() >= 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -4016,7 +3971,7 @@ void CvTeam::ChangeNumNaturalWondersDiscovered(int iChange)
 	{
 		m_iNumNaturalWondersDiscovered += iChange;
 	}
-	ASSERT_DEBUG(GetNumNaturalWondersDiscovered() >= 0);
+	ASSERT(GetNumNaturalWondersDiscovered() >= 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -4032,7 +3987,7 @@ void CvTeam::ChangeNumLandmarksBuilt(int iChange)
 	{
 		m_iNumLandmarksBuilt += iChange;
 	}
-	ASSERT_DEBUG(GetNumLandmarksBuilt() >= 0);
+	ASSERT(GetNumLandmarksBuilt() >= 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -4054,8 +4009,8 @@ bool CvTeam::isHasMet(TeamTypes eIndex)	const
 	if (eIndex == NO_TEAM)
 		return false;
 
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	if (isObserver())
 	{
@@ -4087,7 +4042,7 @@ bool CvTeam::isHasMet(TeamTypes eIndex)	const
 //	--------------------------------------------------------------------------------
 void CvTeam::makeHasMet(TeamTypes eIndex, bool bSuppressMessages)
 {
-	ASSERT_DEBUG(eIndex >= 0 && eIndex < MAX_TEAMS);
+	PRECONDITION(eIndex >= 0 && eIndex < MAX_TEAMS);
 
 	if (isHasMet(eIndex) || eIndex==NO_TEAM)
 		return;
@@ -4111,7 +4066,7 @@ void CvTeam::makeHasMet(TeamTypes eIndex, bool bSuppressMessages)
 		GET_PLAYER(eMyPlayer).GetDiplomacyAI()->DoUpdatePlayerStrengthEstimates();
 	}
 
-	if (GC.getGame().isOption(GAMEOPTION_ALWAYS_WAR) && isHuman() && GetID() != eIndex)
+	if (GC.getGame().isOption(GAMEOPTION_ALWAYS_WAR) && isHuman(ISHUMAN_MECHANICS) && GetID() != eIndex)
 	{
 		declareWar(eIndex, false, getLeaderID());
 	}
@@ -4182,12 +4137,12 @@ void CvTeam::makeHasMet(TeamTypes eIndex, bool bSuppressMessages)
 		}
 	}
 
-	if (GET_TEAM(eIndex).isHuman())
+	if (GET_TEAM(eIndex).isHuman(ISHUMAN_AI_TECH_CHOICE))
 	{
 		for (size_t i=0; i<vMyTeam.size(); i++)
 		{
 			PlayerTypes eMyPlayer = vMyTeam[i];
-			if (!GET_PLAYER(eMyPlayer).isAlive() || GET_PLAYER(eMyPlayer).isHuman())
+			if (!GET_PLAYER(eMyPlayer).isAlive() || GET_PLAYER(eMyPlayer).isHuman(ISHUMAN_AI_TECH_CHOICE))
 				continue;
 
 			GET_PLAYER(eMyPlayer).clearResearchQueue();
@@ -4220,12 +4175,6 @@ void CvTeam::makeHasMet(TeamTypes eIndex, bool bSuppressMessages)
 			}
 		}
 
-		// First contact with major stuff
-		if (isMajorCiv())
-		{
-			GET_PLAYER(GET_TEAM(eIndex).getLeaderID()).GetMinorCivAI()->DoFirstContactWithMajor(GetID(), /*bSuppressMessages*/ isAtWar(eIndex));
-		}
-
 		if (!isAtWar(eIndex))
 		{
 			// Notify the Team that they met someone
@@ -4250,32 +4199,32 @@ void CvTeam::makeHasMet(TeamTypes eIndex, bool bSuppressMessages)
 //	--------------------------------------------------------------------------------
 int CvTeam::GetTurnsSinceMeetingTeam(TeamTypes eTeam) const
 {
-	ASSERT_DEBUG(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return GC.getGame().getGameTurn() - m_aiTurnTeamMet[eTeam];
 }
 
 //	--------------------------------------------------------------------------------
 int CvTeam::GetTurnTeamMet(TeamTypes eTeam) const
 {
-	ASSERT_DEBUG(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_aiTurnTeamMet[eTeam];
 }
 
 //	--------------------------------------------------------------------------------
 void CvTeam::SetTurnTeamMet(TeamTypes eTeam, int iTurn)
 {
-	ASSERT_DEBUG(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_aiTurnTeamMet[eTeam] = iTurn;
 }
 
 //	--------------------------------------------------------------------------------
 int CvTeam::GetNumTurnsAtWar(TeamTypes eTeam) const
 {
-	ASSERT_DEBUG(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	int iTurn = m_aiTurnWarStarted[eTeam];
 	if (iTurn == -1)
 		return INT_MAX;
@@ -4286,8 +4235,8 @@ int CvTeam::GetNumTurnsAtWar(TeamTypes eTeam) const
 //	--------------------------------------------------------------------------------
 void CvTeam::SetTurnWarStarted(TeamTypes eTeam, int iTurn)
 {
-	ASSERT_DEBUG(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_aiTurnWarStarted[eTeam] = iTurn;
 }
 
@@ -4295,8 +4244,8 @@ void CvTeam::SetTurnWarStarted(TeamTypes eTeam, int iTurn)
 /// Have we seen ePlayer's territory before?
 bool CvTeam::IsHasFoundPlayersTerritory(PlayerTypes ePlayer) const
 {
-	ASSERT_DEBUG(ePlayer >= 0, "ePlayer is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(ePlayer >= 0, "ePlayer is expected to be non-negative (invalid Index)");
+	PRECONDITION(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
 	return m_abHasFoundPlayersTerritory[ePlayer];
 }
 
@@ -4304,8 +4253,8 @@ bool CvTeam::IsHasFoundPlayersTerritory(PlayerTypes ePlayer) const
 /// Sets us to have seen ePlayer's territory before
 bool CvTeam::SetHasFoundPlayersTerritory(PlayerTypes ePlayer, bool bValue)
 {
-	ASSERT_DEBUG(ePlayer >= 0, "ePlayer is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(ePlayer >= 0, "ePlayer is expected to be non-negative (invalid Index)");
+	PRECONDITION(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
 
 	if (IsHasFoundPlayersTerritory(ePlayer) != bValue)
 	{
@@ -4320,24 +4269,24 @@ bool CvTeam::SetHasFoundPlayersTerritory(PlayerTypes ePlayer, bool bValue)
 //	--------------------------------------------------------------------------------
 bool CvTeam::isAggressor(TeamTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return (isAtWar(eIndex) && m_abAggressorPacifier[eIndex]);
 }
 
 //	--------------------------------------------------------------------------------
 bool CvTeam::isPacifier(TeamTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return (!isAtWar(eIndex) && m_abAggressorPacifier[eIndex]);
 }
 
 //	--------------------------------------------------------------------------------
 bool CvTeam::isAtWar(TeamTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_abAtWar[eIndex];
 }
 
@@ -4345,9 +4294,9 @@ bool CvTeam::isAtWar(TeamTypes eIndex) const
 //	--------------------------------------------------------------------------------
 void CvTeam::setAtWar(TeamTypes eIndex, bool bNewValue, bool bAggressorPacifier)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(eIndex != GetID() || bNewValue == false, "Team is setting war with itself!");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	ASSERT(eIndex != GetID() || bNewValue == false, "Team is setting war with itself!");
 	if (eIndex == GetID())
 		return;
 
@@ -4510,8 +4459,8 @@ bool CvTeam::HasCommonEnemy(TeamTypes eOtherTeam) const
 /// How long are we locked into a war with eTeam?
 int CvTeam::GetNumTurnsLockedIntoWar(TeamTypes eTeam) const
 {
-	ASSERT_DEBUG(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_aiNumTurnsLockedIntoWar[eTeam];
 }
 
@@ -4546,8 +4495,8 @@ void CvTeam::ChangeNumTurnsLockedIntoWar(TeamTypes eTeam, int iChange)
 //	--------------------------------------------------------------------------------
 int CvTeam::GetTurnMadePeaceTreatyWithTeam(TeamTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiTurnMadePeaceTreatyWithTeam[eIndex];
 }
 
@@ -4555,16 +4504,16 @@ int CvTeam::GetTurnMadePeaceTreatyWithTeam(TeamTypes eIndex) const
 //	--------------------------------------------------------------------------------
 void CvTeam::SetTurnMadePeaceTreatyWithTeam(TeamTypes eIndex, int iNewValue)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiTurnMadePeaceTreatyWithTeam[eIndex] = iNewValue;
 }
 
 //	--------------------------------------------------------------------------------
 bool CvTeam::isPermanentWarPeace(TeamTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_abPermanentWarPeace[eIndex];
 }
 
@@ -4572,8 +4521,8 @@ bool CvTeam::isPermanentWarPeace(TeamTypes eIndex) const
 //	--------------------------------------------------------------------------------
 void CvTeam::setPermanentWarPeace(TeamTypes eIndex, bool bNewValue)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_abPermanentWarPeace[eIndex] = bNewValue;
 }
 
@@ -4636,8 +4585,8 @@ void CvTeam::SetKilledByTeam(TeamTypes eIndex)
 //	--------------------------------------------------------------------------------
 void CvTeam::CloseEmbassyAtTeam(TeamTypes eIndex)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	SetHasEmbassyAtTeam(eIndex, false);
 	SetHasDefensivePact(eIndex, false);
@@ -4666,8 +4615,8 @@ bool CvTeam::HasEmbassyAtTeam(TeamTypes eIndex) const
 //	--------------------------------------------------------------------------------
 void CvTeam::SetHasEmbassyAtTeam(TeamTypes eIndex, bool bNewValue)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	if(HasEmbassyAtTeam(eIndex) != bNewValue)
 	{
@@ -4685,7 +4634,7 @@ void CvTeam::SetHasEmbassyAtTeam(TeamTypes eIndex, bool bNewValue)
 				if(pCity)
 				{
 					CvPlot* pPlot = pCity->plot();
-					ASSERT_DEBUG(pPlot, "Capital city lacks plot? How'd that happen?");
+					ASSERT(pPlot, "Capital city lacks plot? How'd that happen?");
 					if(pPlot)
 					{
 						const int iPopRange = 2;
@@ -4751,8 +4700,8 @@ void CvTeam::SetHasEmbassyAtTeam(TeamTypes eIndex, bool bNewValue)
 //	--------------------------------------------------------------------------------
 bool CvTeam::HasSpyAtTeam(TeamTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	for (uint uiMyPlayer = 0; uiMyPlayer < MAX_MAJOR_CIVS; uiMyPlayer++)
 	{
@@ -4806,7 +4755,7 @@ void CvTeam::EvacuateDiplomatsAtTeam(TeamTypes eIndex)
 							Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_DIPLOMAT_EJECTED");
 							Localization::String strNotification = Localization::Lookup("TXT_KEY_NOTIFICATION_DIPLOMAT_EJECTED_TT");
 							strNotification << pEspionage->GetSpyRankName(eSpyRank);
-							strNotification << pEspionage->m_aSpyList[iSpyIndex].GetSpyName(&GET_PLAYER(ePlayer1));
+							strNotification << pEspionage->m_aSpyList[iSpyIndex].GetSpyName();
 							strNotification << pCapitalCity->getNameKey();
 							pNotifications->Add(NOTIFICATION_SPY_CANT_STEAL_TECH, strNotification.toUTF8(), strSummary.toUTF8(), -1, -1, -1);
 						}
@@ -4867,8 +4816,8 @@ void CvTeam::SetAllowsOpenBordersToTeam(TeamTypes eIndex, bool bNewValue)
 //	--------------------------------------------------------------------------------
 bool CvTeam::IsHasDefensivePact(TeamTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_abDefensivePact[eIndex];
 }
 
@@ -4876,8 +4825,8 @@ bool CvTeam::IsHasDefensivePact(TeamTypes eIndex) const
 //	--------------------------------------------------------------------------------
 void CvTeam::SetHasDefensivePact(TeamTypes eIndex, bool bNewValue)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	m_abDefensivePact[eIndex] = bNewValue;
 
@@ -4976,8 +4925,8 @@ int CvTeam::GetTotalNumResearchAgreements() const
 //	--------------------------------------------------------------------------------
 bool CvTeam::IsHasResearchAgreement(TeamTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_abResearchAgreement[eIndex];
 }
 
@@ -4985,8 +4934,8 @@ bool CvTeam::IsHasResearchAgreement(TeamTypes eIndex) const
 //	--------------------------------------------------------------------------------
 void CvTeam::SetHasResearchAgreement(TeamTypes eIndex, bool bNewValue)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	if(IsHasResearchAgreement(eIndex) != bNewValue)
 	{
@@ -5020,8 +4969,8 @@ void CvTeam::CancelResearchAgreement(TeamTypes eIndex)
 //	--------------------------------------------------------------------------------
 bool CvTeam::isForcePeace(TeamTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_abForcePeace[eIndex];
 }
 
@@ -5029,8 +4978,8 @@ bool CvTeam::isForcePeace(TeamTypes eIndex) const
 //	--------------------------------------------------------------------------------
 void CvTeam::setForcePeace(TeamTypes eIndex, bool bNewValue)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_abForcePeace[eIndex] = bNewValue;
 }
 
@@ -5038,8 +4987,8 @@ void CvTeam::setForcePeace(TeamTypes eIndex, bool bNewValue)
 //	--------------------------------------------------------------------------------
 bool CvTeam::IsWonLatestWar(TeamTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_abWonLatestWar[eIndex];
 }
 
@@ -5047,8 +4996,8 @@ bool CvTeam::IsWonLatestWar(TeamTypes eIndex) const
 //	--------------------------------------------------------------------------------
 void CvTeam::SetWonLatestWar(TeamTypes eIndex, bool bNewValue)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_abWonLatestWar[eIndex] = bNewValue;
 }
 
@@ -5056,50 +5005,48 @@ void CvTeam::SetWonLatestWar(TeamTypes eIndex, bool bNewValue)
 //	--------------------------------------------------------------------------------
 int CvTeam::getRouteChange(RouteTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumRouteInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumRouteInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiRouteChange[eIndex];
 }
 
 //	--------------------------------------------------------------------------------
 void CvTeam::changeRouteChange(RouteTypes eIndex, int iChange)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumRouteInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumRouteInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiRouteChange[eIndex] = (m_paiRouteChange[eIndex] + iChange);
 }
 
-#if defined(MOD_BALANCE_CORE)
 //	--------------------------------------------------------------------------------
 int CvTeam::getTradeRouteDomainExtraRange(DomainTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < NUM_DOMAIN_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < NUM_DOMAIN_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiTradeRouteDomainExtraRange[eIndex];
 }
 
 //	--------------------------------------------------------------------------------
 void CvTeam::changeTradeRouteDomainExtraRange(DomainTypes eIndex, int iChange)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < NUM_DOMAIN_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < NUM_DOMAIN_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiTradeRouteDomainExtraRange[eIndex] = (m_paiTradeRouteDomainExtraRange[eIndex] + iChange);
 }
-#endif
 
 //	--------------------------------------------------------------------------------
 int CvTeam::getBuildTimeChange(BuildTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumBuildInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumBuildInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiBuildTimeChange[eIndex];
 }
 
 //	--------------------------------------------------------------------------------
 void CvTeam::changeBuildTimeChange(BuildTypes eIndex, int iChange)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumBuildInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumBuildInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	if (iChange != 0)
 	{
 		m_paiBuildTimeChange[eIndex] = (m_paiBuildTimeChange[eIndex] + iChange);
@@ -5117,8 +5064,8 @@ RouteTypes CvTeam::GetBestPossibleRoute()
 /// Sets what the best route this team can build is
 void CvTeam::SetBestPossibleRoute(RouteTypes eRoute)
 {
-	ASSERT_DEBUG(eRoute >= NO_ROUTE, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eRoute < GC.getNumRouteInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eRoute >= NO_ROUTE, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eRoute < GC.getNumRouteInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	if(GetBestPossibleRoute() != eRoute)
 	{
@@ -5180,59 +5127,59 @@ void CvTeam::DoUpdateBestRoute()
 //	--------------------------------------------------------------------------------
 int CvTeam::getProjectCount(ProjectTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiProjectCount[eIndex];
 }
 
 //	--------------------------------------------------------------------------------
 int CvTeam::getProjectDefaultArtType(ProjectTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiProjectDefaultArtTypes[eIndex];
 }
 
 //	--------------------------------------------------------------------------------
 void CvTeam::setProjectDefaultArtType(ProjectTypes eIndex, int value)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiProjectDefaultArtTypes[eIndex] = value;
 }
 
 //	--------------------------------------------------------------------------------
 int CvTeam::getProjectArtType(ProjectTypes eIndex, int number) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(number >= 0, "number is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(number < getProjectCount(eIndex), "number is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(number >= 0, "number is expected to be non-negative (invalid Index)");
+	PRECONDITION(number < getProjectCount(eIndex), "number is expected to be within maximum bounds (invalid Index)");
 	return m_pavProjectArtTypes[eIndex][number];
 }
 
 //	--------------------------------------------------------------------------------
 void CvTeam::setProjectArtType(ProjectTypes eIndex, int number, int value)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(number >= 0, "number is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(number < getProjectCount(eIndex), "number is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(number >= 0, "number is expected to be non-negative (invalid Index)");
+	PRECONDITION(number < getProjectCount(eIndex), "number is expected to be within maximum bounds (invalid Index)");
 	m_pavProjectArtTypes[eIndex][number] = value;
 }
 
 //	--------------------------------------------------------------------------------
 bool CvTeam::isProjectMaxedOut(ProjectTypes eIndex, int iExtra) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	if(!isTeamProject(eIndex))
 	{
 		return false;
 	}
 
-	ASSERT_DEBUG(getProjectCount(eIndex) <= GC.getProjectInfo(eIndex)->GetMaxTeamInstances(), "Current Project count is expected to not exceed the maximum number of instances for this project");
+	ASSERT(getProjectCount(eIndex) <= GC.getProjectInfo(eIndex)->GetMaxTeamInstances(), "Current Project count is expected to not exceed the maximum number of instances for this project");
 
 	return ((getProjectCount(eIndex) + iExtra) >= GC.getProjectInfo(eIndex)->GetMaxTeamInstances());
 }
@@ -5240,8 +5187,8 @@ bool CvTeam::isProjectMaxedOut(ProjectTypes eIndex, int iExtra) const
 //	--------------------------------------------------------------------------------
 bool CvTeam::isProjectAndArtMaxedOut(ProjectTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	if(getProjectCount(eIndex) >= GC.getProjectInfo(eIndex)->GetMaxTeamInstances())
 	{
@@ -5289,22 +5236,17 @@ void CvTeam::changeProjectCount(ProjectTypes eIndex, int iChange)
 	int iI = 0;
 	int iJ = 0;
 
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 
-	if(iChange != 0)
+	if (iChange != 0)
 	{
-#if defined(MOD_GLOBAL_NO_CONQUERED_SPACESHIPS)
-		if (MOD_GLOBAL_NO_CONQUERED_SPACESHIPS && iChange < 0) {
-			CUSTOMLOG("Disassembling project %d by %d", (int) eIndex, iChange);
-		}
-#endif
 		GC.getGame().incrementProjectCreatedCount(eIndex, iChange);
 
 		iOldProjectCount = getProjectCount(eIndex);
 
 		m_paiProjectCount[eIndex] = (m_paiProjectCount[eIndex] + iChange);
-		ASSERT_DEBUG(getProjectCount(eIndex) >= 0);
+		ASSERT(getProjectCount(eIndex) >= 0);
 
 		//adjust default art types
 		if(iChange >= 0)
@@ -5322,7 +5264,7 @@ void CvTeam::changeProjectCount(ProjectTypes eIndex, int iChange)
 			for(int i=0; i<-iChange; i++)
 				m_pavProjectArtTypes[eIndex].pop_back();
 		}
-		ASSERT_DEBUG(getProjectCount(eIndex) == (int)m_pavProjectArtTypes[eIndex].size(), "[Jason] Unbalanced project art types.");
+		ASSERT(getProjectCount(eIndex) == (int)m_pavProjectArtTypes[eIndex].size(), "[Jason] Unbalanced project art types.");
 
 		CvProjectEntry* pkProject = GC.getProjectInfo(eIndex);
 
@@ -5410,7 +5352,7 @@ void CvTeam::changeProjectCount(ProjectTypes eIndex, int iChange)
 				{
 					if(GET_PLAYER((PlayerTypes)iI).getTeam() == GetID())
 					{
-						if(!(GET_PLAYER((PlayerTypes)iI).isHuman()))
+						if(!GET_PLAYER((PlayerTypes)iI).isHuman(ISHUMAN_AI_TECH_CHOICE))
 						{
 							bChangeProduction = false;
 
@@ -5439,10 +5381,9 @@ void CvTeam::changeProjectCount(ProjectTypes eIndex, int iChange)
 
 			if(GC.getGame().isFinalInitialized())
 			{
-#if defined(MOD_BALANCE_CORE)
-				if (!pkProject->IsRepeatable())
+				if (!pkProject->IsRepeatable() && pkProject->GetCivilizationType() == NO_CIVILIZATION)
 				{
-					if (bFirst)
+					if (bFirst && !pkProject->IsSpaceship())
 					{
 						CvString strSomeoneCompletesProject = GetLocalizedText("TXT_KEY_MISC_COMPLETES_PROJECT_FIRST", getName().GetCString(), pkProject->GetTextKey());
 						CvString strSomeoneCompletedProject = GetLocalizedText("TXT_KEY_MISC_SOMEONE_HAS_COMPLETED_FIRST", getName().GetCString(), pkProject->GetTextKey());
@@ -5485,7 +5426,6 @@ void CvTeam::changeProjectCount(ProjectTypes eIndex, int iChange)
 					}
 					else
 					{
-#endif
 						CvString strSomeoneCompletesProject = GetLocalizedText("TXT_KEY_MISC_COMPLETES_PROJECT", getName().GetCString(), pkProject->GetTextKey());
 						CvString strSomeoneCompletedProject = GetLocalizedText("TXT_KEY_MISC_SOMEONE_HAS_COMPLETED", getName().GetCString(), pkProject->GetTextKey());
 						CvString strUnknownCompletesProject = GetLocalizedText("TXT_KEY_MISC_WONDER_COMPLETED_UNKNOWN", pkProject->GetTextKey());
@@ -5503,7 +5443,7 @@ void CvTeam::changeProjectCount(ProjectTypes eIndex, int iChange)
 								const PlayerTypes ePlayer = static_cast<PlayerTypes>(iI);
 								CvPlayerAI& kPlayer = GET_PLAYER(ePlayer);
 
-								if (kPlayer.isAlive())
+								if (kPlayer.isAlive() || kPlayer.isObserver())
 								{
 									if (isHasMet(kPlayer.getTeam()))
 									{
@@ -5526,10 +5466,8 @@ void CvTeam::changeProjectCount(ProjectTypes eIndex, int iChange)
 								}
 							}
 						}
-#if defined(MOD_BALANCE_CORE)
 					}
 				}
-#endif
 			}
 		}
 	}
@@ -5555,8 +5493,8 @@ void CvTeam::changeProjectCount(ProjectTypes eIndex, int iChange)
 //	--------------------------------------------------------------------------------
 int CvTeam::getProjectMaking(ProjectTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiProjectMaking[eIndex];
 }
 
@@ -5564,18 +5502,18 @@ int CvTeam::getProjectMaking(ProjectTypes eIndex) const
 //	--------------------------------------------------------------------------------
 void CvTeam::changeProjectMaking(ProjectTypes eIndex, int iChange)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumProjectInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiProjectMaking[eIndex] = (m_paiProjectMaking[eIndex] + iChange);
-	ASSERT_DEBUG(getProjectMaking(eIndex) >= 0);
+	ASSERT(getProjectMaking(eIndex) >= 0);
 }
 
 
 //	--------------------------------------------------------------------------------
 int CvTeam::getUnitClassCount(UnitClassTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumUnitClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumUnitClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiUnitClassCount[eIndex];
 }
 
@@ -5583,8 +5521,8 @@ int CvTeam::getUnitClassCount(UnitClassTypes eIndex) const
 //	--------------------------------------------------------------------------------
 bool CvTeam::isUnitClassMaxedOut(UnitClassTypes eIndex, int iExtra) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumUnitClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumUnitClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	CvUnitClassInfo* pkUnitClassInfo = GC.getUnitClassInfo(eIndex);
 	if(pkUnitClassInfo == NULL)
@@ -5597,7 +5535,7 @@ bool CvTeam::isUnitClassMaxedOut(UnitClassTypes eIndex, int iExtra) const
 		return false;
 	}
 
-	ASSERT_DEBUG(getUnitClassCount(eIndex) <= pkUnitClassInfo->getMaxTeamInstances(), "The current unit class count is expected not to exceed the maximum number of instances allowed for this team");
+	ASSERT(getUnitClassCount(eIndex) <= pkUnitClassInfo->getMaxTeamInstances(), "The current unit class count is expected not to exceed the maximum number of instances allowed for this team");
 
 	return ((getUnitClassCount(eIndex) + iExtra) >= pkUnitClassInfo->getMaxTeamInstances());
 }
@@ -5606,18 +5544,18 @@ bool CvTeam::isUnitClassMaxedOut(UnitClassTypes eIndex, int iExtra) const
 //	--------------------------------------------------------------------------------
 void CvTeam::changeUnitClassCount(UnitClassTypes eIndex, int iChange)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumUnitClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumUnitClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiUnitClassCount[eIndex] = (m_paiUnitClassCount[eIndex] + iChange);
-	ASSERT_DEBUG(getUnitClassCount(eIndex) >= 0);
+	ASSERT(getUnitClassCount(eIndex) >= 0);
 }
 
 
 //	--------------------------------------------------------------------------------
 int CvTeam::getBuildingClassCount(BuildingClassTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiBuildingClassCount[eIndex];
 }
 
@@ -5625,13 +5563,13 @@ int CvTeam::getBuildingClassCount(BuildingClassTypes eIndex) const
 //	--------------------------------------------------------------------------------
 bool CvTeam::isBuildingClassMaxedOut(BuildingClassTypes eIndex, int iExtra) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(eIndex);
 	if(pkBuildingClassInfo == NULL)
 	{
-		ASSERT_DEBUG(false, "Could not find BuildingClassInfo for BuildingClassType.");
+		ASSERT(false, "Could not find BuildingClassInfo for BuildingClassType.");
 		return false;
 	}
 
@@ -5640,7 +5578,7 @@ bool CvTeam::isBuildingClassMaxedOut(BuildingClassTypes eIndex, int iExtra) cons
 		return false;
 	}
 
-	ASSERT_DEBUG(getBuildingClassCount(eIndex) <= pkBuildingClassInfo->getMaxTeamInstances(), "The current building class count is expected not to exceed the maximum number of instances allowed for this team");
+	ASSERT(getBuildingClassCount(eIndex) <= pkBuildingClassInfo->getMaxTeamInstances(), "The current building class count is expected not to exceed the maximum number of instances allowed for this team");
 
 	return ((getBuildingClassCount(eIndex) + iExtra) >= pkBuildingClassInfo->getMaxTeamInstances());
 }
@@ -5649,18 +5587,18 @@ bool CvTeam::isBuildingClassMaxedOut(BuildingClassTypes eIndex, int iExtra) cons
 //	--------------------------------------------------------------------------------
 void CvTeam::changeBuildingClassCount(BuildingClassTypes eIndex, int iChange)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumBuildingClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiBuildingClassCount[eIndex] = (m_paiBuildingClassCount[eIndex] + iChange);
-	ASSERT_DEBUG(getBuildingClassCount(eIndex) >= 0);
+	ASSERT(getBuildingClassCount(eIndex) >= 0);
 }
 
 
 //	--------------------------------------------------------------------------------
 int CvTeam::getObsoleteBuildingCount(BuildingTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumBuildingInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumBuildingInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiObsoleteBuildingCount[eIndex];
 }
 
@@ -5680,15 +5618,15 @@ void CvTeam::changeObsoleteBuildingCount(BuildingTypes eIndex, int iChange)
 	int iLoop = 0;
 	int iI = 0;
 
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumBuildingInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumBuildingInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	if(iChange != 0)
 	{
 		bOldObsoleteBuilding = isObsoleteBuilding(eIndex);
 
 		m_paiObsoleteBuildingCount[eIndex] = (m_paiObsoleteBuildingCount[eIndex] + iChange);
-		ASSERT_DEBUG(getObsoleteBuildingCount(eIndex) >= 0);
+		ASSERT(getObsoleteBuildingCount(eIndex) >= 0);
 
 		if(bOldObsoleteBuilding != isObsoleteBuilding(eIndex))
 		{
@@ -5715,8 +5653,8 @@ void CvTeam::changeObsoleteBuildingCount(BuildingTypes eIndex, int iChange)
 //	--------------------------------------------------------------------------------
 int CvTeam::getTerrainTradeCount(TerrainTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumTerrainInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumTerrainInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiTerrainTradeCount[eIndex];
 }
 
@@ -5731,29 +5669,29 @@ bool CvTeam::isTerrainTrade(TerrainTypes eIndex) const
 //	--------------------------------------------------------------------------------
 void CvTeam::changeTerrainTradeCount(TerrainTypes eIndex, int iChange)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumTerrainInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumTerrainInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	if(iChange != 0)
 	{
 		m_paiTerrainTradeCount[eIndex] = (m_paiTerrainTradeCount[eIndex] + iChange);
-		ASSERT_DEBUG(getTerrainTradeCount(eIndex) >= 0);
+		ASSERT(getTerrainTradeCount(eIndex) >= 0);
 	}
 }
 
 //	--------------------------------------------------------------------------------
 int CvTeam::getVictoryCountdown(VictoryTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumVictoryInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumVictoryInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_aiVictoryCountdown[eIndex];
 }
 
 //	--------------------------------------------------------------------------------
 void CvTeam::setVictoryCountdown(VictoryTypes eIndex, int iTurnsLeft)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumVictoryInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumVictoryInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_aiVictoryCountdown[eIndex] = iTurnsLeft;
 }
 
@@ -5761,13 +5699,13 @@ void CvTeam::setVictoryCountdown(VictoryTypes eIndex, int iTurnsLeft)
 //	--------------------------------------------------------------------------------
 void CvTeam::changeVictoryCountdown(VictoryTypes eIndex, int iChange)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumVictoryInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumVictoryInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	if(iChange != 0)
 	{
 		m_aiVictoryCountdown[eIndex] += iChange;
-		ASSERT_DEBUG(m_aiVictoryCountdown[eIndex] >= 0);
+		ASSERT(m_aiVictoryCountdown[eIndex] >= 0);
 	}
 }
 
@@ -5782,7 +5720,7 @@ int CvTeam::getVictoryDelay(VictoryTypes eVictory) const
 
 		if(pkProject && iCount < pkProject->GetVictoryMinThreshold(eVictory))
 		{
-			ASSERT_DEBUG(false);
+			ASSERT(false);
 			return -1;
 		}
 
@@ -5859,10 +5797,7 @@ bool CvTeam::isVictoryAchieved(VictoryTypes eVictory) const
 //	--------------------------------------------------------------------------------
 void CvTeam::setVictoryAchieved(VictoryTypes eVictory, bool bValue)
 {
-	if(m_abVictoryAchieved[eVictory] != bValue)
-	{
-		m_abVictoryAchieved[eVictory] = bValue;
-	}
+	m_abVictoryAchieved[eVictory] = bValue;
 }
 
 //	--------------------------------------------------------------------------------
@@ -5900,7 +5835,30 @@ void CvTeam::changeVictoryPoints(int iChange)
 	}
 
 	// Right now there's no reason VPs should ever be negative
-	ASSERT_DEBUG(m_iVictoryPoints >= 0);
+	ASSERT(m_iVictoryPoints >= 0);
+}
+
+//	--------------------------------------------------------------------------------
+int CvTeam::GetBuildingDefenseModifier() const
+{
+	return m_iBuildingDefenseModifier;
+}
+
+//	--------------------------------------------------------------------------------
+void CvTeam::ChangeBuildingDefenseModifier(int iChange)
+{
+	m_iBuildingDefenseModifier += iChange;
+
+	// Also update all cities immediately
+	for (CivsList::const_iterator it = getPlayers().begin(); it != getPlayers().end(); ++it)
+	{
+		CvPlayer& kPlayer = GET_PLAYER(*it);
+		int iLoop = 0;
+		for (CvCity* pLoopCity = kPlayer.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kPlayer.nextCity(&iLoop))
+		{
+			pLoopCity->GetCityBuildings()->ChangeBuildingDefenseMod(iChange);
+		}
+	}
 }
 
 //	--------------------------------------------------------------------------------
@@ -6099,10 +6057,10 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 		ePlayer = getLeaderID();
 	}
 
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumTechInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(ePlayer >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumTechInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(ePlayer >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
 
 	if(ePlayer == NO_PLAYER)
 	{
@@ -6111,7 +6069,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 
 	if(GetTeamTechs()->HasTech(eIndex) != bNewValue)
 	{
-		if (MOD_API_ACHIEVEMENTS)
+		if (MOD_ENABLE_ACHIEVEMENTS)
 		{
 			CvPlayerAI& kResearchingPlayer = GET_PLAYER(ePlayer);
 
@@ -6171,7 +6129,6 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 			else
 				GetTeamTechs()->ChangeNumTechsKnown(-1);
 
-#if defined(MOD_BALANCE_CORE)
 			if (bNewValue)
 			{
 				for (int iI = 0; iI < MAX_PLAYERS; iI++)
@@ -6191,7 +6148,6 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 					}
 				}
 			}
-#endif
 
 			// Tech progress affects city strength, so update
 			CvCity* pLoopCity = NULL;
@@ -6206,9 +6162,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 					for(pLoopCity = kLoopPlayer.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kLoopPlayer.nextCity(&iLoop))
 					{
 						pLoopCity->updateStrengthValue();
-#if defined(MOD_BALANCE_CORE)
 						pLoopCity->GetCityCitizens()->SetDirty(true);
-#endif
 					}
 				}
 			}
@@ -6220,19 +6174,14 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 			for(int iPlotLoop = 0; iPlotLoop < iNumPlots; iPlotLoop++)
 			{
 				CvPlot* pLoopPlot = GC.getMap().plotByIndexUnchecked(iPlotLoop);
-#if defined(MOD_BALANCE_CORE)
 				if(pLoopPlot != NULL)
 				{
 					pLoopPlot->updateImpassable(m_eID);
 				}
-#endif
 				const ResourceTypes eResource = pLoopPlot->getResourceType();
 				if(eResource != NO_RESOURCE)
 				{
 					CvResourceInfo* pResourceInfo = GC.getResourceInfo(eResource);
-					ASSERT_DEBUG(pResourceInfo);
-					if (!pResourceInfo)
-						continue;
 
 					if(bNewValue)
 					{
@@ -6258,7 +6207,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 										eTechReveal = eAltTech;
 									}
 								}
-								if ((ePolicyReveal == NO_POLICY || (ePolicyReveal != NO_POLICY && pPlayer->HasPolicy(ePolicyReveal))) && (eTechReveal == NO_TECH || (eTechReveal != eIndex && GetTeamTechs()->HasTech(eTechReveal))))
+								if ((ePolicyReveal == NO_POLICY || pPlayer->HasPolicy(ePolicyReveal)) && (eTechReveal == NO_TECH || (eTechReveal != eIndex && GetTeamTechs()->HasTech(eTechReveal))))
 								{
 									bRevealed = true;
 									break;
@@ -6288,18 +6237,13 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 										pLoopPlot->updateSymbols();
 									}
 
-									for (int iI = 0; iI < MAX_PLAYERS; iI++)
+									if (pLoopPlot->getTeam() == GetID())
 									{
-										const PlayerTypes eLoopPlayer = static_cast<PlayerTypes>(iI);
-										CvPlayerAI& kLoopPlayer = GET_PLAYER(eLoopPlayer);
-										if (kLoopPlayer.isAlive() && kLoopPlayer.getTeam() == GetID() && pLoopPlot->getOwner() == eLoopPlayer)
+										// slewis - added in so resources wouldn't be double counted when the minor civ researches the technology
+										if (!(GET_PLAYER(pLoopPlot->getOwner()).isMinorCiv() && pLoopPlot->IsImprovedByGiftFromMajor()))
 										{
-											// slewis - added in so resources wouldn't be double counted when the minor civ researches the technology
-											if (!(kLoopPlayer.isMinorCiv() && pLoopPlot->IsImprovedByGiftFromMajor()))
-											{
-												// revealed resources are unimproved unless this tech also makes the resource improvable, which is checked later
-												kLoopPlayer.addResourcesOnPlotToUnimproved(pLoopPlot);
-											}
+											// revealed resources are unimproved unless this tech also makes the resource improvable, which is checked later
+											GET_PLAYER(pLoopPlot->getOwner()).addResourcesOnPlotToUnimproved(pLoopPlot);
 										}
 									}
 
@@ -6365,7 +6309,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 										eTechReveal = eAltTech;
 									}
 								}
-								if ((ePolicyReveal == NO_POLICY || (ePolicyReveal != NO_POLICY && pPlayer->HasPolicy(ePolicyReveal))) && (eTechReveal == NO_TECH || eTechReveal == eIndex || GetTeamTechs()->HasTech(eTechReveal)))
+								if ((ePolicyReveal == NO_POLICY || pPlayer->HasPolicy(ePolicyReveal)) && (eTechReveal == NO_TECH || eTechReveal == eIndex || GetTeamTechs()->HasTech(eTechReveal)))
 								{
 									bWasRevealed = true;
 									break;
@@ -6392,7 +6336,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 										eTechReveal = eAltTech;
 									}
 								}
-								if ((ePolicyReveal == NO_POLICY || (ePolicyReveal != NO_POLICY && pPlayer->HasPolicy(ePolicyReveal))) && (eTechReveal == NO_TECH || GetTeamTechs()->HasTech(eTechReveal)))
+								if ((ePolicyReveal == NO_POLICY || pPlayer->HasPolicy(ePolicyReveal)) && (eTechReveal == NO_TECH || GetTeamTechs()->HasTech(eTechReveal)))
 								{
 									bResourceNowUnrevealed = false;
 									break;
@@ -6428,74 +6372,6 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 							}
 						}
 					}
-					// Resource Connection
-					if(pLoopPlot->getTeam() == GetID())
-					{
-						// Check if this tech unlocks city trade for any of a team's players, and check if the resource has already been unlocked
-						bool bUnlocksResource = false;
-						bool bResourceUnlocked = false;
-						TechTypes eTech = (TechTypes)pResourceInfo->getImproveTech();
-						for (std::vector<PlayerTypes>::const_iterator iI = m_members.begin(); iI != m_members.end(); ++iI)
-						{
-							const PlayerTypes ePlayer = (PlayerTypes)*iI;
-							CvPlayer* pPlayer = &GET_PLAYER(ePlayer);
-
-							if (pPlayer && pPlayer->isAlive())
-							{
-								// Has this resource been unlocked by another tech?
-								if (eTech != eIndex && GetTeamTechs()->HasTech(eTech))
-								{
-									bResourceUnlocked = true;
-									break; // Resource already unlocked, so we're stopping the loop
-								}
-								// If the resource is still locked, will eIndex unlock our resource?
-								else if (!bUnlocksResource && eTech == eIndex)
-								{
-									bUnlocksResource = true;
-								}
-							}
-						}
-
-						if(!bResourceUnlocked && bUnlocksResource)
-						{
-							for (int iI = 0; iI < MAX_PLAYERS; iI++)
-							{
-								const PlayerTypes eLoopPlayer = static_cast<PlayerTypes>(iI);
-								CvPlayerAI& kLoopPlayer = GET_PLAYER(eLoopPlayer);
-								if (kLoopPlayer.isAlive() && kLoopPlayer.getTeam() == GetID() && pLoopPlot->getOwner() == eLoopPlayer)
-								{
-									// We now have a new Tech
-									if (bNewValue)
-									{
-										// slewis - added in so resources wouldn't be double counted when the minor civ researches the technology
-										if (!(kLoopPlayer.isMinorCiv() && pLoopPlot->IsImprovedByGiftFromMajor()))
-										{
-											if (pLoopPlot->IsResourceImprovedForOwner())
-											{
-												// the resource is now improved
-												kLoopPlayer.addResourcesOnPlotToTotal(pLoopPlot);
-												kLoopPlayer.removeResourcesOnPlotFromUnimproved(pLoopPlot);
-											}
-										}
-
-									}
-									// Removing Tech
-									else
-									{
-										if (!(kLoopPlayer.isMinorCiv() && pLoopPlot->IsImprovedByGiftFromMajor()))
-										{
-											if (pLoopPlot->IsResourceImprovedForOwner(/*bIgnoreTechPrereqs*/ true))
-											{
-												// the resource was previously improved
-												kLoopPlayer.removeResourcesOnPlotFromTotal(pLoopPlot, false, /*bIgnoreTechPrereqs*/ true);
-												kLoopPlayer.addResourcesOnPlotToUnimproved(pLoopPlot, false, /*bIgnoreTechPrereqs*/ true);
-											}
-										}
-									}
-								}
-							}
-						}
-					}
 				}
 			}
 		}
@@ -6523,6 +6399,82 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 		}
 
 		processTech(eIndex, ((bNewValue) ? 1 : -1), bNoBonus);
+
+		// process resources that are now improved
+		if (!pkTechInfo->IsRepeat())
+		{
+			const int iNumPlots = GC.getMap().numPlots();
+			for (int iPlotLoop = 0; iPlotLoop < iNumPlots; iPlotLoop++)
+			{
+				CvPlot* pLoopPlot = GC.getMap().plotByIndexUnchecked(iPlotLoop);
+				const ResourceTypes eResource = pLoopPlot->getResourceType();
+				if (eResource != NO_RESOURCE)
+				{
+					CvResourceInfo* pResourceInfo = GC.getResourceInfo(eResource);
+					// Resource Connection
+					if (pLoopPlot->getTeam() == GetID())
+					{
+						// Check if this tech unlocks city trade for any of a team's players, and check if the resource has already been unlocked
+						bool bUnlocksResource = false;
+						bool bResourceUnlocked = false;
+						TechTypes eTech = (TechTypes)pResourceInfo->getImproveTech();
+						for (std::vector<PlayerTypes>::const_iterator iI = m_members.begin(); iI != m_members.end(); ++iI)
+						{
+							const PlayerTypes ePlayer = (PlayerTypes)*iI;
+							CvPlayer* pPlayer = &GET_PLAYER(ePlayer);
+
+							if (pPlayer && pPlayer->isAlive())
+							{
+								// Has this resource been unlocked by another tech?
+								if (eTech != eIndex && GetTeamTechs()->HasTech(eTech))
+								{
+									bResourceUnlocked = true;
+									break; // Resource already unlocked, so we're stopping the loop
+								}
+								// If the resource is still locked, will eIndex unlock our resource?
+								else if (!bUnlocksResource && eTech == eIndex)
+								{
+									bUnlocksResource = true;
+								}
+							}
+						}
+
+						if (!bResourceUnlocked && bUnlocksResource)
+						{
+							CvPlayerAI& kPlotOwner = GET_PLAYER(pLoopPlot->getOwner());
+							// We now have a new Tech
+							if (bNewValue)
+							{
+								// slewis - added in so resources wouldn't be double counted when the minor civ researches the technology
+								if (!(kPlotOwner.isMinorCiv() && pLoopPlot->IsImprovedByGiftFromMajor()))
+								{
+									if (pLoopPlot->IsResourceImprovedForOwner())
+									{
+										// kPlotOwner resource is now improved
+										kPlotOwner.addResourcesOnPlotToTotal(pLoopPlot);
+										kPlotOwner.removeResourcesOnPlotFromUnimproved(pLoopPlot);
+									}
+								}
+
+							}
+							// Removing Tech
+							else
+							{
+								if (!(kPlotOwner.isMinorCiv() && pLoopPlot->IsImprovedByGiftFromMajor()))
+								{
+									if (pLoopPlot->IsResourceImprovedForOwner(/*bIgnoreTechPrereqs*/ true))
+									{
+										// the resource was previously improved
+										kPlotOwner.removeResourcesOnPlotFromTotal(pLoopPlot, false, /*bIgnoreTechPrereqs*/ true);
+										kPlotOwner.addResourcesOnPlotToUnimproved(pLoopPlot, false, /*bIgnoreTechPrereqs*/ true);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 
 		//Antiquity site notifications.
 		//Notifications for Artifacts and Hidden Artifacts have to come AFTER processTech because they may not have been spawned yet.
@@ -6558,7 +6510,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 							}
 						}
 
-						if ((eRevealPolicy == NO_POLICY || (eRevealPolicy != NO_POLICY && pPlayer->HasPolicy(eRevealPolicy))) && (eTechReveal == NO_TECH || (eTechReveal != eIndex && GetTeamTechs()->HasTech(eTechReveal))))
+						if ((eRevealPolicy == NO_POLICY || pPlayer->HasPolicy(eRevealPolicy)) && (eTechReveal == NO_TECH || (eTechReveal != eIndex && GetTeamTechs()->HasTech(eTechReveal))))
 						{
 							bArtifactRevealed = true;
 							break;
@@ -6596,7 +6548,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 							}
 						}
 
-						if ((eRevealPolicy == NO_POLICY || (eRevealPolicy != NO_POLICY && pPlayer->HasPolicy(eRevealPolicy))) && (eTechReveal == NO_TECH || (eTechReveal != eIndex && GetTeamTechs()->HasTech(eTechReveal))))
+						if ((eRevealPolicy == NO_POLICY || pPlayer->HasPolicy(eRevealPolicy)) && (eTechReveal == NO_TECH || (eTechReveal != eIndex && GetTeamTechs()->HasTech(eTechReveal))))
 						{
 							bHiddenArtifactRevealed = true;
 							break;
@@ -6765,7 +6717,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 					}
 				}
 
-				if(MOD_BALANCE_CORE_BELIEFS && !bNoBonus)
+				if (!bNoBonus)
 				{
 					for(int iI = 0; iI < MAX_PLAYERS; iI++)
 					{
@@ -6916,7 +6868,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 								}
 							}
 
-							if(MOD_BALANCE_CORE_BELIEFS && !bNoBonus)
+							if (!bNoBonus)
 							{
 								for(int iI = 0; iI < MAX_PLAYERS; iI++)
 								{
@@ -7005,7 +6957,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 							if (kPlayer.isAlive() && kPlayer.getTeam() == GetID())
 							{
 
-								if (!kPlayer.isHuman())
+								if (!kPlayer.isHuman(ISHUMAN_AI_TECH_CHOICE))
 								{
 									for (int iI = 0; iI < pkTechInfo->GetFirstFreeTechs(); iI++)
 									{
@@ -7050,7 +7002,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 							CvPlayerAI& kPlayer = GET_PLAYER(eLoopPlayer);
 							if(kPlayer.isAlive())
 							{
-								if(!(kPlayer.isHuman()))
+								if(!kPlayer.isHuman(ISHUMAN_AI_TECH_CHOICE))
 								{
 									if(kPlayer.GetPlayerTechs()->IsResearchingTech(eIndex))
 									{
@@ -7106,7 +7058,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 												}
 											}
 
-											if ((eRevealPolicy == NO_POLICY || (eRevealPolicy != NO_POLICY && pPlayer->HasPolicy(eRevealPolicy))) && (eTechReveal == NO_TECH || (eTechReveal != eIndex && GetTeamTechs()->HasTech(eTechReveal))))
+											if ((eRevealPolicy == NO_POLICY || pPlayer->HasPolicy(eRevealPolicy)) && (eTechReveal == NO_TECH || (eTechReveal != eIndex && GetTeamTechs()->HasTech(eTechReveal))))
 											{
 												bRevealed = true;
 												break;
@@ -7190,7 +7142,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 											}
 										}
 
-										if ((eRevealPolicy == NO_POLICY || (eRevealPolicy != NO_POLICY && pPlayer->HasPolicy(eRevealPolicy))) && (eTechReveal == NO_TECH || (eTechReveal != eIndex && GetTeamTechs()->HasTech(eTechReveal))))
+										if ((eRevealPolicy == NO_POLICY || pPlayer->HasPolicy(eRevealPolicy)) && (eTechReveal == NO_TECH || (eTechReveal != eIndex && GetTeamTechs()->HasTech(eTechReveal))))
 										{
 											bRevealed = true;
 											break;
@@ -7277,7 +7229,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 			{
 				if (GC.getGame().isFinalInitialized())
 				{
-					if(GET_PLAYER(ePlayer).isHuman())
+					if(GET_PLAYER(ePlayer).isHuman(ISHUMAN_AI_TECH_CHOICE))
 					{
 						if(GET_PLAYER(ePlayer).GetPlayerTechs()->IsResearch() && (GET_PLAYER(ePlayer).GetPlayerTechs()->GetCurrentResearch() == NO_TECH))
 						{
@@ -7368,25 +7320,25 @@ int CvTeam::GetTechProgressPercent() const
 //	--------------------------------------------------------------------------------
 int CvTeam::getFeatureYieldChange(FeatureTypes eIndex1, YieldTypes eIndex2) const
 {
-	ASSERT_DEBUG(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex1 < GC.getNumFeatureInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex1 < GC.getNumFeatureInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
 	return m_ppaaiFeatureYieldChange[eIndex1][eIndex2];
 }
 
 //	--------------------------------------------------------------------------------
 void CvTeam::changeFeatureYieldChange(FeatureTypes eIndex1, YieldTypes eIndex2, int iChange)
 {
-	ASSERT_DEBUG(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex1 < GC.getNumFeatureInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex1 < GC.getNumFeatureInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
 
 	if(iChange != 0)
 	{
 		m_ppaaiFeatureYieldChange[eIndex1][eIndex2] = (m_ppaaiFeatureYieldChange[eIndex1][eIndex2] + iChange);
-		ASSERT_DEBUG(getFeatureYieldChange(eIndex1, eIndex2) >= 0);
+		ASSERT(getFeatureYieldChange(eIndex1, eIndex2) >= 0);
 
 		updateYield();
 	}
@@ -7395,25 +7347,25 @@ void CvTeam::changeFeatureYieldChange(FeatureTypes eIndex1, YieldTypes eIndex2, 
 //	--------------------------------------------------------------------------------
 int CvTeam::getTerrainYieldChange(TerrainTypes eIndex1, YieldTypes eIndex2) const
 {
-	ASSERT_DEBUG(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex1 < GC.getNumTerrainInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex1 < GC.getNumTerrainInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
 	return m_ppaaiTerrainYieldChange[eIndex1][eIndex2];
 }
 
 //	--------------------------------------------------------------------------------
 void CvTeam::changeTerrainYieldChange(TerrainTypes eIndex1, YieldTypes eIndex2, int iChange)
 {
-	ASSERT_DEBUG(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex1 < GC.getNumTerrainInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex1 < GC.getNumTerrainInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
 
 	if(iChange != 0)
 	{
 		m_ppaaiTerrainYieldChange[eIndex1][eIndex2] = (m_ppaaiTerrainYieldChange[eIndex1][eIndex2] + iChange);
-		ASSERT_DEBUG(getTerrainYieldChange(eIndex1, eIndex2) >= 0);
+		ASSERT(getTerrainYieldChange(eIndex1, eIndex2) >= 0);
 
 		updateYield();
 	}
@@ -7422,10 +7374,10 @@ void CvTeam::changeTerrainYieldChange(TerrainTypes eIndex1, YieldTypes eIndex2, 
 //	--------------------------------------------------------------------------------
 int CvTeam::getImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2) const
 {
-	ASSERT_DEBUG(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex1 < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex1 < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
 	return m_ppaaiImprovementYieldChange[eIndex1][eIndex2];
 }
 
@@ -7433,15 +7385,15 @@ int CvTeam::getImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes eInde
 //	--------------------------------------------------------------------------------
 void CvTeam::changeImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2, int iChange)
 {
-	ASSERT_DEBUG(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex1 < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex1 < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
 
 	if(iChange != 0)
 	{
 		m_ppaaiImprovementYieldChange[eIndex1][eIndex2] = (m_ppaaiImprovementYieldChange[eIndex1][eIndex2] + iChange);
-		ASSERT_DEBUG(MOD_BALANCE_VP || getImprovementYieldChange(eIndex1, eIndex2) >= 0); // improvements can have negative yields in VP
+		ASSERT(MOD_BALANCE_VP || getImprovementYieldChange(eIndex1, eIndex2) >= 0); // improvements can have negative yields in VP
 
 		updateYield();
 	}
@@ -7451,10 +7403,10 @@ void CvTeam::changeImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes e
 //	--------------------------------------------------------------------------------
 int CvTeam::getImprovementNoFreshWaterYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2) const
 {
-	ASSERT_DEBUG(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex1 < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex1 < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
 	return m_ppaaiImprovementNoFreshWaterYieldChange[eIndex1][eIndex2];
 }
 
@@ -7462,15 +7414,15 @@ int CvTeam::getImprovementNoFreshWaterYieldChange(ImprovementTypes eIndex1, Yiel
 //	--------------------------------------------------------------------------------
 void CvTeam::changeImprovementNoFreshWaterYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2, int iChange)
 {
-	ASSERT_DEBUG(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex1 < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex1 < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
 
 	if(iChange != 0)
 	{
 		m_ppaaiImprovementNoFreshWaterYieldChange[eIndex1][eIndex2] = (m_ppaaiImprovementNoFreshWaterYieldChange[eIndex1][eIndex2] + iChange);
-		ASSERT_DEBUG(getImprovementNoFreshWaterYieldChange(eIndex1, eIndex2) >= 0);
+		ASSERT(getImprovementNoFreshWaterYieldChange(eIndex1, eIndex2) >= 0);
 
 		updateYield();
 	}
@@ -7480,10 +7432,10 @@ void CvTeam::changeImprovementNoFreshWaterYieldChange(ImprovementTypes eIndex1, 
 //	--------------------------------------------------------------------------------
 int CvTeam::getImprovementFreshWaterYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2) const
 {
-	ASSERT_DEBUG(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex1 < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex1 < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
 	return m_ppaaiImprovementFreshWaterYieldChange[eIndex1][eIndex2];
 }
 
@@ -7491,15 +7443,15 @@ int CvTeam::getImprovementFreshWaterYieldChange(ImprovementTypes eIndex1, YieldT
 //	--------------------------------------------------------------------------------
 void CvTeam::changeImprovementFreshWaterYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2, int iChange)
 {
-	ASSERT_DEBUG(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex1 < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex1 < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
 
 	if(iChange != 0)
 	{
 		m_ppaaiImprovementFreshWaterYieldChange[eIndex1][eIndex2] = (m_ppaaiImprovementFreshWaterYieldChange[eIndex1][eIndex2] + iChange);
-		ASSERT_DEBUG(getImprovementFreshWaterYieldChange(eIndex1, eIndex2) >= 0);
+		ASSERT(getImprovementFreshWaterYieldChange(eIndex1, eIndex2) >= 0);
 
 		updateYield();
 	}
@@ -7541,7 +7493,7 @@ void CvTeam::updateTechShare(TechTypes eTech)
 				{
 					if(isHasMet((TeamTypes)iI))
 					{
-						ASSERT_DEBUG(iI != GetID(), "iI is not expected to be equal with GetID()");
+						PRECONDITION(iI != GetID(), "iI is not expected to be equal with GetID()");
 						iCount++;
 					}
 				}
@@ -7659,7 +7611,7 @@ void CvTeam::testCircumnavigated()
 				{
 					GC.getGame().SetTeamThatCircumnavigated(eTeamID);
 
-					if (MOD_API_ACHIEVEMENTS && !kGame.isGameMultiPlayer() && kPlayer.isHuman())
+					if (MOD_ENABLE_ACHIEVEMENTS && !kGame.isGameMultiPlayer() && kPlayer.isHuman(ISHUMAN_ACHIEVEMENTS))
 					{
 						gDLL->UnlockAchievement(ACHIEVEMENT_ROUND_WORLD);
 					}
@@ -7685,27 +7637,26 @@ void CvTeam::testCircumnavigated()
 					}
 					DLLUI->AddMessage(0, ((PlayerTypes)iI), false, /*10*/ GD_INT_GET(EVENT_MESSAGE_TIME), strBuffer);
 
-#if defined(MOD_EVENTS_CIRCUMNAVIGATION)
-					if (MOD_EVENTS_CIRCUMNAVIGATION) {
+					if (MOD_EVENTS_CIRCUMNAVIGATION)
+					{
 						GAMEEVENTINVOKE_HOOK(GAMEEVENT_CircumnavigatedGlobe, eTeamID);
 						
 						// Notifications should now be sent via the event
 						// CvString strSummary = GetLocalizedText("TXT_KEY_NOTIFICATION_SUMMARY_CIRC_GLOBE");
 						// AddNotification(NOTIFICATION_GENERIC, strBuffer, strSummary, -1, -1, -1);
-					} else {
-#endif
-					ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
-					if (pkScriptSystem)
+					}
+					else
 					{
-						CvLuaArgsHandle args;
-						args->Push(eTeamID);
+						ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+						if (pkScriptSystem)
+						{
+							CvLuaArgsHandle args;
+							args->Push(eTeamID);
 
-						bool bResult = false;
-						LuaSupport::CallHook(pkScriptSystem, "CircumnavigatedGlobe", args.get(), bResult);
+							bool bResult = false;
+							LuaSupport::CallHook(pkScriptSystem, "CircumnavigatedGlobe", args.get(), bResult);
+						}
 					}
-#if defined(MOD_EVENTS_CIRCUMNAVIGATION)
-					}
-#endif
 				}
 			}
 		}
@@ -7769,12 +7720,10 @@ void CvTeam::processTech(TechTypes eTech, int iChange, bool bNoBonus)
 		changeVassalageTradingAllowedCount(iChange);
 	}
 
-#if defined(MOD_BALANCE_CORE)
 	if (pTech->IsCorporationsEnabled())
 	{
 		changeCorporationsEnabledCount(iChange);
 	}
-#endif
 
 	if(pTech->IsAllowEmbassyTradingAllowed())
 	{
@@ -7805,25 +7754,20 @@ void CvTeam::processTech(TechTypes eTech, int iChange, bool bNoBonus)
 		}
 	}
 
-#if defined(MOD_TECHS_CITY_WORKING)
 	if(pTech->GetCityWorkingChange() != 0)
 	{
 		changeCityWorkingChange(pTech->GetCityWorkingChange() * iChange);
 	}
-#endif
-	
-#if defined(MOD_TECHS_CITY_AUTOMATON_WORKERS)
+
 	if(pTech->GetCityAutomatonWorkersChange() != 0)
 	{
 		changeCityAutomatonWorkersChange(pTech->GetCityAutomatonWorkersChange() * iChange);
 	}
-#endif
 
 	if(pTech->IsBridgeBuilding())
 	{
 		changeBridgeBuildingCount(iChange);
 	}
-#if defined(MOD_BALANCE_CORE_EMBARK_CITY_NO_COST)
 	if(pTech->IsCityLessEmbarkCost())
 	{
 		changeCityLessEmbarkCost(iChange);
@@ -7832,7 +7776,6 @@ void CvTeam::processTech(TechTypes eTech, int iChange, bool bNoBonus)
 	{
 		changeCityNoEmbarkCost(iChange);
 	}
-#endif
 
 	if(pTech->IsWaterWork())
 	{
@@ -7863,12 +7806,10 @@ void CvTeam::processTech(TechTypes eTech, int iChange, bool bNoBonus)
 	{
 		changeRouteChange(((RouteTypes)iI), (GC.getRouteInfo((RouteTypes) iI)->getTechMovementChange(eTech) * iChange));
 	}
-#if defined(MOD_BALANCE_CORE)
 	for(iI = 0; iI < NUM_DOMAIN_TYPES; iI++)
 	{
 		changeTradeRouteDomainExtraRange((DomainTypes)iI, (pTech->GetTradeRouteDomainExtraRange((DomainTypes)iI) * iChange));
 	}
-#endif
 
 	for (int i = 0; i < GC.getNumBuildInfos(); i++)
 	{
@@ -7944,7 +7885,6 @@ void CvTeam::processTech(TechTypes eTech, int iChange, bool bNoBonus)
 			}
 		}
 	}
-#if defined(MOD_BALANCE_CORE)
 	for(iI = 0; iI < MAX_PLAYERS; iI++)
 	{
 		CvPlayer& kPlayer = GET_PLAYER((PlayerTypes)iI);
@@ -7963,7 +7903,6 @@ void CvTeam::processTech(TechTypes eTech, int iChange, bool bNoBonus)
 			}
 		}
 	}
-#endif
 
 	for(iI = 0; iI < MAX_PLAYERS; iI++)
 	{
@@ -7976,6 +7915,7 @@ void CvTeam::processTech(TechTypes eTech, int iChange, bool bNoBonus)
 			kPlayer.changeWorkerSpeedModifier(pTech->GetWorkerSpeedModifier() * iChange);
 			kPlayer.ChangeInfluenceSpreadModifier(pTech->GetInfluenceSpreadModifier() * iChange);
 			kPlayer.ChangeExtraVotesPerDiplomat(pTech->GetExtraVotesPerDiplomat() * iChange);
+			kPlayer.changeTradeRouteFromTechs(pTech->GetNumInternationalTradeRoutesChange() * iChange);
 
 			if (kPlayer.isMajorCiv())
 			{
@@ -7998,25 +7938,16 @@ void CvTeam::processTech(TechTypes eTech, int iChange, bool bNoBonus)
 				{
 					kPlayer.ChangeFreePromotionCount(ePromotion, iChange);
 					
-					// Loop through existing units, because they have no way to earn it later
-					CivsList veMembers = getPlayers();
-					for (CivsList::iterator it = veMembers.begin(); it != veMembers.end(); ++it)
+					int iLoop = 0;
+					for (CvUnit* pLoopUnit = kPlayer.firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = kPlayer.nextUnit(&iLoop))
 					{
-						CvPlayer& kPlayer = GET_PLAYER(*it);
-						if (!kPlayer.isAlive())
-							continue;
-
-						int iLoop = 0;
-						for (CvUnit* pLoopUnit = kPlayer.firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = kPlayer.nextUnit(&iLoop))
+						// If we're in friendly territory and we can embark, give the promotion for free
+						if (pLoopUnit->plot()->IsFriendlyTerritory((PlayerTypes)iI)) 
 						{
-							// If we're in friendly territory and we can embark, give the promotion for free
-							if (pLoopUnit->plot()->IsFriendlyTerritory(*it))
+							// Civilian unit or the unit can acquire this promotion
+							if (IsPromotionValidForUnitCombatType(ePromotion, pLoopUnit->getUnitType()) || IsPromotionValidForCivilianUnitType(ePromotion, pLoopUnit->getUnitType()))
 							{
-								// Civilian unit or the unit can acquire this promotion
-								if (IsPromotionValidForUnitCombatType(ePromotion, pLoopUnit->getUnitType()) || IsPromotionValidForCivilianUnitType(ePromotion, pLoopUnit->getUnitType()))
-								{
-									pLoopUnit->setHasPromotion(ePromotion, true);
-								}
+								pLoopUnit->setHasPromotion(ePromotion, true);
 							}
 						}
 					}
@@ -8027,10 +7958,34 @@ void CvTeam::processTech(TechTypes eTech, int iChange, bool bNoBonus)
 						kPlayer.SetWorkersIgnoreImpassable(true);
 					}
 				}
-			}
+				// What about if the promotion comes through Trait_FreePromotionUnitCombats?
+				if (GC.getPromotionInfo(ePromotion)->GetTechPrereq() == pTech->GetID())
+				{
+				    // loop unit combat classes for the table check
+				    for (int iCombat = 0; iCombat < GC.getNumUnitCombatClassInfos(); iCombat++)
+				    {
+				        UnitCombatTypes eUnitCombat = (UnitCombatTypes)iCombat;
+				
+				        if (!kPlayer.GetPlayerTraits()->HasFreePromotionUnitCombat(ePromotion, eUnitCombat))
+				            continue;
 
+						// now loop all the units for that player that have this combat, and assign them the promo
+				        int iLoop = 0;
+				        for (CvUnit* pLoopUnit = kPlayer.firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = kPlayer.nextUnit(&iLoop))
+				        {
+				            if (pLoopUnit->getUnitCombatType() != eUnitCombat)
+				                continue;
+
+				            if (pLoopUnit->isHasPromotion(ePromotion))
+				                continue;
+				
+				            pLoopUnit->setHasPromotion(ePromotion, true);
+				        }
+				    }
+				}
+			}
+			
 			// Update our traits (some may have become obsolete)
-			kPlayer.GetPlayerTraits()->Reset();
 			kPlayer.GetPlayerTraits()->InitPlayerTraits();
 			kPlayer.recomputePolicyCostModifier();
 
@@ -8175,6 +8130,44 @@ void CvTeam::processTech(TechTypes eTech, int iChange, bool bNoBonus)
 		}
 	}
 
+	// Figure out which Promotion is the one which makes a unit able to cross oceans
+	PromotionTypes eOceanCrossingPromotion = NO_PROMOTION;
+	for (int iI = 0; iI < GC.getNumPromotionInfos(); iI++)
+	{
+		const PromotionTypes eLoopPromotion = static_cast<PromotionTypes>(iI);
+		CvPromotionEntry* pkPromotionInfo = GC.getPromotionInfo(eLoopPromotion);
+		if (pkPromotionInfo)
+		{
+			if (pkPromotionInfo->CanCrossOceans())
+			{
+				eOceanCrossingPromotion = eLoopPromotion;
+				break;
+			}
+		}
+	}
+
+	if (eOceanCrossingPromotion != NO_PROMOTION)
+	{
+		for (iI = 0; iI < GC.getNumUnitInfos(); iI++)
+		{
+			const UnitTypes eUnit = static_cast<UnitTypes>(iI);
+			CvUnitEntry* pkUnitEntry = GC.getUnitInfo(eUnit);
+			if (pkUnitEntry)
+			{
+				TechTypes ePrereqTech = (TechTypes)pkUnitEntry->GetPrereqAndTech();
+
+				if (ePrereqTech == NO_TECH || ePrereqTech != pTech->GetID())
+					continue;
+
+				if (pkUnitEntry->GetFreePromotions(eOceanCrossingPromotion))
+				{
+					SetCanBuildOceanCrossingUnit(true);
+					break;
+				}
+			}
+		}
+	}
+
 	for(iI = 0; iI < GC.getMap().numPlots(); iI++)
 	{
 		pLoopPlot = GC.getMap().plotByIndexUnchecked(iI);
@@ -8207,7 +8200,7 @@ void CvTeam::processTech(TechTypes eTech, int iChange, bool bNoBonus)
 								eRevealTech = eAltTech;
 							}
 						}
-						if ((eRevealPolicy == NO_POLICY || (eRevealPolicy != NO_POLICY && pPlayer->HasPolicy(eRevealPolicy))) && (eRevealTech == NO_TECH || (eRevealTech != eTech && GetTeamTechs()->HasTech(eRevealTech))))
+						if ((eRevealPolicy == NO_POLICY || pPlayer->HasPolicy(eRevealPolicy)) && (eRevealTech == NO_TECH || (eRevealTech != eTech && GetTeamTechs()->HasTech(eRevealTech))))
 						{
 							bRevealed = true;
 							break;
@@ -8282,27 +8275,15 @@ void CvTeam::processTech(TechTypes eTech, int iChange, bool bNoBonus)
 //	--------------------------------------------------------------------------------
 void CvTeam::cancelDefensivePacts()
 {
-	int iI = 0;
-
-	for(iI = 0; iI < MAX_TEAMS; iI++)
+	for (int iI = 0; iI < MAX_TEAMS; iI++)
 	{
 		TeamTypes eTeam = (TeamTypes)iI;
 		CvTeam& kTeam = GET_TEAM(eTeam);
+		if (eTeam == GetID() || !kTeam.isAlive() || !IsHasDefensivePact(eTeam))
+			continue;
 
-		if(eTeam != GetID())
-		{
-			if(kTeam.isAlive())
-			{
-				if (IsHasDefensivePact(eTeam))
-				{
-					if (!MOD_BALANCE_DEFENSIVE_PACTS_AGGRESSION_ONLY)
-					{
-						SetHasDefensivePact(eTeam, false);
-						kTeam.SetHasDefensivePact(GetID(), false);
-					}
-				}
-			}
-		}
+		SetHasDefensivePact(eTeam, false);
+		kTeam.SetHasDefensivePact(GetID(), false);
 	}
 }
 
@@ -8450,7 +8431,6 @@ bool CvTeam::IsResourceCityTradeable(ResourceTypes eResource) const
 			if (pPlayer && pPlayer->isAlive())
 			{
 				TechTypes eTech = eDefaultTech;
-#if defined(MOD_BALANCE_CORE)
 				if (pPlayer->GetPlayerTraits()->IsAlternateResourceTechs())
 				{
 					TechTypes eAltTech = pPlayer->GetPlayerTraits()->GetAlternateResourceTechs(eResource).m_eTechCityTrade;
@@ -8459,7 +8439,6 @@ bool CvTeam::IsResourceCityTradeable(ResourceTypes eResource) const
 						eTech = eAltTech;
 					}
 				}
-#endif
 
 				if (eTech == NO_TECH || GetTeamTechs()->HasTech(eTech))
 				{
@@ -8489,7 +8468,6 @@ bool CvTeam::IsResourceRevealed(ResourceTypes eResource) const
 			if (pPlayer && pPlayer->isAlive())
 			{
 				TechTypes eTech = eDefaultTech;
-#if defined(MOD_BALANCE_CORE)
 				if (pPlayer->GetPlayerTraits()->IsAlternateResourceTechs())
 				{
 					TechTypes eAltTech = pPlayer->GetPlayerTraits()->GetAlternateResourceTechs(eResource).m_eTechReveal;
@@ -8498,7 +8476,6 @@ bool CvTeam::IsResourceRevealed(ResourceTypes eResource) const
 						eTech = eAltTech;
 					}
 				}
-#endif
 
 				if ((eTech == NO_TECH || GetTeamTechs()->HasTech(eTech)) && (ePolicy == NO_POLICY || pPlayer->HasPolicy(ePolicy)))
 				{
@@ -8540,7 +8517,6 @@ void CvTeam::SetCurrentEra(EraTypes eNewValue)
 
 	if(GetCurrentEra() != eNewValue)
 	{
-#if defined(MOD_EVENTS_NEW_ERA)
 		// check to see if anyone else has reached or surpassed this era yet
 		bool bAlreadyProvided = false;
 		for(int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
@@ -8555,7 +8531,7 @@ void CvTeam::SetCurrentEra(EraTypes eNewValue)
 				}
 			}
 		}
-#endif
+
 		if(MOD_BALANCE_CORE_JFD && isHuman())
 		{
 			GC.getGame().GetGameContracts()->DoUpdateContracts();
@@ -8573,7 +8549,7 @@ void CvTeam::SetCurrentEra(EraTypes eNewValue)
 				
 				if(!isBarbarian() && (eNewValue != GC.getGame().getStartEra())){
 					//Era Popup
-					if (!GC.getGame().isReallyNetworkMultiPlayer() && isHuman() && GetID() == GC.getGame().getActiveTeam())
+					if (!GC.getGame().isReallyNetworkMultiPlayer() && isHuman(ISHUMAN_UI) && GetID() == GC.getGame().getActiveTeam())
 					{
 						CvPopupInfo kPopupInfo(BUTTONPOPUP_NEW_ERA, eNewValue);
 						DLLUI->AddPopup(kPopupInfo);
@@ -8612,7 +8588,7 @@ void CvTeam::SetCurrentEra(EraTypes eNewValue)
 							if(GET_TEAM(kCurNotifyPlayer.getTeam()).isHasMet(GetID()))
 							{
 								CvPlayerAI& player = GET_PLAYER(getLeaderID());
-								if(GC.getGame().isGameMultiPlayer() && player.isHuman())
+								if(GC.getGame().isGameMultiPlayer() && player.isHuman(ISHUMAN_UI))
 									strMessage << player.getNickName() << szEraTextKey;
 								else
 									strMessage << player.getName() << szEraTextKey;
@@ -8868,7 +8844,6 @@ void CvTeam::SetCurrentEra(EraTypes eNewValue)
 		{
 			DLLUI->setDirty(Soundtrack_DIRTY_BIT, true);
 		}
-#if defined(MOD_BALANCE_CORE)
 		for(int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
 		{
 			ePlayer = (PlayerTypes) iPlayerLoop;
@@ -8911,7 +8886,6 @@ void CvTeam::SetCurrentEra(EraTypes eNewValue)
 
 			}
 		}
-#endif
 
 		// Update Yields from Annexed City-States (Rome UA)
 		for (int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
@@ -8929,7 +8903,6 @@ void CvTeam::SetCurrentEra(EraTypes eNewValue)
 				kPlayer.UpdateHappinessFromAnnexedMinors();
 			}
 		}
-#if defined(MOD_BALANCE_CORE)
 		updateYield();
 		for (int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
 		{
@@ -8948,25 +8921,21 @@ void CvTeam::SetCurrentEra(EraTypes eNewValue)
 				}
 			}
 		}
-#endif
-#if defined(MOD_EVENTS_NEW_ERA)
-		if (MOD_EVENTS_NEW_ERA && GetCurrentEra() != GC.getGame().getStartEra()) {
+		if (MOD_EVENTS_NEW_ERA && GetCurrentEra() != GC.getGame().getStartEra())
 			GAMEEVENTINVOKE_HOOK(GAMEEVENT_TeamSetEra, GetID(), GetCurrentEra(), ((GetID() < MAX_MAJOR_CIVS) && !bAlreadyProvided));
-		} else {
-#endif
-		ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
-		if(pkScriptSystem)
+		else
 		{
-			CvLuaArgsHandle args;
-			args->Push(GetID());
-			args->Push(GetCurrentEra());
-			
-			bool bResult = false;
-			LuaSupport::CallHook(pkScriptSystem, "TeamSetEra", args.get(), bResult);
+			ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+			if (pkScriptSystem)
+			{
+				CvLuaArgsHandle args;
+				args->Push(GetID());
+				args->Push(GetCurrentEra());
+				
+				bool bResult = false;
+				LuaSupport::CallHook(pkScriptSystem, "TeamSetEra", args.get(), bResult);
+			}
 		}
-#if defined(MOD_EVENTS_NEW_ERA)
-		}
-#endif
 	}
 }
 
@@ -8994,7 +8963,7 @@ int CvTeam::countNumHumanGameTurnActive() const
 //	--------------------------------------------------------------------------------
 void CvTeam::setTurnActive(bool bNewValue, bool bDoTurn)
 {
-	ASSERT_DEBUG(GC.getGame().isSimultaneousTeamTurns());
+	ASSERT(GC.getGame().isSimultaneousTeamTurns());
 
 	for(int iPlayer = 0; iPlayer < MAX_PLAYERS; ++iPlayer)
 	{
@@ -9009,7 +8978,7 @@ void CvTeam::setTurnActive(bool bNewValue, bool bDoTurn)
 //	--------------------------------------------------------------------------------
 bool CvTeam::isTurnActive() const
 {
-	ASSERT_DEBUG(GC.getGame().isSimultaneousTeamTurns());
+	ASSERT(GC.getGame().isSimultaneousTeamTurns());
 
 	for(int iPlayer = 0; iPlayer < MAX_PLAYERS; ++iPlayer)
 	{
@@ -9029,7 +8998,7 @@ bool CvTeam::isTurnActive() const
 //	--------------------------------------------------------------------------------
 void CvTeam::PushIgnoreWarning (TeamTypes eTeam)
 {
-	ASSERT_DEBUG(eTeam != NO_TEAM, "PushIgnoreWarning got NO_TEAM passed to it");
+	ASSERT(eTeam != NO_TEAM, "PushIgnoreWarning got NO_TEAM passed to it");
 	if (eTeam == NO_TEAM)
 	{
 		return;
@@ -9041,13 +9010,13 @@ void CvTeam::PushIgnoreWarning (TeamTypes eTeam)
 //	--------------------------------------------------------------------------------
 void CvTeam::PopIgnoreWarning (TeamTypes eTeam)
 {
-	ASSERT_DEBUG(eTeam != NO_TEAM, "PopIgnoreWarning got NO_TEAM passed to it");
+	ASSERT(eTeam != NO_TEAM, "PopIgnoreWarning got NO_TEAM passed to it");
 	if (eTeam == NO_TEAM)
 	{
 		return;
 	}
 
-	ASSERT_DEBUG(m_aiIgnoreWarningCount[eTeam] > 0, "Trying to pop when there's nothing to be popped");
+	ASSERT(m_aiIgnoreWarningCount[eTeam] > 0, "Trying to pop when there's nothing to be popped");
 	if (m_aiIgnoreWarningCount[eTeam] > 0)
 	{
 		m_aiIgnoreWarningCount[eTeam] -= 1;
@@ -9057,7 +9026,7 @@ void CvTeam::PopIgnoreWarning (TeamTypes eTeam)
 //	--------------------------------------------------------------------------------
 int CvTeam::GetIgnoreWarningCount (TeamTypes eTeam)
 {
-	ASSERT_DEBUG(eTeam != NO_TEAM, "GetIgnoreWarningCount got NO_TEAM passed to it");
+	ASSERT(eTeam != NO_TEAM, "GetIgnoreWarningCount got NO_TEAM passed to it");
 	if (eTeam == NO_TEAM)
 	{
 		return -1;
@@ -9117,6 +9086,7 @@ void CvTeam::Serialize(Team& team, Visitor& visitor)
 	visitor(team.m_iNumLandmarksBuilt);
 	visitor(team.m_iBestPossibleRoute);
 	visitor(team.m_iNumMinorCivsAttacked);
+	visitor(team.m_iBuildingDefenseModifier);
 
 	visitor(team.m_bMapCentering);
 	visitor(team.m_bHasTechForWorldCongress);
@@ -9207,6 +9177,7 @@ void CvTeam::Serialize(Team& team, Visitor& visitor)
 
 	visitor(team.m_abAtWar);
 	visitor(team.m_abAggressorPacifier);
+	visitor(team.m_bCanBuildOceanCrossingUnit);
 }
 
 //	--------------------------------------------------------------------------------
@@ -9259,8 +9230,8 @@ void CvTeam::AddNotification(NotificationTypes eNotificationType, const char* st
 //  Acquire the map (territory or world) of eTeam
 void CvTeam::AcquireMap(TeamTypes eTeam, bool bTerritoryOnly)
 {
-	ASSERT_DEBUG(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 
 	CvMap& kMap = GC.getMap();
 	CvPlot* pPlot = NULL;
@@ -9317,7 +9288,7 @@ bool CvTeam::IsVassalageTradingAllowed() const
 void CvTeam::changeVassalageTradingAllowedCount(int iChange)
 {
 	m_iVassalageTradingAllowedCount = (m_iVassalageTradingAllowedCount + iChange);
-	ASSERT_DEBUG(getVassalageTradingAllowedCount() >= 0);
+	ASSERT(getVassalageTradingAllowedCount() >= 0);
 }
 //	--------------------------------------------------------------------------------
 // Find out who we're a vassal of
@@ -9422,7 +9393,7 @@ bool CvTeam::canEndVassal(TeamTypes eTeam) const
 	if (GC.getGame().isOption(GAMEOPTION_ALWAYS_PEACE) || GC.getGame().isOption(GAMEOPTION_NO_CHANGING_WAR_PEACE) || GC.getGame().IsAIPassiveMode())
 		return false;
 
-	if (GC.getGame().IsAIPassiveTowardsHumans() && GET_TEAM(eTeam).isHuman())
+	if (GC.getGame().IsAIPassiveTowardsHumans() && GET_TEAM(eTeam).isHuman(ISHUMAN_MECHANICS))
 		return false;
 
 	// We're the voluntary vassal of eTeam and it's not too early to end vassalage - we're not bound by the % rules
@@ -9492,19 +9463,19 @@ void CvTeam::DoEndVassal(TeamTypes eTeam, bool bPeaceful, bool bSuppressNotifica
 			pOurPlayer->GetDiplomacyAI()->DoWeEndedVassalageWithSomeone(eTeam);
 			GET_TEAM(eTeam).SetVassalTax(eOurPlayer, 0);
 			GET_TEAM(eTeam).SetNumTurnsSinceVassalTaxSet(eOurPlayer, -1);
-		}
 
-		// remove spies as diplomats
-		if (!GC.getGame().isOption(GAMEOPTION_NO_ESPIONAGE))
-		{
-			for (int iMasterPlayerLoop = 0; iMasterPlayerLoop < MAX_CIV_PLAYERS; iMasterPlayerLoop++)
+			// remove spies as diplomats
+			if (!GC.getGame().isOption(GAMEOPTION_NO_ESPIONAGE))
 			{
-				PlayerTypes eMasterPlayer = (PlayerTypes)iMasterPlayerLoop;
-				CvPlayer* pMasterPlayer = &GET_PLAYER(eMasterPlayer);
-				if (pMasterPlayer->isAlive() && pMasterPlayer->getTeam() == eTeam)
+				for (int iMasterPlayerLoop = 0; iMasterPlayerLoop < MAX_CIV_PLAYERS; iMasterPlayerLoop++)
 				{
-					CvPlayerEspionage* pMasterEspionage = pMasterPlayer->GetEspionage();
-					pMasterEspionage->DeleteDiplomatForVassal(eOurPlayer);
+					PlayerTypes eMasterPlayer = (PlayerTypes)iMasterPlayerLoop;
+					CvPlayer* pMasterPlayer = &GET_PLAYER(eMasterPlayer);
+					if (pMasterPlayer->isAlive() && pMasterPlayer->getTeam() == eTeam)
+					{
+						CvPlayerEspionage* pMasterEspionage = pMasterPlayer->GetEspionage();
+						pMasterEspionage->DeleteDiplomatForVassal(eOurPlayer);
+					}
 				}
 			}
 		}
@@ -9606,7 +9577,7 @@ void CvTeam::DoEndVassal(TeamTypes eTeam, bool bPeaceful, bool bSuppressNotifica
 		if (!GET_PLAYER(ePlayer).GetNotifications())
 			continue;
 
-		if (GET_PLAYER(ePlayer).isAlive() && GET_PLAYER(ePlayer).isHuman())
+		if (GET_PLAYER(ePlayer).isAlive() && GET_PLAYER(ePlayer).isHuman(ISHUMAN_NOTIFICATIONS))
 		{
 			// Player is no longer the vassal
 			if (GET_PLAYER(ePlayer).getTeam() == GetID())
@@ -9668,21 +9639,7 @@ void CvTeam::DoEndVassal(TeamTypes eTeam, bool bPeaceful, bool bSuppressNotifica
 // We liberate eTeam, if we can
 void CvTeam::DoLiberateVassal(TeamTypes eTeam)
 {
-	if (!CanLiberateVassal(eTeam))
-		return;
-
-	// End our vassalage peacefully
-	GET_TEAM(eTeam).DoEndVassal(GetID(), true, false);
-
-	// Find our vassals
-	for (int iVassalPlayer = 0; iVassalPlayer < MAX_MAJOR_CIVS; iVassalPlayer++)
-	{
-		PlayerTypes eVassalPlayer = (PlayerTypes) iVassalPlayer;
-		if (GET_PLAYER(eVassalPlayer).isAlive() && GET_PLAYER(eVassalPlayer).getTeam() == eTeam)
-		{
-			GET_PLAYER(eVassalPlayer).GetDiplomacyAI()->DoLiberatedFromVassalage(GetID(), false);
-		}
-	}
+	NetMessageExt::Send::DoLiberateVassal(GetID(), eTeam);
 }
 //	----------------------------------------------------------------------------------------------
 // Update vassal war/peace relationships for one team
@@ -9862,8 +9819,8 @@ void CvTeam::DoBecomeVassal(TeamTypes eTeam, bool bVoluntary, PlayerTypes eOrigi
 	Localization::String locString;
 	Localization::String summaryString;
 
-	ASSERT_DEBUG(eTeam != NO_TEAM, "eTeam is not assigned a valid value");
-	ASSERT_DEBUG(eTeam != GetID(), "eTeam is not expected to be equal with GetID()");
+	PRECONDITION(eTeam != NO_TEAM, "eTeam is not assigned a valid value");
+	PRECONDITION(eTeam != GetID(), "eTeam is not expected to be equal with GetID()");
 
 	// we must be able to become their vassal
 	if(!canBecomeVassal(eTeam, /*bIgnoreAlreadyVassal*/ true))
@@ -10033,7 +9990,7 @@ void CvTeam::DoBecomeVassal(TeamTypes eTeam, bool bVoluntary, PlayerTypes eOrigi
 		PlayerTypes eLoopPlayer = (PlayerTypes) iPlayerLoop;
 		TeamTypes eLoopTeam = GET_PLAYER(eLoopPlayer).getTeam();
 
-		if (!GET_PLAYER(eLoopPlayer).isAlive() || GET_PLAYER(eLoopPlayer).isHuman())
+		if (!GET_PLAYER(eLoopPlayer).isAlive() || GET_PLAYER(eLoopPlayer).isHuman(ISHUMAN_AI_DIPLOMACY))
 			continue;
 
 		if (eLoopTeam == GetID())
@@ -10184,17 +10141,17 @@ void CvTeam::ChangeNumTurnsIsVassal(int iChange)
 //	--------------------------------------------------------------------------------
 int CvTeam::GetNumTurnsSinceVassalEnded(TeamTypes eTeam) const
 {
-	ASSERT_DEBUG(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_aiNumTurnsSinceVassalEnded[eTeam];
 }
 
 //	--------------------------------------------------------------------------------
 void CvTeam::SetNumTurnsSinceVassalEnded(TeamTypes eTeam, int iValue)
 {
-	ASSERT_DEBUG(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
-	ASSERT_DEBUG(eTeam != GetID(), "Team is setting vassal ended turns with itself!");
+	PRECONDITION(eTeam >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eTeam < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
+	ASSERT(eTeam != GetID(), "Team is setting vassal ended turns with itself!");
 	if(eTeam != GetID() || iValue == 0)
 		m_aiNumTurnsSinceVassalEnded[eTeam] = iValue;
 }
@@ -10229,74 +10186,38 @@ bool CvTeam::CanSetVassalTax(PlayerTypes ePlayer) const
 // We apply a vassal tax to ePlayer
 void CvTeam::DoApplyVassalTax(PlayerTypes ePlayer, int iPercent)
 {
-	if (!CanSetVassalTax(ePlayer))
-		return;
-
-	iPercent = max(iPercent, /*0*/ GD_INT_GET(VASSALAGE_VASSAL_TAX_PERCENT_MINIMUM));
-	iPercent = min(iPercent, /*25*/ GD_INT_GET(VASSALAGE_VASSAL_TAX_PERCENT_MAXIMUM));
-
-	int iCurrentTaxRate = GetVassalTax(ePlayer);
-	
-	SetNumTurnsSinceVassalTaxSet(ePlayer, 0);
-	SetVassalTax(ePlayer, iPercent);
-
-	// Note: using EspionageScreen dirty for this.
-	GC.GetEngineUserInterface()->setDirty(EspionageScreen_DIRTY_BIT, true);
-
-	// notify diplo AI if there was some change		
-	if(iPercent != iCurrentTaxRate)
-	{
-		GET_PLAYER(ePlayer).GetDiplomacyAI()->DoVassalTaxChanged(GetID(), (iPercent < iCurrentTaxRate));	
-
-		// send a notification if there was some change
-		Localization::String locString;
-		Localization::String summaryString;
-		if(iPercent > iCurrentTaxRate)
-		{
-			locString = Localization::Lookup("TXT_KEY_MISC_VASSAL_TAX_INCREASED");
-			summaryString = Localization::Lookup("TXT_KEY_MISC_VASSAL_TAX_INCREASED_SUMMARY");
-		}
-		else
-		{
-			locString = Localization::Lookup("TXT_KEY_MISC_VASSAL_TAX_DECREASED");
-			summaryString = Localization::Lookup("TXT_KEY_MISC_VASSAL_TAX_DECREASED_SUMMARY");
-		}
-
-		locString << getName().GetCString() << iCurrentTaxRate << iPercent;
-
-		GET_PLAYER(ePlayer).GetNotifications()->Add(NOTIFICATION_GENERIC, locString.toUTF8(), summaryString.toUTF8(), -1, -1, this->getLeaderID());
-	}
+	NetMessageExt::Send::DoApplyVassalTax(GetID(), ePlayer, iPercent);
 }
 
 //	--------------------------------------------------------------------------------
 void CvTeam::SetVassalTax(PlayerTypes ePlayer, int iPercent)
 {
-	ASSERT_DEBUG(ePlayer >= 0, "SET VASSAL TAX! Invalid Player Index.");
-	ASSERT_DEBUG(ePlayer < MAX_MAJOR_CIVS, "SET VASSAL TAX! Invalid Player Index.");
+	PRECONDITION(ePlayer >= 0, "SET VASSAL TAX! Invalid Player Index.");
+	PRECONDITION(ePlayer < MAX_MAJOR_CIVS, "SET VASSAL TAX! Invalid Player Index.");
 	
 	m_aiVassalTax[ePlayer] = iPercent;
 }
 //	--------------------------------------------------------------------------------
 int CvTeam::GetVassalTax(PlayerTypes ePlayer) const
 {
-	ASSERT_DEBUG(ePlayer >= 0, "TEAM: VASSAL TAX! Invalid Player Index.");
-	ASSERT_DEBUG(ePlayer < MAX_MAJOR_CIVS, "TEAM: VASSAL TAX! Invalid Player Index.");
+	PRECONDITION(ePlayer >= 0, "TEAM: VASSAL TAX! Invalid Player Index.");
+	PRECONDITION(ePlayer < MAX_MAJOR_CIVS, "TEAM: VASSAL TAX! Invalid Player Index.");
 	
 	return m_aiVassalTax[ePlayer];
 }
 //	--------------------------------------------------------------------------------
 int CvTeam::GetNumTurnsSinceVassalTaxSet(PlayerTypes ePlayer) const
 {
-	ASSERT_DEBUG(ePlayer >= 0, "SET VASSAL TAX! Invalid Player Index.");
-	ASSERT_DEBUG(ePlayer < MAX_MAJOR_CIVS, "SET VASSAL TAX! Invalid Player Index.");
+	PRECONDITION(ePlayer >= 0, "SET VASSAL TAX! Invalid Player Index.");
+	PRECONDITION(ePlayer < MAX_MAJOR_CIVS, "SET VASSAL TAX! Invalid Player Index.");
 
 	return m_aiNumTurnsSinceVassalTaxSet[ePlayer];
 }
 //	--------------------------------------------------------------------------------
 void CvTeam::ChangeNumTurnsSinceVassalTaxSet(PlayerTypes ePlayer, int iChange)
 {
-	ASSERT_DEBUG(ePlayer >= 0, "SET VASSAL TAX! Invalid Player Index.");
-	ASSERT_DEBUG(ePlayer < MAX_MAJOR_CIVS, "SET VASSAL TAX! Invalid Player Index.");
+	PRECONDITION(ePlayer >= 0, "SET VASSAL TAX! Invalid Player Index.");
+	PRECONDITION(ePlayer < MAX_MAJOR_CIVS, "SET VASSAL TAX! Invalid Player Index.");
 
 	if(iChange != 0)
 		SetNumTurnsSinceVassalTaxSet(ePlayer, GetNumTurnsSinceVassalTaxSet(ePlayer) + iChange);
@@ -10304,8 +10225,8 @@ void CvTeam::ChangeNumTurnsSinceVassalTaxSet(PlayerTypes ePlayer, int iChange)
 //	--------------------------------------------------------------------------------
 void CvTeam::SetNumTurnsSinceVassalTaxSet(PlayerTypes ePlayer, int iValue)
 {
-	ASSERT_DEBUG(ePlayer >= 0, "SET VASSAL TAX! Invalid Player Index.");
-	ASSERT_DEBUG(ePlayer < MAX_MAJOR_CIVS, "SET VASSAL TAX! Invalid Player Index.");
+	PRECONDITION(ePlayer >= 0, "SET VASSAL TAX! Invalid Player Index.");
+	PRECONDITION(ePlayer < MAX_MAJOR_CIVS, "SET VASSAL TAX! Invalid Player Index.");
 
 	m_aiNumTurnsSinceVassalTaxSet[ePlayer] = iValue;
 }
@@ -10321,8 +10242,8 @@ bool CvTeam::IsTooSoonForVassal(TeamTypes eTeam) const
 /// How many vassals do we have?
 int CvTeam::GetNumVassals()
 {
-	ASSERT_DEBUG(GetID() >= 0, "TeamID is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(GetID() < MAX_TEAMS, "TeamID is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(GetID() >= 0, "TeamID is expected to be non-negative (invalid Index)");
+	PRECONDITION(GetID() < MAX_TEAMS, "TeamID is expected to be within maximum bounds (invalid Index)");
 
 	if (isMinorCiv() || isBarbarian())
 		return 0;
@@ -10350,8 +10271,8 @@ int CvTeam::GetNumVassals()
 /// Can we trade this tech?
 bool CvTeam::IsTradeTech(TechTypes eTech) const
 {
-	ASSERT_DEBUG(eTech >= 0);
-	ASSERT_DEBUG(eTech < GC.getNumTechInfos());
+	ASSERT(eTech >= 0);
+	PRECONDITION(eTech < GC.getNumTechInfos());
 
 	return m_pabTradeTech[eTech];
 }
@@ -10359,8 +10280,8 @@ bool CvTeam::IsTradeTech(TechTypes eTech) const
 /// Sets if we can trade this tech
 void CvTeam::SetTradeTech(TechTypes eTech, bool bValue)
 {
-	ASSERT_DEBUG(eTech >= 0);
-	ASSERT_DEBUG(eTech < GC.getNumTechInfos());
+	ASSERT(eTech >= 0);
+	PRECONDITION(eTech < GC.getNumTechInfos());
 
 	m_pabTradeTech[eTech] = bValue;
 }
@@ -10381,4 +10302,14 @@ int CvTeam::GetSSProjectCount(bool bIncludeApollo)
 	iTotal += getProjectCount(engineID) + getProjectMaking(engineID);
 
 	return iTotal;
+}
+
+bool CvTeam::CanBuildOceanCrossingUnit() const
+{
+	return m_bCanBuildOceanCrossingUnit;
+}
+
+void CvTeam::SetCanBuildOceanCrossingUnit(bool bValue)
+{
+	m_bCanBuildOceanCrossingUnit = bValue;
 }

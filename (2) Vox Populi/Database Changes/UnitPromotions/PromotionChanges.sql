@@ -1,6 +1,14 @@
 -- Unfortunately, the <Replace> command isn't smart enough to only replace specified values instead of whole rows,
 -- so we need to redefine all existing and new promotions here.
 
+-- If a promotion should grant blanket immunity to all Plagues added by VP, insert it into this helper table
+-- If you also want compatibility with Plagues added by modmods, modify the associated trigger in (2) Vox Populi\Database Changes\Triggers.sql
+CREATE TEMP TABLE PlagueImmunePromotions (
+	PromotionType TEXT,
+	DomainType TEXT,
+	IncludeSpecial BOOLEAN DEFAULT 0 -- promotions not applied by UnitPromotions_Plagues, e.g., Prisoners of War; if set to 1, will be included regardless of domain
+);
+
 ----------------------------------------------------------------------------------------------------------------------------
 -- Land Melee promotion tree (mix of Melee/Gun/Mounted/Armor) drawn using ASCIIFlow
 --
@@ -597,13 +605,6 @@ UPDATE UnitPromotions SET IgnoreFeatureDamage = 1 WHERE Type = 'PROMOTION_FALLOU
 --------------------------------------------
 -- Natural Wonder free promotions
 --------------------------------------------
-UPDATE UnitPromotions SET HillsDoubleMove = 1 WHERE Type = 'PROMOTION_ALTITUDE_TRAINING';
-DELETE FROM UnitPromotions_Terrains WHERE PromotionType = 'PROMOTION_ALTITUDE_TRAINING';
-INSERT INTO UnitPromotions_TerrainModifiers
-	(PromotionType, TerrainType, Attack, Defense)
-VALUES
-	('PROMOTION_ALTITUDE_TRAINING', 'TERRAIN_HILL', 10, 10);
-
 UPDATE UnitPromotions SET MovesChange = 2 WHERE Type = 'PROMOTION_SACRED_STEPS';
 
 UPDATE UnitPromotions SET FriendlyHealChange = 5, NeutralHealChange = 5, EnemyHealChange = 5 WHERE Type = 'PROMOTION_EVERLASTING_YOUTH';
@@ -617,7 +618,7 @@ UPDATE UnitPromotions SET CityAttack = 25 WHERE Type = 'PROMOTION_STATUE_ZEUS';
 INSERT INTO UnitPromotions_BlockedPromotions
 	(PromotionType, BlockedPromotionType)
 VALUES
-	('PROMOTION_STATUE_ZEUS', 'PROMOTION_PRISONER_WAR');
+	('PROMOTION_STATUE_ZEUS', 'PROMOTION_PRISONERS_OF_WAR');
 
 UPDATE UnitPromotions SET AttackMod = 15, ExtraWithdrawal = 100 WHERE Type = 'PROMOTION_JINETE';
 
@@ -628,6 +629,8 @@ UPDATE UnitPromotions SET CombatPercent = 10, MovesChange = 1 WHERE Type = 'PROM
 UPDATE UnitPromotions SET CombatPercent = 10 WHERE Type = 'PROMOTION_MORALE';
 
 UPDATE UnitPromotions SET AttackMod = 10 WHERE Type = 'PROMOTION_IKLWA';
+
+UPDATE UnitPromotions SET DiplomaticMissionAccomplishment = 1 WHERE Type = 'PROMOTION_PROXENOS';
 
 -- Eight Virtues of Bushido
 UPDATE UnitPromotions SET HasPostCombatPromotions = 1 WHERE Type = 'PROMOTION_BUSHIDO';
@@ -732,7 +735,7 @@ UPDATE UnitPromotions SET EmbarkExtraVisibility = 1 WHERE Type = 'PROMOTION_EMBA
 -- Embarkation with Defense
 UPDATE UnitPromotions SET EmbarkDefenseModifier = 100 WHERE Type = 'PROMOTION_DEFENSIVE_EMBARKATION';
 
-UPDATE UnitPromotions SET GainsXPFromPillaging = 1 WHERE Type = 'PROMOTION_SCAVENGER';
+UPDATE UnitPromotions SET XPFromPillaging = 5 WHERE Type = 'PROMOTION_SCAVENGER';
 
 UPDATE UnitPromotions SET ExtraWithdrawal = 100 WHERE Type = 'PROMOTION_COMMANDO';
 
@@ -880,7 +883,7 @@ UPDATE UnitPromotions SET GreatGeneralCombatModifier = 25 WHERE Type = 'PROMOTIO
 UPDATE UnitPromotions SET HPHealedIfDestroyEnemy = 25 WHERE Type = 'PROMOTION_PARTIAL_HEAL_IF_DESTROY_ENEMY';
 
 -- Hakkapeliitta: Hakkaa Päälle!
-UPDATE UnitPromotions SET AttackFullyHealedMod = 25 WHERE Type = 'PROMOTION_HAKKAA_PAALLE';
+UPDATE UnitPromotions SET AttackAbove50HealthMod = 30 WHERE Type = 'PROMOTION_HAKKAA_PAALLE';
 
 -- Foreign Legion: Foreign Lands Bonus
 UPDATE UnitPromotions SET OutsideFriendlyLandsModifier = 20 WHERE Type = 'PROMOTION_FOREIGN_LANDS';
@@ -895,8 +898,7 @@ UPDATE UnitPromotions SET AttackWoundedMod = 33 WHERE Type = 'PROMOTION_STRONGER
 UPDATE UnitPromotions SET MoraleBreakChance = -1 WHERE Type = 'PROMOTION_WITHERING_FIRE';
 
 -- Pictish Warrior, Norwegian Ski Infantry: Highlander
-UPDATE UnitPromotions SET HillsDoubleMove = 1 WHERE Type = 'PROMOTION_SKI_INFANTRY';
-DELETE FROM UnitPromotions_Terrains WHERE PromotionType = 'PROMOTION_SKI_INFANTRY' AND TerrainType = 'TERRAIN_HILL';
+DELETE FROM UnitPromotions_Terrains WHERE PromotionType = 'PROMOTION_SKI_INFANTRY' AND TerrainType IN ('TERRAIN_SNOW', 'TERRAIN_TUNDRA');
 UPDATE UnitPromotions_Terrains SET Attack = 0, Defense = 0 WHERE PromotionType = 'PROMOTION_SKI_INFANTRY';
 INSERT INTO UnitPromotions_TerrainModifiers
 	(PromotionType, TerrainType, Attack, Defense)
@@ -909,7 +911,13 @@ VALUES
 UPDATE UnitPromotions SET NearbyEnemyCombatMod = -10, NearbyEnemyCombatRange = 1 WHERE Type = 'PROMOTION_FEARED_ELEPHANT';
 
 -- Maori Warrior: Haka War Dance
-UPDATE UnitPromotions SET NearbyEnemyCombatMod = -15, NearbyEnemyCombatRange = 1 WHERE Type = 'PROMOTION_HAKA_WAR_DANCE';
+UPDATE UnitPromotions
+SET
+	NearbyEnemyCombatMod = -20,
+	NearbyEnemyCombatRange = 1,
+	EmbarkFlatCost = 1,
+	DisembarkFlatCost = 1
+WHERE Type = 'PROMOTION_HAKA_WAR_DANCE';
 
 -- Khan: Khaaaan!
 UPDATE UnitPromotions SET NearbyEnemyDamage = 10 WHERE Type = 'PROMOTION_MEDIC_GENERAL';
@@ -980,9 +988,9 @@ UPDATE UnitPromotions SET FlankAttackModifier = 20, CityAttackPlunderModifier = 
 INSERT INTO UnitPromotions_YieldFromScouting
 	(PromotionType, YieldType, Yield)
 VALUES
-	('PROMOTION_FLAG_BEARER', 'YIELD_GOLD', 3),
-	('PROMOTION_FLAG_BEARER', 'YIELD_SCIENCE', 3),
-	('PROMOTION_FLAG_BEARER', 'YIELD_CULTURE', 3);
+	('PROMOTION_FLAG_BEARER', 'YIELD_GOLD', 2),
+	('PROMOTION_FLAG_BEARER', 'YIELD_SCIENCE', 2),
+	('PROMOTION_FLAG_BEARER', 'YIELD_CULTURE', 2);
 
 -- Longbowman: Assize of Arms
 INSERT INTO UnitPromotions_UnitCombatMods
@@ -1035,14 +1043,11 @@ UPDATE UnitPromotions SET AdjacentCityDefenseMod = 5 WHERE Type = 'PROMOTION_HAR
 UPDATE UnitPromotions SET FreePillageMoves = 1, AOEDamageOnPillage = 15 WHERE Type = 'PROMOTION_GARLAND_MINE';
 
 -- Hashemite Raider: Desert Raider
+UPDATE UnitPromotions_TerrainModifiers SET Attack = 25, Defense = 25 WHERE PromotionType = 'PROMOTION_DESERT_RAIDER';
 INSERT INTO UnitPromotions_Terrains
 	(PromotionType, TerrainType, DoubleMove)
 VALUES
 	('PROMOTION_DESERT_RAIDER', 'TERRAIN_DESERT', 1);
-INSERT INTO UnitPromotions_TerrainModifiers
-	(PromotionType, TerrainType, Attack, Defense)
-VALUES
-	('PROMOTION_DESERT_RAIDER', 'TERRAIN_DESERT', 25, 25);
 
 -- Iron Chariot: Shock Cavalry
 UPDATE UnitPromotions SET OpenAttack = 20, OpenDefense = 20 WHERE Type = 'PROMOTION_SHOCK_CAVALRY';
@@ -1125,7 +1130,7 @@ UPDATE UnitPromotions SET VsUnhappyMod = 20 WHERE Type = 'PROMOTION_ZEMENE_MESAF
 UPDATE UnitPromotions SET AttackFortifiedMod = 50, PillageFortificationsOnKill = 1 WHERE Type = 'PROMOTION_MINENWERFER';
 
 -- Krupp Gun: Trommelfeuer
-UPDATE UnitPromotions SET AttackModPerSamePromotionAttack = 5, AttackModPerSamePromotionAttackCap = 50 WHERE Type = 'PROMOTION_TROMMELFUEUR';
+UPDATE UnitPromotions SET AttackModPerSamePromotionAttack = 3, AttackModPerSamePromotionAttackCap = 30 WHERE Type = 'PROMOTION_TROMMELFEUER';
 
 -- Klepht: Philhellenism
 UPDATE UnitPromotions SET CombatModPerCSAlliance = 5 WHERE Type = 'PROMOTION_PHILHELLENISM';
@@ -1276,20 +1281,6 @@ UPDATE UnitPromotions SET AdjacentTileHealChange = 5 WHERE Type = 'PROMOTION_BEN
 UPDATE UnitPromotions SET ExperiencePercent = 50 WHERE Type = 'PROMOTION_SINCERITY';
 
 --------------------------------------------
--- Plagues
---------------------------------------------
-UPDATE UnitPromotions SET PlagueID = 1, PlaguePriority = 0, PromotionDuration = 1, MovesChange = -2 WHERE Type = 'PROMOTION_BOARDED_1';
-UPDATE UnitPromotions SET PlagueID = 1, PlaguePriority = 1, PromotionDuration = 1, MovesChange = -4 WHERE Type = 'PROMOTION_BOARDED_2';
-
-UPDATE UnitPromotions SET PlagueID = 2, PromotionDuration = 5, CombatPercent = -15 WHERE Type = 'PROMOTION_DAZED';
-
-UPDATE UnitPromotions SET PlagueID = 3, PromotionDuration = 50, WorkRateMod = -50 WHERE Type = 'PROMOTION_PRISONER_WAR';
-
-UPDATE UnitPromotions SET PlagueID = 4, PromotionDuration = 1, DamageTakenMod = 20 WHERE Type = 'PROMOTION_ON_FIRE';
-
-UPDATE UnitPromotions SET PlagueID = 5, PromotionDuration = 1, MovesChange = -1 WHERE Type = 'PROMOTION_MAIMED';
-
---------------------------------------------
 -- Event free promotions
 --------------------------------------------
 UPDATE UnitPromotions SET CombatPercent = 10 WHERE Type = 'PROMOTION_FERVOR';
@@ -1325,3 +1316,49 @@ VALUES
 	('PROMOTION_HILL_WALKER', 'TERRAIN_HILL', 1),
 	('PROMOTION_WHITE_WALKER', 'TERRAIN_SNOW', 1),
 	('PROMOTION_DESERT_WALKER', 'TERRAIN_DESERT', 1);
+
+--------------------------------------------
+-- Plagues
+--------------------------------------------
+UPDATE UnitPromotions SET PlagueID = 1, PlaguePriority = 0, PromotionDuration = 1, MovesChange = -2 WHERE Type = 'PROMOTION_BOARDED_1';
+UPDATE UnitPromotions SET PlagueID = 1, PlaguePriority = 1, PromotionDuration = 1, MovesChange = -4 WHERE Type = 'PROMOTION_BOARDED_2';
+
+UPDATE UnitPromotions SET PlagueID = 2, PromotionDuration = 5, CombatPercent = -15 WHERE Type = 'PROMOTION_DAZED';
+
+UPDATE UnitPromotions SET PlagueID = 3, PromotionDuration = 50, WorkRateMod = -50 WHERE Type = 'PROMOTION_PRISONERS_OF_WAR';
+
+UPDATE UnitPromotions SET PlagueID = 4, PromotionDuration = 1, DamageTakenMod = 20 WHERE Type = 'PROMOTION_ON_FIRE';
+
+UPDATE UnitPromotions SET PlagueID = 5, PromotionDuration = 1, MovesChange = -1 WHERE Type = 'PROMOTION_MAIMED';
+
+--------------------------------------------
+-- Promotions that provide blanket immunity to all Plagues
+--------------------------------------------
+
+INSERT INTO UnitPromotions_BlockedPromotions
+    (PromotionType, BlockedPromotionType)
+SELECT
+    a.PromotionType,
+    b.PlaguePromotionType
+FROM PlagueImmunePromotions a, UnitPromotions_Plagues b
+WHERE (a.DomainType = b.DomainType OR a.DomainType IS NULL OR b.DomainType IS NULL)
+
+UNION ALL
+
+-- Special plagues = any promotion with a PlagueID != -1 that is not already in UnitPromotions_Plagues
+SELECT
+    a.PromotionType,
+    b.Type
+FROM PlagueImmunePromotions a, UnitPromotions b
+WHERE a.IncludeSpecial = 1
+AND b.PlagueID <> -1
+AND NOT EXISTS (SELECT 1 FROM UnitPromotions_Plagues WHERE PlaguePromotionType = b.Type)
+
+-- Avoid duplicates
+EXCEPT
+SELECT
+    PromotionType,
+    BlockedPromotionType
+FROM UnitPromotions_BlockedPromotions;
+
+DROP TABLE PlagueImmunePromotions;

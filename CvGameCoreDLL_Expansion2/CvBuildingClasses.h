@@ -162,7 +162,6 @@ public:
 
 	int GetSpecialistType() const;
 	int GetSpecialistCount() const;
-	int GetSpecialistExtraCulture() const;
 	int GetGreatPeopleRateChange() const;
 	GreatWorkSlotType GetGreatWorkSlotType() const;
 	YieldTypes GetGreatWorkYieldType() const;
@@ -180,8 +179,6 @@ public:
 	int GetHurryCostModifier() const;
 	int GetNumCitiesPrereq() const;
 	int GetUnitLevelPrereq() const;
-	int GetCultureRateModifier() const;
-	int GetGlobalCultureRateModifier() const;
 	int GetGreatPeopleRateModifier() const;
 	int GetGlobalGreatPeopleRateModifier() const;
 	int GetGPRateModifierPerMarriage() const;
@@ -252,6 +249,7 @@ public:
 	int GetHealRateChange() const;
 	int GetHappiness() const;
 	int GetUnmoddedHappiness() const;
+	int GetUnhappiness() const;
 	int GetUnhappinessModifier() const;
 	int GetLocalUnhappinessModifier() const;
 	int GetGlobalBuildingGoldMaintenanceMod() const;
@@ -277,9 +275,7 @@ public:
 	int GetFreePolicies() const;
 	int GetFreeGreatPeople() const;
 	int GetMedianTechPercentChange() const;
-	int GetGold() const;
 	bool IsNearbyMountainRequired() const;
-	bool IsAllowsRangeStrike() const;
 	int GetDefenseModifier() const;
 	int GetGlobalDefenseModifier() const;
 	int GetExtraCityHitPoints() const;
@@ -380,7 +376,6 @@ public:
 	bool IsNeverCapture() const;
 	bool IsNukeImmune() const;
 	bool IsExtraLuxuries() const;
-	bool IsDiplomaticVoting() const;
 	bool AllowsWaterRoutes() const;
 	bool AllowsIndustrialWaterRoutes() const;
 	bool AllowsAirRoutes() const;
@@ -562,6 +557,8 @@ public:
 
 	int GetYieldChange(int i) const;
 	int* GetYieldChangeArray() const;
+	int GetYieldModifierEraScaling(int i) const;
+	int* GetYieldModifierEraScalingArray() const;
 	int GetYieldChangeEraScalingTimes100(int i) const;
 	fraction GetYieldChangePerBuilding(int i) const;
 	fraction GetYieldChangePerTile(int i) const;
@@ -804,6 +801,7 @@ private:
 	int m_iHealRateChange;
 	int m_iHappiness;
 	int m_iUnmoddedHappiness;
+	int m_iUnhappiness;
 	int m_iUnhappinessModifier;
 	int m_iLocalUnhappinessModifier;
 	int m_iGlobalBuildingGoldMaintenanceMod;
@@ -830,7 +828,6 @@ private:
 	int m_iMedianTechPercentChange;
 	int m_iGold;
 	bool m_bNearbyMountainRequired;
-	bool m_bAllowsRangeStrike;
 	int m_iDefenseModifier;
 	int m_iGlobalDefenseModifier;
 	int m_iExtraCityHitPoints;
@@ -960,7 +957,6 @@ private:
 	bool m_bNeverCapture;
 	bool m_bNukeImmune;
 	bool m_bExtraLuxuries;
-	bool m_bDiplomaticVoting;
 	bool m_bAllowsWaterRoutes;
 	bool m_bAllowsIndustrialWaterRoutes;
 	bool m_bAllowsAirRoutes;
@@ -1053,6 +1049,7 @@ private:
 	int* m_piYieldFromGPBirthScaledWithArtistBulb;
 	map<GreatPersonTypes, map<pair<YieldTypes, YieldTypes>, int>> m_miYieldFromGPBirthScaledWithPerTurnYield;
 	int* m_piYieldChange;
+	int* m_piYieldModifierEraScaling;
 	int* m_piYieldChangeEraScalingTimes100;
 	fraction* m_pfYieldChangePerBuilding;
 	fraction* m_pfYieldChangePerTile;

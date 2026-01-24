@@ -430,7 +430,7 @@ bool CvAIOperation::RecruitUnit(CvUnit* pUnit)
 		//stupid but true, missing units are maintained on operation level
 		for (std::deque<OperationSlot>::iterator it = m_viListOfUnitsWeStillNeedToBuild.begin(); it != m_viListOfUnitsWeStillNeedToBuild.end(); ++it)
 		{
-			if (it->m_iSlotID == freeSlotInfo[iIndex].first)
+			if (it->m_iSlotID == static_cast<int>(freeSlotInfo[iIndex].first))
 			{
 				m_viListOfUnitsWeStillNeedToBuild.erase(it);
 				break;
@@ -516,8 +516,7 @@ int CvAIOperation::GrabUnitsFromTheReserves(CvPlot* pMusterPlot, CvPlot* pTarget
 	for (size_t iI = 0; iI < pArmy->GetNumFormationEntries(); iI++)
 	{
 		CvArmyFormationSlot* pSlot = pArmy->GetSlotStatus(iI);
-		if (!pSlot)
-			return false;
+		ASSERT(pSlot != NULL, "GetSlotStatus returned null - array bounds issue");
 
 		if (pSlot->IsFree())
 		{
@@ -766,6 +765,13 @@ bool CvAIOperation::Move()
 		return false;
 	}
 
+	//this might cause us to abort
+	if (ShouldAbort())
+	{
+		pThisArmy->ReleaseAllUnits();
+		return false;
+	}
+
 	//exclude rapid response ops etc
 	if (pThisArmy->GetNumSlotsFilled()>3)
 	{
@@ -1008,7 +1014,6 @@ FDataStream& operator<<(FDataStream& stream, const CvAIOperation& aiOperation)
 	return stream;
 }
 
-#if defined(MOD_BALANCE_CORE)
 const char* CvAIOperation::GetInfoString()
 {
 	CvString strTemp0;
@@ -1055,7 +1060,6 @@ const char* CvAIOperation::GetInfoString()
 	m_strInfoString = strTemp0+strTemp1+strTemp2+strTemp3;
 	return m_strInfoString.c_str();
 }
-#endif
 
 // PRIVATE FUNCTIONS
 
@@ -1352,8 +1356,7 @@ bool CvAIOperation::FindBestFitReserveUnit(OperationSlot thisOperationSlot, vect
 		return false;
 
 	CvArmyFormationSlot* pSlot = pThisArmy->GetSlotStatus(thisOperationSlot.m_iSlotID);
-	if (!pSlot)
-		return false;
+	PRECONDITION(pSlot != NULL, "GetSlotStatus returned null - slot ID out of bounds");
 
 	if (pSlot->IsUsed())
 	{
@@ -1741,11 +1744,11 @@ CvPlot* CvAIOperationPillageEnemy::FindBestTarget(CvPlot** ppMuster) const
 
 	if (ppMuster)
 	{
-		CvCity *pClosest = pBestTargetCity ? kPlayer.GetClosestCityByPathLength(pBestTargetCity->plot()) : NULL;
+		CvCity *pClosest = kPlayer.GetClosestCityByPathLength(pBestTargetCity->plot());
 		*ppMuster = pClosest ? pClosest->plot() : NULL;
 	}
 
-	return pBestTargetCity ? pBestTargetCity->plot() : NULL;
+	return pBestTargetCity->plot();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1929,6 +1932,8 @@ CvUnit* CvAIOperationCivilianFoundCity::FindBestCivilian()
 	for (CvUnit* pLoopUnit = GET_PLAYER(m_eOwner).firstUnit(&iUnitLoop); pLoopUnit != NULL; pLoopUnit = GET_PLAYER(m_eOwner).nextUnit(&iUnitLoop))
 	{
 		if (pLoopUnit->getArmyID() != -1)
+			continue;
+		if (!pLoopUnit->IsCivilianUnit())
 			continue;
 		if (pLoopUnit->canFoundCity(NULL,true,true))
 			return pLoopUnit;
@@ -2638,6 +2643,9 @@ bool CvAIOperationNukeAttack::CheckTransitionToNextStage()
 	CvPlot* pTargetPlot = GetTargetPlot();
 	CvArmyAI* pArmy = GetArmy(0);
 
+	if (m_eCurrentState == AI_OPERATION_STATE_SUCCESSFUL_FINISH)
+		return false;
+
 	//don't care about the intermediate niceties ... just nuke away!
 	if(pTargetPlot && pArmy)
 	{
@@ -2717,14 +2725,14 @@ CvPlot* CvAIOperationNukeAttack::FindBestTarget(CvPlot** ppMuster) const
 	// check all of our units to find the nukes
 	for(CvUnit* pLoopUnit = ownerPlayer.firstUnit(&iUnitLoop); pLoopUnit != NULL; pLoopUnit = ownerPlayer.nextUnit(&iUnitLoop))
 	{
-		if (!pLoopUnit || !pLoopUnit->canNuke())
+		if (!pLoopUnit->canNuke())
 			continue;
 
 		// for all cities of this enemy
 		for(CvCity* pLoopCity = enemyPlayer.firstCity(&iCityLoop); pLoopCity != NULL; pLoopCity = enemyPlayer.nextCity(&iCityLoop))
 		{
 			//in range?
-			if (!pLoopCity || plotDistance(pLoopUnit->getX(), pLoopUnit->getY(), pLoopCity->getX(), pLoopCity->getY()) > pLoopUnit->GetRange())
+			if (plotDistance(pLoopUnit->getX(), pLoopUnit->getY(), pLoopCity->getX(), pLoopCity->getY()) > pLoopUnit->GetRange())
 				continue;
 
 			//don't nuke if we're about to capture it or if it was captured from us
@@ -2979,12 +2987,21 @@ AIOperationAbortReason CvAIOperationCivilianDiplomatDelegation::VerifyOrAdjustTa
 	if (!pCivilian)
 		return AI_ABORT_LOST_CIVILIAN;
 
-	if (GetTargetPlot()==NULL || !pCivilian->canTrade( GetTargetPlot() ))
+	bool bRetarget = false;
+	if (GetTargetPlot() == NULL || !pCivilian->canTrade(GetTargetPlot()))
+	{
 		RetargetCivilian(pCivilian, pArmy);
+		bRetarget = true;
+	}
 
-	CvCity* pTargetCity = GetTargetPlot()->getOwningCity();
-	if (pTargetCity == NULL || GET_PLAYER(pCivilian->getOwner()).ScoreCityForMessenger(pTargetCity, pCivilian) <= 0)
-		RetargetCivilian(pCivilian, pArmy);
+	if (!bRetarget)
+	{
+		CvCity* pTargetCity = GetTargetPlot()->getOwningCity();
+		if (pTargetCity == NULL || GET_PLAYER(pCivilian->getOwner()).ScoreCityForMessenger(pTargetCity, pCivilian) <= 0)
+		{
+			RetargetCivilian(pCivilian, pArmy);
+		}
+	}
 
 	return (GetTargetPlot() != NULL) ? NO_ABORT_REASON : AI_ABORT_NO_TARGET;
 }
@@ -3213,7 +3230,7 @@ int OperationalAIHelpers::IsUnitSuitableForRecruitment(CvUnit* pLoopUnit, const 
 		*/
 		return -1;
 	}
-	if (pLoopUnit->GetCurrHitPoints() < ((pLoopUnit->GetMaxHitPoints() * /*70*/ GD_INT_GET(AI_OPERATIONAL_PERCENT_HEALTH_FOR_OPERATION)) / 100))
+	if (pLoopUnit->GetCurrHitPoints() * 100 < pLoopUnit->GetMaxHitPoints() * /*70*/ GD_INT_GET(AI_OPERATIONAL_PERCENT_HEALTH_FOR_OPERATION))
 	{
 		/*
 		if (GC.getLogging() && GC.getAILogging())
@@ -3238,8 +3255,8 @@ int OperationalAIHelpers::IsUnitSuitableForRecruitment(CvUnit* pLoopUnit, const 
 		return -1;
 	}
 
-	//skip pure explorers
-	if (pLoopUnit->getUnitInfo().GetDefaultUnitAIType() == UNITAI_EXPLORE || pLoopUnit->getUnitInfo().GetDefaultUnitAIType() == UNITAI_EXPLORE_SEA)
+	//skip units that are assigned to exploring or settling (e.g. conquistadors)
+	if (pLoopUnit->AI_getUnitAIType() == UNITAI_EXPLORE || pLoopUnit->AI_getUnitAIType() == UNITAI_EXPLORE_SEA || pLoopUnit->AI_getUnitAIType() == UNITAI_SETTLE)
 		return -1;
 
 	if (pLoopUnit->getDomainType() == DOMAIN_LAND)

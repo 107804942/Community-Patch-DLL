@@ -70,9 +70,7 @@ public:
 	int  GetInvisibleType() const;
 	int  GetSeeInvisibleType() const;
 	int  GetVisibilityChange() const;
-#if defined(MOD_PROMOTIONS_VARIABLE_RECON)
 	int  GetReconChange() const;
-#endif
 	int  GetMovesChange() const;
 	int  GetMoveDiscountChange() const;
 	int  GetRangeChange() const;
@@ -82,9 +80,7 @@ public:
 	int  GetAirSweepCombatModifier() const;
 	int  GetInterceptChanceChange() const;
 	int  GetNumInterceptionChange() const;
-#if defined(MOD_BALANCE_CORE)
 	int  GetAirInterceptRangeChange() const; // JJ: This is new
-#endif
 	int  GetEvasionChange() const;
 	int  GetCargoChange() const;
 	int  GetEnemyHealChange() const;
@@ -164,21 +160,20 @@ public:
 	bool IsRequiresLeadership() const;
 	bool IsCannotHeal() const;
 	bool IsPillageFortificationsOnKill() const;
-#if defined(MOD_BALANCE_CORE_JFD)
 	int GetPlagueID() const;
 	int GetPlaguePriority() const;
-#endif
 	int GetEmbarkExtraVisibility() const;
 	int GetEmbarkDefenseModifier() const;
 	int GetCapitalDefenseModifier() const;
 	int GetCapitalDefenseFalloff() const;
+	int GetCapitalDefenseLimit() const;
 	int GetCityAttackPlunderModifier() const;
 	int GetReligiousStrengthLossRivalTerritory() const;
 	
 	int GetTradeMissionInfluenceModifier() const;
 	int GetTradeMissionGoldModifier() const;
-#if defined(MOD_BALANCE_CORE)
-	int GetDiploMissionInfluence() const;
+	int GetCombatModPerLevel() const;
+    int GetDiploMissionInfluence() const;
 	int GetCaptureDefeatedEnemyChance() const;
 	int GetBarbarianCombatBonus() const;
 	int GetGoodyHutYieldBonus() const;
@@ -189,10 +184,13 @@ public:
 	int NegatesPromotion() const;
 	bool CannotBeCaptured() const;
 	bool IsLostOnMove() const;
-	int ForcedDamageValue() const;
-	int ChangeDamageValue() const;
+	int GetForcedDamageValue() const;
+	int GetChangeDamageValue() const;
+	int GetDamageTakenMod() const;
+	int GetInfluenceFromCombatXPTimes100() const;
 	int PromotionDuration() const;
 	bool IsCityStateOnly() const;
+	bool IsDiplomaticMissionAccomplishment() const;
 	bool IsBarbarianOnly() const;
 	int GetMoraleBreakChance() const;
 	int GetDamageAoEFortified() const;
@@ -203,7 +201,7 @@ public:
 	int GetWonderProductionModifier() const;
 	bool IsStrongerDamaged() const;
 	bool IsFightWellDamaged() const;
-	bool IsMountainsDoubleMove() const;
+	bool IsFreeAttackMoves() const;
 	bool IsEmbarkFlatCost() const;
 	bool IsDisembarkFlatCost() const;
 	bool IsMountedOnly() const;
@@ -221,7 +219,6 @@ public:
 	int GetMultiAttackBonus() const;
 	int GetLandAirDefenseValue() const;
 	int GetDamageReductionCityAssault() const;
-#endif
 	bool IsCannotBeChosen() const;
 	bool IsLostWithUpgrade() const;
 	bool IsNotWithUpgrade() const;
@@ -236,7 +233,6 @@ public:
 	bool IsRangedSupportFire() const;
 	bool IsAlwaysHeal() const;
 	bool IsHealOutsideFriendly() const;
-	bool IsHillsDoubleMove() const;
 	bool IsRiverDoubleMove() const;
 
 	bool IsIgnoreTerrainCost() const;
@@ -244,23 +240,13 @@ public:
 	bool IsIgnoreFeatureDamage() const;
 	bool IsExtraTerrainDamage() const;
 	bool IsExtraFeatureDamage() const;
-#if defined(MOD_PROMOTIONS_IMPROVEMENT_BONUS)
 	int GetNearbyImprovementCombatBonus() const;
 	int GetNearbyImprovementBonusRange() const;
 	ImprovementTypes GetCombatBonusImprovement() const;
-#endif
-#if defined(MOD_PROMOTIONS_CROSS_MOUNTAINS)
 	bool CanCrossMountains() const;
-#endif
-#if defined(MOD_PROMOTIONS_CROSS_OCEANS)
 	bool CanCrossOceans() const;
-#endif
-#if defined(MOD_PROMOTIONS_CROSS_ICE)
 	bool CanCrossIce() const;
-#endif
-#if defined(MOD_PROMOTIONS_GG_FROM_BARBARIANS)
 	bool IsGGFromBarbarians() const;
-#endif
 	bool IsRoughTerrainEndsTurn() const;
 	bool IsCapturedUnitsConscripted() const;
 	bool IsHoveringUnit() const;
@@ -284,15 +270,12 @@ public:
 	bool IsHealOnPillage() const;
 	bool IsHealIfDefeatExcludeBarbarians() const;
 	bool IsEmbarkedAllWater() const;
-#if defined(MOD_PROMOTIONS_DEEP_WATER_EMBARKATION)
 	bool IsEmbarkedDeepWater() const;
-#endif
 	bool IsCityAttackSupport() const;
 	bool IsCaptureDefeatedEnemy() const;
 	bool IsIgnoreGreatGeneralBenefit() const;
 	bool IsIgnoreZOC() const;
 	bool IsSapper() const;
-#if defined(MOD_BALANCE_CORE)
 	int GetNearbyCityCombatMod() const;
 	int GetNearbyFriendlyCityCombatMod() const;
 	int GetNearbyEnemyCityCombatMod() const;
@@ -326,7 +309,6 @@ public:
 	int GetNearbyHealNeutralTerritory() const;
 	int GetNearbyHealFriendlyTerritory() const;
 	int GetAdjacentEnemySapMovement() const;
-#endif
 	bool IsCanHeavyCharge() const;
 	bool HasPostCombatPromotions() const;
 	bool ArePostCombatPromotionsExclusive() const;
@@ -342,13 +324,11 @@ public:
 	int GetTerrainModifierDefense(int i) const;
 	int GetFeatureAttackPercent(int i) const;
 	int GetFeatureDefensePercent(int i) const;
-#if defined(MOD_BALANCE_CORE)
 	int GetYieldFromAncientRuins(int i) const;
 	int GetYieldFromTRPlunder(int i) const;
 	int GetYieldFromScouting(int i) const;
 	int GetYieldModifier(int i) const;
 	int GetYieldChange(int i) const;
-#endif
 	int GetYieldFromKills(int i) const;
 	int GetYieldFromBarbarianKills(int i) const;
 	int GetYieldFromCombatExperienceTimes100(int i) const;
@@ -365,12 +345,10 @@ public:
 	int GetDomainDefensePercent(int i) const;
 	int GetFeaturePassableTech(int i) const;
 
-#if defined(MOD_BALANCE_CORE)
 	int GetCombatModPerAdjacentUnitCombatModifierPercent(int i) const;
 	int GetCombatModPerAdjacentUnitCombatAttackModifier(int i) const;
 	int GetCombatModPerAdjacentUnitCombatDefenseModifier(int i) const;
 	std::pair<int, bool> GetInstantYields(int i) const;
-#endif
 
 	bool GetIgnoreTerrainCostIn(int i) const;
 	bool GetIgnoreTerrainCostFrom(int i) const;
@@ -378,16 +356,12 @@ public:
 	bool GetIgnoreFeatureCostFrom(int i) const;
 	bool GetTerrainDoubleMove(int i) const;
 	bool GetFeatureDoubleMove(int i) const;
-#if defined(MOD_PROMOTIONS_HALF_MOVE)
 	bool GetTerrainHalfMove(int i) const;
 	bool GetTerrainExtraMove(int i) const;
 	bool GetFeatureHalfMove(int i) const;
 	bool GetFeatureExtraMove(int i) const;
-#endif
-#if defined(MOD_BALANCE_CORE)
 	bool GetTerrainDoubleHeal(int i) const;
 	bool GetFeatureDoubleHeal(int i) const;
-#endif
 	bool GetTerrainImpassable(int i) const;
 	int  GetTerrainPassableTech(int i) const;
 	bool GetFeatureImpassable(int i) const;
@@ -396,10 +370,8 @@ public:
 	std::pair<int, int> GetYieldFromPillage(YieldTypes eYield) const;
 	std::set<int> GetBlockedPromotions() const;
 	std::vector<PlagueInfo> GetPlagues() const;
-#if defined(MOD_PROMOTIONS_UNIT_NAMING)
 	bool IsUnitNaming(int i) const;
 	void GetUnitName(UnitTypes eUnit, CvString& sUnitName) const;
-#endif
 	bool IsPostCombatRandomPromotion(int i) const;
 
 protected:
@@ -419,9 +391,7 @@ protected:
 	int m_iInvisibleType;
 	int m_iSeeInvisibleType;
 	int m_iVisibilityChange;
-#if defined(MOD_PROMOTIONS_VARIABLE_RECON)
 	int m_iReconChange;
-#endif
 	int m_iMovesChange;
 	int m_iMoveDiscountChange;
 	int m_iRangeChange;
@@ -431,9 +401,7 @@ protected:
 	int m_iAirSweepCombatModifier;
 	int m_iInterceptChanceChange;
 	int m_iNumInterceptionChange;
-#if defined(MOD_BALANCE_CORE)
 	int m_iAirInterceptRangeChange; // JJ: This is new
-#endif
 	int m_iEvasionChange;
 	int m_iCargoChange;
 	int m_iEnemyHealChange;
@@ -509,20 +477,19 @@ protected:
 	bool m_bRequiresLeadership;
 	bool m_bCannotHeal;
 	bool m_bPillageFortificationsOnKill;
-#if defined(MOD_BALANCE_CORE_JFD)
 	int m_iPlagueID;
 	int m_iPlaguePriority;
-#endif
 	int m_iEmbarkExtraVisibility;
 	int m_iEmbarkDefenseModifier;
 	int m_iCapitalDefenseModifier;
 	int m_iCapitalDefenseFalloff;
+	int m_iCapitalDefenseLimit;
 	int m_iCityAttackPlunderModifier;
 	int m_iReligiousStrengthLossRivalTerritory;
 	int m_iTradeMissionInfluenceModifier;
 	int m_iTradeMissionGoldModifier;
+	int m_iCombatModPerLevel;
 
-#if defined(MOD_BALANCE_CORE)
 	int m_iCaptureDefeatedEnemyChance;
 	int m_iBarbarianCombatBonus;
 	int m_iGoodyHutYieldBonus;
@@ -535,16 +502,19 @@ protected:
 	int m_iNegatesPromotion;
 	int m_iForcedDamageValue;
 	int m_iChangeDamageValue;
+	int m_iDamageTakenMod;
+	int m_iInfluenceFromCombatXPTimes100;
 	int m_iPromotionDuration;
 	int m_iMoraleBreakChance;
 	int m_iDamageAoEFortified;
 	int m_iWorkRateMod;
 	bool m_bIsLostOnMove;
 	bool m_bCityStateOnly;
+	bool m_bDiplomaticMissionAccomplishment;
 	bool m_bBarbarianOnly;
 	bool m_bStrongerDamaged;
 	bool m_bFightWellDamaged;
-#endif
+	bool m_bFreeAttackMoves;
 	bool m_bCannotBeChosen;
 	bool m_bLostWithUpgrade;
 	bool m_bNotWithUpgrade;
@@ -559,19 +529,15 @@ protected:
 	bool m_bRangedSupportFire;
 	bool m_bAlwaysHeal;
 	bool m_bHealOutsideFriendly;
-	bool m_bHillsDoubleMove;
 	bool m_bRiverDoubleMove;
 	bool m_bIgnoreTerrainCost;
 	bool m_bIgnoreTerrainDamage;
 	bool m_bIgnoreFeatureDamage;
 	bool m_bExtraTerrainDamage;
 	bool m_bExtraFeatureDamage;
-#if defined(MOD_PROMOTIONS_IMPROVEMENT_BONUS)
 	int m_iNearbyImprovementCombatBonus;
 	int m_iNearbyImprovementBonusRange;
 	ImprovementTypes m_eCombatBonusImprovement;
-#endif
-#if defined(MOD_BALANCE_CORE)	
 	int m_iNearbyUnitClassBonus;
 	int m_iNearbyUnitClassBonusRange;
 	UnitClassTypes m_iCombatBonusFromNearbyUnitClass;
@@ -590,23 +556,13 @@ protected:
 	int m_iMultiAttackBonus;
 	int m_iLandAirDefenseValue;
 	int m_iDamageReductionCityAssault;
-	bool m_bMountainsDoubleMove;
 	bool m_bEmbarkFlatCost;
 	bool m_bDisembarkFlatCost;
 	bool m_bMountedOnly;
-#endif
-#if defined(MOD_PROMOTIONS_CROSS_MOUNTAINS)
 	bool m_bCanCrossMountains;
-#endif
-#if defined(MOD_PROMOTIONS_CROSS_OCEANS)
 	bool m_bCanCrossOceans;
-#endif
-#if defined(MOD_PROMOTIONS_CROSS_ICE)
 	bool m_bCanCrossIce;
-#endif
-#if defined(MOD_PROMOTIONS_GG_FROM_BARBARIANS)
 	bool m_bGGFromBarbarians;
-#endif
 	bool m_bRoughTerrainEndsTurn;
 	bool m_bCapturedUnitsConscripted;
 	bool m_bHoveringUnit;
@@ -630,9 +586,7 @@ protected:
 	bool m_bHealOnPillage;
 	bool m_bHealIfDefeatExcludesBarbarians;
 	bool m_bEmbarkedAllWater;
-#if defined(MOD_PROMOTIONS_DEEP_WATER_EMBARKATION)
 	bool m_bEmbarkedDeepWater;
-#endif
 	bool m_bCityAttackOnly;
 	bool m_bCaptureDefeatedEnemy;
 	bool m_bIgnoreGreatGeneralBenefit;
@@ -640,7 +594,6 @@ protected:
 	bool m_bHasPostCombatPromotions;
 	bool m_bPostCombatPromotionsExclusive;
 	bool m_bSapper;
-#if defined(MOD_BALANCE_CORE)
 	int m_iNearbyCityCombatMod;
 	int m_iNearbyFriendlyCityCombatMod;
 	int m_iNearbyEnemyCityCombatMod;
@@ -675,7 +628,6 @@ protected:
 	int m_iNearbyHealNeutralTerritory;
 	int m_iNearbyHealFriendlyTerritory;
 	int m_iAdjacentEnemySapMovement;
-#endif
 	bool m_bCanHeavyCharge;
 
 	CvString m_strSound;
@@ -687,13 +639,11 @@ protected:
 	int* m_piFeatureDefensePercent;
 	int* m_piTerrainModifierAttack;
 	int* m_piTerrainModifierDefense;
-#if defined(MOD_BALANCE_CORE)
 	int* m_piYieldFromScouting;
 	int* m_piYieldModifier;
 	int* m_piYieldChange;
 	int* m_piYieldFromAncientRuins;
 	int* m_piYieldFromTRPlunder;
-#endif
 	int* m_piYieldFromKills;
 	int* m_piYieldFromBarbarianKills;
 	int* m_piYieldFromCombatExperienceTimes100;
@@ -709,12 +659,10 @@ protected:
 	int* m_piDomainAttackPercent;
 	int* m_piDomainDefensePercent;
 
-#if defined(MOD_BALANCE_CORE)
 	int* m_piCombatModPerAdjacentUnitCombatModifierPercent;
 	int* m_piCombatModPerAdjacentUnitCombatAttackModifier;
 	int* m_piCombatModPerAdjacentUnitCombatDefenseModifier;
 	std::map<int, std::pair<int, bool>> m_piInstantYields;
-#endif
 
 	int* m_piTerrainPassableTech;
 	int* m_piFeaturePassableTech;
@@ -725,23 +673,17 @@ protected:
 	bool* m_pbIgnoreFeatureCostFrom;
 	bool* m_pbTerrainDoubleMove;
 	bool* m_pbFeatureDoubleMove;
-#if defined(MOD_PROMOTIONS_HALF_MOVE)
 	bool* m_pbTerrainHalfMove;
 	bool* m_pbTerrainExtraMove;
 	bool* m_pbFeatureHalfMove;
 	bool* m_pbFeatureExtraMove;
-#endif
-#if defined(MOD_BALANCE_CORE)
 	bool* m_pbTerrainDoubleHeal;
 	bool* m_pbFeatureDoubleHeal;
-#endif
 	bool* m_pbTerrainImpassable;
 	bool* m_pbFeatureImpassable;
 	bool* m_pbUnitCombat;
 	bool* m_pbCivilianUnitType;
-#if defined(MOD_PROMOTIONS_UNIT_NAMING)
 	bool* m_pbUnitName;
-#endif
 	bool* m_pbPostCombatRandomPromotion;
 	std::map<int, std::pair<int, int>> m_yieldFromPillage;
 	std::set<int> m_siBlockedPromotions;

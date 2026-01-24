@@ -90,7 +90,6 @@ public:
 	int GetCulturePerGarrisonedUnit() const;
 	int GetHappinessPerTradeRoute() const;
 	int GetHappinessPerXPopulation() const;
-#if defined(MOD_BALANCE_CORE_POLICIES)
 	int GetHappinessPerXPopulationGlobal() const;
 	EraTypes GetPolicyEraUnlock() const;
 	int GetIdeologyPoint() const;
@@ -121,17 +120,12 @@ public:
 	int GetHappinessPerXGreatWorks() const;
 	int GetExtraMissionaryStrength() const;
 	int GetExtraMissionarySpreads() const;
-#endif
 	int GetExtraHappinessPerLuxury() const;
 	int GetUnhappinessFromUnitsMod() const;
 	int GetNumExtraBuilders() const;
 	int GetPlotGoldCostMod() const;
-#if defined(MOD_POLICIES_CITY_WORKING)
 	int GetCityWorkingChange() const;
-#endif
-#if defined(MOD_POLICIES_CITY_AUTOMATON_WORKERS)
 	int GetCityAutomatonWorkersChange() const;
-#endif
 	int GetPlotCultureCostModifier() const;
 	int GetPlotCultureExponentModifier() const;
 	int GetNumCitiesPolicyCostDiscount() const;
@@ -145,9 +139,7 @@ public:
 	int GetStealTechSlowerModifier() const;
 	int GetStealTechFasterModifier() const;
 	int GetCatchSpiesModifier() const;
-#if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	int GetConversionModifier() const;
-#endif
 	int GetGoldPerUnit() const;
 	int GetGoldPerMilitaryUnit() const;
 	int GetCityStrengthMod() const;
@@ -158,9 +150,7 @@ public:
 	int GetNewCityExtraPopulation() const;
 	int GetFreeFoodBox() const;
 	int GetImprovementGoldMaintenanceMod() const;
-#if defined(MOD_CIV6_WORKER)
 	int GetRouteBuilderCostMod() const;
-#endif
 	int GetBuildingGoldMaintenanceMod() const;
 	int GetUnitGoldMaintenanceMod() const;
 	int GetUnitSupplyMod() const;
@@ -188,7 +178,6 @@ public:
 	int GetMinorBullyScoreModifier() const;
 	int GetThemingBonusMultiplier() const;
 	int GetInternalTradeRouteYieldModifier() const;
-#if defined(MOD_BALANCE_CORE)
 	int GetPositiveWarScoreTourismMod() const;
 	int GetInternalTradeRouteYieldModifierCapital() const;
 	int GetTradeRouteYieldModifier() const;
@@ -202,7 +191,6 @@ public:
 	int GetMinimumAllyInfluenceIncreaseAtWar() const;
 	bool CanBullyFriendlyCS() const;
 	int GetBullyGlobalCSReduction() const;
-#endif
 	bool IsVassalsNoRebel() const;
 	int GetVassalYieldBonusModifier() const;
 	int GetCSYieldBonusModifier() const;
@@ -220,7 +208,6 @@ public:
 	int GetNumCitiesFreeFoodBuilding() const;
 	bool IsHalfSpecialistUnhappiness() const;
 	bool IsHalfSpecialistFood() const;
-#if defined(MOD_BALANCE_CORE)
 	bool IsHalfSpecialistFoodCapital() const;
 	int GetStealGWSlowerModifier() const;
 	int GetStealGWFasterModifier() const;
@@ -233,7 +220,6 @@ public:
 	int GetCityStateCombatModifier() const;
 	int GetGreatEngineerRateModifier() const;
 	int GetDefenseBoost() const;
-#endif
 	bool IsMilitaryFoodProduction() const;
 	int GetWoundedUnitDamageMod() const;
 	int GetUnitUpgradeCostMod() const;
@@ -277,17 +263,12 @@ public:
 	int* GetSpecialistExtraYieldArray() const;
 	bool IsFreePromotion(int i) const;
 	bool IsFreePromotionUnitCombat(const int promotionID, const int unitCombatID) const;
-#if defined(MOD_RELIGION_POLICY_BRANCH_FAITH_GP)
 	bool HasFaithPurchaseUnitClasses() const;
 	bool IsFaithPurchaseUnitClass(const int eUnitClass, const int eCurrentEra) const;
-#endif
-#if defined(MOD_BALANCE_CORE_POLICIES)
 	int GetYieldChangesPerReligionTimes100(int i) const;
 	int* GetYieldChangesPerReligionTimes100Array() const;
-#endif
 	int GetUnitCombatProductionModifiers(int i) const;
 	int GetUnitCombatFreeExperiences(int i) const;
-	int GetBuildingClassCultureChange(int i) const;
 	int GetBuildingClassSecurityChange(int i) const;
 	int GetBuildingClassHappiness(int i) const;
 	int GetBuildingClassProductionModifier(int i) const;
@@ -298,15 +279,14 @@ public:
 
 	int GetHurryModifier(int i) const;
 	bool IsSpecialistValid(int i) const;
-#if defined(MOD_BALANCE_CORE)
 	int GetFreeChosenBuilding(int i) const;
-#endif
-#if defined(MOD_BALANCE_CORE_POLICIES)
 	int GetResourceFromCSAlly(int i) const;
 	int GetYieldFromBirth(int i) const;
 	int GetYieldFromBirthCapital(int i) const;
 	int GetYieldFromBirthRetroactive(int i) const;
 	int GetYieldFromBirthCapitalRetroactive(int i) const;
+    int GetInstantYield(int i) const;
+    int* GetInstantYieldArray() const; 
 	int GetYieldFromConstruction(int i) const;
 	int GetYieldFromWorldWonderConstruction(int i) const;
 	int GetYieldFromTech(int i) const;
@@ -322,6 +302,8 @@ public:
 	int GetTechCostXCitiesMod() const;
 	int GetTourismCostXCitiesMod() const;
 	int GetCultureBombBoost() const;
+	bool GetCultureBombForeignTerritory() const;
+	bool GetRetainRazedTerritory() const;
 	int GetPuppetProdMod() const;
 	int GetOccupiedProdMod() const;
 	int GetInternalTradeGold() const;
@@ -365,10 +347,7 @@ public:
 	int GetCityCaptureHealLocal() const;
 	int getFranchisesPerImprovement(int i) const;
 	int GetMaxAirUnitsChange() const;
-#endif
-#if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
 	int GetInvestmentModifier() const;
-#endif
 	int GetImprovementYieldChanges(int i, int j) const;
 	int GetPlotYieldChanges(int i, int j) const;
 	int GetFeatureYieldChanges(int i, int j) const;
@@ -414,6 +393,9 @@ public:
 
 	bool IsOnlyTradeSameIdeology() const;
 
+	int GetYieldFromUnitProduction(int i) const;
+	int* GetYieldFromUnitProductionArray() const;
+
 	int GetYieldFromNonSpecialistCitizensTimes100(int i) const;
 	int* GetYieldFromNonSpecialistCitizensTimes100Array() const;
 
@@ -447,10 +429,8 @@ public:
 	int GetInternationalRouteYieldModifier(int i) const;
 	int* GetInternationalRouteYieldModifiersArray();
 #endif
-#if defined(MOD_POLICIES_UNIT_CLASS_REPLACEMENTS)
 	bool IsUnitClassReplacements() const;
 	std::map<UnitClassTypes, UnitClassTypes> GetUnitClassReplacements() const;
-#endif
 	int GetBuildingClassYieldModifiers(int i, int j) const;
 	int GetBuildingClassYieldChanges(int i, int j) const;
 	int GetFlavorValue(int i) const;
@@ -460,17 +440,17 @@ public:
 
 	BuildingTypes GetFreeBuildingOnConquest() const;
 
-	int GetDistressFlatReductionGlobal() const;
-	int GetPovertyFlatReductionGlobal() const;
-	int GetIlliteracyFlatReductionGlobal() const;
-	int GetBoredomFlatReductionGlobal() const;
-	int GetReligiousUnrestFlatReductionGlobal() const;
+	int GetDistressFlatReduction() const;
+	int GetPovertyFlatReduction() const;
+	int GetIlliteracyFlatReduction() const;
+	int GetBoredomFlatReduction() const;
+	int GetReligiousUnrestFlatReduction() const;
 
-	int GetBasicNeedsMedianModifierGlobal() const;
-	int GetGoldMedianModifierGlobal() const;
-	int GetScienceMedianModifierGlobal() const;
-	int GetCultureMedianModifierGlobal() const;
-	int GetReligiousUnrestModifierGlobal() const;
+	int GetBasicNeedsMedianModifier() const;
+	int GetGoldMedianModifier() const;
+	int GetScienceMedianModifier() const;
+	int GetCultureMedianModifier() const;
+	int GetReligiousUnrestModifier() const;
 
 	int GetBasicNeedsMedianModifierCapital() const;
 	int GetGoldMedianModifierCapital() const;
@@ -554,22 +534,16 @@ private:
 	int m_iCulturePerGarrisonedUnit;
 	int m_iHappinessPerTradeRoute;
 	int m_iHappinessPerXPopulation;
-#if defined(MOD_BALANCE_CORE_POLICIES)
 	int m_iHappinessPerXPopulationGlobal;
 	EraTypes m_ePolicyEraUnlock;
 	int m_iIdeologyPoint;
 	bool m_bNoXPLossUnitPurchase;
-#endif
 	int m_iExtraHappinessPerLuxury;
 	int m_iUnhappinessFromUnitsMod;
 	int m_iNumExtraBuilders;
 	int m_iPlotGoldCostMod;
-#if defined(MOD_POLICIES_CITY_WORKING)
 	int m_iCityWorkingChange;
-#endif
-#if defined(MOD_POLICIES_CITY_AUTOMATON_WORKERS)
 	int m_iCityAutomatonWorkersChange;
-#endif
 	int m_iPlotCultureCostModifier;
 	int m_iPlotCultureExponentModifier;
 	int m_iNumCitiesPolicyCostDiscount;
@@ -583,9 +557,7 @@ private:
 	int m_iStealTechSlowerModifier;
 	int m_iStealTechFasterModifier;
 	int m_iCatchSpiesModifier;
-#if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	int m_iConversionModifier;
-#endif
 	int m_iGoldPerUnit;
 	int m_iGoldPerMilitaryUnit;
 	int m_iCityStrengthMod;
@@ -596,9 +568,7 @@ private:
 	int m_iNewCityExtraPopulation;
 	int m_iFreeFoodBox;
 	int m_iImprovementGoldMaintenanceMod;
-#if defined(MOD_CIV6_WORKER)
 	int m_iRouteBuilderCostMod;
-#endif
 	int m_iBuildingGoldMaintenanceMod;
 	int m_iUnitGoldMaintenanceMod;
 	int m_iUnitSupplyMod;
@@ -629,12 +599,10 @@ private:
 	int m_iInternalTradeRouteYieldModifierCapital;
 	int m_iTradeRouteYieldModifierCapital;
 	int m_iTradeRouteYieldModifier;
-#if defined(MOD_BALANCE_CORE)
 	BuildingClassTypes m_eNewCityFreeBuilding;
 	BuildingClassTypes m_eAllCityFreeBuilding;
 	UnitClassTypes m_eNewFoundCityFreeUnit;
 	BuildingClassTypes m_eNewFoundCityFreeBuilding;
-#endif
 	bool m_bNoCSDecayAtWar;
 	int m_iMinimumAllyInfluenceIncreaseAtWar;
 	bool m_bBullyFriendlyCS;
@@ -662,7 +630,6 @@ private:
 
 	bool m_bHalfSpecialistUnhappiness;
 	bool m_bHalfSpecialistFood;
-#if defined(MOD_BALANCE_CORE)
 	int m_iStealGWSlowerModifier;
 	int m_iStealGWFasterModifier;
 	bool m_bHalfSpecialistFoodCapital;
@@ -675,7 +642,6 @@ private:
 	int m_iCityStateCombatModifier;
 	int m_iGreatEngineerRateModifier;
 	int m_iDefenseBoost;
-#endif
 	bool m_bMilitaryFoodProduction;
 	bool m_bAlwaysSeeBarbCamps;
 	bool m_bRevealAllCapitals;
@@ -691,17 +657,17 @@ private:
 	bool m_bOneShot;
 	bool m_bIncludesOneShotFreeUnits;
 
-	int m_iDistressFlatReductionGlobal;
-	int m_iPovertyFlatReductionGlobal;
-	int m_iIlliteracyFlatReductionGlobal;
-	int m_iBoredomFlatReductionGlobal;
-	int m_iReligiousUnrestFlatReductionGlobal;
+	int m_iDistressFlatReduction;
+	int m_iPovertyFlatReduction;
+	int m_iIlliteracyFlatReduction;
+	int m_iBoredomFlatReduction;
+	int m_iReligiousUnrestFlatReduction;
 
-	int m_iBasicNeedsMedianModifierGlobal;
-	int m_iGoldMedianModifierGlobal;
-	int m_iScienceMedianModifierGlobal;
-	int m_iCultureMedianModifierGlobal;
-	int m_iReligiousUnrestModifierGlobal;
+	int m_iBasicNeedsMedianModifier;
+	int m_iGoldMedianModifier;
+	int m_iScienceMedianModifier;
+	int m_iCultureMedianModifier;
+	int m_iReligiousUnrestModifier;
 
 	int m_iBasicNeedsMedianModifierCapital;
 	int m_iGoldMedianModifierCapital;
@@ -725,12 +691,8 @@ private:
 
 	// Arrays
 	std::multimap<int, int> m_FreePromotionUnitCombats;
-#if defined(MOD_RELIGION_POLICY_BRANCH_FAITH_GP)
 	std::multimap<int, int> m_FaithPurchaseUnitClasses;
-#endif
-#if defined(MOD_BALANCE_CORE_POLICIES)
 	int* m_piYieldChangesPerReligion;
-#endif
 	int* m_piPrereqOrPolicies;
 	int* m_piPrereqAndPolicies;
 	set<int> m_siPolicyDisables;
@@ -755,15 +717,13 @@ private:
 	int* m_paiBuildingClassHappiness;
 	int* m_paiFreeUnitClasses;
 	int* m_paiTourismOnUnitCreation;
-#if defined(MOD_BALANCE_CORE)
 	int* m_paiFreeChosenBuilding;
-#endif
-#if defined(MOD_BALANCE_CORE_POLICIES)
 	int* m_piResourcefromCSAlly;
 	int* m_piYieldFromBirth;
 	int* m_piYieldFromBirthCapital;
 	int* m_piYieldFromBirthRetroactive;
 	int* m_piYieldFromBirthCapitalRetroactive;
+    int* m_piInstantYield;
 	int* m_piYieldFromConstruction;
 	int* m_piYieldFromWorldWonderConstruction;
 	int* m_piYieldFromTech;
@@ -781,6 +741,8 @@ private:
 	int m_iPuppetProdMod;
 	int m_iOccupiedProdMod;
 	int m_iCultureBombBoost;
+	bool m_bCultureBombForeignTerritory;
+	bool m_bRetainRazedTerritory;
 	int m_iInternalTradeGold;
 	int m_iFreeWCVotes;
 	int m_iSpySecurityModifier;
@@ -790,6 +752,7 @@ private:
 	int m_iFreeSpy;
 	int m_iReligionDistance;
 	int m_iPressureMod;
+	int* m_piYieldFromUnitProduction;
 	int* m_piYieldFromBorderGrowth;
 	int* m_piYieldGPExpend;
 	int m_iGarrisonsOccupiedUnhappinessMod;
@@ -848,10 +811,7 @@ private:
 	int m_iMaxAirUnitsChange;
 	int m_iCityCaptureHealGlobal;
 	int m_iCityCaptureHealLocal;
-#endif
-#if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
 	int m_iInvestmentModifier;
-#endif
 	bool* m_pabSpecialistValid;
 	int** m_ppiImprovementYieldChanges;
 	int** m_ppiPlotYieldChanges;
@@ -894,9 +854,7 @@ private:
 #if defined(HH_MOD_API_TRADEROUTE_MODIFIERS)
 	int* m_piInternationalRouteYieldModifiers;
 #endif
-#if defined(MOD_POLICIES_UNIT_CLASS_REPLACEMENTS)
 	std::map<UnitClassTypes, UnitClassTypes> m_piUnitClassReplacements;
-#endif
 	int** m_ppiBuildingClassYieldModifiers;
 	int** m_ppiBuildingClassYieldChanges;
 	int* m_piFlavorValue;
@@ -928,9 +886,7 @@ public:
 	bool IsDelayWhenNoCulture() const;
 	bool IsDelayWhenNoCityStates() const;
 	bool IsDelayWhenNoScience() const;
-#if defined(MOD_BALANCE_CORE)
 	int GetNumPolicyRequirement() const;
-#endif
 
 	CvString GetIconString();
 
@@ -950,9 +906,7 @@ private:
 	bool m_bDelayWhenNoCulture;
 	bool m_bDelayWhenNoCityStates;
 	bool m_bDelayWhenNoScience;
-#if defined(MOD_BALANCE_CORE)
 	int m_iNumPolicyRequirement;
-#endif
 	CvString m_wstrIdeologyIcon;
 	// Arrays
 	int* m_piPolicyBranchDisables;
@@ -1026,12 +980,10 @@ enum CLOSED_ENUM PolicyModifierType
 	POLICYMOD_GREAT_ARTIST_RATE,
 	POLICYMOD_GREAT_MUSICIAN_RATE,
 	POLICYMOD_GREAT_MERCHANT_RATE,
-#if defined(MOD_BALANCE_CORE)
 	POLICYMOD_STEAL_GW_SLOWER_MODIFIER,
 	POLICYMOD_STEAL_GW_FASTER_MODIFIER,
 	POLICYMOD_GREAT_ENGINEER_RATE,
 	POLICYMOD_CITY_DEFENSE_BOOST,
-#endif
 	POLICYMOD_GREAT_DIPLOMAT_RATE,
 	POLICYMOD_GREAT_SCIENTIST_RATE,
 	POLICYMOD_TOURISM_MOD_COMMON_FOE,
@@ -1052,19 +1004,16 @@ enum CLOSED_ENUM PolicyModifierType
 	POLICYMOD_THEMING_BONUS,
 	POLICYMOD_CITY_STATE_TRADE_CHANGE,
 	POLICYMOD_INTERNAL_TRADE_MODIFIER,
-#if defined(MOD_BALANCE_CORE)
 	POLICYMOD_INTERNAL_TRADE_CAPITAL_MODIFIER,
 	POLICYMOD_TRADE_CAPITAL_MODIFIER,
 	POLICYMOD_TRADE_MODIFIER,
 	POLICYMOD_LIBERATION_BONUS,
 	POLICYMOD_PUPPET_BONUS,
-#endif
     POLICYMOD_SHARED_RELIGION_TOURISM_MODIFIER,
     POLICYMOD_TRADE_ROUTE_TOURISM_MODIFIER,
 	POLICYMOD_OPEN_BORDERS_TOURISM_MODIFIER,
-#if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
     POLICYMOD_CONVERSION_MODIFIER,
-#endif
+	NUM_POLICY_MODIFIER_TYPE
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1102,20 +1051,16 @@ public:
 	int GetNumPoliciesOwnedInBranch(PolicyBranchTypes eBranch) const;
 	int GetNumPoliciesPurchasedInBranch(PolicyBranchTypes eBranch) const;
 	CvPolicyXMLEntries* GetPolicies() const;
-#if defined(MOD_BALANCE_CORE)
-	void ClearCache();
-#endif
 	// Functions to return benefits from policies
 	int GetNumericModifier(PolicyModifierType eType);
+	void ChangesNumericModifier(PolicyModifierType eType, int iChange);
 	int GetYieldModifier(YieldTypes eYieldType);
 	int GetBuildingClassYieldModifier(BuildingClassTypes eBuildingClass, YieldTypes eYieldType);
 	int GetBuildingClassYieldChange(BuildingClassTypes eBuildingClass, YieldTypes eYieldType);
 #if defined(HH_MOD_API_TRADEROUTE_MODIFIERS)
 	int GetInternationalRouteYieldModifier(YieldTypes eYieldType);
 #endif
-#if defined(MOD_BALANCE_CORE_POLICIES)
 	int GetReligionBuildingClassYieldModifier(BuildingClassTypes eBuildingClass, YieldTypes eYieldType);
-#endif
 	int GetBuildingClassProductionModifier(BuildingClassTypes eBuildingClass);
 	int GetBuildingClassHappinessModifier(BuildingClassTypes eBuildingClass);
 
@@ -1195,10 +1140,8 @@ public:
 private:
 	void AddFlavorAsStrategies(int iPropagatePercent);
 
-#if defined(MOD_BALANCE_CORE)
 	void UpdateModifierCache();
 	std::vector<int> m_vBuildingClassHappinessModifier;
-#endif
 
 	// Logging functions
 	void LogFlavorChange(FlavorTypes eFlavor, int change, const char* reason, bool start);
@@ -1210,8 +1153,6 @@ private:
 	bool* m_pabPolicyBranchUnlocked;
 	bool* m_pabPolicyBranchBlocked;
 	bool* m_pabPolicyBranchFinished;
-	int* m_paiPolicyBranchBlockedCount;
-	int* m_paiPolicyBlockedCount;
 	PolicyBranchTypes* m_paePolicyBlockedBranchCheck;
 	CvPolicyXMLEntries* m_pPolicies;
 	CvPolicyAI* m_pPolicyAI;
@@ -1222,12 +1163,7 @@ private:
 	PolicyBranchTypes m_eBranchPicked3;
 
 	//cache for repeated calls
-	typedef std::map<PolicyModifierType,std::pair<int,int>> ModifierMap;
-	ModifierMap mModifierLookup;
-
-	//these are used so often, make an even faster cache
-	pair<int, int> currentHappinessModifier;
-	pair<int, int> currentHappinessModifierPerCity;
+	std::vector<int> m_aiPolicyModifiers;
 };
 
 FDataStream& operator>>(FDataStream&, CvPlayerPolicies&);

@@ -61,7 +61,6 @@ SET
 	BuildableOnResources = 1,
 	ConnectsAllResources = 1,
 	NoTwoAdjacent = 1,
-	CreatedByGreatPerson = 1,
 	CultureBombRadius = 1,
 	MakesPassable = 1,
 	RestoreMoves = 1,
@@ -163,7 +162,10 @@ VALUES
 -- Unique Project: Adopt the Yassa
 ----------------------------------------------------------
 UPDATE Projects
-SET EmpireSizeModifierPerCityMod = -40
+SET
+	Cost = 200,
+	EmpireSizeModifierPerCityMod = -40,
+	TechPrereq = 'TECH_PHILOSOPHY'
 WHERE Type = 'PROJECT_YASSA';
 
 INSERT INTO Project_UnitCombatProductionModifiersGlobal

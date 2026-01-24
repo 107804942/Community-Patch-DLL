@@ -60,7 +60,8 @@ VALUES
 UPDATE Policies
 SET
 	StealTechFasterModifier = 0,
-	CultureBombBoost = 1
+	CultureBombForeignTerritory = 1,
+	RetainRazedTerritory = 1
 WHERE Type = 'POLICY_INDUSTRIAL_ESPIONAGE';
 
 INSERT INTO Policy_YieldFromBorderGrowth
@@ -74,7 +75,7 @@ DELETE FROM Policy_BuildingClassHappiness
 WHERE PolicyType = 'POLICY_FORTIFIED_BORDERS';
 
 UPDATE Policies
-SET DistressFlatReductionGlobal = 2
+SET DistressFlatReduction = 2
 WHERE Type = 'POLICY_FORTIFIED_BORDERS';
 
 INSERT INTO Policy_BuildingClassYieldChanges

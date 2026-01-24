@@ -46,11 +46,8 @@ CvTacticalDominanceZone::CvTacticalDominanceZone(void)
 	m_iEnemyNavalUnitCount = 0;
 	m_iFriendlyNavalUnitCount = 0;
 	m_iZoneValue = 0;
-
-#if defined(MOD_BALANCE_CORE_MILITARY)
 	m_iAvgX = m_iAvgY = 0;
 	m_iPlotCount = 0;
-#endif
 }
 
 /// Retrieve city controlling this zone
@@ -200,7 +197,6 @@ int CvTacticalDominanceZone::getHospitalityScore() const
 	return iScore;
 }
 
-#if defined(MOD_BALANCE_CORE_MILITARY)
 void CvTacticalDominanceZone::Extend(CvPlot* pPlot)
 {
 	if (!pPlot)
@@ -244,7 +240,6 @@ void CvTacticalDominanceZone::Extend(CvPlot* pPlot)
 			m_iAvgY += iHalfHeight * 2;
 	}
 }
-#endif
 
 //=====================================
 // CvTacticalAnalysisMap
@@ -589,7 +584,7 @@ void CvTacticalAnalysisMap::EstablishZoneNeighborhood()
 bool CvTacticalAnalysisMap::IsUpToDate()
 {
 	//not initialized
-	if (m_vPlotZoneID.size() != GC.getMap().numPlots())
+	if (static_cast<int>(m_vPlotZoneID.size()) != GC.getMap().numPlots())
 		return false;
 	
 	//explicitly invalidated
@@ -617,8 +612,7 @@ void CvTacticalAnalysisMap::Invalidate()
 /// Fill the map with data for this AI player's turn
 void CvTacticalAnalysisMap::RefreshIfOutdated()
 {
-	//do not update from the UI thread, might lead to desyncs!
-	if (IsUpToDate() || !gDLL->IsGameCoreThread())
+	if (IsUpToDate())
 		return;
 
 	//this is where the sausage is made
@@ -670,9 +664,10 @@ void CvTacticalAnalysisMap::CreateDominanceZones()
 	for (int iI = 0; iI < GC.getMap().numPlots(); iI++)
 	{
 		CvPlot* pPlot = GC.getMap().plotByIndexUnchecked(iI);
+		ASSERT(pPlot != NULL, "plotByIndexUnchecked returned null - invalid plot index");
 
 		//some plot will be part of the "unknown zone"
-		if (!pPlot || !pPlot->isRevealed(eOurTeam))
+		if (!pPlot->isRevealed(eOurTeam))
 		{
 			m_vPlotZoneID[iI] = 0;
 			continue;
@@ -1011,7 +1006,6 @@ void CvTacticalAnalysisMap::PrioritizeZones()
 				}
 			}
 
-#if defined(MOD_BALANCE_CORE)
 			if (GET_PLAYER(m_ePlayer).IsTargetCityForOperation(pZoneCity,false) ||
 				GET_PLAYER(m_ePlayer).IsTargetCityForOperation(pZoneCity,true) ||
 				GET_PLAYER(m_ePlayer).GetMilitaryAI()->IsPreferredAttackTarget(pZoneCity))
@@ -1028,7 +1022,6 @@ void CvTacticalAnalysisMap::PrioritizeZones()
 					iBaseValue = 1;
 				}
 			}
-#endif
 		}
 
 		if (!pZone->IsWater())

@@ -27,9 +27,7 @@ CvTreasury::CvTreasury():
 	m_iBaseBuildingGoldMaintenance(0),
 	m_iBaseImprovementGoldMaintenance(0),
 	m_iLifetimeGrossGoldIncome(0),
-#if defined(MOD_BALANCE_CORE)
 	m_iInternalTradeGoldBonus(0),
-#endif
 	m_iExpensePerTurnFromVassalTax(0),
 	m_pPlayer(NULL)
 {
@@ -54,9 +52,7 @@ void CvTreasury::Init(CvPlayer* pPlayer)
 	m_iBaseBuildingGoldMaintenance = 0;
 	m_iBaseImprovementGoldMaintenance = 0;
 	m_iLifetimeGrossGoldIncome = 0;
-#if defined(MOD_BALANCE_CORE)
 	m_iInternalTradeGoldBonus = 0;
-#endif
 	m_iExpensePerTurnFromVassalTax = 0;
 
 	m_GoldBalanceForTurnTimes100.clear();
@@ -112,7 +108,7 @@ void CvTreasury::DoGold()
 		m_GoldBalanceForTurnTimes100.push_back(GetGoldTimes100());
 	}
 
-	if (MOD_API_ACHIEVEMENTS && m_pPlayer->isHuman() && !GC.getGame().isGameMultiPlayer())
+	if (MOD_ENABLE_ACHIEVEMENTS && m_pPlayer->isHuman(ISHUMAN_ACHIEVEMENTS) && !GC.getGame().isGameMultiPlayer())
 	{
 		int iGoldDelta = (GetGoldFromCitiesTimes100(false) - GetGoldFromCitiesTimes100(true)) / 100;
 		if (iGoldDelta >= 200)
@@ -154,7 +150,7 @@ void CvTreasury::SetGoldTimes100(int iNewValue)
 	{
 		if(iNewValue < 0)
 		{
-			ASSERT_DEBUG(false, "GAMEPLAY: Player is being set to a negative Gold value.");
+			ASSERT(false, "GAMEPLAY: Player is being set to a negative Gold value.");
 		}
 
 		m_iGold = max(0,iNewValue);
@@ -300,7 +296,6 @@ void CvTreasury::DoUpdateCityConnectionGold()
 
 	m_iCityConnectionGoldTimes100 = iNumGold;
 }
-#if defined(MOD_BALANCE_CORE_POLICIES)
 /// How much of a percent bonus do we get for Trade Routes
 int CvTreasury::GetInternalTradeRouteGoldBonus() const
 {
@@ -321,8 +316,6 @@ void CvTreasury::DoInternalTradeRouteGoldBonus()
 	}
 	m_iInternalTradeGoldBonus = iGold;
 }
-#endif
-
 
 /// How much of a percent bonus do we get for Trade Routes
 int CvTreasury::GetCityConnectionTradeRouteGoldModifier() const
@@ -373,27 +366,9 @@ int CvTreasury::GetGoldPerTurnFromTradeRoutesTimes100() const
 /// Gold per turn from traits
 int CvTreasury::GetGoldPerTurnFromTraits() const
 {
-#if defined(MOD_BALANCE_CORE)
-	if(MOD_BALANCE_YIELD_SCALE_ERA)
-	{
-		int iEra = m_pPlayer->GetCurrentEra();
-		if(iEra < 1)
-		{
-			iEra = 1;
-		}
-		return ((iEra * m_pPlayer->GetPlayerTraits()->GetYieldChangePerTradePartner(YIELD_GOLD) * m_pPlayer->GetTrade()->GetNumDifferentTradingPartners()) + (m_pPlayer->GetYieldPerTurnFromResources(YIELD_GOLD, true, true)));
-	}
-	else
-	{
-#endif
-#if defined(MOD_BALANCE_CORE)
-	return ((m_pPlayer->GetPlayerTraits()->GetYieldChangePerTradePartner(YIELD_GOLD) * m_pPlayer->GetTrade()->GetNumDifferentTradingPartners()) + (m_pPlayer->GetYieldPerTurnFromResources(YIELD_GOLD, true, true)));
-#else
-	return m_pPlayer->GetPlayerTraits()->GetYieldChangePerTradePartner(YIELD_GOLD) * m_pPlayer->GetTrade()->GetNumDifferentTradingPartners();
-#endif
-#if defined(MOD_BALANCE_CORE)
-	}
-#endif
+	int iEra = MOD_BALANCE_VP ? m_pPlayer->GetCurrentEra() : 1;
+	int iReturnValue = (max(iEra, 1) * m_pPlayer->GetPlayerTraits()->GetYieldChangePerTradePartner(YIELD_GOLD) * m_pPlayer->GetTrade()->GetNumDifferentTradingPartners()) + m_pPlayer->GetYieldPerTurnFromResources(YIELD_GOLD, true, true);
+	return iReturnValue;
 }
 
 /// Gold Per Turn from Religion
@@ -417,7 +392,7 @@ int CvTreasury::CalculateGrossGoldTimes100()
 	iNetGold = GetGoldFromCitiesTimes100();
 
 	// Gold per Turn from Diplomacy
-	iNetGold += GetGoldPerTurnFromDiplomacy() * 100;
+	iNetGold += max(0, GetGoldPerTurnFromDiplomacy() * 100);
 
 	// City connection bonuses
 	iNetGold += GetCityConnectionGoldTimes100();
@@ -428,23 +403,17 @@ int CvTreasury::CalculateGrossGoldTimes100()
 	// International trade
 	iNetGold += GetGoldPerTurnFromTraits() * 100;
 
-#if defined(MOD_BALANCE_CORE)
 	iNetGold += GetInternalTradeRouteGoldBonus() * 100;
-#endif
 
 	// We're a master of someone, we get gold from taxes
 	iNetGold += GetMyShareOfVassalTaxes();
 
-#if defined(MOD_BALANCE_CORE)
-	if(MOD_BALANCE_CORE_MINOR_CIV_GIFT)
-	{
-		iNetGold += m_pPlayer->GetGoldPerTurnFromMinorCivs() * 100;
-	}
+	iNetGold += m_pPlayer->GetGoldPerTurnFromMinorCivs() * 100;
+
 	if (MOD_BALANCE_CORE_JFD)
 	{
 		iNetGold += m_pPlayer->GetYieldPerTurnFromMinors(YIELD_GOLD) * 100;
 	}
-#endif
 
 	// Annexed City-States (Rome UA)
 	iNetGold += m_pPlayer->GetGoldPerTurnFromAnnexedMinors() * 100;
@@ -476,7 +445,7 @@ int CvTreasury::CalculateBaseNetGoldTimes100()
 }
 
 /// Compute unit maintenance cost for the turn
-int CvTreasury::CalculateUnitCost()
+int CvTreasury::CalculateUnitCost(int iUnits)
 {
 	// If player has 0 Cities then no Unit cost
 	if (m_pPlayer->getNumCities() == 0)
@@ -485,10 +454,16 @@ int CvTreasury::CalculateUnitCost()
 	const CvHandicapInfo& playerHandicap = m_pPlayer->getHandicapInfo();
 	int iCostPerUnit = m_pPlayer->getGoldPerUnitTimes100(); // 0.5 GPT per unit
 
-	int iFreeUnits = playerHandicap.getMaintenanceFreeUnits() + m_pPlayer->GetNumMaintenanceFreeUnits() + m_pPlayer->getBaseFreeUnits();
-	iFreeUnits += m_pPlayer->isHuman() ? 0 : GC.getGame().getHandicapInfo().getAIMaintenanceFreeUnits();
+	int iPaidUnits = iUnits;
+	if (iPaidUnits == -1)
+	{
+		int iFreeUnits = playerHandicap.getMaintenanceFreeUnits() + m_pPlayer->GetNumMaintenanceFreeUnits() + m_pPlayer->getBaseFreeUnits();
+		iFreeUnits += m_pPlayer->isHuman(ISHUMAN_HANDICAP) ? 0 : GC.getGame().getHandicapInfo().getAIMaintenanceFreeUnits();
 
-	int iPaidUnits = max(0, m_pPlayer->getNumUnits() - iFreeUnits);
+		int iNumUnits = m_pPlayer->getNumUnits();
+
+		iPaidUnits = max(0, iNumUnits - iFreeUnits);
+	}
 
 	int iBaseUnitCost = iPaidUnits * iCostPerUnit;
 
@@ -565,7 +540,7 @@ int CvTreasury::CalculateUnitCost()
 
 		dDifference *= playerHandicap.getInflationPercent();
 		dDifference /= 100;
-		if (!m_pPlayer->isHuman())
+		if (!m_pPlayer->isHuman(ISHUMAN_HANDICAP))
 		{
 			dDifference *= GC.getGame().getHandicapInfo().getAIInflationPercent();
 			dDifference /= 100;
@@ -589,7 +564,7 @@ int CvTreasury::CalculateUnitCost()
 	{
 		dFinalCost *= playerHandicap.getUnitCostPercent();
 		dFinalCost /= 100;
-		if (!m_pPlayer->isHuman())
+		if (!m_pPlayer->isHuman(ISHUMAN_HANDICAP))
 		{
 			dFinalCost *= GC.getGame().getHandicapInfo().getAIUnitCostPercent();
 			dFinalCost /= 100;
@@ -618,6 +593,7 @@ int CvTreasury::CalculateTotalCosts()
 	iTotalCosts += GetExpensePerTurnFromVassalTaxes();
 	iTotalCosts += MOD_BALANCE_CORE_JFD ? GetContractGoldMaintenance() : 0;
 	iTotalCosts += m_pPlayer->GetYieldPerTurnFromEspionageEvents(YIELD_GOLD, false);
+	iTotalCosts += max(0, -GetGoldPerTurnFromDiplomacy());
 
 	return iTotalCosts;
 }
@@ -626,19 +602,21 @@ int CvTreasury::CalculateTotalCosts()
 int CvTreasury::GetBuildingGoldMaintenance() const
 {
 	int iMaintenance = GetBaseBuildingGoldMaintenance();
+	int iExtraMaintenancePercent = 0;
 
-	if (MOD_BALANCE_CORE_BUILDING_RESOURCE_MAINTENANCE)
+	if (MOD_BALANCE_RESOURCE_SHORTAGE_BUILDING_REFUND)
 	{
 		int iLoop = 0;
 		for (CvCity* pLoopCity = m_pPlayer->firstCity(&iLoop); pLoopCity != NULL; pLoopCity = m_pPlayer->nextCity(&iLoop))
 		{
 			if (pLoopCity->GetExtraBuildingMaintenance() > 0)
-			{
-				iMaintenance *= 100 + pLoopCity->GetExtraBuildingMaintenance();
-				iMaintenance /= 100;
-			}
+				iExtraMaintenancePercent += pLoopCity->GetExtraBuildingMaintenance();
 		}
 	}
+
+	// Extra maintenance from Strategic Resource shortage
+	iMaintenance *= 100 + iExtraMaintenancePercent;
+	iMaintenance /= 100;
 
 	// Player modifier
 	iMaintenance *= 100 + m_pPlayer->GetBuildingGoldMaintenanceMod();
@@ -650,7 +628,7 @@ int CvTreasury::GetBuildingGoldMaintenance() const
 		const CvHandicapInfo& playerHandicap = m_pPlayer->getHandicapInfo();
 		iMaintenance *= playerHandicap.getBuildingCostPercent();
 		iMaintenance /= 100;
-		if (!m_pPlayer->isHuman())
+		if (!m_pPlayer->isHuman(ISHUMAN_HANDICAP))
 		{
 			iMaintenance *= GC.getGame().getHandicapInfo().getAIBuildingCostPercent();
 			iMaintenance /= 100;
@@ -696,7 +674,7 @@ int CvTreasury::GetImprovementGoldMaintenance() const
 	{
 		iMaintenance *= m_pPlayer->getHandicapInfo().getImprovementCostPercent();
 		iMaintenance /= 100;
-		if (!m_pPlayer->isHuman())
+		if (!m_pPlayer->isHuman(ISHUMAN_HANDICAP))
 		{
 			iMaintenance *= GC.getGame().getHandicapInfo().getAIImprovementCostPercent();
 			iMaintenance /= 100;
@@ -733,7 +711,7 @@ void CvTreasury::ChangeBaseImprovementGoldMaintenance(int iChange)
 /// Average change in gold balance over N turns
 int CvTreasury::AverageIncome100(int iTurns)
 {
-	ASSERT_DEBUG(iTurns > 0, "Invalid number of turns parameter");
+	ASSERT(iTurns > 0, "Invalid number of turns parameter");
 
 	if(m_GoldChangeForTurnTimes100.size() > 0)
 	{
@@ -971,13 +949,11 @@ void TreasuryHelpers::AppendToLog(CvString& strHeader, CvString& strLog, const C
 	str.Format("%.2f,", fValue);
 	strLog += str;
 }
-#if defined(MOD_BALANCE_CORE)
 int CvTreasury::GetContractGoldMaintenance()
 {
 	int iMaintenance = m_pPlayer->GetContracts()->GetContractGoldMaintenance();
 	return iMaintenance;
 }
-#endif
 
 // What are our gold maintenance costs because of Vassals?
 int CvTreasury::GetVassalGoldMaintenance(TeamTypes eTeam, bool bIncludePopulationMaintenance, bool bIncludeUnitMaintenance) const

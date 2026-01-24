@@ -236,7 +236,7 @@ int CvNotifications::AddByName(const char* pszNotificationName, const char* strM
 int CvNotifications::Add(NotificationTypes eNotificationType, const char* strMessage, const char* strSummary, int iX, int iY, int iGameDataIndex, int iExtraGameData)
 {
 	// if the player is not human, do not record
-	if(!GET_PLAYER(m_ePlayer).isHuman())
+	if(!GET_PLAYER(m_ePlayer).isHuman(ISHUMAN_NOTIFICATIONS))
 	{
 		return -1;
 	}
@@ -298,19 +298,13 @@ int CvNotifications::Add(NotificationTypes eNotificationType, const char* strMes
 		{
 			GC.GetEngineUserInterface()->AddNotification(newNotification.m_iLookupIndex, newNotification.m_eNotificationType, newNotification.m_strMessage.c_str(), newNotification.m_strSummary.c_str(), newNotification.m_iGameDataIndex, newNotification.m_iExtraGameData, m_ePlayer, iX, iY);
 
-#if defined(MOD_UI_CITY_EXPANSION)
 			// Don't show effect with production notification or city tile acquisition
 			bool bShow = (eNotificationType != NOTIFICATION_PRODUCTION);
 			
-			if (MOD_UI_CITY_EXPANSION) {
+			if (MOD_UI_CITY_EXPANSION)
 				bShow = bShow && (eNotificationType != NOTIFICATION_CITY_TILE);
-			}
 			
-			if(bShow)
-#else
-			// Don't show effect with production notification
-			if(eNotificationType != NOTIFICATION_PRODUCTION)
-#endif
+			if (bShow)
 			{
 				CvPlot* pPlot = GC.getMap().plot(iX, iY);
 				if(pPlot != NULL)
@@ -510,7 +504,6 @@ bool CvNotifications::GetEndTurnBlockedType(EndTurnBlockingTypes& eBlockingType,
 				return true;
 				break;
 
-#if defined(MOD_UI_CITY_EXPANSION)
 			case NOTIFICATION_CITY_TILE:
 				if (MOD_UI_CITY_EXPANSION) 
 				{
@@ -519,7 +512,6 @@ bool CvNotifications::GetEndTurnBlockedType(EndTurnBlockingTypes& eBlockingType,
 					return true;
 				}
 				break;
-#endif
 
 			case NOTIFICATION_POLICY:
 				eBlockingType = ENDTURN_BLOCKING_POLICY;
@@ -617,7 +609,6 @@ bool CvNotifications::GetEndTurnBlockedType(EndTurnBlockingTypes& eBlockingType,
 				return true;
 				break;
 
-#if defined(MOD_BALANCE_CORE)
 			case NOTIFICATION_PLAYER_DEAL_RECEIVED:
 				eBlockingType = ENDTURN_BLOCKING_PENDING_DEAL;
 				iNotificationIndex = m_aNotifications[iIndex].m_iLookupIndex;
@@ -637,7 +628,6 @@ bool CvNotifications::GetEndTurnBlockedType(EndTurnBlockingTypes& eBlockingType,
 				iNotificationIndex = m_aNotifications[iIndex].m_iLookupIndex;
 				return true;
 				break;
-#endif
 
 			default:
 				// these notifications don't block, so don't return a blocking type
@@ -807,14 +797,13 @@ void CvNotifications::Activate(Notification& notification)
 		GC.GetEngineUserInterface()->AddPopup(kPopupInfo);
 	}
 	break;
-#if defined(MOD_UI_CITY_EXPANSION)
 	case NOTIFICATION_CITY_TILE:
 	{
-		if (MOD_UI_CITY_EXPANSION) {
+		if (MOD_UI_CITY_EXPANSION)
+		{
 			CvCity* pCity = GC.getMap().plot(notification.m_iX, notification.m_iY)->getPlotCity();
-			if (!pCity) {
+			if (!pCity)
 				return;
-			}
 
 			// CUSTOMLOG("Activate NOTIFICATION_CITY_TILE for city %s at (%i, %i)", pCity->getName().c_str(), notification.m_iX, notification.m_iY);
 			// We want the C++ equivalent of UI.SetInterfaceMode(INTERFACEMODE_PURCHASE_PLOT) followed by
@@ -832,19 +821,20 @@ void CvNotifications::Activate(Notification& notification)
 			kPopupInfoOpen.iData1 = pCity->GetID();
 			kPopupInfoOpen.iData2 = notification.m_iLookupIndex;
 			GC.GetEngineUserInterface()->AddPopup(kPopupInfoOpen);
-		} else {
+		}
+		else
+		{
 			// Default behavior is to move the camera to the X,Y passed in
 			CvPlot* pPlot = GC.getMap().plot(notification.m_iX, notification.m_iY);
-			if (pPlot) {
+			if (pPlot)
+			{
 				CvInterfacePtr<ICvPlot1> pDllPlot = GC.WrapPlotPointer(pPlot);
-
 				GC.GetEngineUserInterface()->lookAt(pDllPlot.get(), CAMERALOOKAT_NORMAL);
 				gDLL->GameplayDoFX(pDllPlot.get());
 			}
 		}
 	}
 	break;
-#endif
 	case NOTIFICATION_UNIT_PROMOTION:
 	{
 		CvUnit* pUnit = GET_PLAYER(m_ePlayer).getUnit(notification.m_iExtraGameData);
@@ -876,7 +866,7 @@ void CvNotifications::Activate(Notification& notification)
 			// JdH => we need to switch behaviour for AI vs Human players.
 			PlayerTypes eFrom = static_cast<PlayerTypes>(notification.m_iX);
 			CvPlayer& kFrom = GET_PLAYER(eFrom);
-			if (kFrom.isHuman() && notification.m_iY != -2 /* request hack */)
+			if (kFrom.isHuman(ISHUMAN_AI_DIPLOMACY) && notification.m_iY != -2 /* request hack */)
 			{
 			// Keep old PvP notification behaviour
 				GC.GetEngineUserInterface()->OpenPlayerDealScreen(eFrom);
@@ -974,7 +964,7 @@ void CvNotifications::Activate(Notification& notification)
 	case NOTIFICATION_TECH_STOLEN_SPY_IDENTIFIED:
 	case NOTIFICATION_SPY_KILLED_A_SPY:
 	{
-		ASSERT_DEBUG(notification.m_iGameDataIndex >= -1, "notification.m_iGameDataIndex is out of bounds");
+		PRECONDITION(notification.m_iGameDataIndex >= -1, "notification.m_iGameDataIndex is out of bounds");
 		if(notification.m_iGameDataIndex >= 0 && notification.m_iExtraGameData == -1)
 		{
 			PlayerTypes eTargetPlayer = (PlayerTypes)notification.m_iGameDataIndex;
@@ -994,7 +984,6 @@ void CvNotifications::Activate(Notification& notification)
 	case NOTIFICATION_INTRIGUE_SNEAK_ATTACK_ARMY_AGAINST_KNOWN_CITY_UNKNOWN:
 	case NOTIFICATION_INTRIGUE_SNEAK_ATTACK_AMPHIB_AGAINST_KNOWN_CITY_UNKNOWN:
 	case NOTIFICATION_INTRIGUE_SNEAK_ATTACK_AMPHIB_AGAINST_KNOWN_CITY_KNOWN:
-		ASSERT_DEBUG(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
 		if(notification.m_iGameDataIndex >= 0)
 		{
 			PlayerTypes ePlayerToContact = (PlayerTypes)notification.m_iGameDataIndex;
@@ -1009,7 +998,7 @@ void CvNotifications::Activate(Notification& notification)
 	case NOTIFICATION_LEAGUE_CALL_FOR_VOTES:
 	case NOTIFICATION_LEAGUE_VOTING_DONE:
 	case NOTIFICATION_LEAGUE_VOTING_SOON:
-		ASSERT_DEBUG(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
+		PRECONDITION(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
 		if (notification.m_iGameDataIndex >= 0)
 		{
 			LeagueTypes eLeague = (LeagueTypes) notification.m_iGameDataIndex;
@@ -1019,15 +1008,12 @@ void CvNotifications::Activate(Notification& notification)
 		break;
 
 	case NOTIFICATION_IDEOLOGY_CHOSEN:
-#if !defined(MOD_BALANCE_CORE)
-	case NOTIFICATION_CULTURE_VICTORY_SOMEONE_INFLUENTIAL:
-#endif
 	case NOTIFICATION_CULTURE_VICTORY_WITHIN_TWO:
 	case NOTIFICATION_CULTURE_VICTORY_WITHIN_TWO_ACTIVE_PLAYER:
 	case NOTIFICATION_CULTURE_VICTORY_WITHIN_ONE:
 	case NOTIFICATION_CULTURE_VICTORY_WITHIN_ONE_ACTIVE_PLAYER:
 	case NOTIFICATION_CULTURE_VICTORY_NO_LONGER_INFLUENTIAL:
-		ASSERT_DEBUG(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
+		PRECONDITION(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
 		if (notification.m_iGameDataIndex >= 0)
 		{
 			CvPopupInfo kPopup(BUTTONPOPUP_CULTURE_OVERVIEW);
@@ -1037,7 +1023,7 @@ void CvNotifications::Activate(Notification& notification)
 		break;
 
 	case NOTIFICATION_CHOOSE_ARCHAEOLOGY:
-		ASSERT_DEBUG(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
+		PRECONDITION(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
 		if (notification.m_iGameDataIndex >= 0)
 		{
 			CvPopupInfo kPopup(BUTTONPOPUP_CHOOSE_ARCHAEOLOGY, m_ePlayer);
@@ -1046,7 +1032,7 @@ void CvNotifications::Activate(Notification& notification)
 		break;
 
 	case NOTIFICATION_CHOOSE_IDEOLOGY:
-		ASSERT_DEBUG(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
+		PRECONDITION(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
 		if (notification.m_iGameDataIndex >= 0)
 		{
 			CvPopupInfo kPopup(BUTTONPOPUP_CHOOSE_IDEOLOGY, m_ePlayer);
@@ -1055,7 +1041,7 @@ void CvNotifications::Activate(Notification& notification)
 		break;
 
 	case NOTIFICATION_LEAGUE_PROJECT_COMPLETE:
-		ASSERT_DEBUG(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
+		PRECONDITION(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
 		if (notification.m_iGameDataIndex >= 0)
 		{
 			LeagueTypes eLeague = (LeagueTypes) notification.m_iGameDataIndex;
@@ -1064,9 +1050,8 @@ void CvNotifications::Activate(Notification& notification)
 			GC.GetEngineUserInterface()->AddPopup(kPopup);
 		}
 		break;
-#if defined(MOD_BALANCE_CORE)
 	case 419811917:
-		ASSERT_DEBUG(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
+		PRECONDITION(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
 		if (notification.m_iGameDataIndex >= 0)
 		{
 			EventTypes eEvent = (EventTypes)notification.m_iGameDataIndex;
@@ -1075,7 +1060,7 @@ void CvNotifications::Activate(Notification& notification)
 		}
 		break;
 	case 826076831:
-		ASSERT_DEBUG(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
+		PRECONDITION(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
 		if (notification.m_iGameDataIndex >= 0)
 		{
 			CityEventTypes eEvent = (CityEventTypes)notification.m_iGameDataIndex;
@@ -1085,7 +1070,7 @@ void CvNotifications::Activate(Notification& notification)
 		}
 		break;
 	case -1608954742:
-		ASSERT_DEBUG(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
+		PRECONDITION(notification.m_iGameDataIndex >= 0, "notification.m_iGameDataIndex is out of bounds");
 		if (notification.m_iGameDataIndex >= 0)
 		{
 			CityEventTypes eEvent = (CityEventTypes)notification.m_iGameDataIndex;
@@ -1115,7 +1100,6 @@ void CvNotifications::Activate(Notification& notification)
 			}
 		}
 		break;
-#endif
 
 	default:	// Default behavior is to move the camera to the X,Y passed in
 	{
@@ -1274,17 +1258,17 @@ bool CvNotifications::IsNotificationRedundant(Notification& notification)
 	}
 	break;
 
-#if defined(MOD_UI_CITY_EXPANSION)
 	case NOTIFICATION_CITY_TILE:
 	{
-		if (MOD_UI_CITY_EXPANSION) {
+		if (MOD_UI_CITY_EXPANSION)
+		{
 			int iIndex = m_iNotificationsBeginIndex;
-			while(iIndex != m_iNotificationsEndIndex)
+			while (iIndex != m_iNotificationsEndIndex)
 			{
-				if(notification.m_eNotificationType == m_aNotifications[iIndex].m_eNotificationType &&
+				if (notification.m_eNotificationType == m_aNotifications[iIndex].m_eNotificationType &&
 				   notification.m_iX == m_aNotifications[iIndex].m_iX && notification.m_iY == m_aNotifications[iIndex].m_iY)
 				{
-					if(!notification.m_bDismissed && !m_aNotifications[iIndex].m_bDismissed)
+					if (!notification.m_bDismissed && !m_aNotifications[iIndex].m_bDismissed)
 					{
 						// we've already added a notification for this city to the notification system, so don't add another one
 						return true;
@@ -1292,7 +1276,7 @@ bool CvNotifications::IsNotificationRedundant(Notification& notification)
 				}
 
 				iIndex++;
-				if(iIndex >= int(MaxNotifications))
+				if (iIndex >= int(MaxNotifications))
 				{
 					iIndex = 0;
 				}
@@ -1302,7 +1286,6 @@ bool CvNotifications::IsNotificationRedundant(Notification& notification)
 		return false;
 	}
 	break;
-#endif
 
 	case NOTIFICATION_ENEMY_IN_TERRITORY:
 	{
@@ -1657,27 +1640,28 @@ bool CvNotifications::IsNotificationExpired(int iIndex)
 		}
 	}
 	break;
-#if defined(MOD_UI_CITY_EXPANSION)
 	case NOTIFICATION_CITY_TILE:
 	{
-		if (MOD_UI_CITY_EXPANSION) {
+		if (MOD_UI_CITY_EXPANSION)
+		{
 			CvCity* pCity = GC.getMap().plot(m_aNotifications[iIndex].m_iX, m_aNotifications[iIndex].m_iY)->getPlotCity();
 
 			// if the city no longer exists, is a puppet, or doesn't belong to the active player
-			if (!pCity || pCity->IsPuppet() || (pCity->getOwner() != GC.getGame().getActivePlayer())) {
+			if (!pCity || pCity->IsPuppet() || (pCity->getOwner() != GC.getGame().getActivePlayer()))
+			{
 				// we no longer need the notification
 				return true;
 			}
 
 			// if the city has choosen a tile (probably by cycling the cities after the first notification)
-			if (pCity->GetJONSCultureStoredTimes100() < pCity->GetJONSCultureThreshold() * 100) {
+			if (pCity->GetJONSCultureStoredTimes100() < pCity->GetJONSCultureThreshold() * 100)
+			{
 				// we no longer need the notification
 				return true;
 			}
 		}
 	}
 	break;
-#endif
 	case NOTIFICATION_DIPLO_VOTE:
 	{
 		TeamTypes eTeam = GET_PLAYER(m_ePlayer).getTeam();
@@ -1711,7 +1695,7 @@ bool CvNotifications::IsNotificationExpired(int iIndex)
 
 #if defined(MOD_ACTIVE_DIPLOMACY)
 		PlayerTypes eFrom = static_cast<PlayerTypes>(m_aNotifications[iIndex].m_iX);
-		if((!GET_PLAYER(m_ePlayer).isHuman() || !GET_PLAYER(eFrom).isHuman()) && GC.getGame().isReallyNetworkMultiPlayer() && MOD_ACTIVE_DIPLOMACY)
+		if ((!GET_PLAYER(m_ePlayer).isHuman(ISHUMAN_AI_DIPLOMACY) || !GET_PLAYER(eFrom).isHuman(ISHUMAN_AI_DIPLOMACY)) && GC.getGame().isReallyNetworkMultiPlayer() && MOD_ACTIVE_DIPLOMACY)
 		{
 			if (game.GetGameDeals().GetProposedMPDeal(m_ePlayer, eFrom, true) == NULL)
 			{
@@ -1740,7 +1724,7 @@ bool CvNotifications::IsNotificationExpired(int iIndex)
 #if defined(MOD_ACTIVE_DIPLOMACY)
 		PlayerTypes eFrom = static_cast<PlayerTypes>(m_aNotifications[iIndex].m_iX);
 		// DN: Not understanding the rationale behind this code and it seems there is more to it but skipping it for human-human deals fixes not getting notifications for those deals and doesn't *seem* to break anything (although some code may be redundant now)
-		if((!GET_PLAYER(m_ePlayer).isHuman() || !GET_PLAYER(eFrom).isHuman()) && GC.getGame().isReallyNetworkMultiPlayer() && MOD_ACTIVE_DIPLOMACY)
+		if((!GET_PLAYER(m_ePlayer).isHuman(ISHUMAN_AI_DIPLOMACY) || !GET_PLAYER(eFrom).isHuman(ISHUMAN_AI_DIPLOMACY)) && GC.getGame().isReallyNetworkMultiPlayer() && MOD_ACTIVE_DIPLOMACY)
 		{
 			// JdH =>			
 			if (!GET_PLAYER(m_ePlayer).GetDiplomacyRequests()->HasActiveRequestFrom(eFrom))
@@ -1877,7 +1861,6 @@ bool CvNotifications::IsNotificationExpired(int iIndex)
 		}
 	}
 	break;
-#if defined(MOD_BALANCE_CORE)
 	case 826076831: // City Event Notification
 	{
 		CityEventTypes eCityEvent = (CityEventTypes)m_aNotifications[iIndex].m_iGameDataIndex;
@@ -1998,7 +1981,6 @@ bool CvNotifications::IsNotificationExpired(int iIndex)
 			return true;
 	}
 	break;
-#endif
 
 	default:	// don't expire
 	{
@@ -2091,11 +2073,9 @@ bool CvNotifications::IsNotificationTypeEndOfTurnExpired(NotificationTypes eNoti
 		}
 		break;
 
-#if defined(MOD_UI_CITY_EXPANSION)
 	case NOTIFICATION_CITY_TILE:
 		return !MOD_UI_CITY_EXPANSION;
 		break;
-#endif
 
 	default:
 		return true;

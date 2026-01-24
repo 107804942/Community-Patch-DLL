@@ -6,13 +6,6 @@ SET Text = 'Ranks players by the average [ICON_PRODUCTION] Production generated 
 WHERE Tag = 'TXT_KEY_PROGRESS_SCREEN_PRODUCTION_TT';
 
 ------------------------------------------------
--- Gold TopPanel tooltip
-------------------------------------------------
-UPDATE Language_en_US
-SET Text = '[ICON_GOLD][COLOR:255:235:0:255]{1_TotalGold: number "##.##"} {2_GoldPerTurn: number "''(+''##.##'')'';''[COLOR:255:60:60:255](-''##.##'')''"}[/COLOR]'
-WHERE Tag = 'TXT_KEY_TOP_PANEL_GOLD';
-
-------------------------------------------------
 -- Advisors
 ------------------------------------------------
 UPDATE Language_en_US
@@ -27,7 +20,7 @@ SET Text = 'Allows land units to embark and cross water Tiles.'
 WHERE Tag = 'TXT_KEY_ALLOWS_EMBARKING';
 
 UPDATE Language_en_US
-SET Text = 'Allowed units receive [COLOR_POSITIVE_TEXT]{@1_PromotionName}[ENDCOLOR] Promotion: {@2_PromotionHelp}'
+SET Text = 'Eligible units receive [COLOR_POSITIVE_TEXT]{1_Promotion:textkey}[ENDCOLOR] Promotion: {2_PromotionHelp:textkey}'
 WHERE Tag = 'TXT_KEY_FREE_PROMOTION_FROM_TECH';
 
 UPDATE Language_en_US
@@ -62,6 +55,10 @@ UPDATE Language_en_US
 SET Text = '(Not Fresh Water)'
 WHERE Tag = 'TXT_KEY_ABLTY_NO_FRESH_WATER_STRING';
 
+UPDATE Language_en_US
+SET Text = 'Leads To:'
+WHERE Tag = 'TXT_KEY_TECH_HELP_LEADS_TO';
+
 ------------------------------------------------
 -- Civilopedia
 ------------------------------------------------
@@ -82,6 +79,10 @@ SET Text = 'Connected By:'
 WHERE Tag = 'TXT_KEY_PEDIA_IMPROVEMENTS_LABEL';
 
 UPDATE Language_en_US
+SET Text = 'The three nations that once comprised historical India have taken very different paths in the late 20th and early 21st centuries. Bangladesh is a parliamentary democracy, a highly-dense country much subject to floods, cyclones and famine, though life for its population has steadily improved since its independence in the ''70s.[NEWLINE][NEWLINE]Pakistan is the sixth most populous country in the world and the second most populous Muslim country. While its economy has done well in the past 25 years, it remains locationally-challenged. To the east is India, its old enemy, with whom it has an ongoing border dispute, and both sides have recently acquired nuclear weapons. To the west is Afghanistan, now under Taliban control, where open conflict has diminished but harsh rule and repression - particularly of women - have returned. Pakistan''s future will depend on managing its own political stability, curbing extremism, and redefining its relationships with both neighbors.[NEWLINE][NEWLINE]India is the world''s second most populous country and a thriving democracy. It is loud, boisterous, and has a growing and vibrant economy. It has a technological base second to none, and an education system that rivals that of the United States. It also has a large army and an arsenal of nuclear weapons, primarily aimed at deterring Pakistan, though China has become an increasing strategic concern. If it can reduce tensions with its neighbors and maintain its current economic and technological trajectory, India is well on its way to becoming one of the defining powers of the 21st century.'
+WHERE Tag = 'TXT_KEY_CIV5_INDIA_TEXT_16';
+
+UPDATE Language_en_US
 SET Text = 'Kyivan'
 WHERE Tag = 'TXT_KEY_CIV5_RUSSIA_HEADING_4';
 
@@ -92,6 +93,73 @@ WHERE Tag = 'TXT_KEY_CIV5_RUSSIA_TEXT_4';
 UPDATE Language_en_US
 SET Text = 'The first Mongol incursion into Kyivan territory occurred in 1223, when a Mongol reconnaissance unit met the combined warriors of several Rus states under the command of the wonderfully-named "Mstislav the Bold" and "Mstislav Romanovich the Old" at the Battle of the Kalka River. The Rus forces enjoyed early success, but they became disorganized in the pursuit of the retreating foe. The Mongol horsemen rallied and defeated the pursuers in detail before they could reorganize. A large portion of the Rus forces surrendered to the Mongols on the condition that they would be spared; the Mongols accepted the conditions then slaughtered them anyway. The Mongols then left Rus for several years before returning in much greater force.[NEWLINE][NEWLINE]In 1237 a vast Mongol army of some 30,000 or more horse archers once again crossed the Volga River. In a few short years the Mongols captured, looted and destroyed dozens of Russian cities and towns, including Ryazan, Kolomna, Moscow, Rostov, Kashin, Dmitrov, Kozelsk, Halych and Kyiv. They soundly thrashed every force raised to oppose them. By 1240 most of Rus was a smoking ruin, firmly under the control of the Mongols, who then turned their sight further west, towards Hungary and Poland.[NEWLINE]'
 WHERE Tag = 'TXT_KEY_CIV5_RUSSIA_TEXT_5';
+
+------------------------------------------------
+-- Info tooltip
+------------------------------------------------
+
+-- Common
+UPDATE Language_en_US
+SET Text = 'Resources Required: {1_NumResource} {2_ResIcon} {3_Res:textkey}'
+WHERE Tag = 'TXT_KEY_PRODUCTION_RESOURCES_REQUIRED';
+
+-- Building
+UPDATE Language_en_US
+SET Text = '[ICON_HAPPINESS_1] Happiness: {2_Sign}{1_Num}'
+WHERE Tag = 'TXT_KEY_PRODUCTION_BUILDING_HAPPINESS';
+
+UPDATE Language_en_US
+SET Text = '[ICON_STRENGTH] City Strength: {2_Sign}{1_Num}'
+WHERE Tag = 'TXT_KEY_PRODUCTION_BUILDING_DEFENSE';
+
+UPDATE Language_en_US
+SET Text = '[ICON_STRENGTH] Hit Points: {2_Sign}{1_Num}'
+WHERE Tag = 'TXT_KEY_PRODUCTION_BUILDING_HITPOINTS';
+
+-- Yield
+UPDATE Language_en_US
+SET Text = '[ICON_FOOD] Food is what determines how fast your City grows to acquire new [ICON_CITIZEN] Citizens, who work the land and collect yields for the City. Bigger Cities are nearly always better, but beware of the increased [ICON_HAPPINESS_3] Unhappiness!'
+WHERE Tag = 'TXT_KEY_FOOD_HELP_INFO';
+
+UPDATE Language_en_US
+SET Text = '[ICON_PEACE] Faith is spent on founding and improving [ICON_RELIGION] Religions at the empire-level. Faith can also be expended to purchase Missionaries, Inquisitors, Religious Buildings, and Great People.'
+WHERE Tag = 'TXT_KEY_FAITH_HELP_INFO';
+
+UPDATE Language_en_US
+SET Text = '{1: number "''[COLOR_POSITIVE_TEXT]''#,##0.00;''[COLOR_NEGATIVE_TEXT]-''#,##0.00"} {2_IconString} Base[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_YIELD_BASE';
+
+UPDATE Language_en_US
+SET Text = '{1: number "''[COLOR_POSITIVE_TEXT]''#,##0.00;''[COLOR_NEGATIVE_TEXT]-''#,##0.00"} {2_IconString} Total[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_YIELD_TOTAL';
+
+UPDATE Language_en_US
+SET Text = '[ICON_BULLET]{1_Num} {2_IconString} from [ICON_CULTURE] Culture'
+WHERE Tag = 'TXT_KEY_YIELD_FROM_CULTURE';
+
+UPDATE Language_en_US
+SET Text = '[ICON_BULLET]{1_Num} {2_IconString} from Terrain'
+WHERE Tag = 'TXT_KEY_YIELD_FROM_TERRAIN';
+
+UPDATE Language_en_US
+SET Text = '[ICON_BULLET]{1_Num} {2_IconString} from Buildings'
+WHERE Tag = 'TXT_KEY_YIELD_FROM_BUILDINGS';
+
+UPDATE Language_en_US
+SET Text = '[ICON_BULLET]{1_Num} {2_IconString} from Specialists'
+WHERE Tag = 'TXT_KEY_YIELD_FROM_SPECIALISTS';
+
+UPDATE Language_en_US
+SET Text = '[ICON_BULLET]{1_Num} {2_IconString} from Religion'
+WHERE Tag = 'TXT_KEY_YIELD_FROM_RELIGION';
+
+UPDATE Language_en_US
+SET Text = '[ICON_BULLET]{1_Num} {2_IconString} from [ICON_CITIZEN] Population'
+WHERE Tag = 'TXT_KEY_YIELD_FROM_POP';
+
+UPDATE Language_en_US
+SET Text = '[ICON_BULLET]{1_Num} {2_IconString} from other sources'
+WHERE Tag = 'TXT_KEY_YIELD_FROM_MISC';
 
 ------------------------------------------------
 -- City screen/banner
@@ -105,24 +173,16 @@ SET Text = '[NEWLINE]Requires {TXT_KEY_GRAMMAR_A_AN << {1_BuildingName:textkey}}
 WHERE Tag = 'TXT_KEY_NO_ACTION_UNIT_REQUIRES_BUILDING';
 
 UPDATE Language_en_US
+SET Text = 'City Combat Strength'
+WHERE Tag = 'TXT_KEY_CITYVIEW_CITY_COMB_STRENGTH_TT';
+
+UPDATE Language_en_US
 SET Text = 'LEFT CLICK adds an additional item to the end of the production queue.[NEWLINE]CTRL + LEFT CLICK adds an additional item in front of the production queue.[NEWLINE]ALT + LEFT CLICK adds the chosen item to the end of the production queue on repeat.[NEWLINE]SHIFT + LEFT CLICK replaces everything in the production queue with the chosen item.[NEWLINE]H hides the chosen building from this city''s production options.'
 WHERE Tag = 'TXT_KEY_CITYVIEW_QUEUE_PROD_TT';
 
 UPDATE Language_en_US
 SET Text = 'Click here to stop this city from growing in [ICON_CITIZEN] Population.'
 WHERE Tag = 'TXT_KEY_CITYVIEW_FOCUS_AVOID_GROWTH_TT';
-
-UPDATE Language_en_US
-SET Text = '[NEWLINE][ICON_BULLET][ICON_CONNECTED] Empire Modifier from Policies etc: {1_Num}%'
-WHERE Tag = 'TXT_KEY_FOODMOD_PLAYER';
-
-UPDATE Language_en_US
-SET Text = '[NEWLINE][ICON_BULLET][ICON_RELIGION_PANTHEON] Religious Beliefs Modifier: {1_Num}%'
-WHERE Tag = 'TXT_KEY_FOODMOD_RELIGION';
-
-UPDATE Language_en_US
-SET Text = '[NEWLINE][ICON_BULLET][ICON_HAPPINESS_1] "We Love the King Day" Modifier: {1_Num}%'
-WHERE Tag = 'TXT_KEY_FOODMOD_WLTKD';
 
 UPDATE Language_en_US
 SET Text = '{1_Num} [ICON_CULTURE] from Great Works and Themes'
@@ -185,8 +245,12 @@ SET Text = '[COLOR_CYAN]Capture chance if defeated[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_EUPANEL_CAPTURE_CHANCE';
 
 UPDATE Language_en_US
-SET Text = '[COLOR_WARNING_TEXT]{1_Number} Interceptors![ENDCOLOR]'
+SET Text = '[COLOR_WARNING_TEXT]{1_Number} known {1_Number: plural 1?Interceptor; other?Interceptors;}![ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_EUPANEL_VISIBLE_AA_UNITS';
+
+UPDATE Language_en_US
+SET Text = 'Distance from Capital'
+WHERE Tag = 'TXT_KEY_EUPANEL_CAPITAL_DEFENSE_BONUS';
 
 ------------------------------------------------
 -- Diplomacy overview / player icon tooltip
@@ -584,6 +648,26 @@ WHERE Tag = 'TXT_KEY_TP_FAITH_NEXT_PANTHEON';
 UPDATE Language_en_US
 SET Text = '{1_Num} [ICON_PEACE] Faith is the minimum required for your next chance at a Great Prophet.'
 WHERE Tag = 'TXT_KEY_TP_FAITH_NEXT_PROPHET';
+
+-- Gold
+UPDATE Language_en_US
+SET Text = '[ICON_GOLD][COLOR:255:235:0:255]{1_TotalGold: number "#,###"} {2_GoldPerTurn: number "''(+''#,###'')'';''[COLOR:255:60:60:255](-''#,###'')''"}[/COLOR]'
+WHERE Tag = 'TXT_KEY_TOP_PANEL_GOLD';
+
+-- Golden Age
+UPDATE Language_en_US
+SET Text = '{1_NumCurrent}/{2_NumNeeded} progress towards the next [ICON_GOLDEN_AGE] Golden Age.'
+WHERE Tag = 'TXT_KEY_TP_GOLDEN_AGE_PROGRESS';
+
+-- Tourism
+UPDATE Language_en_US
+SET Text = '{1_Num} [ICON_GREAT_WORK] {1_Num: plural 1?Great Work Slot; other?Great Work Slots;} Filled'
+WHERE Tag = 'TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_1';
+
+UPDATE Language_en_US
+SET Text = '{1_Num} [ICON_GREAT_WORK] {1_Num: plural 1?Great Work Slot; other?Great Work Slots;} Available'
+WHERE Tag = 'TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_2';
+
 
 -- Trade routes
 UPDATE Language_en_US

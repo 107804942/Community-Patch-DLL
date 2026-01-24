@@ -199,6 +199,13 @@
 			<Description>TXT_KEY_BUILDING_ROMAN_FORUM</Description>
 			<MaxGlobalInstances>1</MaxGlobalInstances>
 		</Row>
+		<!-- Nalanda -->
+		<Row>
+			<Type>BUILDINGCLASS_NALANDA</Type>
+			<DefaultBuilding>BUILDING_NALANDA</DefaultBuilding>
+			<Description>TXT_KEY_BUILDING_NALANDA</Description>
+			<MaxGlobalInstances>1</MaxGlobalInstances>
+		</Row>
 		<!-- Karlstejn -->
 		<Row>
 			<Type>BUILDINGCLASS_KARLSTEJN</Type>
@@ -966,11 +973,11 @@
 			<Type>BUILDING_NILOMETER</Type>
 			<BuildingClass>BUILDINGCLASS_WATERMILL</BuildingClass>
 			<Description>TXT_KEY_BUILDING_NILOMETER</Description>
-			<Civilopedia>TXT_KEY_BUILDING_NILOMETER_TEXT</Civilopedia>
+			<Civilopedia>TXT_KEY_CIV5_BUILDINGS_NILOMETER_TEXT</Civilopedia>
 			<Help>TXT_KEY_BUILDING_NILOMETER_HELP</Help>
 			<Strategy>TXT_KEY_BUILDING_NILOMETER_STRATEGY</Strategy>
 			<PrereqTech>TECH_THE_WHEEL</PrereqTech>
-			<FreshWater>true</FreshWater>
+			<River>true</River>
 			<IconAtlas>BUILDING_ATLAS_VP_1</IconAtlas>
 			<PortraitIndex>18</PortraitIndex>
 		</Row>
@@ -1265,7 +1272,7 @@
 		<!-- Gumey -->
 		<Row>
 			<Type>BUILDING_GUMEY</Type>
-			<BuildingClass>BUILDINGCLASS_MINT</BuildingClass>
+			<BuildingClass>BUILDINGCLASS_CARAVANSARY</BuildingClass>
 			<Description>TXT_KEY_BUILDING_GUMEY</Description>
 			<Civilopedia>TXT_KEY_BUILDING_GUMEY_TEXT</Civilopedia>
 			<Help>TXT_KEY_BUILDING_GUMEY_HELP</Help>
@@ -1678,7 +1685,7 @@
 		<!-- Nalanda -->
 		<Row>
 			<Type>BUILDING_NALANDA</Type>
-			<BuildingClass>BUILDINGCLASS_ROMAN_FORUM</BuildingClass>
+			<BuildingClass>BUILDINGCLASS_NALANDA</BuildingClass>
 			<Description>TXT_KEY_BUILDING_NALANDA</Description>
 			<Civilopedia>TXT_KEY_BUILDING_NALANDA_TEXT</Civilopedia>
 			<Help>TXT_KEY_BUILDING_NALANDA_HELP</Help>
@@ -2000,8 +2007,8 @@
 			<CapitalOnly>true</CapitalOnly>
 			<SpecialistType>SPECIALIST_MERCHANT</SpecialistType>
 			<SpecialistCount>1</SpecialistCount>
-			<IconAtlas>NEW_BLDG_ATLAS_DLC</IconAtlas>
-			<PortraitIndex>1</PortraitIndex>
+			<IconAtlas>BUILDING_ATLAS_VP_2</IconAtlas>
+			<PortraitIndex>18</PortraitIndex>
 		</Row>
 		<!-- Royal Guardhouse -->
 		<Row>
@@ -2211,9 +2218,9 @@
 			<Type>BUILDING_CHARTARIUM</Type>
 			<BuildingClass>BUILDINGCLASS_CHARTARIUM</BuildingClass>
 			<Description>TXT_KEY_BUILDING_CHARTARIUM</Description>
-			<Civilopedia>TXT_KEY_BUILDING_CHARTAIUM_TEXT</Civilopedia>
-			<Help>TXT_KEY_BUILDING_CHARTAIUM_HELP</Help>
-			<Strategy>TXT_KEY_BUILDING_CHARTAIUM_STRATEGY</Strategy>
+			<Civilopedia>TXT_KEY_BUILDING_CHARTARIUM_TEXT</Civilopedia>
+			<Help>TXT_KEY_BUILDING_CHARTARIUM_HELP</Help>
+			<Strategy>TXT_KEY_BUILDING_CHARTARIUM_STRATEGY</Strategy>
 			<ThemingBonusHelp>TXT_KEY_CHARTARIUM_THEMING_BONUS_HELP</ThemingBonusHelp>
 			<GreatWorkSlotType>GREAT_WORK_SLOT_LITERATURE</GreatWorkSlotType>
 			<GreatWorkCount>3</GreatWorkCount>

@@ -1,14 +1,49 @@
 name: cppcheck
 on:
-  push:
-    branches: [ master ]
   workflow_dispatch:
 
 env:
-  CPPCHECK_VERSION: "2.17.1"
+  CPPCHECK_VERSION: "2.18.0"
 
 jobs:
+  detect-changes:
+    name: Detect File Changes
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    outputs:
+      cpp-files: ${{ steps.filter.outputs.cpp-files }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Filter Changed Paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          token: ''
+          filters: |
+            cpp-files:
+              - 'CvGameCoreDLL_Expansion2/**'
+              - 'CvGameCoreDLLUtil/**'
+              - 'CvGameDatabase/**'
+              - 'CvLocalization/**'
+              - 'CvWorldBuilderMap/**'
+              - 'FirePlace/**'
+              - 'ThirdPartyLibs/**'
+              - '*.cpp'
+              - '*.h'
+              - '*.sln'
+              - '*.vcxproj'
+              - '.github/workflows/cppcheck.yml'
+
+      - name: Changes Summary
+        run: |
+          echo "### 🔍 File Changes Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- C++ Files: ${{ steps.filter.outputs.cpp-files == 'true' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+
   build_cppcheck:
+    needs: detect-changes
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.detect-changes.outputs.cpp-files == 'true' }}
     runs-on: ubuntu-22.04
     steps:
       - name: Restore cached cppcheck
@@ -40,7 +75,8 @@ jobs:
           retention-days: 1
 
   analysis:
-    needs: build_cppcheck
+    needs: [detect-changes, build_cppcheck]
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.detect-changes.outputs.cpp-files == 'true' }}
     runs-on: ubuntu-22.04
     continue-on-error: true
     outputs:
@@ -118,9 +154,9 @@ jobs:
           retention-days: 90
 
   retry_analysis:
-    needs: [build_cppcheck, analysis]
+    needs: [detect-changes, build_cppcheck, analysis]
     runs-on: ubuntu-22.04
-    if: needs.analysis.outputs.timed_out == 'true'
+    if: ${{ needs.analysis.outputs.timed_out == 'true' && (github.event_name == 'workflow_dispatch' || needs.detect-changes.outputs.cpp-files == 'true') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

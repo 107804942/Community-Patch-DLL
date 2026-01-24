@@ -77,11 +77,9 @@ void CvCityAI::AI_chooseProduction(bool bInterruptWonders, bool bInterruptBuildi
 	CvPlayerAI& kOwner = GET_PLAYER(getOwner());
 	CvCitySpecializationAI* pSpecializationAI = kOwner.GetCitySpecializationAI();
 	
-	// if going for science victory, spaceship planning is done on player level and not here. don't change production if this city is producing a spaceship part
-	if (!kOwner.isMinorCiv() && kOwner.GetDiplomacyAI()->IsGoingForSpaceshipVictory() && isProductionSpaceshipPart())
-	{
+	// spaceship planning is done on player level and not here. don't change production if this city is producing a spaceship part
+	if (isProductionSpaceshipPart())
 		return;
-	}
 
 	bool bBuildWonder = false;
 
@@ -182,8 +180,8 @@ void CvCityAI::AI_setChooseProductionDirty(bool bNewValue)
 int CvCityAI::AI_GetNumPlotsAcquiredByOtherPlayer(PlayerTypes ePlayer) const
 {
 	VALIDATE_OBJECT();
-	ASSERT_DEBUG(ePlayer < MAX_PLAYERS);
-	ASSERT_DEBUG(ePlayer > -1);
+	PRECONDITION(ePlayer < MAX_PLAYERS);
+	PRECONDITION(ePlayer > -1);
 	
 	map<PlayerTypes,int>::const_iterator it = m_mapPlotsAcquiredByOtherPlayers.find(ePlayer);
 	if (it != m_mapPlotsAcquiredByOtherPlayers.end())
@@ -196,8 +194,8 @@ int CvCityAI::AI_GetNumPlotsAcquiredByOtherPlayer(PlayerTypes ePlayer) const
 void CvCityAI::AI_ChangeNumPlotsAcquiredByOtherPlayer(PlayerTypes ePlayer, int iChange)
 {
 	VALIDATE_OBJECT();
-	ASSERT_DEBUG(ePlayer < MAX_PLAYERS);
-	ASSERT_DEBUG(ePlayer > -1);
+	PRECONDITION(ePlayer < MAX_PLAYERS);
+	PRECONDITION(ePlayer > -1);
 
 	m_mapPlotsAcquiredByOtherPlayers[ePlayer] += iChange;
 
@@ -205,7 +203,6 @@ void CvCityAI::AI_ChangeNumPlotsAcquiredByOtherPlayer(PlayerTypes ePlayer, int i
 		m_mapPlotsAcquiredByOtherPlayers.erase(ePlayer);
 }
 
-#if defined(MOD_BALANCE_CORE_EVENTS)
 void CvCityAI::AI_DoEventChoice(CityEventTypes eChosenEvent)
 {
 	if(eChosenEvent != NO_EVENT_CITY)
@@ -349,7 +346,6 @@ void CvCityAI::AI_DoEventChoice(CityEventTypes eChosenEvent)
 		}
 	}
 }
-#endif
 
 template<typename CityAI, typename Visitor>
 void CvCityAI::Serialize(CityAI& cityAI, Visitor& visitor)

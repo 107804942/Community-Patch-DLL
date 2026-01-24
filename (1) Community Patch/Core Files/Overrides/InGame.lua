@@ -144,6 +144,16 @@ function ClickSelect( wParam, lParam )
 		local bAlt = UIManager:GetAlt();
 		local bCtrl = UIManager:GetControl();
 		UI.LocationSelect(plot, bCtrl, bAlt, bShift);
+		-- fix the bug that no unit is being selected when clicking on a city tile
+		if (not bCityScreenOpen and plot:IsCity() and plot:GetOwner() == Game.GetActivePlayer()) then
+			local pSelectedUnit =  UI.GetHeadSelectedUnit()
+			if (pSelectedUnit == NULL or pSelectedUnit:GetX() ~= plot:GetX() or pSelectedUnit:GetY() ~= plot:GetY()) then
+				local pUnit = plot:GetBestDefender(plot:GetOwner(), -1)
+				if pUnit then
+					UI.SelectUnit(pUnit);
+				end
+			end
+		end
 	end
 	return true;
 end
@@ -1269,6 +1279,15 @@ end
 
 Events.GameViewTypeChanged.Add(OnGameViewTypeChanged);
 
+---------------------------------------------------------------------------------------
+-- Remove the super global VP table when the game is ended (e.g. back to main menu),
+-- in case ModMapData persists across mod unloading
+---------------------------------------------------------------------------------------
+ContextPtr:SetShutdown(function ()
+	print("Shutting down InGame.lua");
+	MapModData.VP = nil;
+	MapModData.CommonContext = nil;
+end);
 
 ---------------------------------------------------------------------------------------
 -- Support for Modded Add-in UI's

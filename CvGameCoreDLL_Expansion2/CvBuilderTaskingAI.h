@@ -24,7 +24,8 @@ struct BuilderDirective
 		BUILD_IMPROVEMENT_ON_RESOURCE, // enabling a special resource
 		BUILD_IMPROVEMENT,			   // improving a tile
 		BUILD_ROUTE,				   // build a route on a tile
-		REPAIR,						   // repairing a pillaged route or improvement
+		REPAIR_IMPROVEMENT,			   // repairing a pillaged improvement
+		REPAIR_ROUTE,				   // repairing a pillaged route
 		REMOVE_FEATURE,				   // remove a feature to improve production
 		REMOVE_ROAD,				   // remove a road from a plot
 		KEEP_IMPROVEMENT,			   // will not actually be executed but needed for planning
@@ -175,6 +176,8 @@ protected:
 
 	vector<OptionWithScore<BuilderDirective>> GetRouteDirectives();
 	vector<OptionWithScore<BuilderDirective>> GetImprovementDirectives();
+	void UpdateFutureYields(const vector<BuildTypes>& aPossibleBuilds);
+	int GetFutureYields(ImprovementTypes eImprovement, YieldTypes eYield);
 
 	void UpdateCurrentPlotYields(const CvPlot* pPlot);
 	void UpdateProjectedPlotYields(const CvPlot* pPlot, BuildTypes eBuild, RouteTypes eForceCityConnection);
@@ -196,6 +199,8 @@ protected:
 
 	void UpdateCanalPlots();
 
+	bool PlotHasSpecialImprovement(const CvPlot* pPlot) const;
+
 	PlotPair GetPlotPair(int iPlotId1, int iPlotId2);
 
 	CvPlayer* m_pPlayer;
@@ -214,6 +219,7 @@ protected:
 	vector<BuilderDirective> m_directives;
 	map<int, BuilderDirective> m_assignedDirectives;
 	map<const CvCity*, int> m_worstCityPlotValues;
+	std::tr1::unordered_map<ImprovementTypes, std::tr1::unordered_map<YieldTypes, int>> m_futureYieldBonuses;
 
 	int m_aiCurrentPlotYields[NUM_YIELD_TYPES];
 	int m_aiProjectedPlotYields[NUM_YIELD_TYPES];

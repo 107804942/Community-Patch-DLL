@@ -14,9 +14,7 @@
 #include "CvLuaCity.h"
 #include "CvLuaPlot.h"
 #include "CvLuaUnit.h"
-#if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS) || defined (MOD_BALANCE_CORE_UNIT_INVESTMENTS)
 #include "../CvInternalGameCoreUtils.h"
-#endif
 
 #pragma warning(disable:4800 ) //forcing value to bool 'true' or 'false'
 
@@ -74,6 +72,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 
 	Method(CanJoin);
 	Method(IsBuildingLocalResourceValid);
+	Method(GetImprovementCount);
 
 	Method(GetBuildingYieldRateTimes100)
 	Method(GetBuildingYieldModifier)
@@ -123,23 +122,17 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetProductionNeeded);
 	Method(GetUnitProductionNeeded);
 	Method(GetBuildingProductionNeeded);
-#if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
 	Method(GetBuildingInvestment);
 	Method(IsWorldWonder);
 	Method(GetWorldWonderCost);
 	Method(GetNumPoliciesNeeded);
-#endif
-#if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
 	Method(GetUnitInvestment);
-#endif
 	Method(GetProjectProductionNeeded);
 	Method(GetProductionTurnsLeft);
 	Method(GetUnitProductionTurnsLeft);
 	Method(GetBuildingProductionTurnsLeft);
 	Method(GetProjectProductionTurnsLeft);
-#if defined(MOD_PROCESS_STOCKPILE)
 	Method(GetProcessProductionTurnsLeft);
-#endif
 
 	Method(CreateApolloProgram);
 
@@ -226,10 +219,8 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(SetPopulation);
 	Method(ChangePopulation);
 	Method(GetRealPopulation);
-#if defined(MOD_GLOBAL_CITY_AUTOMATON_WORKERS)
 	Method(GetAutomatons);
 	Method(SetAutomatons);
-#endif
 	Method(GetHighestPopulation);
 	Method(SetHighestPopulation);
 	//Method(GetWorkingPopulation);
@@ -277,9 +268,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 
 	Method(GetCultureRateModifier);
 	Method(ChangeCultureRateModifier);
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	Method(GetCityYieldModFromMonopoly);
-#endif
 	Method(GetTourismRateModifier);
 	Method(ChangeTourismRateModifier);
 
@@ -300,6 +289,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(IsThemingBonusPossible);
 	Method(GetThemingBonus);
 	Method(GetThemingTooltip);
+	Method(GetThemingBonusMultiplier);
 
 	Method(GetFaithPerTurn);
 	Method(GetFaithPerTurnFromBuildings);
@@ -339,14 +329,10 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetBuyPlotDistance);
 	Method(GetWorkPlotDistance);
 
-#if defined(MOD_BUILDINGS_CITY_WORKING)
 	Method(GetCityWorkingChange);
 	Method(ChangeCityWorkingChange);
-#endif
-#if defined(MOD_BUILDINGS_CITY_AUTOMATON_WORKERS)
 	Method(GetCityAutomatonWorkersChange);
 	Method(ChangeCityAutomatonWorkersChange);
-#endif
 
 	Method(GetRemainingFreeSpecialists);
 	Method(GetBasicNeedsMedian);
@@ -370,6 +356,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetUnhappinessFromPillagedTiles);
 	Method(GetUnhappinessFromFamine);
 	Method(GetUnhappinessFromReligiousUnrest);
+	Method(GetUnhappinessFromBuildings);
 	Method(getPotentialUnhappinessWithGrowth);
 	Method(GetCityUnhappinessBreakdown);
 	Method(GetCityHappinessBreakdown);
@@ -445,9 +432,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetBaseYieldRate);
 	Method(GetBaseYieldRateTimes100);
 
-#if defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
 	Method(GetBaseYieldRateFromGreatWorks);
-#endif
 
 	Method(GetBaseYieldRateFromTerrain);
 	Method(ChangeBaseYieldRateFromTerrain);
@@ -542,10 +527,8 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(SetDamage);
 	Method(ChangeDamage);
 	Method(GetMaxHitPoints);
-#if defined(MOD_EVENTS_CITY_BOMBARD)
 	Method(GetBombardRange);
 	Method(GetCityBuildingRangeStrikeModifier);
-#endif
 	Method(CanRangeStrike);
 	Method(CanRangeStrikeNow);
 	Method(CanRangeStrikeAt);
@@ -579,13 +562,10 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetBuildingYieldChange);
 	Method(SetBuildingYieldChange);
 
-#if defined(MOD_BALANCE_CORE_POLICIES)
-	Method(GetBuildingClassCultureChange);
 	Method(GetReligionYieldRateModifier);
 	Method(GetReligionBuildingYieldRateModifier);
 	Method(GetYieldPerTurnFromMinors);
 	Method(SetYieldPerTurnFromMinors);
-#endif
 	Method(GetBaseYieldRateFromNonSpecialists);
 	Method(GetBuildingYieldChangeFromCorporationFranchises);
 	Method(GetYieldChangeFromCorporationFranchises);
@@ -610,10 +590,8 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(HasCounterSpy);
 	Method(GetCounterSpy);
 
-#if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	Method(GetBuildingConversionModifier);
 	Method(GetBuildingGlobalConversionModifier);
-#endif
 
 	Method(GetNumCityPlots);
 	Method(CanPlaceUnitHere);
@@ -703,7 +681,10 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(SetSappedTurns);
 	Method(ChangeSappedTurns);
 
-#if defined(MOD_BALANCE_CORE_EVENTS)
+	Method(GetBuildingTypeFromClass);
+
+	Method(GetHurryProduction);
+
 	Method(GetDisabledTooltip);
 	Method(GetScaledEventChoiceValue);
 	Method(IsCityEventChoiceActive);
@@ -716,10 +697,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(SetCityEventChoiceCooldown);
 	Method(IsCityEventChoiceValid);
 	Method(IsCityEventChoiceValidEspionage);
-#endif
 
-
-#if defined(MOD_BALANCE_CORE_JFD)
 	Method(IsColony);
 	Method(SetColony);
 
@@ -782,7 +760,8 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 
 	Method(GetYieldFromDevelopment);
 	Method(SetYieldFromDevelopment);
-#endif
+
+	Method(GetCompetitiveSpawnUnitType);
 }
 //------------------------------------------------------------------------------
 void CvLuaCity::HandleMissingInstance(lua_State* L)
@@ -1287,7 +1266,7 @@ int CvLuaCity::lGetFaithPurchaseUnitTooltip(lua_State* L)
 		}
 	}
 	CvUnitEntry* pGameUnit = GC.getUnitInfo(eUnit);
-	if(MOD_BALANCE_CORE && pGameUnit && GET_PLAYER(pkCity->getOwner()).GetFaithPurchaseCooldown() > 0 && pGameUnit->GetGlobalFaithCooldown() > 0)
+	if(pGameUnit && GET_PLAYER(pkCity->getOwner()).GetFaithPurchaseCooldown() > 0 && pGameUnit->GetGlobalFaithCooldown() > 0)
 	{
 		Localization::String localizedText = Localization::Lookup("TXT_KEY_COOLDOWN_X_TURNS_REMAINING_FAITH");
 		localizedText << GET_PLAYER(pkCity->getOwner()).GetFaithPurchaseCooldown();
@@ -1301,7 +1280,6 @@ int CvLuaCity::lGetFaithPurchaseUnitTooltip(lua_State* L)
 			toolTip += localized;
 		}
 	}
-#if defined(MOD_BALANCE_CORE)
 	// Local faith purchase cooldown for combat units
 	if (GC.getUnitInfo(eUnit)->GetCombat() > 0 || GC.getUnitInfo(eUnit)->GetRangedCombat() > 0)
 	{
@@ -1335,7 +1313,6 @@ int CvLuaCity::lGetFaithPurchaseUnitTooltip(lua_State* L)
 			toolTip += localized;
 		}
 	}
-#endif
 
 	// Not enough faith
 	if((pkCity->GetFaithPurchaseCost(eUnit, true) * 100) > GET_PLAYER(pkCity->getOwner()).GetFaithTimes100())
@@ -1365,8 +1342,7 @@ int CvLuaCity::lGetPurchaseBuildingTooltip(lua_State* L)
 	// City Production Modifier
 	pkCity->canConstruct(eBuilding, false, false, false, false, &toolTip);
 
-#if defined(MOD_BALANCE_CORE)
-	if(MOD_BALANCE_CORE && pkCity->GetBuildingPurchaseCooldown() > 0)
+	if(pkCity->GetBuildingPurchaseCooldown() > 0)
 	{
 		Localization::String localizedText = Localization::Lookup("TXT_KEY_COOLDOWN_X_TURNS_REMAINING");
 		localizedText << pkCity->GetBuildingPurchaseCooldown();
@@ -1380,9 +1356,8 @@ int CvLuaCity::lGetPurchaseBuildingTooltip(lua_State* L)
 			toolTip += localized;
 		}
 	}
-#endif
 
-	if (MOD_BALANCE_CORE_BUILDING_INVESTMENTS && eBuilding != NO_BUILDING)
+	if (MOD_BALANCE_BUILDING_INVESTMENTS && eBuilding != NO_BUILDING)
 	{
 		//Have we already invested here?
 		CvBuildingEntry* pGameBuilding = GC.getBuildingInfo(eBuilding);
@@ -1473,149 +1448,207 @@ int CvLuaCity::lIsBuildingLocalResourceValid(lua_State* L)
 }
 
 //------------------------------------------------------------------------------
-//bool GetBuildingYieldRateTimes100(BuildingTypes eBuilding, YieldTypes eYield);
+// int GetImprovementCount(ImprovementTypes eImprovement);
+int CvLuaCity::lGetImprovementCount(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	const ImprovementTypes eImprovement = static_cast<ImprovementTypes>(lua_tointeger(L, 2));
+
+	lua_pushinteger(L, pkCity->GetImprovementCount(eImprovement));
+	return 1;
+}
+
+//------------------------------------------------------------------------------
+//int GetBuildingYieldRateTimes100(BuildingTypes eBuilding, YieldTypes eYield);
 int CvLuaCity::lGetBuildingYieldRateTimes100(lua_State* L)
 {
-	CvCity* pCity = GetInstance(L);
-	const BuildingTypes eBuilding = (BuildingTypes)lua_tointeger(L, 2);
-	const YieldTypes eYield = (YieldTypes)lua_tointeger(L, 3);
+	const CvCity* pCity = GetInstance(L);
+	const BuildingTypes eBuilding = static_cast<BuildingTypes>(lua_tointeger(L, 2));
+	const YieldTypes eYield = static_cast<YieldTypes>(lua_tointeger(L, 3));
 
-	int iYieldTimes100 = 0;
-	if (pCity && eBuilding != NO_BUILDING && eBuilding < GC.getNumBuildingInfos() && eYield != NO_YIELD && eYield < NUM_YIELD_TYPES)
+	// Input validations
+	if (eYield <= NO_YIELD || eYield >= GC.getNUM_YIELD_TYPES())
+		return luaL_error(L, "Invalid yield ID %d", eYield);
+
+	if (eBuilding <= NO_BUILDING || eBuilding >= GC.getNumBuildingInfos())
+		return luaL_error(L, "Invalid building ID %d", eBuilding);
+
+	const PlayerTypes ePlayer = pCity->getOwner();
+	const CvPlayer& kPlayer = GET_PLAYER(ePlayer);
+	const CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
+	const BuildingClassTypes eBuildingClass = pkBuildingInfo->GetBuildingClassType();
+	const CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(eBuildingClass);
+
+	int iYieldTimes100 = pkBuildingInfo->GetYieldChange(eYield) * 100;
+
+	if (eYield == YIELD_CULTURE && iYieldTimes100 != 0)
 	{
-		PlayerTypes ePlayer = pCity->getOwner();
-		CvPlayer* pPlayer = &GET_PLAYER(ePlayer);
-		CvBuildingEntry* pBuildingInfo = GC.getBuildingInfo(eBuilding);
-		BuildingClassTypes eBuildingClass = pBuildingInfo->GetBuildingClassType();
-		CvBuildingClassInfo* pBuildingClassInfo = GC.getBuildingClassInfo(eBuildingClass);
+		iYieldTimes100 += kPlayer.GetPlayerTraits()->GetCultureBuildingYieldChange() * 100;
+	}
 
-		iYieldTimes100 += pBuildingInfo->GetYieldChange(eYield) * 100;
-
-		if (!pBuildingInfo->GetTechEnhancedYields().empty())
+	if (!pkBuildingInfo->GetTechEnhancedYields().empty())
+	{
+		const map<int, map<int, int>> mTechEnhancedYields = pkBuildingInfo->GetTechEnhancedYields();
+		for (map<int, map<int, int>>::const_iterator it = mTechEnhancedYields.begin(); it != mTechEnhancedYields.end(); ++it)
 		{
-			map<int, std::map<int, int>> mTechEnhancedYields = pBuildingInfo->GetTechEnhancedYields();
-			map<int, std::map<int, int>>::iterator it;
-			for (it = mTechEnhancedYields.begin(); it != mTechEnhancedYields.end(); it++)
+			if (kPlayer.HasTech(static_cast<TechTypes>(it->first)))
 			{
-				if (GET_TEAM(pPlayer->getTeam()).GetTeamTechs()->HasTech((TechTypes)it->first))
+				map<int, int>::const_iterator it2 = it->second.find(eYield);
+				if (it2 != it->second.end())
 				{
-					std::map<int, int>::const_iterator it2 = (it->second).find(eYield);
-					if (it2 != (it->second).end())
-					{
-						iYieldTimes100 += it2->second * 100;
-					}
+					iYieldTimes100 += it2->second * 100;
 				}
 			}
 		}
+	}
 
-		if (!pBuildingInfo->GetYieldChangesFromAccomplishments().empty())
+	if (!pkBuildingInfo->GetYieldChangesFromAccomplishments().empty())
+	{
+		const map<int, map<int, int>> mYieldsFromAccomplishments = pkBuildingInfo->GetYieldChangesFromAccomplishments();
+		for (map<int, map<int, int>>::const_iterator it = mYieldsFromAccomplishments.begin(); it != mYieldsFromAccomplishments.end(); ++it)
 		{
-			map<int, std::map<int, int>> mYieldsFromAccomplishments = pBuildingInfo->GetYieldChangesFromAccomplishments();
-			map<int, std::map<int, int>>::iterator it;
-			for (it = mYieldsFromAccomplishments.begin(); it != mYieldsFromAccomplishments.end(); it++)
+			int iAccomplishment = kPlayer.GetNumTimesAccomplishmentCompleted(static_cast<AccomplishmentTypes>(it->first));
+			if (iAccomplishment > 0)
 			{
-				if (pPlayer->GetNumTimesAccomplishmentCompleted((AccomplishmentTypes)it->first) > 0)
+				map<int, int>::const_iterator it2 = it->second.find(eYield);
+				if (it2 != it->second.end())
 				{
-					std::map<int, int>::const_iterator it2 = (it->second).find(eYield);
-					if (it2 != (it->second).end())
-					{
-						iYieldTimes100 += it2->second * pPlayer->GetNumTimesAccomplishmentCompleted((AccomplishmentTypes)it->first) * 100;
-					}
+					iYieldTimes100 += it2->second * iAccomplishment * 100;
 				}
 			}
 		}
+	}
 
-		iYieldTimes100 += pPlayer->GetBuildingClassYieldChange(eBuildingClass, eYield) * 100;
-		iYieldTimes100 += pPlayer->GetPlayerTraits()->GetBuildingClassYieldChange(eBuildingClass, eYield) * 100;
-
-		ReligionTypes eMajority = pCity->GetCityReligions()->GetReligiousMajority();
-		BeliefTypes eSecondaryPantheon = NO_BELIEF;
-		ReligionTypes ePlayerReligion = GET_PLAYER(ePlayer).GetReligions()->GetStateReligion();
-		if (ePlayerReligion != NO_RELIGION && eMajority == ePlayerReligion)
+	const ReligionTypes eMajority = pCity->GetCityReligions()->GetReligiousMajority();
+	const BeliefTypes eSecondaryPantheon = pCity->GetCityReligions()->GetSecondaryReligionPantheonBelief();
+	const CvReligion* pReligion = GC.getGame().GetGameReligions()->GetReligion(eMajority, ePlayer);
+	if (pReligion)
+	{
+		if (eYield == YIELD_TOURISM)
 		{
-			iYieldTimes100 += pCity->getReligionBuildingYieldRateModifier((BuildingClassTypes)eBuildingClass, (YieldTypes)eYield) * 100;
-		}
-		if (eMajority != NO_RELIGION)
-		{
-			const CvReligion* pReligion = GC.getGame().GetGameReligions()->GetReligion(eMajority, ePlayer);
-			if (pReligion)
+			int iFaithBuildingTourism = pReligion->m_Beliefs.GetFaithBuildingTourism(ePlayer, pCity);
+			if (pkBuildingInfo->IsFaithPurchaseOnly())
 			{
-				if (eYield == YIELD_TOURISM)
+				iYieldTimes100 += iFaithBuildingTourism * 100;
+			}
+		}
+		int iFollowers = pCity->GetCityReligions()->GetNumFollowers(eMajority);
+		iYieldTimes100 += pReligion->m_Beliefs.GetBuildingClassYieldChange(eBuildingClass, eYield, iFollowers, ePlayer, pCity) * 100;
+
+		if (::isWorldWonderClass(*pkBuildingClassInfo))
+		{
+			iYieldTimes100 += pReligion->m_Beliefs.GetYieldChangeWorldWonder(eYield, ePlayer, pCity) * 100;
+		}
+
+		if (eSecondaryPantheon != NO_BELIEF)
+		{
+			const CvBeliefEntry* pkBeliefInfo = GC.getBeliefInfo(eSecondaryPantheon);
+			iFollowers = pCity->GetCityReligions()->GetNumFollowers(pCity->GetCityReligions()->GetReligionByAccumulatedPressure(1));
+			if (iFollowers >= pkBeliefInfo->GetMinFollowers())
+			{
+				iYieldTimes100 += pkBeliefInfo->GetBuildingClassYieldChange(eBuildingClass, eYield) * 100;
+			}
+		}
+	}
+	// Mod for civs keeping their pantheon belief forever
+	if (MOD_BALANCE_PERMANENT_PANTHEONS)
+	{
+		if (GC.getGame().GetGameReligions()->HasCreatedPantheon(ePlayer))
+		{
+			const CvReligion* pPantheon = GC.getGame().GetGameReligions()->GetReligion(RELIGION_PANTHEON, ePlayer);
+			const BeliefTypes ePantheonBelief = GC.getGame().GetGameReligions()->GetBeliefInPantheon(ePlayer);
+			if (pPantheon && ePantheonBelief != NO_BELIEF && ePantheonBelief != eSecondaryPantheon)
+			{
+				if (!pReligion || !pReligion->m_Beliefs.IsPantheonBeliefInReligion(ePantheonBelief, eMajority, ePlayer)) // check that the our religion does not have our belief, to prevent double counting
 				{
-					int iFaithBuildingTourism = pReligion->m_Beliefs.GetFaithBuildingTourism(ePlayer, pCity);
-					if (iFaithBuildingTourism != 0 && pBuildingInfo->IsFaithPurchaseOnly())
-					{
-						iYieldTimes100 += iFaithBuildingTourism * 100;
-					}
-				}
-				int iFollowers = pCity->GetCityReligions()->GetNumFollowers(eMajority);
-				iYieldTimes100 += pReligion->m_Beliefs.GetBuildingClassYieldChange(eBuildingClass, eYield, iFollowers, ePlayer, pCity) * 100;
-				if (::isWorldWonderClass(*pBuildingClassInfo))
-				{
-					iYieldTimes100 += pReligion->m_Beliefs.GetYieldChangeWorldWonder(eYield, ePlayer, pCity) * 100;
-				}
-				eSecondaryPantheon = pCity->GetCityReligions()->GetSecondaryReligionPantheonBelief();
-				if (eSecondaryPantheon != NO_BELIEF)
-				{
-					iFollowers = pCity->GetCityReligions()->GetNumFollowers(pCity->GetCityReligions()->GetReligionByAccumulatedPressure(1));
-					if (iFollowers >= GC.GetGameBeliefs()->GetEntry(eSecondaryPantheon)->GetMinFollowers())
-					{
-						iYieldTimes100 += GC.GetGameBeliefs()->GetEntry(eSecondaryPantheon)->GetBuildingClassYieldChange(eBuildingClass, eYield) * 100;
-					}
+					iYieldTimes100 += GC.getBeliefInfo(ePantheonBelief)->GetBuildingClassYieldChange(eBuildingClass, eYield) * 100;
 				}
 			}
 		}
-		// Mod for civs keeping their pantheon belief forever
-		if (MOD_RELIGION_PERMANENT_PANTHEON)
+	}
+
+	if (::isWorldWonderClass(*pkBuildingClassInfo))
+	{
+		iYieldTimes100 += GC.getGame().GetGameLeagues()->GetWorldWonderYieldChange(ePlayer, eYield) * 100;
+		iYieldTimes100 += kPlayer.GetPlayerTraits()->GetYieldChangeWorldWonder(eYield) * 100;
+	}
+
+	for (int iPolicyLoop = 0; iPolicyLoop < GC.getNumPolicyInfos(); iPolicyLoop++)
+	{
+		const PolicyTypes ePolicy = static_cast<PolicyTypes>(iPolicyLoop);
+		CvPolicyEntry* pkPolicyInfo = GC.getPolicyInfo(ePolicy);
+		if (kPlayer.GetPlayerPolicies()->HasPolicy(ePolicy) && !kPlayer.GetPlayerPolicies()->IsPolicyBlocked(ePolicy))
 		{
-			if (GC.getGame().GetGameReligions()->HasCreatedPantheon(ePlayer))
+			iYieldTimes100 += pkPolicyInfo->GetBuildingClassYieldChanges(eBuildingClass, eYield) * 100;
+			if (isWorldWonderClass(*pkBuildingClassInfo))
 			{
-				const CvReligion* pPantheon = GC.getGame().GetGameReligions()->GetReligion(RELIGION_PANTHEON, ePlayer);
-				BeliefTypes ePantheonBelief = GC.getGame().GetGameReligions()->GetBeliefInPantheon(ePlayer);
-				if (pPantheon != NULL && ePantheonBelief != NO_BELIEF && ePantheonBelief != eSecondaryPantheon)
-				{
-					const CvReligion* pReligion = GC.getGame().GetGameReligions()->GetReligion(eMajority, ePlayer);
-					if (pReligion == NULL || (pReligion != NULL && !pReligion->m_Beliefs.IsPantheonBeliefInReligion(ePantheonBelief, eMajority, ePlayer))) // check that the our religion does not have our belief, to prevent double counting
-					{
-						iYieldTimes100 += GC.GetGameBeliefs()->GetEntry(ePantheonBelief)->GetBuildingClassYieldChange(eBuildingClass, eYield) * 100;
-					}
-				}
+				iYieldTimes100 += pkPolicyInfo->GetYieldChangeWorldWonder(eYield) * 100;
 			}
 		}
-		if (::isWorldWonderClass(*pBuildingClassInfo))
+	}
+
+	for (int i = 0; i < GC.getNumTerrainInfos(); i++)
+	{
+		TerrainTypes eTerrain = static_cast<TerrainTypes>(i);
+		int iYieldPerXTerrain = pkBuildingInfo->GetYieldPerXTerrain(i, eYield);
+		switch (eTerrain)
 		{
-			iYieldTimes100 += GC.getGame().GetGameLeagues()->GetWorldWonderYieldChange(ePlayer, eYield) * 100;
-			iYieldTimes100 += pPlayer->GetPlayerTraits()->GetYieldChangeWorldWonder(eYield) * 100;
-			for (int iPolicyLoop = 0; iPolicyLoop < GC.getNumPolicyInfos(); iPolicyLoop++)
-			{
-				const PolicyTypes ePolicy = static_cast<PolicyTypes>(iPolicyLoop);
-				CvPolicyEntry* pkPolicyInfo = GC.getPolicyInfo(ePolicy);
-				if (pkPolicyInfo)
-				{
-					if (pPlayer->GetPlayerPolicies()->HasPolicy(ePolicy) && !pPlayer->GetPlayerPolicies()->IsPolicyBlocked(ePolicy))
-					{
-						iYieldTimes100 += pkPolicyInfo->GetYieldChangeWorldWonder(eYield) * 100;
-					}
-				}
-			}
+			case TERRAIN_SNOW:
+				iYieldTimes100 += iYieldPerXTerrain * pCity->CountTerrain(TERRAIN_SNOW);
+				break;
+			case TERRAIN_MOUNTAIN:
+				iYieldTimes100 += iYieldPerXTerrain * pCity->GetNearbyMountains();
+				break;
+			default:
+				iYieldTimes100 += iYieldPerXTerrain * pCity->GetNumTerrainWorked(eTerrain);
+				break;
 		}
+	}
 
-		iYieldTimes100 += pCity->getLocalBuildingClassYield(eBuildingClass, eYield) * 100;
-		iYieldTimes100 += pCity->GetBuildingYieldChangeFromCorporationFranchises(eBuildingClass, eYield) * 100;
-		iYieldTimes100 += pPlayer->GetPlayerPolicies()->GetBuildingClassYieldChange(eBuildingClass, eYield) * 100;
+	for (int i = 0; i < GC.getNumFeatureInfos(); i++)
+	{
+		FeatureTypes eFeature = static_cast<FeatureTypes>(i);
+		iYieldTimes100 += pkBuildingInfo->GetYieldPerXFeature(i, eYield) * pCity->GetNumFeatureWorked(eFeature);
+	}
 
-		iYieldTimes100 += pBuildingInfo->GetYieldChangePerPop(eYield) * pCity->getPopulation();
-		iYieldTimes100 += pBuildingInfo->GetYieldChangePerPopInEmpire(eYield) * pPlayer->getTotalPopulation();
-		iYieldTimes100 += (pBuildingInfo->GetYieldChangePerBuilding(eYield) * pCity->GetCityBuildings()->GetNumBuildings() * 100).Truncate();
-		iYieldTimes100 += (pBuildingInfo->GetYieldChangePerTile(eYield) * pCity->GetPlotList().size() * 100).Truncate();
-		iYieldTimes100 += pBuildingInfo->GetYieldChangeFromPassingTR(eYield) * pCity->plot()->GetNumTradeUnitRoute() * 100;
-		iYieldTimes100 += (pBuildingInfo->GetYieldChangePerCityStateStrategicResource(eYield) * pPlayer->GetNumStrategicResourcesFromMinors() * 100).Truncate();
-		iYieldTimes100 += pCity->GetEventBuildingClassCityYield(eBuildingClass, eYield) * 100;
-		iYieldTimes100 += pBuildingInfo->GetYieldChangeEraScalingTimes100(eYield) * max(1, (int)pPlayer->GetCurrentEra());
+	fraction fYieldFromImprovementCount;
+	for (int i = 0; i < GC.getNumImprovementInfos(); i++)
+	{
+		ImprovementTypes eImprovement = static_cast<ImprovementTypes>(i);
+		fYieldFromImprovementCount += pkBuildingInfo->GetYieldPerXImprovementLocal(eImprovement, eYield) * pCity->GetImprovementCount(eImprovement);
+		fYieldFromImprovementCount += pkBuildingInfo->GetYieldPerXImprovementGlobal(eImprovement, eYield) * kPlayer.getImprovementCount(eImprovement);
+	}
+	iYieldTimes100 += (fYieldFromImprovementCount * 100).Truncate();
 
-		iYieldTimes100 += pBuildingInfo->GetYieldPerFriend(eYield) * pPlayer->GetNumCSFriends() * 100;
-		iYieldTimes100 += pBuildingInfo->GetYieldPerAlly(eYield) * pPlayer->GetNumCSAllies() * 100;
-		iYieldTimes100 += pBuildingInfo->GetYieldChangePerMonopoly(eYield) * pPlayer->GetNumGlobalMonopolies() * 100;
+	iYieldTimes100 += kPlayer.GetBuildingClassYieldChange(eBuildingClass, eYield) * 100;
+	iYieldTimes100 += kPlayer.GetPlayerTraits()->GetBuildingClassYieldChange(eBuildingClass, eYield) * 100;
+
+	iYieldTimes100 += pCity->getLocalBuildingClassYield(eBuildingClass, eYield) * 100;
+	iYieldTimes100 += pCity->GetBuildingYieldChangeFromCorporationFranchises(eBuildingClass, eYield) * 100;
+	iYieldTimes100 += pCity->GetEventBuildingClassCityYield(eBuildingClass, eYield) * 100;
+
+	iYieldTimes100 += pkBuildingInfo->GetYieldChangePerPop(eYield) * pCity->getPopulation();
+	iYieldTimes100 += pkBuildingInfo->GetYieldChangePerPopInEmpire(eYield) * kPlayer.getTotalPopulation();
+	iYieldTimes100 += (pkBuildingInfo->GetYieldChangePerBuilding(eYield) * pCity->GetCityBuildings()->GetNumBuildings() * 100).Truncate();
+	iYieldTimes100 += (pkBuildingInfo->GetYieldChangePerTile(eYield) * pCity->GetPlotList().size() * 100).Truncate();
+	iYieldTimes100 += pCity->plot()->IsTradeUnitRoute() ? pkBuildingInfo->GetYieldChangeFromPassingTR(eYield) * 100 : 0;
+	iYieldTimes100 += (pkBuildingInfo->GetYieldChangePerCityStateStrategicResource(eYield) * kPlayer.GetNumStrategicResourcesFromMinors() * 100).Truncate();
+	iYieldTimes100 += pkBuildingInfo->GetYieldChangeEraScalingTimes100(eYield) * max(1, static_cast<int>(kPlayer.GetCurrentEra()));
+	iYieldTimes100 += pkBuildingInfo->GetYieldPerFriend(eYield) * kPlayer.GetNumCSFriends() * 100;
+	iYieldTimes100 += pkBuildingInfo->GetYieldPerAlly(eYield) * kPlayer.GetNumCSAllies() * 100;
+	iYieldTimes100 += pkBuildingInfo->GetYieldChangePerMonopoly(eYield) * kPlayer.GetNumGlobalMonopolies() * 100;
+	iYieldTimes100 += (pkBuildingInfo->GetYieldChangePerBuilding(eYield) * pCity->GetCityBuildings()->GetNumBuildings() * 100).Truncate();
+
+	int iYieldPerReligion = pkBuildingInfo->GetYieldChangePerReligion(eYield);
+	if (iYieldPerReligion != 0)
+	{
+		iYieldTimes100 += iYieldPerReligion * pCity->GetCityReligions()->GetNumReligionsWithFollowers();
+	}
+
+	int iYieldPerLocalTheme = pkBuildingInfo->GetYieldChangesPerLocalTheme(eYield);
+	if (iYieldPerLocalTheme > 0)
+	{
+		iYieldTimes100 += iYieldPerLocalTheme * pCity->GetCityBuildings()->GetTotalNumThemedBuildings() * 100;
 	}
 
 	lua_pushinteger(L, iYieldTimes100);
@@ -1623,24 +1656,43 @@ int CvLuaCity::lGetBuildingYieldRateTimes100(lua_State* L)
 }
 
 //------------------------------------------------------------------------------
-//bool GetBuildingYieldModifier(BuildingTypes eBuilding, YieldTypes eYield);
+//int GetBuildingYieldModifier(BuildingTypes eBuilding, YieldTypes eYield);
 int CvLuaCity::lGetBuildingYieldModifier(lua_State* L)
 {
 	CvCity* pCity = GetInstance(L);
-	const BuildingTypes eBuilding = (BuildingTypes)lua_tointeger(L, 2);
-	const YieldTypes eYield = (YieldTypes)lua_tointeger(L, 3);
+	const BuildingTypes eBuilding = static_cast<BuildingTypes>(lua_tointeger(L, 2));
+	const YieldTypes eYield = static_cast<YieldTypes>(lua_tointeger(L, 3));
 
-	int iModifier = 0;
-	if (pCity && eBuilding != NO_BUILDING && eBuilding < GC.getNumBuildingInfos() && eYield != NO_YIELD && eYield < NUM_YIELD_TYPES)
+	// Input validations
+	if (eYield <= NO_YIELD || eYield >= GC.getNUM_YIELD_TYPES())
+		return luaL_error(L, "Invalid yield ID %d", eYield);
+
+	if (eBuilding <= NO_BUILDING || eBuilding >= GC.getNumBuildingInfos())
+		return luaL_error(L, "Invalid building ID %d", eBuilding);
+
+	PlayerTypes ePlayer = pCity->getOwner();
+	CvPlayer& kPlayer = GET_PLAYER(ePlayer);
+	CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
+	BuildingClassTypes eBuildingClass = pkBuildingInfo->GetBuildingClassType();
+	int iEraScaler = max(1, static_cast<int>(kPlayer.GetCurrentEra()));
+
+	int iModifier = pkBuildingInfo->GetYieldModifier(eYield);
+	iModifier += pkBuildingInfo->GetYieldModifierEraScaling(eYield) * iEraScaler;
+	iModifier += kPlayer.GetPlayerPolicies()->GetBuildingClassYieldModifier(eBuildingClass, eYield);
+	iModifier += pCity->GetEventBuildingClassCityYieldModifier(eBuildingClass, eYield);
+
+	ReligionTypes eReligion = pCity->GetCityReligions()->GetReligiousMajority();
+	ReligionTypes ePlayerReligion = kPlayer.GetReligions()->GetStateReligion();
+	if (ePlayerReligion != NO_RELIGION && eReligion == ePlayerReligion)
 	{
-		PlayerTypes ePlayer = pCity->getOwner();
-		CvPlayer* pPlayer = &GET_PLAYER(ePlayer);
-		CvBuildingEntry* pBuildingInfo = GC.getBuildingInfo(eBuilding);
-		BuildingClassTypes eBuildingClass = pBuildingInfo->GetBuildingClassType();
+		iModifier += pCity->getReligionBuildingYieldRateModifier(eBuildingClass, eYield);
+	}
 
-		iModifier += pBuildingInfo->GetYieldModifier(eYield);
-		iModifier += pPlayer->GetPlayerPolicies()->GetBuildingClassYieldModifier(eBuildingClass, eYield);
-		iModifier += pCity->GetEventBuildingClassCityYieldModifier(eBuildingClass, eYield);
+	for (int i = 0; i < GC.getNumBuildingInfos(); i++)
+	{
+		BuildingTypes eLoopBuilding = static_cast<BuildingTypes>(i);
+		CvBuildingEntry* pkLoopBuildingInfo = GC.getBuildingInfo(eLoopBuilding);
+		iModifier += pkLoopBuildingInfo->GetBuildingClassYieldModifier(eBuildingClass, eYield) * kPlayer.getNumBuildings(eLoopBuilding);
 	}
 
 	lua_pushinteger(L, iModifier);
@@ -1972,15 +2024,21 @@ int CvLuaCity::lIsWorldWonder(lua_State* L)
 }
 int CvLuaCity::lGetWorldWonderCost(lua_State* L)
 {
-	int iNumWorldWonderPercent = 0;
 	CvCity* pkCity = GetInstance(L);
-
 	const BuildingTypes eBuildingType = (BuildingTypes)lua_tointeger(L, 2);
+	if (!MOD_BALANCE_WORLD_WONDER_COST_INCREASE)
+	{
+		lua_pushinteger(L, 0);
+		return 1;
+	}
+
+	int iNumWorldWonderPercent = 0;
 	CvBuildingEntry* pGameBuilding = GC.getBuildingInfo(eBuildingType);
-	if (MOD_BALANCE_CORE_WONDER_COST_INCREASE && pGameBuilding)
+	if (pGameBuilding)
 	{
 		const CvBuildingClassInfo& kBuildingClassInfo = pGameBuilding->GetBuildingClassInfo();
-		if (::isWorldWonderClass(kBuildingClassInfo)) {
+		if (::isWorldWonderClass(kBuildingClassInfo))
+		{
 			const CvCity* pLoopCity;
 			int iLoop;
 			for (pLoopCity = GET_PLAYER(pkCity->getOwner()).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER(pkCity->getOwner()).nextCity(&iLoop))
@@ -1990,22 +2048,21 @@ int CvLuaCity::lGetWorldWonderCost(lua_State* L)
 					for (int iBuildingLoop = 0; iBuildingLoop < GC.getNumBuildingInfos(); iBuildingLoop++)
 					{
 						const BuildingTypes eBuilding = static_cast<BuildingTypes>(iBuildingLoop);
-						CvBuildingEntry* pkeBuildingInfo = GC.getBuildingInfo(eBuilding);
+						CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
 
 						// Has this Building
-						if (pkeBuildingInfo && pLoopCity->GetCityBuildings()->GetNumBuilding(eBuilding) > 0)
+						if (pLoopCity->GetCityBuildings()->GetNumBuilding(eBuilding) > 0)
 						{
-							if (isWorldWonderClass(pkeBuildingInfo->GetBuildingClassInfo()))
+							if (isWorldWonderClass(pkBuildingInfo->GetBuildingClassInfo()))
 							{
-								if (pkeBuildingInfo->GetPrereqAndTech() == NO_TECH)
+								if (pkBuildingInfo->GetPrereqAndTech() == NO_TECH)
 									continue;
 
-								CvTechEntry* pkTechInfo = GC.getTechInfo((TechTypes)pkeBuildingInfo->GetPrereqAndTech());
+								CvTechEntry* pkTechInfo = GC.getTechInfo((TechTypes)pkBuildingInfo->GetPrereqAndTech());
 								if (pkTechInfo)
 								{
 									// Loop through all eras and apply Building production mod based on how much time has passed
 									EraTypes eBuildingUnlockedEra = (EraTypes)pkTechInfo->GetEra();
-
 									if (eBuildingUnlockedEra == NO_ERA)
 										continue;
 
@@ -2013,16 +2070,16 @@ int CvLuaCity::lGetWorldWonderCost(lua_State* L)
 									switch (iEraDifference)
 									{
 									case 0:
-										iNumWorldWonderPercent += /*25*/ GD_INT_GET(BALANCE_CORE_WORLD_WONDER_SAME_ERA_COST_MODIFIER);
+										iNumWorldWonderPercent += /*25*/ GD_INT_GET(BALANCE_WORLD_WONDER_SAME_ERA_COST_MODIFIER);
 										break;
 									case 1:
-										iNumWorldWonderPercent += /*15*/ GD_INT_GET(BALANCE_CORE_WORLD_WONDER_PREVIOUS_ERA_COST_MODIFIER);
+										iNumWorldWonderPercent += /*15*/ GD_INT_GET(BALANCE_WORLD_WONDER_PREVIOUS_ERA_COST_MODIFIER);
 										break;
 									case 2:
-										iNumWorldWonderPercent += /*10*/ GD_INT_GET(BALANCE_CORE_WORLD_WONDER_SECOND_PREVIOUS_ERA_COST_MODIFIER);
+										iNumWorldWonderPercent += /*10*/ GD_INT_GET(BALANCE_WORLD_WONDER_SECOND_PREVIOUS_ERA_COST_MODIFIER);
 										break;
 									default:
-										iNumWorldWonderPercent += /*5*/ GD_INT_GET(BALANCE_CORE_WORLD_WONDER_EARLIER_ERA_COST_MODIFIER);
+										iNumWorldWonderPercent += /*5*/ GD_INT_GET(BALANCE_WORLD_WONDER_EARLIER_ERA_COST_MODIFIER);
 									}
 								}
 							}
@@ -2164,14 +2221,12 @@ int CvLuaCity::lGetProjectProductionTurnsLeft(lua_State* L)
 {
 	return BasicLuaMethod<int, ProjectTypes>(L, &CvCity::getProductionTurnsLeft);
 }
-#if defined(MOD_PROCESS_STOCKPILE)
 //------------------------------------------------------------------------------
 //int getProcessProductionTurnsLeft(ProcessTypes eProcess, int iNum);
 int CvLuaCity::lGetProcessProductionTurnsLeft(lua_State* L)
 {
 	return BasicLuaMethod<int, ProcessTypes>(L, &CvCity::getProductionTurnsLeft);
 }
-#endif
 //------------------------------------------------------------------------------
 // int IsCanPurchase(UnitTypes eUnitType, BuildingTypes eBuildingType, ProjectTypes eProjectType, YieldTypes ePurchaseYield);
 int CvLuaCity::lIsCanPurchase(lua_State* L)
@@ -2877,7 +2932,7 @@ int CvLuaCity::lSetPopulation(lua_State* L)
 	CvCity* pkCity = GetInstance(L);
 	int iValue = lua_tointeger(L, 2);
 	bool bReassignPop = lua_isboolean(L, 3) ? lua_toboolean(L, 3) : true;
-	ASSERT_DEBUG(bReassignPop, "It is super dangerous to set this to false.  Ken would love to see why you are doing this.");
+	ASSERT(bReassignPop, "It is super dangerous to set this to false.  Ken would love to see why you are doing this.");
 	pkCity->setPopulation(iValue, bReassignPop);
 
 	return 1;
@@ -2890,7 +2945,7 @@ int CvLuaCity::lChangePopulation(lua_State* L)
 	CvCity* pkCity = GetInstance(L);
 	int iChange = lua_tointeger(L, 2);
 	bool bReassignPop = lua_isboolean(L, 3) ? lua_toboolean(L, 3) : true;
-	ASSERT_DEBUG(bReassignPop, "It is super dangerous to set this to false.  Ken would love to see why you are doing this.");
+	ASSERT(bReassignPop, "It is super dangerous to set this to false.  Ken would love to see why you are doing this.");
 	pkCity->changePopulation(iChange, bReassignPop);
 
 	return 1;
@@ -2926,7 +2981,6 @@ int CvLuaCity::lSetHighestPopulation(lua_State* L)
 //{
 //	return BasicLuaMethod(L, &CvCity::getSpecialistPopulation);
 //}
-#if defined(MOD_GLOBAL_CITY_AUTOMATON_WORKERS)
 //------------------------------------------------------------------------------
 //int getAutomatons();
 int CvLuaCity::lGetAutomatons(lua_State* L)
@@ -2939,7 +2993,6 @@ int CvLuaCity::lSetAutomatons(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvCity::setAutomatons);
 }
-#endif
 //------------------------------------------------------------------------------
 //int getBaseGreatPeopleRate();
 int CvLuaCity::lGetBaseGreatPeopleRate(lua_State* L)
@@ -2961,14 +3014,21 @@ int CvLuaCity::lGetEventGPPFromSpecialists(lua_State* L)
 
 int CvLuaCity::lGetSpecialistRate(lua_State* L)
 {
-	CvCity* pkCity = GetInstance(L);
-	const SpecialistTypes eSpecialist = (SpecialistTypes)lua_tointeger(L, 2);
-	int Rate = 0;
-	if (eSpecialist != NO_SPECIALIST)
+	CvCity* pCity = GetInstance(L);
+	const SpecialistTypes eSpecialist = toValue<SpecialistTypes>(L, 2);
+	if (eSpecialist <= NO_SPECIALIST || eSpecialist >= GC.getNumSpecialistInfos())
+		return luaL_error(L, "Invalid specialist ID %d", eSpecialist);
+
+	const bool bTooltip = luaL_optbool(L, 3, false);
+	if (bTooltip)
 	{
-		Rate = pkCity->GetCityCitizens()->GetSpecialistRate(eSpecialist);
+		CvString tooltip;
+		lua_pushinteger(L, pCity->GetCityCitizens()->GetSpecialistRate(eSpecialist, &tooltip));
+		lua_pushstring(L, tooltip.c_str());
+		return 2;
 	}
-	lua_pushinteger(L, Rate);
+
+	lua_pushinteger(L, pCity->GetCityCitizens()->GetSpecialistRate(eSpecialist));
 	return 1;
 }
 
@@ -3239,15 +3299,20 @@ int CvLuaCity::lGetJONSCulturePerTurnFromLeagues(lua_State* L)
 //int getCultureRateModifier() const;
 int CvLuaCity::lGetCultureRateModifier(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvCity::getCultureRateModifier);
+	CvCity* pCity = GetInstance(L);
+	lua_pushinteger(L, pCity->getYieldRateModifier(YIELD_CULTURE));
+	return 1;
 }
 //------------------------------------------------------------------------------
 //void changeCultureRateModifier(int iChange);
 int CvLuaCity::lChangeCultureRateModifier(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvCity::changeCultureRateModifier);
+	CvCity* pCity = GetInstance(L);
+	int iChange = lua_tointeger(L, 2);
+	pCity->changeYieldRateModifier(YIELD_CULTURE, iChange);
+	return 0;
 }
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
+
 //int GetCityYieldModFromMonopoly() const;
 int CvLuaCity::lGetCityYieldModFromMonopoly(lua_State* L)
 {
@@ -3272,7 +3337,7 @@ int CvLuaCity::lGetCityYieldModFromMonopoly(lua_State* L)
 	lua_pushinteger(L, iModifier);
 	return 1;
 }
-#endif
+
 //------------------------------------------------------------------------------
 //int getTourismRateModifier() const;
 int CvLuaCity::lGetTourismRateModifier(lua_State* L)
@@ -3290,12 +3355,8 @@ int CvLuaCity::lChangeTourismRateModifier(lua_State* L)
 int CvLuaCity::lGetNumGreatWorks(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
-#if defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
 	const bool bIgnoreYield = luaL_optbool(L, 2, true);
 	lua_pushinteger(L, pkCity->GetCityCulture()->GetNumGreatWorks(bIgnoreYield));
-#else
-	lua_pushinteger(L, pkCity->GetCityCulture()->GetNumGreatWorks());
-#endif
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -3312,9 +3373,6 @@ int CvLuaCity::lGetBaseTourism(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
 	int iValue = pkCity->getYieldRateTimes100(YIELD_TOURISM);
-	if (!MOD_BALANCE_CORE_TOURISM_HUNDREDS)
-		iValue /= 100;
-
 	lua_pushinteger(L, iValue);
 	return 1;
 }
@@ -3455,6 +3513,13 @@ int CvLuaCity::lGetThemingTooltip(lua_State* L)
 	const BuildingClassTypes iIndex = toValue<BuildingClassTypes>(L, 2);
 	toolTip = pkCity->GetCityCulture()->GetThemingTooltip(iIndex);
 	lua_pushstring(L, toolTip.c_str());
+	return 1;
+}
+
+int CvLuaCity::lGetThemingBonusMultiplier(lua_State * L)
+{
+	CvCity* pCity = GetInstance(L);
+	lua_pushnumber(L, pCity->GetCityCulture()->GetThemingBonusMultiplierTimes10000() / 10000.0);
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -3678,9 +3743,9 @@ int CvLuaCity::lGetReligionBuildingClassYieldChange(lua_State* L)
 			}
 		}
 	}
-#if defined(MOD_RELIGION_PERMANENT_PANTHEON)
+
 	// Mod for civs keeping their pantheon belief forever
-	if (MOD_RELIGION_PERMANENT_PANTHEON)
+	if (MOD_BALANCE_PERMANENT_PANTHEONS)
 	{
 		if (GC.getGame().GetGameReligions()->HasCreatedPantheon(pkCity->getOwner()))
 		{
@@ -3689,14 +3754,14 @@ int CvLuaCity::lGetReligionBuildingClassYieldChange(lua_State* L)
 			if (pPantheon != NULL && ePantheonBelief != NO_BELIEF && ePantheonBelief != eSecondaryPantheon)
 			{
 				const CvReligion* pReligion = GC.getGame().GetGameReligions()->GetReligion(eMajority, pkCity->getOwner());
-				if (pReligion == NULL || (pReligion != NULL && !pReligion->m_Beliefs.IsPantheonBeliefInReligion(ePantheonBelief, eMajority, pkCity->getOwner()))) // check that the our religion does not have our belief, to prevent double counting
+				if (pReligion == NULL || !pReligion->m_Beliefs.IsPantheonBeliefInReligion(ePantheonBelief, eMajority, pkCity->getOwner())) // check that the our religion does not have our belief, to prevent double counting
 				{
 					iYieldFromBuilding += GC.GetGameBeliefs()->GetEntry(ePantheonBelief)->GetBuildingClassYieldChange(eBuildingClass, eYieldType);
 				}
 			}
 		}
 	}
-#endif
+
 	lua_pushinteger(L, iYieldFromBuilding);
 	return 1;
 }
@@ -3833,7 +3898,6 @@ int CvLuaCity::lGetWorkPlotDistance(lua_State* L)
 	return BasicLuaMethod(L, &CvCity::getWorkPlotDistance);
 }
 
-#if defined(MOD_BUILDINGS_CITY_WORKING)
 //------------------------------------------------------------------------------
 //int getCityWorkingChange();
 int CvLuaCity::lGetCityWorkingChange(lua_State* L)
@@ -3847,9 +3911,7 @@ int CvLuaCity::lChangeCityWorkingChange(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvCity::changeCityWorkingChange);
 }
-#endif
 
-#if defined(MOD_BUILDINGS_CITY_AUTOMATON_WORKERS)
 //------------------------------------------------------------------------------
 //int getCityAutomatonWorkersChange();
 int CvLuaCity::lGetCityAutomatonWorkersChange(lua_State* L)
@@ -3863,7 +3925,6 @@ int CvLuaCity::lChangeCityAutomatonWorkersChange(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvCity::changeCityAutomatonWorkersChange);
 }
-#endif
 
 int CvLuaCity::lGetRemainingFreeSpecialists(lua_State* L)
 {
@@ -4094,6 +4155,13 @@ int CvLuaCity::lGetUnhappinessFromReligiousUnrest(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
 	lua_pushinteger(L, pkCity->GetUnhappinessFromReligiousUnrest());
+	return 1;
+}
+//int GetUnhappinessFromReligiousUnrest();
+int CvLuaCity::lGetUnhappinessFromBuildings(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	lua_pushinteger(L, pkCity->GetUnhappinessFromBuildings());
 	return 1;
 }
 
@@ -4565,7 +4633,6 @@ int CvLuaCity::lSetYieldPerTurnFromMinors(lua_State* L)
 	pkCity->SetYieldFromMinors(eYield, iValue);
 	return 1;
 }
-#if defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
 //------------------------------------------------------------------------------
 // LEGACY METHOD
 int CvLuaCity::lGetBaseYieldRateFromGreatWorks(lua_State* L)
@@ -4576,7 +4643,6 @@ int CvLuaCity::lGetBaseYieldRateFromGreatWorks(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-#endif
 //------------------------------------------------------------------------------
 int CvLuaCity::lGetBaseYieldRateFromTerrain(lua_State* L)
 {
@@ -4680,30 +4746,19 @@ int CvLuaCity::lGetYieldPerPopTimes100(lua_State* L)
 	return BasicLuaMethod(L, &CvCity::GetYieldPerPopTimes100);
 }
 
-#if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
 int CvLuaCity::lGetYieldPerPopInEmpireTimes100(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvCity::GetYieldPerPopInEmpireTimes100);
 }
-#endif
 
 //------------------------------------------------------------------------------
 int CvLuaCity::lGetYieldFromYieldPerBuildingTimes100(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
 	const YieldTypes eIndex = (YieldTypes)lua_tointeger(L, 2);
-	if (eIndex == YIELD_CULTURE || eIndex == YIELD_FAITH)
-	{
-		// these yields don't support decimal values
-		const int iResult = (pkCity->GetYieldPerBuilding(eIndex) * pkCity->GetCityBuildings()->GetNumBuildings()).Truncate() * 100;
-		lua_pushinteger(L, iResult);
-	}
-	else
-	{
-		const int iResult = (pkCity->GetYieldPerBuilding(eIndex) * pkCity->GetCityBuildings()->GetNumBuildings() * 100).Truncate();
-		lua_pushinteger(L, iResult);
-	}
+	const int iResult = (pkCity->GetYieldPerBuilding(eIndex) * pkCity->GetCityBuildings()->GetNumBuildings() * 100).Truncate();
+	lua_pushinteger(L, iResult);
 	return 1;
 }
 
@@ -5061,7 +5116,6 @@ int CvLuaCity::lGetSpecialistCount(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-#if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
 //int GetTotalSpecialistCount();
 int CvLuaCity::lGetTotalSpecialistCount(lua_State* L)
@@ -5097,7 +5151,6 @@ int CvLuaCity::lGetSpecialistCityModifier(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-#endif
 //------------------------------------------------------------------------------
 //int GetSpecialistGreatPersonProgress(SpecialistTypes eIndex);
 int CvLuaCity::lGetSpecialistGreatPersonProgress(lua_State* L)
@@ -5139,7 +5192,7 @@ int CvLuaCity::lGetExtraSpecialistPoints(lua_State* L)
 		if (eMajority != NO_RELIGION)
 		{
 			const CvReligion* pReligion = GC.getGame().GetGameReligions()->GetReligion(eMajority, pkCity->getOwner());
-			if (pReligion)
+			if (pReligion && GetGreatPersonFromSpecialist(eSpecialist) != NO_GREATPERSON)
 			{
 				lua_pushinteger(L, pReligion->m_Beliefs.GetGreatPersonPoints(GetGreatPersonFromSpecialist(eSpecialist), pkCity->getOwner(), pkCity, true));
 				return 1;
@@ -5336,7 +5389,7 @@ int CvLuaCity::lGetMaxHitPoints(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-#if defined(MOD_EVENTS_CITY_BOMBARD)
+
 //int, bool GetBombardRange();
 int CvLuaCity::lGetBombardRange(lua_State* L)
 {
@@ -5355,7 +5408,7 @@ int CvLuaCity::lGetCityBuildingRangeStrikeModifier(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-#endif
+
 //------------------------------------------------------------------------------
 //bool CanRangeStrike()
 int CvLuaCity::lCanRangeStrike(lua_State* L)
@@ -5718,19 +5771,16 @@ int CvLuaCity::lGetOrderQueueLength(lua_State* L)
 int CvLuaCity::lGetOrderFromQueue(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
-	if(pkCity)
+	const int iNum = lua_tointeger(L, 2);
+	OrderData* pkOrder = pkCity->getOrderFromQueue(iNum);
+	if (pkOrder)
 	{
-		const int iNum = lua_tointeger(L, 2);
-		OrderData* pkOrder = pkCity->getOrderFromQueue(iNum);
-		if(pkOrder)
-		{
-			lua_pushinteger(L, pkOrder->eOrderType);
-			lua_pushinteger(L, pkOrder->iData1);
-			lua_pushinteger(L, pkOrder->iData2);
-			lua_pushboolean(L, pkOrder->bSave);
-			lua_pushboolean(L, pkOrder->bRush);
-			return 5;
-		}
+		lua_pushinteger(L, pkOrder->eOrderType);
+		lua_pushinteger(L, pkOrder->iData1);
+		lua_pushinteger(L, pkOrder->iData2);
+		lua_pushboolean(L, pkOrder->bSave);
+		lua_pushboolean(L, pkOrder->bRush);
+		return 5;
 	}
 	lua_pushinteger(L, -1);
 	lua_pushinteger(L, 0);
@@ -5752,16 +5802,6 @@ int CvLuaCity::lGetBuildingYieldChange(lua_State* L)
 	return 1;
 }
 
-#if defined(MOD_BALANCE_CORE_POLICIES)
-int CvLuaCity::lGetBuildingClassCultureChange(lua_State* L)
-{
-	CvCity* pkCity = GetInstance(L);
-	const BuildingClassTypes eBuildingClassType = (BuildingClassTypes)lua_tointeger(L, 2);
-	const int iResult = pkCity->getBuildingClassCultureChange((BuildingClassTypes)eBuildingClassType);
-
-	lua_pushinteger(L, iResult);
-	return 1;
-}
 //int getReligionYieldRateModifier(YieldTypes eYield);
 int CvLuaCity::lGetReligionYieldRateModifier(lua_State* L)
 {
@@ -5801,7 +5841,6 @@ int CvLuaCity::lGetReligionBuildingYieldRateModifier(lua_State* L)
 
 	return 1;
 }
-#endif
 
 int CvLuaCity::lGetBaseYieldRateFromNonSpecialists(lua_State* L)
 {
@@ -5864,14 +5903,10 @@ int CvLuaCity::lGetResourceQuantityPerXFranchises(lua_State* L)
 	CvCity* pkCity = GetInstance(L);
 	const int iResource = lua_tointeger(L, 2);
 	int iFranchises = GET_PLAYER(pkCity->getOwner()).GetCorporations()->GetNumFranchises();
-	int iCorpResource = pkCity->GetResourceQuantityPerXFranchises((ResourceTypes)iResource);
-	int iResult = 0;
-	if(iCorpResource > 0)
-	{
-		iResult = (iFranchises / iCorpResource);
-	}
+	fraction fCorpResource = pkCity->GetResourceQuantityPerXFranchises((ResourceTypes)iResource);
+	fraction fResult = fCorpResource * iFranchises;
 
-	lua_pushinteger(L, iResult);
+	lua_pushinteger(L, fResult.Truncate());
 	return 1;
 }
 int CvLuaCity::lGetGPRateModifierPerXFranchises(lua_State* L)
@@ -5940,7 +5975,7 @@ int CvLuaCity::lGetSpecialistYieldChange(lua_State* L)
 	}
 
 	// Mod for civs keeping their pantheon belief forever
-	if (MOD_RELIGION_PERMANENT_PANTHEON)
+	if (MOD_BALANCE_PERMANENT_PANTHEONS)
 	{
 		if (GC.getGame().GetGameReligions()->HasCreatedPantheon(pkCity->getOwner()))
 		{
@@ -5948,7 +5983,7 @@ int CvLuaCity::lGetSpecialistYieldChange(lua_State* L)
 			BeliefTypes ePantheonBelief = GC.getGame().GetGameReligions()->GetBeliefInPantheon(pkCity->getOwner());
 			if (pPantheon != NULL && ePantheonBelief != NO_BELIEF && ePantheonBelief != eSecondaryPantheon)
 			{
-				if (pReligion == NULL || (pReligion != NULL && !pReligion->m_Beliefs.IsPantheonBeliefInReligion(ePantheonBelief, eReligion, pkCity->getOwner()))) // check that the our religion does not have our belief, to prevent double counting
+				if (pReligion == NULL || !pReligion->m_Beliefs.IsPantheonBeliefInReligion(ePantheonBelief, eReligion, pkCity->getOwner())) // check that the our religion does not have our belief, to prevent double counting
 				{
 					iRtnValue += GC.GetGameBeliefs()->GetEntry(ePantheonBelief)->GetSpecialistYieldChange(eSpecialist, eYield);
 				}
@@ -6031,7 +6066,7 @@ int CvLuaCity::lGetBuildingEspionageModifier(lua_State* L)
 	//CvCity* pkCity = GetInstance(L);
 	const BuildingTypes eBuilding = (BuildingTypes) lua_tointeger(L, 2);
 	CvBuildingEntry* pBuildingInfo = GC.getBuildingInfo(eBuilding);
-	ASSERT_DEBUG(pBuildingInfo, "pBuildingInfo is null!");
+	ASSERT(pBuildingInfo, "pBuildingInfo is null!");
 	if (pBuildingInfo)
 	{
 		lua_pushinteger(L, pBuildingInfo->GetEspionageModifier());
@@ -6048,7 +6083,7 @@ int CvLuaCity::lGetBuildingGlobalEspionageModifier(lua_State* L)
 {
 	const BuildingTypes eBuilding = (BuildingTypes)lua_tointeger(L, 2);
 	CvBuildingEntry* pBuildingInfo = GC.getBuildingInfo(eBuilding);
-	ASSERT_DEBUG(pBuildingInfo, "pBuildingInfo is null!");
+	ASSERT(pBuildingInfo, "pBuildingInfo is null!");
 	if (pBuildingInfo)
 	{
 		lua_pushinteger(L, pBuildingInfo->GetGlobalEspionageModifier());
@@ -6105,14 +6140,13 @@ int CvLuaCity::lGetCounterSpy(lua_State* L)
 	return 1;
 }
 
-#if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 //int GetBuildingConversionModifier(BuildingTypes eBuilding)
 int CvLuaCity::lGetBuildingConversionModifier(lua_State* L)
 {
 	//CvCity* pkCity = GetInstance(L);
 	const BuildingTypes eBuilding = (BuildingTypes) lua_tointeger(L, 2);
 	CvBuildingEntry* pBuildingInfo = GC.getBuildingInfo(eBuilding);
-	ASSERT_DEBUG(pBuildingInfo, "pBuildingInfo is null!");
+	ASSERT(pBuildingInfo, "pBuildingInfo is null!");
 	if (pBuildingInfo)
 	{
 		lua_pushinteger(L, pBuildingInfo->GetConversionModifier());
@@ -6129,7 +6163,7 @@ int CvLuaCity::lGetBuildingGlobalConversionModifier(lua_State* L)
 {
 	const BuildingTypes eBuilding = (BuildingTypes)lua_tointeger(L, 2);
 	CvBuildingEntry* pBuildingInfo = GC.getBuildingInfo(eBuilding);
-	ASSERT_DEBUG(pBuildingInfo, "pBuildingInfo is null!");
+	ASSERT(pBuildingInfo, "pBuildingInfo is null!");
 	if (pBuildingInfo)
 	{
 		lua_pushinteger(L, pBuildingInfo->GetGlobalConversionModifier());
@@ -6140,7 +6174,6 @@ int CvLuaCity::lGetBuildingGlobalConversionModifier(lua_State* L)
 	}
 	return 1;
 }
-#endif
 
 //------------------------------------------------------------------------------
 //void setBuildingYieldChange(BuildingClassTypes eBuildingClass, YieldTypes eYield, int iChange);
@@ -6215,9 +6248,8 @@ int CvLuaCity::lGetReligionCityRangeStrikeModifier(lua_State* L)
 		}
 	}
 
-#if defined(MOD_RELIGION_PERMANENT_PANTHEON)
 	// Mod for civs keeping their pantheon belief forever
-	if (MOD_RELIGION_PERMANENT_PANTHEON)
+	if (MOD_BALANCE_PERMANENT_PANTHEONS)
 	{
 		if (GC.getGame().GetGameReligions()->HasCreatedPantheon(pkCity->getOwner()))
 		{
@@ -6226,14 +6258,13 @@ int CvLuaCity::lGetReligionCityRangeStrikeModifier(lua_State* L)
 			if (pPantheon != NULL && ePantheonBelief != NO_BELIEF && ePantheonBelief != eSecondaryPantheon)
 			{
 				const CvReligion* pReligion = GC.getGame().GetGameReligions()->GetReligion(eMajority, pkCity->getOwner());
-				if (pReligion == NULL || (pReligion != NULL && !pReligion->m_Beliefs.IsPantheonBeliefInReligion(ePantheonBelief, eMajority, pkCity->getOwner()))) // check that the our religion does not have our belief, to prevent double counting
+				if (pReligion == NULL || !pReligion->m_Beliefs.IsPantheonBeliefInReligion(ePantheonBelief, eMajority, pkCity->getOwner())) // check that the our religion does not have our belief, to prevent double counting
 				{
 					iReligionRangeStrikeMod += GC.GetGameBeliefs()->GetEntry(ePantheonBelief)->GetCityRangeStrikeModifier();
 				}
 			}
 		}
 	}
-#endif
 
 	lua_pushinteger(L, iReligionRangeStrikeMod);
 
@@ -6402,7 +6433,6 @@ int CvLuaCity::lIsFoodRoutes(lua_State* L)
 	return 1;
 }
 
-#if defined(MOD_BALANCE_CORE_EVENTS)
 int CvLuaCity::lGetDisabledTooltip(lua_State* L)
 {
 	CvString DisabledTT = "";
@@ -6581,7 +6611,6 @@ int CvLuaCity::lIsCityEventChoiceValidEspionage(lua_State* L)
 
 	return 1;
 }
-#endif
 
 int CvLuaCity::lGetSappedTurns(lua_State* L)
 {
@@ -6604,7 +6633,20 @@ int CvLuaCity::lChangeSappedTurns(lua_State* L)
 	return 1;
 }
 
-#if defined(MOD_BALANCE_CORE_JFD)
+int CvLuaCity::lGetBuildingTypeFromClass(lua_State* L)
+{
+	CvCity* pCity = GetInstance(L);
+	const BuildingClassTypes eBuildingClass = static_cast<BuildingClassTypes>(lua_tointeger(L, 2));
+	const bool bFallback = luaL_optbool(L, 3, false);
+	lua_pushinteger(L, pCity->GetBuildingTypeFromClass(eBuildingClass, bFallback));
+	return 1;
+}
+
+int CvLuaCity::lGetHurryProduction(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvCity::GetHurryProduction);
+}
+
 int CvLuaCity::lIsColony(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
@@ -6951,4 +6993,39 @@ int CvLuaCity::lSetYieldFromDevelopment(lua_State* L)
 	return 1;
 }
 
-#endif
+int CvLuaCity::lGetCompetitiveSpawnUnitType(lua_State* L)
+{
+	CvCity* pCity = GetInstance(L);
+	CvPlayer& kPlayer = GET_PLAYER(pCity->getOwner());
+	const bool bIncludeRanged = luaL_optbool(L, 2, false);
+	const bool bIncludeShips = luaL_optbool(L, 3, false);
+	const bool bIncludeRecon = luaL_optbool(L, 4, false);
+	const bool bIncludeUUs = luaL_optbool(L, 5, false);
+	const bool bNoResource = luaL_optbool(L, 6, false);
+	const bool bMinorCivGift = luaL_optbool(L, 7, false);
+	const bool bRandom = luaL_optbool(L, 8, false);
+	vector<int> viUnitCombat;
+	if (!(lua_istable(L, 9) || lua_isnoneornil(L, 9)))
+		return luaL_error(L, "Argument must be table or nil");
+
+	const int iLength = lua_objlen(L, 9);
+	for (int i = 1; i <= iLength; i++)
+	{
+		lua_rawgeti(L, 9, i);
+		const int iUnitCombat = lua_tointeger(L, -1);
+		if (!lua_isnumber(L, -1) || lua_tonumber(L, -1) != iUnitCombat)
+			return luaL_error(L, "Table values must be integers");
+
+		viUnitCombat.push_back(iUnitCombat);
+		lua_pop(L, 1);
+	}
+
+	CvSeeder seed;
+	if (bRandom)
+	{
+		seed = CvSeeder::fromRaw(0x77a1fc31).mix(kPlayer.getNumMilitaryUnits());
+	}
+	UnitTypes eUnit = kPlayer.GetCompetitiveSpawnUnitType(bIncludeRanged, bIncludeShips, bIncludeRecon, bIncludeUUs, pCity, bNoResource, bMinorCivGift, bRandom, &seed, viUnitCombat);
+	lua_pushinteger(L, eUnit);
+	return 1;
+}

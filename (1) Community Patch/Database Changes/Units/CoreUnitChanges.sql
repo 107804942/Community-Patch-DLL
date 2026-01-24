@@ -4,6 +4,13 @@ UPDATE Units SET Moves = 4, MinAreaSize = 3 WHERE Type = 'UNIT_CARGO_SHIP';
 -- Make Work Boats buildable regardless of whether the water body has resources
 UPDATE Units SET PrereqResources = 0 WHERE Type = 'UNIT_WORKBOAT';
 
+-- GLOBAL_SEPARATE_GREAT_ADMIRAL (integrated)
+UPDATE Units
+SET
+	CanRepairFleet = 1,
+	CanChangePort = 1
+WHERE Type = 'UNIT_GREAT_ADMIRAL';
+
 -- Update Hover Units to obey coast/ocean tiles
 INSERT INTO Unit_FreePromotions
 	(UnitType, PromotionType)
@@ -709,6 +716,7 @@ CREATE TEMP TABLE GreatMerchants (
 
 INSERT INTO GreatMerchants
 VALUES
+	('000', 'ERA_ANCIENT'), -- -1750
 	('010', 'ERA_CLASSICAL'), -- -600
 	('020', 'ERA_MEDIEVAL'), -- 0752
 	('030', 'ERA_MEDIEVAL'), -- 0877
@@ -1162,8 +1170,7 @@ VALUES
 	('B10', 'ERA_POSTMODERN'), -- 1954
 	('B20', 'ERA_POSTMODERN'), -- 1960
 	('B30', 'ERA_POSTMODERN'), -- 1971
-	('B40', 'ERA_POSTMODERN'), -- 1975
-	('B50', 'ERA_POSTMODERN'); -- 1980
+	('B40', 'ERA_POSTMODERN'); -- 1975
 
 INSERT INTO Unit_UniqueNames
 	(UnitType, UniqueName, EraType)
@@ -1270,8 +1277,7 @@ VALUES
 	('850', 'ERA_POSTMODERN'), -- 1955
 	('860', 'ERA_POSTMODERN'), -- 1962
 	('870', 'ERA_POSTMODERN'), -- 1964
-	('880', 'ERA_POSTMODERN'), -- 1969
-	('890', 'ERA_POSTMODERN'); -- 1975
+	('880', 'ERA_POSTMODERN');
 
 INSERT INTO Unit_UniqueNames
 	(UnitType, UniqueName, EraType)

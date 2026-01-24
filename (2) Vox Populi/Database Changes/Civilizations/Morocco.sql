@@ -3,7 +3,7 @@
 ----------------------------------------------------------
 UPDATE Traits
 SET
-	IgnoreTradeDistanceScaling = 1,
+	NoTradeRouteProximityPenalty = 1,
 	CanPlunderWithoutWar = 1
 WHERE Type = 'TRAIT_GATEWAY_AFRICA';
 
@@ -126,7 +126,7 @@ VALUES
 	('CIVILIZATION_MOROCCO', 'BUILDINGCLASS_HOTEL', 'BUILDING_RIAD');
 
 UPDATE Buildings
-SET LandmarksTourismPercent = 33 -- 25
+SET LandmarksTourismPercent = (SELECT LandmarksTourismPercent FROM Buildings WHERE Type = 'BUILDING_HOTEL') * 133 / 100
 WHERE Type = 'BUILDING_RIAD';
 
 INSERT INTO Building_YieldChangesEraScalingTimes100

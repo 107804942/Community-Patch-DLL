@@ -220,6 +220,7 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(YIELD_GOLDEN_AGE_POINTS);
 	RegisterEnum(YIELD_GREAT_ADMIRAL_POINTS);
 	RegisterEnum(YIELD_GREAT_GENERAL_POINTS);
+	RegisterEnum(YIELD_POPULATION);
 	RegisterEnum(YIELD_CULTURE_LOCAL);
 	RegisterEnum(NUM_YIELD_TYPES);
 	EnumEnd(L);
@@ -709,7 +710,7 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(FROM_UI_DIPLO_EVENT_HUMAN_DISCUSSION_STOP_DIGGING);
 	RegisterEnum(FROM_UI_DIPLO_EVENT_STOP_DIGGING);
 
-	RegisterEnum(FROM_UI_DIPLO_EVENT_HUMAN_DISCUSSION_SHARE_OPINION);
+	RegisterEnum(FROM_UI_DIPLO_EVENT_HUMAN_DISCUSSION_SHARE_APPROACH);
 	RegisterEnum(FROM_UI_DIPLO_EVENT_HUMAN_REQUEST);
 	RegisterEnum(FROM_UI_DIPLO_EVENT_HUMAN_ENDS_VASSALAGE);
 	RegisterEnum(FROM_UI_DIPLO_EVENT_HUMAN_MOVE_TROOPS_RESPONSE);
@@ -818,9 +819,7 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(ENDTURN_BLOCKING_CHOOSE_ARCHAEOLOGY);
 	RegisterEnum(ENDTURN_BLOCKING_LEAGUE_CALL_FOR_VOTES);
 	RegisterEnum(ENDTURN_BLOCKING_CHOOSE_IDEOLOGY);
-#if defined(MOD_UI_CITY_EXPANSION)
 	RegisterEnum(ENDTURN_BLOCKING_CITY_TILE);
-#endif
 	RegisterEnum(ENDTURN_BLOCKING_PENDING_DEAL);
 	RegisterEnum(ENDTURN_BLOCKING_EVENT_CHOICE);
 	RegisterEnum(ENDTURN_BLOCKING_CHOOSE_CITY_FATE);
@@ -882,6 +881,7 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(ACCOMPLISHMENT_LONGCOUNT_DIPLOMAT);
 	RegisterEnum(ACCOMPLISHMENT_ELIMINATE_PLAYER);
 	RegisterEnum(ACCOMPLISHMENT_DIPLOMATIC_MISSION_BOOST);
+	RegisterEnum(ACCOMPLISHMENT_WARS_WON);
 	EnumEnd(L);
 
 	EnumStart(L, "InstantYieldType");
@@ -1167,7 +1167,6 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(PUBLIC_OPINION_REVOLUTIONARY_WAVE);
 	EnumEnd(L);
 
-#if defined(MOD_BALANCE_CORE)
 	EnumStart(L, "StrengthTypes");
 	RegisterEnum(STRENGTH_PATHETIC);
 	RegisterEnum(STRENGTH_WEAK);
@@ -1200,7 +1199,6 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(CIV_OPINION_FRIEND);
 	RegisterEnum(CIV_OPINION_ALLY);
 	EnumEnd(L);
-#endif
 
 	EnumStart(L, "ControlTypes");
 	RegisterEnum(NO_CONTROL);
@@ -1258,16 +1256,11 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(TRADE_CONNECTION_INTERNATIONAL);
 	RegisterEnum(TRADE_CONNECTION_FOOD);
 	RegisterEnum(TRADE_CONNECTION_PRODUCTION);
-#if defined(MOD_TRADE_WONDER_RESOURCE_ROUTES)
 	RegisterEnum(TRADE_CONNECTION_WONDER_RESOURCE);
-#endif
-#if defined(MOD_BALANCE_CORE_GOLD_INTERNAL_TRADE_ROUTES)
 	RegisterEnum(TRADE_CONNECTION_GOLD_INTERNAL);
-#endif
 	RegisterEnum(NUM_TRADE_CONNECTION_TYPES);
 	EnumEnd(L);
 
-#if defined(MOD_EVENTS_TERRAFORMING)	
 	// TerraformingEventTypes
 	EnumStart(L, "TerraformingEventTypes");
 	RegisterEnum(NO_TERRAFORMINGEVENT);
@@ -1282,7 +1275,6 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(TERRAFORMINGEVENT_CITY);
 	RegisterEnum(NUM_TERRAFORMINGEVENT_TYPES);
 	EnumEnd(L);
-#endif
 
 	EnumStart(L, "RoutePlanTypes");
 	RegisterEnum(NO_PLANNED_ROUTE);

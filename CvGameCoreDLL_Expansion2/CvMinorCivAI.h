@@ -352,10 +352,8 @@ public:
 	MinorCivTypes GetMinorCivType() const;
 
 	MinorCivPersonalityTypes GetPersonality() const;
-#if defined(MOD_BALANCE_CORE)
 	UnitClassTypes GetBullyUnit() const;
 	void SetBullyUnit(UnitClassTypes eUnitClass = NO_UNITCLASS);
-#endif
 	void SetPersonality(MinorCivPersonalityTypes ePersonality);
 	void DoPickPersonality();
 
@@ -376,7 +374,7 @@ public:
 
 	void DoChangeAliveStatus(bool bAlive);
 
-	void DoFirstContactWithMajor(TeamTypes eTeam, bool bSuppressMessages);
+	void DoFirstContactWithMajor(PlayerTypes eMeetingPlayer, bool bSuppressMessages);
 
 	void DoTestEndWarsVSMinors(PlayerTypes eOldAlly, PlayerTypes eNewAlly);
 
@@ -448,10 +446,8 @@ public:
 	void DoQuestsCleanup();
 	void DoQuestsCleanupForPlayer(PlayerTypes ePlayer);
 
-#if defined(MOD_BALANCE_CORE)
 	bool IsTargetQuest(MinorCivQuestTypes eQuest);
 	bool PlayerHasTarget(PlayerTypes ePlayer, MinorCivQuestTypes eQuest);
-#endif
 	bool IsEnabledQuest(MinorCivQuestTypes eQuest);
 	bool IsDuplicatePersonalQuest(PlayerTypes ePlayer, MinorCivQuestTypes eQuest, int iData1 = -1, int iData2 = -1);
 	bool IsValidQuestForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes eQuest);
@@ -467,9 +463,7 @@ public:
 	int GetNumActivePersonalQuestsForPlayer(PlayerTypes ePlayer) const;
 	bool IsActiveQuestForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes eType);
 	void EndAllActiveQuestsForPlayer(PlayerTypes ePlayer, bool bWar = false);
-#if defined(MOD_BALANCE_CORE)
 	void DeleteQuest(PlayerTypes ePlayer, MinorCivQuestTypes eType);
-#endif
 
 	int GetNumDisplayedQuestsForPlayer(PlayerTypes ePlayer);
 	bool IsDisplayedQuestForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes eType);
@@ -491,10 +485,8 @@ public:
 	int GetQuestData1(PlayerTypes ePlayer, MinorCivQuestTypes eType) const;
 	int GetQuestData2(PlayerTypes ePlayer, MinorCivQuestTypes eType) const;
 	int GetQuestData3(PlayerTypes ePlayer, MinorCivQuestTypes eType) const;
-#if defined(MOD_BALANCE_CORE)
 	CvString GetRewardString(PlayerTypes ePlayer, MinorCivQuestTypes eType);
 	CvString GetTargetCityString(PlayerTypes ePlayer, MinorCivQuestTypes eType);
-#endif
 	int GetQuestTurnsRemaining(PlayerTypes ePlayer, MinorCivQuestTypes eType, int iGameTurn) const;
 	bool IsContestLeader(PlayerTypes ePlayer, MinorCivQuestTypes eType);
 	int GetContestValueForLeader(MinorCivQuestTypes eType);
@@ -622,12 +614,10 @@ public:
 	bool IsPlayerHasOpenBordersAutomatically(PlayerTypes ePlayer);
 
 	void DoLiberationByMajor(PlayerTypes eLiberator, TeamTypes eConquerorTeam);
-#if defined(MOD_BALANCE_CORE)
 	void SetTurnLiberated(int iValue);
 	int GetTurnLiberated() const;
 	void TestChangeProtectionFromMajor(PlayerTypes eMajor);
 	CvString GetPledgeProtectionInvalidReason(PlayerTypes eMajor);
-#endif
 	// Protection
 	void DoChangeProtectionFromMajor(PlayerTypes eMajor, bool bProtect, bool bPledgeNowBroken, bool bSendNotification);
 	bool CanMajorProtect(PlayerTypes eMajor, bool bIgnoreMilitaryRequirement);
@@ -675,7 +665,6 @@ public:
 	int GetCurrentFaithFlatBonus(PlayerTypes ePlayer);
 	int GetCurrentFaithBonus(PlayerTypes ePlayer);
 
-#if defined(MOD_BALANCE_CORE)
 	//Gold bonuses
 	int GetGoldFlatFriendshipBonus(PlayerTypes ePlayer, EraTypes eAssumeEra = NO_ERA) const;
 	int GetGoldFlatAlliesBonus(PlayerTypes ePlayer, EraTypes eAssumeEra = NO_ERA) const;
@@ -687,7 +676,6 @@ public:
 	int GetScienceFlatAlliesBonus(PlayerTypes ePlayer, EraTypes eAssumeEra = NO_ERA) const;
 	int GetCurrentScienceFlatBonus(PlayerTypes ePlayer);
 	int GetCurrentScienceBonus(PlayerTypes ePlayer);
-#endif
 
 	// Food bonuses
 	int GetFriendsCapitalFoodBonus(PlayerTypes ePlayer, EraTypes eAssumeEra = NO_ERA);
@@ -746,16 +734,11 @@ public:
 	bool CanMajorBullyUnit(PlayerTypes ePlayer);
 	bool CanMajorBullyUnit(PlayerTypes ePlayer, int iSpecifiedBullyMetric);
 	CvString GetMajorBullyUnitDetails(PlayerTypes ePlayer);
-#if defined(MOD_BALANCE_CORE_AFRAID_ANNEX)
 	CvString GetMajorBullyAnnexDetails(PlayerTypes ePlayer);
-#endif
 
 	void DoMajorBullyGold(PlayerTypes eBully, int iGold);
 	void DoMajorBullyUnit(PlayerTypes eBully, UnitTypes eUnitType);
-
-#if defined(MOD_BALANCE_CORE_AFRAID_ANNEX)
 	void DoMajorBullyAnnex(PlayerTypes eBully);
-#endif
 	
 	void DoBulliedByMajorReaction(PlayerTypes eBully, int iInfluenceChangeTimes100);
 
@@ -810,7 +793,6 @@ public:
 	bool IsWaryOfTeam(TeamTypes eTeam) const;
 	void SetWaryOfTeam(TeamTypes eTeam, bool bValue);
 
-#if defined(MOD_BALANCE_CORE_MINORS)
 	int GetTurnLastAttacked(TeamTypes eTeam) const;
 	void SetTurnLastAttacked(TeamTypes eTeam, int iTurn);
 	int GetJerkTurnsRemaining(TeamTypes eTeam) const;
@@ -826,7 +808,7 @@ public:
 
 	bool IsSiphoned(PlayerTypes ePlayer) const;
 	void SetSiphoned(PlayerTypes ePlayer, bool bValue);
-#endif
+
 	int GetNumConsecutiveSuccessfulRiggings(PlayerTypes ePlayer) const;
 	void ChangeNumConsecutiveSuccessfulRiggings(PlayerTypes ePlayer, int iChange);
 	void ResetNumConsecutiveSuccessfulRiggings(PlayerTypes ePlayer);
@@ -870,9 +852,7 @@ private:
 	CvPlayer* m_pPlayer;
 	MinorCivTypes m_minorCivType;
 	MinorCivPersonalityTypes m_ePersonality;
-#if defined(MOD_BALANCE_CORE)
 	UnitClassTypes m_eBullyUnit;
-#endif
 	MinorCivStatusTypes m_eStatus;
 	UnitTypes m_eUniqueUnit;
 
@@ -888,11 +868,8 @@ private:
 	int m_iCooldownSpawn;
 	int m_iTakeoverTurn; //not serialized
 
-#if defined(MOD_BALANCE_CORE)
 	int m_iTurnLiberated;
-#endif
 
-#if defined(MOD_BALANCE_CORE_MINORS)
 	int m_aiTurnLastAttacked[MAX_CIV_TEAMS];
 	bool m_abIgnoreJerk[MAX_CIV_TEAMS];
 	bool m_abIsMarried[MAX_MAJOR_CIVS];
@@ -903,7 +880,6 @@ private:
 	bool m_abSentUnitForQuest[MAX_MAJOR_CIVS];
 	int m_aiAssignedPlotAreaID[MAX_MAJOR_CIVS];
 	int m_aiTurnsSincePtPWarning[MAX_MAJOR_CIVS];
-#endif
 
 	PlayerTypes m_eAlly;
 	int m_iTurnAllied;
@@ -981,9 +957,7 @@ public:
 	int GetMinorCivTrait() const;
 	MinorCivPersonalityTypes GetFixedPersonality() const;
 	MinorCivPersonalityTypes MinorCivPersonalityFromString(const char* szStr);
-#if defined(MOD_BALANCE_CORE)
 	int GetBullyUnit() const;
-#endif
 
 	// Deprecated Members
 	const char* getAdjectiveKeyWide() const;

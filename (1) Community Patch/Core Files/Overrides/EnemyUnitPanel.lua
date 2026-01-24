@@ -403,15 +403,19 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 				iTheirStrength = pTheirUnit:GetMaxDefenseStrength(pToPlot, pMyUnit, pFromPlot, false, iMyRangedSupportDamageInflicted);
 
 				iWithdrawChance = pTheirUnit:GetWithdrawChance(pMyUnit);
+				
+				if (iMyRangedSupportDamageInflicted > pTheirUnit:GetCurrHitPoints()) then
+					-- defender killed by RangedSupportFire, no melee combat necessary
+					iMyDamageInflicted = iMyRangedSupportDamageInflicted
+				else
+					iMyDamageInflicted, iTheirDamageInflicted = pMyUnit:GetMeleeCombatDamage(iMyStrength, iTheirStrength, false, pTheirUnit, iMyRangedSupportDamageInflicted);
+					iMyDamageInflicted = iMyDamageInflicted + iMyRangedSupportDamageInflicted;
+				end
+			else
+				-- attack on city
+				iMyDamageInflicted, iTheirDamageInflicted = pMyUnit:GetMeleeCombatDamageCity(iMyStrength, pTheirCity, false);
 			end
 
-			iMyDamageInflicted = pMyUnit:GetCombatDamage(iMyStrength, iTheirStrength, nil, false, false, not not pTheirCity, pTheirCity);
-			iMyDamageInflicted = iMyDamageInflicted + iMyRangedSupportDamageInflicted;
-
-			-- Embarked unit cannot deal damage
-			if not (pTheirUnit and pTheirUnit:IsEmbarked()) then
-				iTheirDamageInflicted = pMyUnit:GetCombatDamage(iTheirStrength, iMyStrength, nil, false, not not pTheirCity, false);
-			end
 		end
 	end
 
@@ -560,7 +564,7 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 			iModifier = pMyUnit:GetResistancePower(pTheirUnit);
 			nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_RESISTANCE_POWER", nBonus, iMiscModifier, true, true);
 		end
-		
+
 		-- They are unhappy
 		if pTheirUnit and pTheirPlayer:IsEmpireUnhappy() then
 			iModifier = pMyUnit:GetVsUnhappyMod();
@@ -613,17 +617,9 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 		end
 
 		-- Near Capital
-		iModifier = pMyUnit:CapitalDefenseModifier();
-		if iModifier > 0 then
-			-- Compute distance to Capital
-			local pCapital = pMyPlayer:GetCapitalCity();
-			if pCapital then
-				local iDistance = Map.PlotDistance(pCapital:GetX(), pCapital:GetY(), pBattlePlot:GetX(), pBattlePlot:GetY());
-				iModifier = iModifier + iDistance * pMyUnit:CapitalDefenseFalloff();
-				if (iModifier > 0) then
-					nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_CAPITAL_DEFENSE_BONUS", nBonus, iMiscModifier, true, true);
-				end
-			end
+		iModifier = pMyUnit:GetCombatModifierFromCapitalDistance(pBattlePlot);
+		if iModifier ~= 0 then
+			nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_CAPITAL_DEFENSE_BONUS", nBonus, iMiscModifier, true, true);
 		end
 
 		-- Attack bonus against the same target
@@ -655,6 +651,10 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 		-- Trait bonus for allying with City States
 		iModifier = pMyUnit:GetAllianceCSStrength();
 		nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_ATTACK_CS_ALLIANCE_STRENGTH", nBonus, iMiscModifier, true, true);
+
+		-- Combat Mod from Unit Level
+		iModifier = pMyUnit:GetCombatModFromUnitLevel();
+		nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_COMBAT_MOD_FROM_UNIT_LEVEL", nBonus, iMiscModifier, true, true);
 
 		if pTheirUnit then
 			-- Trait bonus against more advanced enemy in owned territory
@@ -702,7 +702,7 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 			-- General modifier
 			iModifier = pMyUnit:GetFriendlyLandsModifier();
 			nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_FIGHT_AT_HOME_BONUS", nBonus, iMiscModifier, true, true);
-			
+
 			-- Attack modifier
 			iModifier = pMyUnit:GetFriendlyLandsAttackModifier();
 			nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_ATTACK_IN_FRIEND_LANDS", nBonus, iMiscModifier, true, true);
@@ -719,7 +719,7 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 			iModifier = pMyPlayer:GetFoundedReligionEnemyCityCombatMod(pBattlePlot);
 			nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_ENEMY_CITY_BELIEF_BONUS", nBonus, iMiscModifier, true, true);
 		end
-		
+
 		-- Bonus for attacks by units with the same promotion in the previous turn
 		iModifier = pMyUnit:GetStrengthThisTurnFromPreviousSamePromotionAttacks();
 		nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_SAME_PROMOTION_ATTACK_BONUS", nBonus, iMiscModifier, true, true);
@@ -912,13 +912,13 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 				sDescription = Locale.ConvertTextKey(GameInfo.Terrains.TERRAIN_HILL.Description);
 				nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_ATTACK_INTO_BONUS", nBonus, iMiscModifier, true, true, nil, sDescription);
 			end
-			
+
 			-- VP terrain attack modifier
 			local eToTerrainVP = bRanged and pFromPlot:GetTerrainType() or pToPlot:GetTerrainType();
 			iModifier = pMyUnit:GetTerrainModifierAttack(eToTerrainVP);
 			sDescription = Locale.ConvertTextKey(GameInfo.Terrains[eToTerrainVP].Description);
 			nBonus, iMiscModifier = ProcessModifier(iModifier, bRanged and "TXT_KEY_EUPANEL_RANGED_ATTACK_IN_BONUS" or "TXT_KEY_EUPANEL_ATTACK_INTO_BONUS", nBonus, iMiscModifier, true, true, nil, sDescription);
-			
+
 			if bRanged and pFromPlot:IsHills() or pToPlot:IsHills() then
 				iModifier = pMyUnit:GetTerrainModifierAttack(GameInfoTypes.TERRAIN_HILL);
 				sDescription = Locale.ConvertTextKey(GameInfo.Terrains.TERRAIN_HILL.Description);
@@ -1039,7 +1039,7 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 					iModifier = pTheirUnit:GetResistancePower(pMyUnit);
 					nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_RESISTANCE_POWER", nBonus, iMiscModifier, false, true);
 				end
-				
+
 				-- We are unhappy
 				if pMyUnit and pMyPlayer:IsEmpireUnhappy() then
 					iModifier = pTheirUnit:GetVsUnhappyMod();
@@ -1077,17 +1077,9 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 				nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_REVERSE_GG_NEAR", nBonus, iMiscModifier, false, true);
 
 				-- Near Capital
-				iModifier = pTheirUnit:CapitalDefenseModifier();
-				if iModifier > 0 then
-					-- Compute distance to Capital
-					local pCapital = pTheirPlayer:GetCapitalCity();
-					if pCapital then
-						local iDistance = Map.PlotDistance(pCapital:GetX(), pCapital:GetY(), pTheirUnit:GetX(), pTheirUnit:GetY());
-						iModifier = iModifier + iDistance * pTheirUnit:CapitalDefenseFalloff();
-						if (iModifier > 0) then
-							nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_CAPITAL_DEFENSE_BONUS", nBonus, iMiscModifier, false, true);
-						end
-					end
+				iModifier = pTheirUnit:GetCombatModifierFromCapitalDistance(pTheirUnit:GetPlot());
+				if iModifier ~= 0 then
+					nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_CAPITAL_DEFENSE_BONUS", nBonus, iMiscModifier, false, true);
 				end
 
 				-- Trait bonus during Golden Age
@@ -1105,6 +1097,10 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 				-- Trait bonus for allying with City States
 				iModifier = pTheirUnit:GetAllianceCSStrength();
 				nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_ATTACK_CS_ALLIANCE_STRENGTH", nBonus, iMiscModifier, false, true);
+
+				-- Combat Mod from Unit Level
+				iModifier = pTheirUnit:GetCombatModFromUnitLevel();
+				nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_COMBAT_MOD_FROM_UNIT_LEVEL", nBonus, iMiscModifier, false, true);
 
 				if pMyUnit then
 					-- Trait bonus against more advanced enemy in owned territory
@@ -1176,7 +1172,7 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 				-- Bonus from marriages to city states not at war
 				iModifier = pTheirUnit:GetCSMarriageStrength()
 				nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_MARRIAGES", nBonus, iMiscModifier, false, true);
-				
+
 				-- Bonus from marriages to city states not at war
 				iModifier = pTheirUnit:GetCSMarriageStrength()
 				nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_MARRIAGES", nBonus, iMiscModifier, false, true);
@@ -1280,7 +1276,7 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 					sDescription = Locale.ConvertTextKey(GameInfo.Terrains[eToTerrain].Description);
 					nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN", nBonus, iMiscModifier, false, true, nil, sDescription);
 				end
-				
+
 				-- VP Defending on terrain
 				iModifier = pTheirUnit:GetTerrainModifierDefense(eToTerrain);
 				sDescription = Locale.ConvertTextKey(GameInfo.Terrains[eToTerrain].Description);
@@ -1293,7 +1289,7 @@ function UpdateCombatSimulator(pMyUnit, pTheirUnit, pMyCity, pTheirCity)
 					sDescription = Locale.ConvertTextKey(GameInfo.Terrains.TERRAIN_HILL.Description);
 					nBonus, iMiscModifier = ProcessModifier(iModifier, "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN", nBonus, iMiscModifier, false, true, nil, sDescription);
 				end
-				
+
 				-- VP Defending on hill
 				if pToPlot:IsHills() then
 					iModifier = pTheirUnit:GetTerrainModifierDefense(GameInfoTypes.TERRAIN_HILL);

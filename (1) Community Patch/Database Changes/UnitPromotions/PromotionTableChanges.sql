@@ -2,6 +2,8 @@
 
 ALTER TABLE UnitPromotions ADD CombatChange integer DEFAULT 0;
 
+ALTER TABLE UnitPromotions ADD DiplomaticMissionAccomplishment boolean DEFAULT 0;
+
 ALTER TABLE UnitPromotions ADD IgnoreTerrainDamage boolean DEFAULT 0;
 ALTER TABLE UnitPromotions ADD IgnoreFeatureDamage boolean DEFAULT 0;
 ALTER TABLE UnitPromotions ADD ExtraTerrainDamage boolean DEFAULT 0;
@@ -83,25 +85,25 @@ ALTER TABLE UnitPromotions ADD NearbyRange integer DEFAULT 0;
 -- Set the Domain that Gets the Bonus
 ALTER TABLE UnitPromotions ADD GiveDomain text REFERENCES Domains (Type);
 
--- Unit gives additional combat strength to nearby units? Requires IsNearbyPromotion, NearbyRange, and GiveDomain Set on this Promotion.
+-- Unit gives additional combat strength to nearby units? Requires CustomModOption API_AREA_EFFECT_PROMOTIONS set to 1 and IsNearbyPromotion, NearbyRange, and GiveDomain set on this Promotion.
 ALTER TABLE UnitPromotions ADD GiveCombatMod integer DEFAULT 0;
 
--- Unit Gives HP to additional units if they kill an enemy units? Requires IsNearbyPromotion, NearbyRange, and GiveDomain Set on this Promotion.
+-- Unit Gives HP to additional units if they kill an enemy units? Requires CustomModOption API_AREA_EFFECT_PROMOTIONS set to 1 and IsNearbyPromotion, NearbyRange, and GiveDomain Set on this Promotion.
 ALTER TABLE UnitPromotions ADD GiveHPHealedIfEnemyKilled integer DEFAULT 0;
 
--- Unit Gives additional XP in combat to nearby units? Requires IsNearbyPromotion, NearbyRange, and GiveDomain Set on this Promotion.
+-- Unit Gives additional XP in combat to nearby units? Requires CustomModOption API_AREA_EFFECT_PROMOTIONS set to 1 and IsNearbyPromotion, NearbyRange, and GiveDomain set on this Promotion.
 ALTER TABLE UnitPromotions ADD GiveExperiencePercent integer DEFAULT 0;
 
--- Unit Gives a bonus to outside friendly lands unis? Requires IsNearbyPromotion, NearbyRange, and GiveDomain Set on this Promotion.
+-- Unit Gives a bonus to outside friendly lands unis? Requires CustomModOption API_AREA_EFFECT_PROMOTIONS set to 1 and IsNearbyPromotion, NearbyRange, and GiveDomain set on this Promotion.
 ALTER TABLE UnitPromotions ADD GiveOutsideFriendlyLandsModifier integer DEFAULT 0;
 
--- Unit Gives extra attacks to nearby units? Requires IsNearbyPromotion, NearbyRange, and GiveDomain Set on this Promotion.
+-- Unit Gives extra attacks to nearby units? Requires CustomModOption API_AREA_EFFECT_PROMOTIONS set to 1 and IsNearbyPromotion, NearbyRange, and GiveDomain set on this Promotion.
 ALTER TABLE UnitPromotions ADD GiveExtraAttacks integer DEFAULT 0;
 
--- Unit Gives extra defense to nearby units? Requires IsNearbyPromotion, NearbyRange, and GiveDomain Set on this Promotion.
+-- Unit Gives extra defense to nearby units? Requires CustomModOption API_AREA_EFFECT_PROMOTIONS set to 1 and IsNearbyPromotion, NearbyRange, and GiveDomain set on this Promotion.
 ALTER TABLE UnitPromotions ADD GiveDefenseMod integer DEFAULT 0;
 
--- Unit gives Invisibility to another Unit? Requires IsNearbyPromotion, NearbyRange, and GiveDomain Set on this Promotion.
+-- Unit gives Invisibility to another Unit? Requires CustomModOption API_AREA_EFFECT_PROMOTIONS set to 1 and IsNearbyPromotion, NearbyRange, and GiveDomain set on this Promotion.
 ALTER TABLE UnitPromotions ADD GiveInvisibility boolean DEFAULT 0;
 
 -- Unit only gives these effects at the start of the turn (works for GiveExperiencePercent, GiveCombatMod, GiveDefenseMod, GiveInvisibility, GiveOutsideFriendlyLandsModifier, GiveHPHealedIfEnemyKilled, GiveExtraAttacks)
@@ -121,9 +123,6 @@ ALTER TABLE UnitPromotions ADD NearbyHealEnemyTerritory integer DEFAULT 0;
 ALTER TABLE UnitPromotions ADD NearbyHealNeutralTerritory integer DEFAULT 0;
 ALTER TABLE UnitPromotions ADD NearbyHealFriendlyTerritory integer DEFAULT 0;
 -- End
-
--- Double Movement on Mountains
-ALTER TABLE UnitPromotions ADD MountainsDoubleMove boolean DEFAULT 0;
 
 -- Double Movement when next to Rivers
 ALTER TABLE UnitPromotions ADD RiverDoubleMove boolean DEFAULT 0;
@@ -178,7 +177,6 @@ ALTER TABLE UnitPromotions ADD StackedGreatGeneralXP integer DEFAULT 0;
 -- Promotions
 ALTER TABLE UnitPromotions ADD GoodyHutYieldBonus integer DEFAULT 0;
 ALTER TABLE UnitPromotions ADD GainsXPFromScouting boolean DEFAULT 0;
-ALTER TABLE UnitPromotions ADD GainsXPFromPillaging boolean DEFAULT 0; -- OBSOLETE: to be removed in VP5.0, replaced by XPFromPillaging
 ALTER TABLE UnitPromotions ADD GainsXPFromSpotting boolean DEFAULT 0;
 
 ALTER TABLE UnitPromotions ADD MultiAttackBonus integer DEFAULT 0;
@@ -248,8 +246,8 @@ ALTER TABLE UnitPromotions ADD InfluenceFromCombatXpTimes100 integer DEFAULT 0;
 ALTER TABLE UnitPromotions ADD FreeAttackMoves boolean DEFAULT 0;
 
 -- Used with CapitalDefenseModifier and CapitalDefenseFalloff
--- Combat strength modifier near player's capital, starting at CapitalDefenseModifier on the capital tile and decreasing by CapitalDefenseFalloff per tile away from the capital
--- Modifier is capped by CapitalDefenseLimit
+-- Combat strength modifier near player's capital, starting at CapitalDefenseModifier on the capital tile and changing by CapitalDefenseFalloff (positive or negative) per tile away from the capital
+-- CapitalDefenseLimit is the highest (if CapitalDefenseFalloff > 0) or lowest (if CapitalDefenseFalloff < 0) value the modifier can have
 ALTER TABLE UnitPromotions ADD CapitalDefenseLimit integer DEFAULT 0;
 
 -- Combat strength modifier against units from unhappy empire
@@ -291,13 +289,13 @@ ALTER TABLE UnitPromotions ADD RequiresLeadership boolean DEFAULT 0;
 -- This promotion is only effective if the unit starts its turn at or above this percentage of health
 ALTER TABLE UnitPromotions ADD MinEffectiveHealth integer DEFAULT 0;
 
--- PROMOTIONS_CROSS_ICE
+-- PROMOTIONS_CROSS_ICE (integrated)
 ALTER TABLE UnitPromotions ADD CanCrossIce boolean DEFAULT 0;
 
--- PROMOTIONS_CROSS_MOUNTAINS
+-- PROMOTIONS_CROSS_MOUNTAINS (integrated)
 ALTER TABLE UnitPromotions ADD CanCrossMountains boolean DEFAULT 0;
 
--- PROMOTIONS_CROSS_OCEANS
+-- PROMOTIONS_CROSS_OCEANS (integrated)
 ALTER TABLE UnitPromotions ADD CanCrossOceans boolean DEFAULT 0;
 
 -- PROMOTIONS_DEEP_WATER_EMBARKATION

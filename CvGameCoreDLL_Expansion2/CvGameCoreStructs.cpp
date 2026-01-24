@@ -158,7 +158,7 @@ FDataStream& operator<<(FDataStream& kStream, const BuildingGreatWork& readFrom)
 void checkBattleUnitType(BattleUnitTypes unitType)
 {
 	DEBUG_VARIABLE(unitType);
-	ASSERT_DEBUG((unitType >= 0) && (unitType < BATTLE_UNIT_COUNT), "Invalid battle unit type.");
+	ASSERT((unitType >= 0) && (unitType < BATTLE_UNIT_COUNT), "Invalid battle unit type.");
 }
 
 //------------------------------------------------------------------------------------------------
@@ -185,7 +185,6 @@ CvCombatInfo::CvCombatInfo() :
 		m_pCities[i] = NULL;
 		m_iFinalDamage[i] = 0;
 		m_iDamageInflicted[i] = 0;
-		m_iFearDamageInflicted[i] = 0;
 		m_iExperienceChange[i] = 0;
 		m_iMaxExperienceAllowed[i] = 0;
 		m_bInBorders[i] = false;
@@ -215,7 +214,6 @@ CvCombatInfo& CvCombatInfo::operator=(const CvCombatInfo& rhs)
 
 		m_iFinalDamage[i] = rhs.m_iFinalDamage[i];
 		m_iDamageInflicted[i] = rhs.m_iDamageInflicted[i];
-		m_iFearDamageInflicted[i] = rhs.m_iFearDamageInflicted[i];
 
 		m_iExperienceChange[i] = rhs.m_iExperienceChange[i];
 		m_iMaxExperienceAllowed[i] = rhs.m_iMaxExperienceAllowed[i];
@@ -406,18 +404,6 @@ void CvCombatInfo::setFinalDamage(BattleUnitTypes unitType, int iFinalDamage)
 	m_iFinalDamage[unitType] = iFinalDamage;
 }
 
-
-int CvCombatInfo::getFearDamageInflicted(BattleUnitTypes unitType) const
-{
-	checkBattleUnitType(unitType);
-	return m_iFearDamageInflicted[unitType];
-}
-void CvCombatInfo::setFearDamageInflicted(BattleUnitTypes unitType, int iDamage)
-{
-	checkBattleUnitType(unitType);
-	m_iFearDamageInflicted[unitType] = iDamage;
-}
-
 int CvCombatInfo::getExperience(BattleUnitTypes unitType) const
 {
 	checkBattleUnitType(unitType);
@@ -537,7 +523,7 @@ int CvCombatInfo::getMaxDamageMemberCount()
 
 void CvCombatInfo::setDamageMemberCount(int iDamageMemberCount)
 {
-	ASSERT_DEBUG(iDamageMemberCount >=0 && iDamageMemberCount <= MAX_DAMAGE_MEMBER_COUNT, "Invalid damage member count!");
+	ASSERT(iDamageMemberCount >=0 && iDamageMemberCount <= MAX_DAMAGE_MEMBER_COUNT, "Invalid damage member count!");
 	m_iDamageMemberCount = std::min(iDamageMemberCount, (int)MAX_DAMAGE_MEMBER_COUNT);
 }
 
@@ -651,7 +637,7 @@ void CvAirMissionDefinition::setDamage(BattleUnitTypes unitType, int damage)
 bool CvAirMissionDefinition::isDead(BattleUnitTypes unitType) const
 {
 	checkBattleUnitType(unitType);
-	ASSERT_DEBUG(getUnit(unitType) != NULL, "[Jason] Invalid battle unit type.");
+	ASSERT(getUnit(unitType) != NULL, "[Jason] Invalid battle unit type.");
 	return getDamage(unitType) >= getUnit(unitType)->GetMaxHitPoints();
 }
 

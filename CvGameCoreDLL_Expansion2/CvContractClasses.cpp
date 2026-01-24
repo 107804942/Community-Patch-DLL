@@ -8,8 +8,6 @@
 // must be included after all other headers
 #include "LintFree.h"
 
-#if defined(MOD_BALANCE_CORE)
-
 CvContractEntry::CvContractEntry(void):
 	m_strCategory(""),
 	m_strAdjective(""),
@@ -63,7 +61,7 @@ EraTypes CvContractEntry::GetPrereqEra() const
 
 EraTypes CvContractEntry::GetObsoleteEra() const
 {
-	return (EraTypes)m_iPrereqEra;
+	return (EraTypes)m_iObsoleteEra;
 }
 
 ReligionTypes CvContractEntry::GetPrereqReligion() const
@@ -116,14 +114,14 @@ int CvContractEntry::GetTurns() const
 }
 int CvContractEntry::GetYieldCost(YieldTypes eYield) const
 {
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield > -1, "Index out of bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield > -1, "Index out of bounds");
 	return m_piYieldCost ? m_piYieldCost[eYield] : -1;
 }
 int CvContractEntry::GetFlavorValue(FlavorTypes eFlavor) const
 {
-	ASSERT_DEBUG(eFlavor < GC.getNumFlavorTypes(), "Index out of bounds");
-	ASSERT_DEBUG(eFlavor > -1, "Index out of bounds");
+	PRECONDITION(eFlavor < GC.getNumFlavorTypes(), "Index out of bounds");
+	PRECONDITION(eFlavor > -1, "Index out of bounds");
 	return m_piFlavor ? m_piFlavor[eFlavor] : -1;
 }
 
@@ -269,19 +267,6 @@ FDataStream& operator<<(FDataStream& saveTo, const CvContract& readFrom)
 	return saveTo;
 }
 
-// For some reason CvSerializationInfoHelpers is not working for this.
-FDataStream& operator<<(FDataStream& saveTo, const ContractTypes& readFrom)
-{
-	saveTo << static_cast<int>(readFrom);
-	return saveTo;
-}
-FDataStream& operator>>(FDataStream& loadFrom, ContractTypes& writeTo)
-{
-	int v = 0;
-	loadFrom >> v;
-	writeTo = static_cast<ContractTypes>(v);
-	return loadFrom;
-}
 
 //=====================================
 // CvPlayerContracts
@@ -525,7 +510,7 @@ void CvPlayerContracts::InitContractUnits(ContractTypes eContract)
 
 							// Init unit
 							pUnit = m_pPlayer->initUnit(eUnit, pBestCity->getX(), pBestCity->getY(), pkUnitInfo->GetDefaultUnitAIType(), REASON_DEFAULT, false, true, 0, 0, eContract);
-							ASSERT_DEBUG(pUnit);
+							ASSERT(pUnit);
 							if (pUnit)
 							{
 								if (!pUnit->jumpToNearestValidPlotWithinRange(5))
@@ -556,7 +541,7 @@ void CvPlayerContracts::DisbandContractUnits(ContractTypes eContract)
 
 	for(pLoopUnit = m_pPlayer->firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = m_pPlayer->nextUnit(&iLoop))
 	{
-		if(pLoopUnit != NULL && pLoopUnit->getContract() == eContract)
+		if(pLoopUnit->getContract() == eContract)
 		{
 			pLoopUnit->kill(true);
 		}
@@ -870,5 +855,3 @@ FDataStream& operator<<(FDataStream& saveTo, const CvGameContracts& readFrom)
 	CvGameContracts::Serialize(readFrom, serialVisitor);
 	return saveTo;
 }
-
-#endif

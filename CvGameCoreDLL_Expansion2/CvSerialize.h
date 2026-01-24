@@ -15,6 +15,10 @@
 
 #include <array>
 
+// Include for debug logging functionality
+#include <sstream>
+#include "CvGlobals.h"
+
 // Shared empty string
 extern const std::string EmptyString;
 
@@ -48,7 +52,7 @@ public:
 	template<typename T>
 	inline CvStreamSaveVisitor& operator>>(const T& value)
 	{
-		ASSERT_DEBUG(false, "CvStreamSaveVisitor is not meant for loading");
+		ASSERT(false, "CvStreamSaveVisitor is not meant for loading");
 		return *this;
 	}
 
@@ -74,13 +78,13 @@ public:
 	template<typename Dst, typename Src>
 	inline void loadAssign(Dst& dst, const Src& src)
 	{
-		ASSERT_DEBUG(false, "CvStreamSaveVisitor is not meant for loading");
+		ASSERT(false, "CvStreamSaveVisitor is not meant for loading");
 	}
 
 	template<typename T>
 	void loadIgnore()
 	{
-		ASSERT_DEBUG(false, "CvStreamSaveVisitor is not meant for loading");
+		ASSERT(false, "CvStreamSaveVisitor is not meant for loading");
 	}
 
 private:
@@ -112,7 +116,7 @@ public:
 	template<typename T>
 	inline CvStreamLoadVisitor& operator<<(const T& value)
 	{
-		ASSERT_DEBUG(false, "CvStreamLoadVisitor is not meant for saving");
+		ASSERT(false, "CvStreamLoadVisitor is not meant for saving");
 		return *this;
 	}
 
@@ -205,6 +209,10 @@ public:
 	typedef typename VarTraits::SyncVarsType SyncVarsType;
 	std::string nameStr;
 
+#if defined(VPDEBUG)
+	mutable ValueType m_remoteValue;
+#endif
+
 	CvSyncVar()
 		: CvSyncVarBase<ValueType>(nameStr, getContainer().getSyncArchive(), currentValue()),
 		nameStr(VarTraits::name())
@@ -274,12 +282,28 @@ public:
 	{
 		ValueType other;
 		otherValue >> other;
+#if defined(VPDEBUG)
+		m_remoteValue = other;
+#endif
 		const bool result = other == currentValue();
 
 		if (!result) {
-			std::string desyncValues = std::string("Desync values, current ") + FSerialization::toString(currentValue()) + "; other " + FSerialization::toString(other) + std::string("\n");
-			gGlobals.getDLLIFace()->netMessageDebugLog(desyncValues);
-
+			// Desync logging with available context
+			std::ostringstream logMsg;
+			logMsg << "[DESYNC_DETECTED] Variable=" << this->name()
+				   << " | Turn=" << GC.getGame().getGameTurn()
+				   << " | Player=" << GC.getGame().getActivePlayer()
+				   << " | Host=" << (gDLL->IsHost() ? "YES" : "NO")
+				   << " | Local=" << FSerialization::toString(currentValue())
+				   << " | Remote=" << FSerialization::toString(other);
+			
+			// Add container-specific context
+			std::string containerContext = getContainer().debugDump(*this);
+			if (!containerContext.empty()) {
+				logMsg << " | Context=" << containerContext;
+			}
+			
+			gGlobals.getDLLIFace()->netMessageDebugLog(logMsg.str());
 			gGlobals.getGame().setDesynced(true);
 		}
 
@@ -300,8 +324,8 @@ public:
 	{
 		std::string result = FAutoVariableBase::debugDump(callStacks);
 		result += std::string("\n") + getContainer().debugDump(*this) + std::string("\n");
-#if !defined(FINAL_RELEASE)
-		result += std::string("local value=") + FSerialization::toString(m_value) + "\n";
+#if !defined(FINAL_RELEASE) || defined(VPDEBUG)
+		result += std::string("local value=") + FSerialization::toString(currentValue()) + "\n";
 		result += std::string("remote value=") + FSerialization::toString(m_remoteValue) + "\n";
 #endif
 		return result;
@@ -340,7 +364,6 @@ public:
 	// Call once at initialization in multiplayer
 	inline void initSyncVars(SyncVars& syncVars)
 	{
-		ASSERT_DEBUG(m_syncVarsStorage == NULL);
 		m_syncVarsStorage = &syncVars;
 	}
 	inline void destroySyncVars()

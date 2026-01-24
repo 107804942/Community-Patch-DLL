@@ -58,10 +58,8 @@ public:
 	void DoUpdateCityConnectionGold();
 
 	// City Connection Route Modifiers
-#if defined(MOD_BALANCE_CORE_POLICIES)
 	int GetInternalTradeRouteGoldBonus() const;
 	void DoInternalTradeRouteGoldBonus();
-#endif
 	int GetCityConnectionTradeRouteGoldModifier() const;
 	void ChangeCityConnectionTradeRouteGoldModifier(int iChange);
 	int GetCityConnectionTradeRouteGoldChange() const;
@@ -81,7 +79,7 @@ public:
 	int GetLifetimeGrossGold() const;
 	int CalculateBaseNetGold();
 	int CalculateBaseNetGoldTimes100();
-	int CalculateUnitCost();
+	int CalculateUnitCost(int iUnits = -1);
 	int CalculateTotalCosts();
 	int GetExpensePerTurnUnitMaintenance() const
 	{
@@ -116,9 +114,7 @@ public:
 	int GetExpensePerTurnFromVassalTaxes() const;
 	void SetExpensePerTurnFromVassalTaxesTimes100(int iValue);
 
-#if defined(MOD_BALANCE_CORE)
 	int GetContractGoldMaintenance();
-#endif
 
 protected:
 	CvPlayer* m_pPlayer;
@@ -126,9 +122,7 @@ protected:
 	int m_iGoldPerTurnFromDiplomacy;
 	int m_iExpensePerTurnUnitMaintenance;
 	int m_iCityConnectionGoldTimes100;
-#if defined(MOD_BALANCE_CORE)
 	int m_iInternalTradeGoldBonus;
-#endif
 	int m_iExpensePerTurnFromVassalTax;
 	int m_iCityConnectionTradeRouteGoldModifier;
 	int m_iCityConnectionTradeRouteGoldChange;

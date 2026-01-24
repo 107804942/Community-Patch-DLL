@@ -6,7 +6,7 @@
 UPDATE Policies
 SET
 	GreatPeopleRateModifier = 33,
-	BoredomFlatReductionGlobal = 2
+	BoredomFlatReduction = 2
 WHERE Type = 'POLICY_OPEN_SOCIETY';
 
 -- Creative Expression
@@ -44,7 +44,8 @@ WHERE SpecificCivRequired = 1 OR Type IN (
 	'IMPROVEMENT_CAMP',
 	-- hidden unique improvements
 	'IMPROVEMENT_POLDER_WATER',
-	'IMPROVEMENT_ORDO'
+	'IMPROVEMENT_ORDO',
+	'IMPROVEMENT_ISIBAYA'
 );
 
 -- Volunteer Army (now Draft Registration)
@@ -143,7 +144,12 @@ VALUES
 
 -- New Deal
 DELETE FROM Policy_ImprovementYieldChanges
-WHERE PolicyType = 'POLICY_NEW_DEAL';
+WHERE PolicyType = 'POLICY_NEW_DEAL' AND ImprovementType IN (
+	'IMPROVEMENT_ACADEMY',
+	'IMPROVEMENT_CUSTOMS_HOUSE',
+	'IMPROVEMENT_MANUFACTORY',
+	'IMPROVEMENT_HOLY_SITE'
+);
 
 INSERT INTO Policy_ImprovementYieldChanges
 	(PolicyType, ImprovementType, YieldType, Yield)

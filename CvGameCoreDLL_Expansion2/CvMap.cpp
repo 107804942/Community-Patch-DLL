@@ -90,7 +90,7 @@ void CvLandmass::changeNumTiles(int iChange)
 		bool bOldLake = isLake();
 
 		m_iNumTiles = (m_iNumTiles + iChange);
-		ASSERT_DEBUG(m_iNumTiles >= 0);
+		ASSERT(m_iNumTiles >= 0);
 
 		if(bOldLake != isLake())
 		{
@@ -297,6 +297,147 @@ FDataStream& operator>>(FDataStream& loadFrom, CvLandmass& writeTo)
 	return loadFrom;
 }
 
+
+//////////////////////////////////////////////////////////////////////////////
+// CvContinent
+//////////////////////////////////////////////////////////////////////////
+
+//	--------------------------------------------------------------------------------
+CvContinent::CvContinent()
+{
+	m_iID = -1;
+	m_iNumTiles = 0;
+	m_bLand = false;
+	m_iCentroidX = 0;
+	m_iCentroidY = 0;
+}
+
+//	--------------------------------------------------------------------------------
+CvContinent::~CvContinent()
+{
+
+}
+
+//	--------------------------------------------------------------------------------
+void CvContinent::init(int iID, bool bLand)
+{
+	m_iID = iID;
+	m_iNumTiles = 0;
+	m_bLand = bLand;
+	m_iCentroidX = 0;
+	m_iCentroidY = 0;
+}
+
+//	--------------------------------------------------------------------------------
+int CvContinent::GetID() const
+{
+	return m_iID;
+}
+
+//	--------------------------------------------------------------------------------
+void CvContinent::SetID(int iID)
+{
+	m_iID = iID;
+}
+
+//	--------------------------------------------------------------------------------
+int CvContinent::getNumTiles() const
+{
+	return m_iNumTiles;
+}
+
+//	--------------------------------------------------------------------------------
+void CvContinent::changeNumTiles(int iChange)
+{
+	if (iChange != 0)
+	{
+		m_iNumTiles = (m_iNumTiles + iChange);
+		ASSERT(m_iNumTiles >= 0);
+	}
+}
+
+//	--------------------------------------------------------------------------------
+void CvContinent::ChangeCentroidX(int iChange)
+{
+	m_iCentroidX = (m_iCentroidX + iChange);
+}
+
+//	--------------------------------------------------------------------------------
+void CvContinent::ChangeCentroidY(int iChange)
+{
+	m_iCentroidY = (m_iCentroidY + iChange);
+}
+
+//	--------------------------------------------------------------------------------
+bool CvContinent::isLand() const
+{
+	return m_bLand;
+}
+
+//	--------------------------------------------------------------------------------
+int CvContinent::GetCentroidX()
+{
+	if (m_iNumTiles > 0)
+	{
+		return m_iCentroidX / m_iNumTiles;
+
+	}
+	return -1;
+}
+
+//	--------------------------------------------------------------------------------
+int CvContinent::GetCentroidY()
+{
+	if (m_iNumTiles > 0)
+	{
+		return m_iCentroidY / m_iNumTiles;
+
+	}
+	return -1;
+}
+
+//	--------------------------------------------------------------------------------
+template<typename Continent, typename Visitor>
+void CvContinent::Serialize(Continent& landmass, Visitor& visitor)
+{
+	visitor(landmass.m_iID);
+	visitor(landmass.m_iNumTiles);
+
+	visitor(landmass.m_iCentroidX);
+	visitor(landmass.m_iCentroidY);
+
+	visitor(landmass.m_bLand);
+}
+
+//	--------------------------------------------------------------------------------
+void CvContinent::read(FDataStream& kStream)
+{
+	CvStreamLoadVisitor serialVisitor(kStream);
+	Serialize(*this, serialVisitor);
+}
+
+//	--------------------------------------------------------------------------------
+void CvContinent::write(FDataStream& kStream) const
+{
+	CvStreamSaveVisitor serialVisitor(kStream);
+	Serialize(*this, serialVisitor);
+}
+
+//	--------------------------------------------------------------------------------
+FDataStream& operator<<(FDataStream& saveTo, const CvContinent& readFrom)
+{
+	readFrom.write(saveTo);
+	return saveTo;
+}
+
+//	--------------------------------------------------------------------------------
+FDataStream& operator>>(FDataStream& loadFrom, CvContinent& writeTo)
+{
+	writeTo.read(loadFrom);
+	return loadFrom;
+}
+
+
 //////////////////////////////////////////////////////////////////////////////
 // CvRiver
 //////////////////////////////////////////////////////////////////////////
@@ -420,6 +561,7 @@ CvMap::CvMap()
 	, m_pResourceForceReveal(NULL)
 	, m_areas()
 	, m_landmasses()
+	, m_continents()
 	, m_invisibleVisibilityCount()
 	, m_guid()
 	, m_kPlotManager()
@@ -433,7 +575,7 @@ CvMap::CvMap()
 	, m_vPlotsShared()
 	, m_plotPopupCount()
 {
-	ASSERT_DEBUG(sgCvMapInstanceCount == 0);
+	ASSERT(sgCvMapInstanceCount == 0);
 	++sgCvMapInstanceCount;
 
 	memset(m_apShuffledNeighbors,0,sizeof(CvPlot*)*6);
@@ -481,13 +623,11 @@ void CvMap::InitPlots()
 	memset(m_pResourceForceReveal, 0, iNumTeams*iNumPlots *sizeof(bool));
 	m_pHumanPlannedRouteState = FNEW(char[iNumPlayers * iNumPlots], c_eCiv5GameplayDLL, 0);
 	memset(m_pHumanPlannedRouteState, 0, iNumPlayers * iNumPlots * sizeof(char));
-#if defined(MOD_BALANCE_CORE)
 	m_pIsImpassable = FNEW(bool[iNumTeams*iNumPlots], c_eCiv5GameplayDLL, 0);
 	memset(m_pIsImpassable, 0, iNumTeams*iNumPlots *sizeof(bool));
 
 	m_pIsStrategic = FNEW(bool[iNumTeams*iNumPlots], c_eCiv5GameplayDLL, 0);
 	memset(m_pIsStrategic, 0, iNumTeams*iNumPlots *sizeof(bool));
-#endif
 
 	uint8* pYields = m_pYields;
 	uint8* pPlayerCityRadiusCount = m_pPlayerCityRadiusCount;
@@ -499,10 +639,8 @@ void CvMap::InitPlots()
 	char* pRevealedRouteType = m_pRevealedRouteType;
 	bool* pResourceForceReveal = m_pResourceForceReveal;
 	char* pHumanPlannedRouteState = m_pHumanPlannedRouteState;
-#if defined(MOD_BALANCE_CORE)
 	bool* pIsImpassable = m_pIsImpassable;
 	bool* pIsStrategic = m_pIsStrategic;
-#endif
 
 	for(int i = 0; i < iNumPlots; i++)
 	{
@@ -516,10 +654,8 @@ void CvMap::InitPlots()
 		m_pMapPlots[i].m_aeRevealedRouteType = pRevealedRouteType;
 		m_pMapPlots[i].m_abResourceForceReveal = pResourceForceReveal;
 		m_pMapPlots[i].m_aeHumanPlannedRouteState = pHumanPlannedRouteState;
-#if defined(MOD_BALANCE_CORE)
 		m_pMapPlots[i].m_abIsImpassable = pIsImpassable;
 		m_pMapPlots[i].m_abStrategicRoute = pIsStrategic;
-#endif
 
 		pYields					+= NUM_YIELD_TYPES;
 		pPlayerCityRadiusCount  += iNumTeams;
@@ -531,16 +667,12 @@ void CvMap::InitPlots()
 		pRevealedRouteType		+= iNumTeams;
 		pResourceForceReveal	+= iNumTeams;
 		pHumanPlannedRouteState += iNumTeams;
-#if defined(MOD_BALANCE_CORE)
 		pIsImpassable			+= iNumTeams;
 		pIsStrategic			+= iNumTeams;
-#endif
-
 	}
 
 	m_kPlotManager.Init(getGridWidth(), getGridHeight());
 
-#if defined(MOD_BALANCE_CORE)
 	//this will be used for fast lookup of neighbors
 	//the trick is that NO_DIRECTION is not -1 but NUM_DIRECTION_TYPES+1
 	//therefore we need to allocate (NUM_DIRECTION_TYPES+2) pointers per plot
@@ -558,7 +690,6 @@ void CvMap::InitPlots()
 	m_vPlotsWithLineOfSightFromPlot3.clear();
 	m_vPlotsWithLineOfSightToPlot2.clear();
 	m_vPlotsWithLineOfSightToPlot3.clear();
-#endif
 }
 
 //	--------------------------------------------------------------------------------
@@ -578,6 +709,7 @@ void CvMap::init(CvMapInitData* pInitInfo/*=NULL*/)
 	// Init containers
 	m_areas.RemoveAll();
 	m_landmasses.RemoveAll();
+	m_continents.RemoveAll();
 	m_rivers.RemoveAll();
 
 	//--------------------------------
@@ -676,11 +808,9 @@ void CvMap::uninit()
 	SAFE_DELETE_ARRAY(m_pRevealedRouteType);
 	SAFE_DELETE_ARRAY(m_pResourceForceReveal);
 
-#if defined(MOD_BALANCE_CORE)
 	SAFE_DELETE_ARRAY(m_pIsImpassable);
 	SAFE_DELETE_ARRAY(m_pPlotNeighbors);
 	SAFE_DELETE_ARRAY(m_pIsStrategic);
-#endif
 
 	m_iGridWidth = 0;
 	m_iGridHeight = 0;
@@ -688,6 +818,9 @@ void CvMap::uninit()
 	m_iLandPlots = 0;
 	m_iOwnedPlots = 0;
 	m_iNumNaturalWonders = 0;
+
+	m_bWrapX = false;
+	m_bWrapY = false;
 
 	m_kPlotManager.Uninit();
 }
@@ -747,12 +880,13 @@ void CvMap::reset(CvMapInitData* pInitInfo)
 		m_bWrapY = pInitInfo->m_bWrapY;
 	}
 
-	ASSERT_DEBUG((0 < GC.getNumResourceInfos()), "GC.getNumResourceInfos() is not greater than zero but an array is being allocated in CvMap::reset");
+	PRECONDITION((0 < GC.getNumResourceInfos()), "GC.getNumResourceInfos() is not greater than zero but an array is being allocated in CvMap::reset");
 	m_paiNumResource.init(0);
 	m_paiNumResourceOnLand.init(0);
 
 	m_areas.RemoveAll();
 	m_landmasses.RemoveAll();
+	m_continents.RemoveAll();
 	m_rivers.RemoveAll();
 
 	m_vDeferredFogPlots.clear();
@@ -975,7 +1109,7 @@ CvPlot* CvMap::syncRandPlot(int iFlags, int iArea, int iMinUnitDistance, int iTi
 		iCount++;
 		pTestPlot = plotCheckInvalid(GC.getGame().getJonRandNum(getGridWidth(), "Rand Plot Width"), GC.getGame().getJonRandNum(getGridHeight(), "Rand Plot Height"));
 
-		ASSERT_DEBUG(pTestPlot != NULL, "TestPlot is not assigned a valid value");
+		ASSERT(pTestPlot != NULL, "TestPlot is not assigned a valid value");
 
 		if(!pTestPlot) continue;
 
@@ -1098,7 +1232,7 @@ CvCity* CvMap::findCity(int iX, int iY, PlayerTypes eOwner, TeamTypes eTeam, boo
 {
 	CvPlot* pCheckPlot = plot(iX, iY);
 
-	ASSERT_DEBUG(pCheckPlot != NULL, "Passed in an invalid plot to findCity");
+	ASSERT(pCheckPlot != NULL, "Passed in an invalid plot to findCity");
 	if (pCheckPlot == NULL)
 		return NULL;
 
@@ -1355,7 +1489,7 @@ int CvMap::getLandPlots()
 void CvMap::changeLandPlots(int iChange)
 {
 	m_iLandPlots = (m_iLandPlots + iChange);
-	ASSERT_DEBUG(getLandPlots() >= 0);
+	ASSERT(getLandPlots() >= 0);
 }
 
 
@@ -1370,7 +1504,7 @@ int CvMap::getOwnedPlots()
 void CvMap::changeOwnedPlots(int iChange)
 {
 	m_iOwnedPlots = (m_iOwnedPlots + iChange);
-	ASSERT_DEBUG(getOwnedPlots() >= 0);
+	ASSERT(getOwnedPlots() >= 0);
 }
 
 
@@ -1443,7 +1577,7 @@ int CvMap::getRandomResourceQuantity(ResourceTypes eIndex)
 		iNumRands++;
 	}
 
-	ASSERT_DEBUG(iNumRands > 0, "Resource should have at least 1 Quantity type to choose from")
+	ASSERT(iNumRands > 0, "Resource should have at least 1 Quantity type to choose from")
 
 	int iRand = GC.getGame().getJonRandNum(iNumRands, "Picking from random Resource Quantity types");
 
@@ -1453,24 +1587,23 @@ int CvMap::getRandomResourceQuantity(ResourceTypes eIndex)
 //	--------------------------------------------------------------------------------
 int CvMap::getNumResources(ResourceTypes eIndex)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumResourceInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumResourceInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiNumResource[eIndex];
 }
 //	--------------------------------------------------------------------------------
 void CvMap::changeNumResources(ResourceTypes eIndex, int iChange)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumResourceInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumResourceInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiNumResource[eIndex] = (m_paiNumResource[eIndex] + iChange);
-	ASSERT_DEBUG(getNumResources(eIndex) >= 0);
+	ASSERT(getNumResources(eIndex) >= 0);
 }
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 //	--------------------------------------------------------------------------------
 void CvMap::setNumResources(ResourceTypes eIndex)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumResourceInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumResourceInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	const CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eIndex);
 	int iResourceQuantity = 0;
 	if(pkResourceInfo != NULL && pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_STRATEGIC)
@@ -1491,12 +1624,11 @@ void CvMap::setNumResources(ResourceTypes eIndex)
 		m_paiNumResource[eIndex] = iResourceQuantity;
 	}
 }
-#endif
 //	--------------------------------------------------------------------------------
 int CvMap::getNumResourcesOnLand(ResourceTypes eIndex)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumResourceInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumResourceInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	return m_paiNumResourceOnLand[eIndex];
 }
 
@@ -1504,10 +1636,10 @@ int CvMap::getNumResourcesOnLand(ResourceTypes eIndex)
 //	--------------------------------------------------------------------------------
 void CvMap::changeNumResourcesOnLand(ResourceTypes eIndex, int iChange)
 {
-	ASSERT_DEBUG(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	ASSERT_DEBUG(eIndex < GC.getNumResourceInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	PRECONDITION(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	PRECONDITION(eIndex < GC.getNumResourceInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
 	m_paiNumResourceOnLand[eIndex] = (m_paiNumResourceOnLand[eIndex] + iChange);
-	ASSERT_DEBUG(getNumResourcesOnLand(eIndex) >= 0);
+	ASSERT(getNumResourcesOnLand(eIndex) >= 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -1601,6 +1733,7 @@ void CvMap::recalculateAreas()
 {
 	calculateAreas();
 	recalculateLandmasses();
+	recalculateContinents();
 	RecalculateRivers();
 }
 
@@ -1628,7 +1761,7 @@ void CvMap::Serialize(Map& map, Visitor& visitor)
 	visitor(map.m_bWrapY);
 	visitor(map.m_guid);
 
-	ASSERT_DEBUG((0 < GC.getNumResourceInfos()), "GC.getNumResourceInfos() is not greater than zero but an array is being allocated");
+	PRECONDITION((0 < GC.getNumResourceInfos()), "GC.getNumResourceInfos() is not greater than zero but an array is being allocated");
 	visitor(map.m_paiNumResource);
 	visitor(map.m_paiNumResourceOnLand);
 
@@ -1653,11 +1786,9 @@ void CvMap::Serialize(Map& map, Visitor& visitor)
 
 	// call the read of the free list CvArea class allocations
 	visitor(map.m_areas);
-
 	visitor(map.m_landmasses);
-
+	visitor(map.m_continents);
 	visitor(map.m_rivers);
-
 	visitor(map.m_iAIMapHints);
 }
 
@@ -1682,11 +1813,8 @@ void CvMap::Read(FDataStream& kStream)
 
 	gDLL->DoMapSetup(numPlots());
 
-#if defined(MOD_EVENTS_TERRAFORMING)
-	if (MOD_EVENTS_TERRAFORMING) {
+	if (MOD_EVENTS_TERRAFORMING)
 		GAMEEVENTINVOKE_HOOK(GAMEEVENT_TerraformingMap, TERRAFORMINGEVENT_LOAD, 1);
-	}
-#endif
 }
 
 //	--------------------------------------------------------------------------------
@@ -1743,8 +1871,9 @@ void CvMap::calculateAreas()
 	for(int iI = 0; iI < numPlots(); iI++)
 	{
 		CvPlot* pLoopPlot = plotByIndexUnchecked(iI);
+		ASSERT(pLoopPlot != NULL, "plotByIndexUnchecked returned null - invalid plot index");
 		//ignore plots which are already assigned
-		if(!pLoopPlot || pLoopPlot->getArea() != -1) 
+		if(pLoopPlot->getArea() != -1) 
 			continue;
 
 		//use flag for "wide connection"
@@ -1770,8 +1899,9 @@ void CvMap::calculateAreas()
 	for(int iI = 0; iI < numPlots(); iI++)
 	{
 		CvPlot* pLoopPlot = plotByIndexUnchecked(iI);
+		ASSERT(pLoopPlot != NULL, "plotByIndexUnchecked returned null - invalid plot index");
 		//ignore plots which are already assigned
-		if(!pLoopPlot || pLoopPlot->getArea() != -1) 
+		if(pLoopPlot->getArea() != -1) 
 			continue;
 
 		//use flag for "single connection"
@@ -2491,6 +2621,61 @@ void CvMap::calculateLandmasses()
 }
 
 //	--------------------------------------------------------------------------------
+CvContinent* CvMap::getContinentById(int iID)
+{
+	return m_continents.Get(iID);
+}
+
+//	--------------------------------------------------------------------------------
+CvContinent* CvMap::addContinent()
+{
+	//do not use TContainer::Add here, it uses the global ID counter which we don't need here
+	CvContinent* pNew = new CvContinent();
+	pNew->SetID(m_continents.GetCount() + 1);
+	m_continents.Load(pNew);
+	return pNew;
+}
+
+//	--------------------------------------------------------------------------------
+void CvMap::recalculateContinents()
+{
+	CvPlot* pLoopPlot = NULL;
+	CvContinent* pContinent= NULL;
+	int iContinentID = 0;
+
+	for (int iI = 0; iI < numPlots(); iI++)
+	{
+		pLoopPlot = plotByIndexUnchecked(iI);
+		pLoopPlot->setContinent(-1);
+	}
+
+	m_continents.RemoveAll();
+
+	for (int iI = 0; iI < numPlots(); iI++)
+	{
+		pLoopPlot = plotByIndexUnchecked(iI);
+		if (pLoopPlot->getContinent() == -1)
+		{
+			pContinent = addContinent();
+			pContinent->init(pContinent->GetID(), !pLoopPlot->isDeepWater());
+
+			iContinentID = pContinent->GetID();
+
+			pLoopPlot->setContinent(iContinentID);
+
+			SPathFinderUserData data(NO_PLAYER, PT_CONTINENT_CONNECTION);
+			ReachablePlots result = GC.GetStepFinder().GetPlotsInReach(pLoopPlot->getX(), pLoopPlot->getY(), data);
+
+			for (ReachablePlots::iterator it = result.begin(); it != result.end(); ++it)
+			{
+				CvPlot* pPlot = GC.getMap().plotByIndexUnchecked(it->iPlotIndex);
+				pPlot->setContinent(iContinentID);
+			}
+		}
+	}
+}
+
+//	--------------------------------------------------------------------------------
 int CvMap::GetNumRivers()
 {
 	return m_rivers.GetCount();
@@ -2563,7 +2748,7 @@ void CvMap::RecalculateRivers()
 //	--------------------------------------------------------------------------------
 void CvMap::CalculateRivers()
 {
-	if (!MOD_RIVER_CITY_CONNECTIONS)
+	if (!MOD_BALANCE_RIVER_CITY_CONNECTIONS)
 		return;
 
 	CvPlot* pLoopPlot = NULL;

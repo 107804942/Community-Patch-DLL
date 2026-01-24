@@ -31,17 +31,11 @@ public:
 	int GetProductionCost() const;
 	int GetFaithCost() const;
 	bool IsRequiresFaithPurchaseEnabled() const;
-#if defined(MOD_GLOBAL_EXCLUDE_FROM_GIFTS)
-	bool IsNoMinorGifts() const;
-#endif
+	bool IsNoMinorCivUU() const;
 	bool IsPurchaseOnly() const;
 	bool CanMoveAfterPurchase() const;
-#if defined(MOD_GLOBAL_MOVE_AFTER_UPGRADE)
 	bool CanMoveAfterUpgrade() const;
-#endif
-#if defined(MOD_GLOBAL_CANNOT_EMBARK)
 	bool CannotEmbark() const;
-#endif
 	int GetHurryCostModifier() const;
 	int GetMinAreaSize() const;
 	int GetMoves() const;
@@ -62,7 +56,6 @@ public:
 	int GetBaseWLTKDTurns() const;
 	int GetBaseHurry() const;
 	int GetHurryMultiplier() const;
-	bool IsRushBuilding() const;
 	int GetBaseGold() const;
 	int GetScaleFromNumGWs() const;
 	int GetScaleFromNumThemes() const;
@@ -70,11 +63,9 @@ public:
 	int GetNumInfPerEra() const;
 	int GetRestingPointChange() const;
 	int GetProductionCostPerEra() const;
-#if defined(MOD_BALANCE_CORE)
 	int GetNumFreeLux() const;
 	int GetBeliefUnlock() const;
 	bool IsFreeUpgrade() const;
-#endif
 	bool IsSpreadReligion() const;
 	int GetReligionSpreads() const;
 	int GetReligiousStrength() const;
@@ -82,14 +73,10 @@ public:
 	bool IsRequiresEnhancedReligion() const;
 	bool IsProhibitsSpread() const;
 	bool IsRemoveHeresy() const;
-#if defined(MOD_CIV6_WORKER)
 	int GetBuilderStrength() const;
-#endif
 	bool IsCanBuyCityState() const;
-#if defined(MOD_GLOBAL_SEPARATE_GREAT_ADMIRAL)
 	bool IsCanRepairFleet() const;
 	bool IsCanChangePort() const;
-#endif
 	int GetCombat() const;
 #if defined(MOD_GLOBAL_STACKING_RULES)
 	int StackCombat() const;
@@ -112,22 +99,16 @@ public:
 	int GetSpecialUnitType() const;
 	int GetUnitCaptureClassType() const;
 	int GetUnitCombatType() const;
-#if defined(MOD_GLOBAL_PROMOTION_CLASSES)
 	int GetUnitPromotionType() const;
-#endif
-#if defined(MOD_EVENTS_CAN_MOVE_INTO)
 	bool IsSendCanMoveIntoEvent() const;
-#endif
 	inline DomainTypes GetDomainType() const { return (DomainTypes)m_iDomainType; } //this is used very often
 	int GetCivilianAttackPriority() const;
 	UnitAITypes GetDefaultUnitAIType() const;
 	int GetPrereqPillageTech() const;
 	int GetPrereqAndTech() const;
 	int GetObsoleteTech() const;
-#if defined(MOD_BALANCE_CORE)
 	int GetEra() const;
 	int GetCostScalerNumberBuilt() const;
-#endif
 	int GetPolicyType() const;
 	int GetGoodyHutUpgradeUnitClass() const;
 	int GetGroupSize() const;			// the initial number of individuals in the unit group
@@ -146,17 +127,13 @@ public:
 	bool IsPillage() const;
 	bool IsFound() const;
 	bool IsFoundAbroad() const;
-#if defined(MOD_BALANCE_CORE_SETTLER_ADVANCED)
 	bool IsFoundMid() const;
 	bool IsFoundLate() const;
 	int GetNumColonyFound() const;
 	bool IsCityAttackSupport() const;
-#endif
-#if defined(MOD_BALANCE_CORE)
 	int IsGPExtra() const;
 	int GetGoodyModifier() const;
 	int GetSupplyCapBoost() const;
-#endif
 	int GetCultureBombRadius() const;
 	int GetNumberOfCultureBombs() const;
 	int GetGoldenAgeTurns() const;
@@ -195,7 +172,6 @@ public:
 	int GetNumberStackingUnits() const;
 #endif
 
-#if defined(MOD_BALANCE_CORE)
 	EraTypes GetGreatPersonEra(int i) const;
 	int GetResourceType() const;
 	bool IsPuppetPurchaseOverride() const;
@@ -209,12 +185,13 @@ public:
 	bool IsCultureFromExperienceDisbandUpgrade() const;
 	bool IsUnitEraUpgrade() const;
 	bool IsWarOnly() const;
-	bool IsWLTKDFromBirth() const;
-	bool IsGoldenAgeFromBirth() const;
+    bool IsCopyYieldsFromExpendTile() const;
+    int GetTileXPOnExpend() const;
+    bool IsWLTKDFromBirth() const;
+    bool IsGoldenAgeFromBirth() const;
 	bool IsCultureBoost() const;
 	bool IsExtraAttackHealthOnKill() const;
 	bool IsHighSeaRaider() const;
-#endif
 	// Accessor Functions (Arrays)
 	int GetPrereqAndTechs(int i) const;
 	int GetResourceQuantityRequirement(int i) const;
@@ -230,19 +207,15 @@ public:
 	bool GetUnitAIType(int i) const;
 	bool GetNotUnitAIType(int i) const;
 	bool GetBuilds(int i) const;
-	bool GetGreatPeoples(int i) const;
-	bool GetBuildings(int i) const;
 	bool GetBuildingClassRequireds(int i) const;
 	int GetScalingFromOwnedImprovements(int i) const;
-#if defined(MOD_BALANCE_CORE)
-	bool GetBuildOnFound(int i) const;
+	const set<int>& GetBuildOnFound() const;
 	bool GetBuildingClassPurchaseRequireds(int i) const;
 	int GetEraCombatStrength(int i) const;
 	int GetUnitNewEraCombatType(int i, int j) const;
 	int* GetUnitNewEraCombatTypeChangesArray(int i);
 	int GetUnitNewEraPromotions(int i, int j) const;
 	int* GetUnitNewEraPromotionsChangesArray(int i);
-#endif
 
 	int GetResourceQuantityTotal(int i) const;
 
@@ -260,17 +233,11 @@ private:
 	int m_iProductionCost;
 	int m_iFaithCost;
 	bool m_bRequiresFaithPurchaseEnabled;
-#if defined(MOD_GLOBAL_EXCLUDE_FROM_GIFTS)
-	bool m_bNoMinorGifts;
-#endif
+	bool m_bNoMinorCivUU;
 	bool m_bPurchaseOnly;
 	bool m_bMoveAfterPurchase;
-#if defined(MOD_GLOBAL_MOVE_AFTER_UPGRADE)
 	bool m_bMoveAfterUpgrade;
-#endif
-#if defined(MOD_GLOBAL_CANNOT_EMBARK)
 	bool m_bCannotEmbark;
-#endif
 	int m_iHurryCostModifier;
 	int m_iMinAreaSize;
 	int m_iMoves;
@@ -291,7 +258,6 @@ private:
 	int m_iBaseWLTKDTurns;
 	int m_iBaseHurry;
 	int m_iHurryMultiplier;
-	bool m_bRushBuilding;
 	int m_iBaseGold;
 	int m_iScaleFromNumGWs;
 	int m_iScaleFromNumThemes;
@@ -299,10 +265,8 @@ private:
 	int m_iNumInfPerEra;
 	int m_iRestingPointChange;
 	int m_iProductionCostPerEra;
-#if defined(MOD_BALANCE_CORE)
 	int m_iNumFreeLux;
 	bool m_bFreeUpgrade;
-#endif
 	bool m_bSpreadReligion;
 	int m_iReligionSpreads;
 	int m_iReligiousStrength;
@@ -310,14 +274,10 @@ private:
 	bool m_bRequiresEnhancedReligion;
 	bool m_bProhibitsSpread;
 	bool m_bRemoveHeresy;
-#if defined(MOD_CIV6_WORKER)
 	int m_iBuilderStrength;
-#endif
 	bool m_bCanBuyCityState;
-#if defined(MOD_GLOBAL_SEPARATE_GREAT_ADMIRAL)
 	bool m_bCanRepairFleet;
 	bool m_bCanChangePort;
-#endif
 	int m_iCombat;
 #if defined(MOD_GLOBAL_STACKING_RULES)
 	int m_iStackCombat;
@@ -339,12 +299,8 @@ private:
 	int m_iSpecialUnitType;
 	int m_iUnitCaptureClassType;
 	int m_iUnitCombatType;
-#if defined(MOD_GLOBAL_PROMOTION_CLASSES)
 	int m_iUnitPromotionType;
-#endif
-#if defined(MOD_EVENTS_CAN_MOVE_INTO)
 	bool m_bSendCanMoveIntoEvent;
-#endif
 	int m_iDomainType;
 	int m_iCivilianAttackPriority;
 	int m_iDefaultUnitAIType;
@@ -369,7 +325,6 @@ private:
 	bool m_bPillage;
 	bool m_bFound;
 	bool m_bFoundAbroad;
-#if defined(MOD_BALANCE_CORE)
 	bool m_bFoundMid;
 	bool m_bFoundLate;
 	int m_iFoundColony;
@@ -377,8 +332,6 @@ private:
 	int m_iGPExtra;
 	int m_iGoodyModifier;
 	int m_iSupplyCapBoost;
-#endif
-#if defined(MOD_BALANCE_CORE)
 	int m_iResourceType;
 	int m_iCostScalerNumBuilt;
 	bool m_bPuppetPurchaseOverride;
@@ -394,12 +347,13 @@ private:
 	bool m_bIsConvertUnit;
 	bool m_bUnitEraUpgrade;
 	bool m_bWarOnly;
+	bool m_bCopyYieldsFromExpendTile;
+	int m_iTileXPOnExpend;
 	bool m_bWLTKD;
 	bool m_bGoldenAge;
 	bool m_bCultureBoost;
 	bool m_bExtraAttackHealthOnKill;
 	bool m_bHighSeaRaider;
-#endif
 	int m_iCultureBombRadius;
 	int m_iNumberOfCultureBombs;
 	int m_iGoldenAgeTurns;
@@ -450,17 +404,13 @@ private:
 	bool* m_pbUnitAIType;
 	bool* m_pbNotUnitAIType;
 	bool* m_pbBuilds;
-	bool* m_pbGreatPeoples;
-	bool* m_pbBuildings;
 	bool* m_pbBuildingClassRequireds;
-#if defined(MOD_BALANCE_CORE)
 	int* m_piScalingFromOwnedImprovements;
-	bool* m_pbBuildOnFound;
+	set<int> m_siBuildOnFound;
 	bool* m_pbBuildingClassPurchaseRequireds;
 	int* m_piEraCombatStrength;
 	int** m_ppiEraUnitCombatType;
 	int** m_ppiEraUnitPromotions;
-#endif
 
 	std::map<int, int> m_piResourceQuantityTotals;
 
@@ -471,9 +421,7 @@ private:
 	CvString* m_paszMiddleArtDefineTags;
 	CvString* m_paszUnitNames;
 	GreatWorkType* m_paeGreatWorks;
-#if defined(MOD_BALANCE_CORE)
 	EraTypes* m_paeGreatPersonEra;
-#endif
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

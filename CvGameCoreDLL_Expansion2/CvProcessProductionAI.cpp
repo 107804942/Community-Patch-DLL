@@ -8,14 +8,12 @@
 #include "CvGameCoreDLLPCH.h"
 #include "CvProcessProductionAI.h"
 #include "CvInfosSerializationHelper.h"
-#if defined(MOD_BALANCE_CORE)
 #include "CvDiplomacyAI.h"
 #include "CvMilitaryAI.h"
 #include "CvEconomicAI.h"
 #include "CvVotingClasses.h"
 #include "CvEconomicAI.h"
 #include "CvWonderProductionAI.h"
-#endif
 
 // include this after all other headers!
 #include "LintFree.h"
@@ -101,7 +99,6 @@ int CvProcessProductionAI::GetWeight(ProcessTypes eProject)
 {
 	return m_ProcessAIWeights.GetWeight(eProject);
 }
-#if defined(MOD_BALANCE_CORE)
 int CvProcessProductionAI::CheckProcessBuildSanity(ProcessTypes eProcess, int iTempWeight)
 {
 	CvProcessInfo* pProcess = GC.getProcessInfo(eProcess);
@@ -352,7 +349,7 @@ int CvProcessProductionAI::CheckProcessBuildSanity(ProcessTypes eProcess, int iT
 				for (uint i = 0; i < veRewards.size(); i++)
 				{
 					CvLeagueProjectRewardEntry* pRewardInfo = GC.getLeagueProjectRewardInfo(veRewards[i]);
-					ASSERT_DEBUG(pRewardInfo);
+					ASSERT(pRewardInfo);
 					if (!pRewardInfo) continue;
 
 					// Free Building in Capital
@@ -501,7 +498,6 @@ int CvProcessProductionAI::CheckProcessBuildSanity(ProcessTypes eProcess, int iT
 
 	return max(1,iTempWeight);
 }
-#endif
 
 /// Log all potential builds
 void CvProcessProductionAI::LogPossibleBuilds()
@@ -516,7 +512,7 @@ void CvProcessProductionAI::LogPossibleBuilds()
 		CvString strDesc;
 		CvString strLogName;
 
-		ASSERT_DEBUG(m_pCity);
+		ASSERT(m_pCity);
 		if(!m_pCity) return;
 
 		// Find the name of this civ and city
@@ -526,7 +522,7 @@ void CvProcessProductionAI::LogPossibleBuilds()
 		// Open the log file
 		FILogFile* pLog = NULL;
 		pLog = LOGFILEMGR.GetLog(m_pCity->GetCityStrategyAI()->GetLogFileName(playerName, cityName), FILogFile::kDontTimeStamp);
-		ASSERT_DEBUG(pLog);
+		ASSERT(pLog);
 		if(!pLog) return;
 
 		// Get the leading info for this line

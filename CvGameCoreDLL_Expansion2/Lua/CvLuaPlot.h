@@ -71,9 +71,7 @@ protected:
 	static int lShareAdjacentArea(lua_State* L);
 	static int lIsAdjacentToLand(lua_State* L);
 	static int lIsAdjacentToShallowWater(lua_State* L);
-#if defined(MOD_PROMOTIONS_CROSS_ICE)
 	LUAAPIEXTN(IsAdjacentToIce, bool);
-#endif
 	static int lIsCoastalLand(lua_State* L);
 
 	static int lIsWithinTeamCityRadius(lua_State* L);
@@ -137,9 +135,7 @@ protected:
 
 	static int lIsCity(lua_State* L);
 	static int lIsFriendlyCity(lua_State* L);
-#if defined(MOD_GLOBAL_PASSABLE_FORTS)
 	LUAAPIEXTN(isFriendlyCityOrPassableImprovement, bool, pUnit, bCheckImprovement);
-#endif
 	static int lIsEnemyCity(lua_State* L);
 	static int lIsBeingWorked(lua_State* L);
 
@@ -174,6 +170,7 @@ protected:
 	static int lGetArea(lua_State* L);
 	static int lSetArea(lua_State* L);
 	static int lGetLandmass(lua_State* L);
+	static int lGetContinent(lua_State* L);
 	static int lGetFeatureVariety(lua_State* L);
 
 	static int lGetOwnershipDuration(lua_State* L);
@@ -318,6 +315,9 @@ protected:
 	static int lGetArchaeologyArtifactPlayer2(lua_State* L);
 	static int lGetArchaeologyArtifactWork(lua_State* L);
 	static int lHasWrittenArtifact(lua_State* L);
+
+	static int lIsEligibleForNormalDigSite(lua_State* L);
+	static int lIsEligibleForHiddenDigSite(lua_State* L);
 
 	static int lGetCityPurchaseID(lua_State* L);
 	static int lSetCityPurchaseID(lua_State* L);

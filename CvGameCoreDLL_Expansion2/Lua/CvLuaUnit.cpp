@@ -15,6 +15,7 @@
 #include "CvLuaPlot.h"
 #include "CvLuaUnit.h"
 #include "../CvMinorCivAI.h"
+#include "../CvPlayerAI.h"
 #include "../CvUnitCombat.h"
 
 #pragma warning(disable:4800 ) //forcing value to bool 'true' or 'false'
@@ -60,6 +61,8 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(JumpToNearestValidPlot);
 
 	Method(GetCombatDamage);
+	Method(GetMeleeCombatDamage);
+	Method(GetMeleeCombatDamageCity);
 	Method(GetFireSupportUnit);
 
 	Method(CanAutomate);
@@ -138,9 +141,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(CanTrade);
 	Method(CanBuyCityState);
 	Method(CanRepairFleet);
-#if defined(MOD_GLOBAL_SEPARATE_GREAT_ADMIRAL)
 	Method(CanChangePort);
-#endif
 	Method(CanBuildSpaceship);
 
 	Method(CanGoldenAge);
@@ -161,9 +162,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(UpgradePrice);
 	Method(CanUpgradeRightNow);
 	Method(CanUpgradeTo);
-#if defined(MOD_GLOBAL_CS_UPGRADES)
 	Method(CanUpgradeInTerritory);
-#endif
 	Method(GetNumResourceNeededToUpgrade);
 	Method(GetNumResourceTotalNeededToUpgrade);
 
@@ -172,9 +171,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetSpecialUnitType);
 	Method(GetCaptureUnitType);
 	Method(GetUnitCombatType);
-#if defined(MOD_GLOBAL_PROMOTION_CLASSES)
 	Method(GetUnitPromotionType);
-#endif
 	Method(GetUnitAIType);
 	Method(SetUnitAIType);
 	Method(GetDomainType);
@@ -208,6 +205,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(RemoveFromSquad);
 	Method(DoSquadMovement);
 	Method(SetSquadEndMovementType);
+	Method(GetSquadMovementPreview);
 
 	Method(Range);
 	Method(NukeDamageLevel);
@@ -219,9 +217,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetImprovementBuildType);
 	Method(GetRouteBuildType);
 
-#if defined(MOD_CIV6_WORKER)
 	Method(GetBuilderStrength);
-#endif
 
 	Method(IsNoBadGoodies);
 	Method(IsOnlyDefensive);
@@ -234,11 +230,9 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(IsWork);
 	Method(IsGoldenAge);
 	Method(CanCoexistWithEnemyUnit);
-#if defined(MOD_BALANCE_CORE)
 	Method(IsContractUnit);
 	Method(IsSpecificContractUnit);
 	Method(GetContractUnit);
-#endif
 	Method(IsNoMaintenance);
 	Method(SetNoMaintenance);
 
@@ -319,23 +313,13 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetMovementRules);
 	Method(GetZOCStatus);
 	Method(GetWithdrawChance);
-#if defined(MOD_PROMOTIONS_IMPROVEMENT_BONUS)
 	Method(GetNearbyImprovementCombatBonus);
 	Method(GetNearbyImprovementBonusRange);
 	Method(GetCombatBonusImprovement);
-#endif
-#if defined(MOD_PROMOTIONS_CROSS_MOUNTAINS)
 	Method(CanCrossMountains);
-#endif
-#if defined(MOD_PROMOTIONS_CROSS_OCEANS)
 	Method(CanCrossOceans);
-#endif
-#if defined(MOD_PROMOTIONS_CROSS_ICE)
 	Method(CanCrossIce);
-#endif
-#if defined(MOD_PROMOTIONS_GG_FROM_BARBARIANS)
 	Method(IsGGFromBarbarians);
-#endif
 	Method(IsNeverInvisible);
 	Method(IsInvisible);
 	Method(IsNukeImmune);
@@ -383,7 +367,6 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(UnitClassAttackModifier);
 	Method(UnitClassDefenseModifier);
 	Method(UnitCombatModifier);
-#if defined(MOD_BALANCE_CORE)
 	Method(PerAdjacentUnitCombatModifier);
 	Method(PerAdjacentUnitCombatAttackMod);
 	Method(PerAdjacentUnitCombatDefenseMod);
@@ -392,7 +375,6 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetMultiAttackBonus);
 	Method(GetMultiAttackBonusCity);
 	Method(BarbarianCombatBonus);
-#endif
 	Method(DomainModifier);
 	Method(DomainAttackPercent);
 	Method(DomainDefensePercent);
@@ -400,8 +382,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetUnhappinessCombatPenalty);
 	Method(AirSweepCombatMod);
 	Method(GetEmbarkDefensiveModifier);
-	Method(CapitalDefenseModifier);
-	Method(CapitalDefenseFalloff);
+	Method(GetCombatModifierFromCapitalDistance);
 
 	Method(SpecialCargo);
 	Method(DomainCargo);
@@ -467,9 +448,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetGarrisonedCity);
 
 	Method(GetExtraVisibilityRange);
-#if defined(MOD_PROMOTIONS_VARIABLE_RECON)
 	Method(GetExtraReconRange);
-#endif
 	Method(GetExtraMoves);
 	Method(GetExtraMoveDiscount);
 	Method(GetExtraRange);
@@ -539,13 +518,11 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetAuraRange);
 	Method(GetAuraEffect);
 	Method(IsNearSapper);
-#if defined(MOD_BALANCE_CORE)
 	Method(IsHalfNearSapper);
 	Method(GetNearbyUnitClassModifierFromUnitClass);
 	Method(GetSapperAreaEffectBonus);
 	Method(GetGiveCombatModToUnit);
 	Method(GetNearbyCityBonusCombatMod);
-#endif
 	Method(GetNearbyImprovementModifier);
 	Method(IsFriendlyUnitAdjacent);
 	Method(IsNoFriendlyUnitAdjacent);
@@ -565,10 +542,8 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetCityName);
 	Method(IsTerrainDoubleMove);
 	Method(IsFeatureDoubleMove);
-#if defined(MOD_PROMOTIONS_HALF_MOVE)
 	Method(IsTerrainHalfMove);
 	Method(IsFeatureHalfMove);
-#endif
 
 	Method(GetScriptData);
 	Method(SetScriptData);
@@ -625,25 +600,20 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(ExecuteSpecialExploreMove);
 
 	Method(SetDeployFromOperationTurn);
-#if defined(MOD_BALANCE_CORE)
 	Method(IsHigherPopThan);
 	Method(GetResistancePower);
 	Method(GetAllianceCSStrength);
-#endif
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
+	Method(GetCombatModFromUnitLevel);
 	Method(GetMonopolyAttackBonus);
 	Method(GetMonopolyDefenseBonus);
-#endif
 	Method(IsHigherTechThan);
 	Method(IsLargerCivThan);
 
 	Method(IsRangedSupportFire);
 
-#if defined(MOD_BALANCE_CORE_MILITARY)
 	Method(GetAIOperationInfo);
 	Method(GetMissionInfo);
 	Method(GetDanger);
-#endif
 
 	Method(AddMessage);
 	Method(IsCivilization);
@@ -1197,35 +1167,63 @@ int CvLuaUnit::lJumpToNearestValidPlot(lua_State* L)
 }
 //------------------------------------------------------------------------------
 // int getCombatDamage(int iStrength, int iOpponentStrength, int iCurrentDamage, bool bIncludeRand = true, bool bAttackerIsCity = false, bool bDefenderIsCity = false);
+// LEGACY FUNCTION, use GetMeleeCombatDamage and GetMeleeCombatDamageCity instead!
 int CvLuaUnit::lGetCombatDamage(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 	const int iStrength = lua_tointeger(L, 2);
 	const int iOpponentStrength = lua_tointeger(L, 3);
-	//damage is factored into the strength values now
-	//const int iCurrentDamage = lua_tointeger(L, 4); 
+	const int iCurrentDamage = lua_tointeger(L, 4);
 	const bool bIncludeRand = lua_toboolean(L, 5);
 	const bool bAttackerIsCity = lua_toboolean(L, 6);
 	const bool bDefenderIsCity = lua_toboolean(L, 7);
 
-	int iResult = pkUnit->getCombatDamage(iStrength, iOpponentStrength, bIncludeRand, bAttackerIsCity, bDefenderIsCity);
+	const int iResult = 0;// pkUnit->getCombatDamage(iStrength, iOpponentStrength, iCurrentDamage, bIncludeRand, bAttackerIsCity, bDefenderIsCity);
+	lua_pushinteger(L, iResult);
 
-#if defined(MOD_BALANCE_CORE)
-	//for visual feedback, take care that we show the precise value
-	CvCity* pkCity = CvLuaCity::GetInstance(L, 8, false);
-	if (pkCity && pkCity->HasGarrison())
-	{
-		CvUnit* pGarrison = pkCity->GetGarrisonedUnit();
-		if (pGarrison)
-		{
-			int iGarrisonShare = (iResult*2*pGarrison->GetMaxHitPoints()) / (pkCity->GetMaxHitPoints()+2*pGarrison->GetMaxHitPoints());
-			iResult -= iGarrisonShare;
-		}
-	}
-#endif
+	return 1;
+}
+//------------------------------------------------------------------------------
+// int getMeleeCombatDamage(int iStrength, int iOpponentStrength, bool bIncludeRand = true, CvUnit* pkOtherUnit);
+int CvLuaUnit::lGetMeleeCombatDamage(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const int iStrength = lua_tointeger(L, 2);
+	const int iOpponentStrength = lua_tointeger(L, 3);
+	const bool bIncludeRand = lua_toboolean(L, 4);
+	CvUnit* pkOtherUnit= CvLuaUnit::GetInstance(L, 5);
+	const int iExtraDefenderDamage = luaL_optint(L, 6, 0);
+
+	int iResult = 0;
+	int iAttackerDamage = 0;
+
+	iResult = pkUnit->getMeleeCombatDamage(iStrength, iOpponentStrength, iAttackerDamage, bIncludeRand, pkOtherUnit, iExtraDefenderDamage);
 
 	lua_pushinteger(L, iResult);
-	return 1;
+	lua_pushinteger(L, iAttackerDamage);
+
+	return 2;
+}
+//------------------------------------------------------------------------------
+// int getMeleeCombatDamageCity(int iStrength, CvCity* pCity, bool bIncludeRand = true);
+int CvLuaUnit::lGetMeleeCombatDamageCity(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const int iStrength = lua_tointeger(L, 2);
+	CvCity* pCity = CvLuaCity::GetInstance(L, 3);
+	const bool bIncludeRand = lua_toboolean(L, 4);
+
+	int iResult = 0;
+	int iAttackerDamage = 0;
+
+	const CvUnit* pGarrison = pCity->GetGarrisonedUnit();
+	int iGarrisonDamage = 0;
+	iResult = pkUnit->getMeleeCombatDamageCity(iStrength, pCity, iAttackerDamage, (pGarrison ? pGarrison->GetMaxHitPoints() : 0), iGarrisonDamage, bIncludeRand);
+
+	lua_pushinteger(L, iResult);
+	lua_pushinteger(L, iAttackerDamage);
+
+	return 2;
 }
 //------------------------------------------------------------------------------
 //CvUnit* getFireSupportUnit(PlayerTypes eDefender, int iX, int iY);
@@ -1994,20 +1992,13 @@ int CvLuaUnit::lCanDiscover(lua_State* L)
 //int getDiscoverAmount();
 int CvLuaUnit::lGetDiscoverAmount(lua_State* L)
 {
-	CvUnit* pkUnit = GetInstance(L);
-	const int iResult = pkUnit->GetScienceBlastStrength();
-	lua_pushinteger(L, iResult);
-	return 1;
+	return BasicLuaMethod(L, &CvUnit::GetScienceBlastStrength);
 }
 //------------------------------------------------------------------------------
 //int GetHurryProduction();
 int CvLuaUnit::lGetHurryProduction(lua_State* L)
 {
-	CvUnit* pkUnit = GetInstance(L);
-
-	const int iResult = pkUnit->GetHurryStrength();
-	lua_pushinteger(L, iResult);
-	return 1;
+	return BasicLuaMethod(L, &CvUnit::GetHurryStrength);
 }
 //------------------------------------------------------------------------------
 //int GetTradeGold();
@@ -2117,85 +2108,36 @@ int CvLuaUnit::lCanGoldenAge(lua_State* L)
 //int GetGoldenAgeTurns();
 int CvLuaUnit::lGetGoldenAgeTurns(lua_State* L)
 {
-	CvUnit* pkUnit = GetInstance(L);
-	int iResult = 0;
-	if (pkUnit->GetGAPBlastStrength() > 0)
-	{
-		iResult = pkUnit->GetGAPBlastStrength();
-	}
-	else
-		iResult = pkUnit->getGoldenAgeTurns();
-
-	lua_pushinteger(L, iResult);
-	return 1;
+	return BasicLuaMethod(L, &CvUnit::getGoldenAgeTurns);
 }
 
-//int GetGoldenAgeTurns();
+//int GetGAPAmount();
 int CvLuaUnit::lGetGAPAmount(lua_State* L)
 {
-	CvUnit* pkUnit = GetInstance(L);
-	const int iResult = pkUnit->GetGAPBlastStrength();
-
-	lua_pushinteger(L, iResult);
-	return 1;
+	return BasicLuaMethod(L, &CvUnit::GetGAPBlastStrength);
 }
 //------------------------------------------------------------------------------
 //int GetGivePoliciesCulture()
 int CvLuaUnit::lGetGivePoliciesCulture(lua_State* L)
 {
-	CvUnit* pkUnit = GetInstance(L);
-#if defined(MOD_BALANCE_CORE)
-	const int iResult = pkUnit->GetCultureBlastStrength();
-#else
-	const int iResult = pkUnit->getGivePoliciesCulture();
-#endif
-	lua_pushinteger(L, iResult);
-	return 1;
+	return BasicLuaMethod(L, &CvUnit::GetCultureBlastStrength);
 }
 //------------------------------------------------------------------------------
 //int GetBlastTourism()
 int CvLuaUnit::lGetBlastTourism(lua_State* L)
 {
-	CvUnit* pkUnit = GetInstance(L);
-	int iResult = 0;
-	if (pkUnit)
+	CvUnit* pUnit = GetInstance(L);
+	int iResult = pUnit->GetTourismBlastStrength();
+
+	if (MOD_BALANCE_NEW_GREAT_PERSON_ATTRIBUTES && iResult > 0)
 	{
-		iResult = pkUnit->getBlastTourism();
-
-#if defined(MOD_BALANCE_CORE)
-		if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES && pkUnit && pkUnit->getBlastTourism() > 0)
+		CvPlot* pPlot = pUnit->plot();
+		if (pPlot && pUnit->canBlastTourism(pPlot))
 		{
-			CvPlot* pPlot = pkUnit->plot();
-			if (pPlot && pkUnit->canBlastTourism(pPlot))
-			{
-				CvPlayer& kUnitOwner = GET_PLAYER(pkUnit->getOwner());
-				PlayerTypes eOtherPlayer = pPlot->getOwner();
-				
-
-				// below logic based on CvPlayerCulture::ChangeInfluenceOn()
-				if (eOtherPlayer != NO_PLAYER)
-				{
-					// gamespeed modifier
-					iResult = iResult * GC.getGame().getGameSpeedInfo().getCulturePercent() / 100;
-
-					// player to player modifier (eg religion, open borders, ideology)
-					int iModifier = kUnitOwner.GetCulture()->GetTourismModifierWith(eOtherPlayer);
-					if (iModifier != 0)
-					{
-						iResult = iResult * (100 + iModifier) / 100;
-					}
-
-					// IsNoOpenTrade trait modifier (half tourism if trait owner does not send a trade route to the unit owner)
-					CvPlayer& kOtherPlayer = GET_PLAYER(eOtherPlayer);
-					if (eOtherPlayer != pkUnit->getOwner() && kOtherPlayer.isMajorCiv() && kOtherPlayer.GetPlayerTraits()->IsNoOpenTrade())
-					{
-						if (!GC.getGame().GetGameTrade()->IsPlayerConnectedToPlayer(eOtherPlayer, pkUnit->getOwner(), true))
-							iResult /= 2;
-					}
-				}
-			}
+			PlayerTypes eOtherPlayer = pPlot->getOwner();
+			int iModifier = GET_PLAYER(pUnit->getOwner()).GetCulture()->GetTourismModifierWith(eOtherPlayer);
+			iResult = iResult * (100 + iModifier) / 100;
 		}
-#endif
 	}
 	
 	lua_pushinteger(L, iResult);
@@ -2325,18 +2267,16 @@ int CvLuaUnit::lCanUpgradeTo(lua_State* L)
 	lua_pushboolean(L, bResult);
 	return 1;
 }
-#if defined(MOD_GLOBAL_CS_UPGRADES)
 //------------------------------------------------------------------------------
 int CvLuaUnit::lCanUpgradeInTerritory(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
-	const bool bTestVisible = luaL_optint(L, 2, 0);
+	const bool bTestVisible = luaL_optbool(L, 2, false);
 	const bool bResult = pkUnit->CanUpgradeInTerritory(bTestVisible);
 
 	lua_pushboolean(L, bResult);
 	return 1;
 }
-#endif
 //------------------------------------------------------------------------------
 int CvLuaUnit::lGetNumResourceNeededToUpgrade(lua_State* L)
 {
@@ -2437,7 +2377,6 @@ int CvLuaUnit::lGetUnitCombatType(lua_State* L)
 	lua_pushinteger(L, eResult);
 	return 1;
 }
-#if defined(MOD_GLOBAL_PROMOTION_CLASSES)
 //------------------------------------------------------------------------------
 //int /*UnitCombatTypes*/ getUnitPromotionType();
 int CvLuaUnit::lGetUnitPromotionType(lua_State* L)
@@ -2448,7 +2387,6 @@ int CvLuaUnit::lGetUnitPromotionType(lua_State* L)
 	lua_pushinteger(L, eResult);
 	return 1;
 }
-#endif
 //------------------------------------------------------------------------------
 //int /*UnitAITypes*/ getUnitAIType();
 int CvLuaUnit::lGetUnitAIType(lua_State* L)
@@ -2697,13 +2635,14 @@ int CvLuaUnit::lRemoveFromSquad(lua_State* L)
 	return 0;
 }
 //------------------------------------------------------------------------------
-// void DoSquadMovement(CvPlot* pDestPlot)
+// void DoSquadMovement(CvPlot* pDestPlot, bool escort)
 int CvLuaUnit::lDoSquadMovement(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 	CvPlot* pkDestPlot = CvLuaPlot::GetInstance(L, 2);
+	const int bEscort = lua_toboolean(L, 3);
 
-	pkUnit->DoSquadMovement(pkDestPlot);
+	pkUnit->DoSquadMovement(pkDestPlot, bEscort);
 	return 0;
 }
 //------------------------------------------------------------------------------
@@ -2715,6 +2654,30 @@ int CvLuaUnit::lSetSquadEndMovementType(lua_State* L)
 
 	pkUnit->SetSquadEndMovementType(iNewValue);
 	return 0;
+}
+//------------------------------------------------------------------------------
+// GetSquadMovementPreview(CvPlot* pDestPlot)
+int CvLuaUnit::lGetSquadMovementPreview(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+    CvPlot* pkDestPlot = CvLuaPlot::GetInstance(L, 2);
+
+    std::vector<CvPlot*> pPlotList;
+    pkUnit->GetSquadMovementPreview(pPlotList, pkDestPlot);
+
+    int iReturnValues = 0;
+
+	for (std::vector<CvPlot*>::iterator it = pPlotList.begin(); it != pPlotList.end(); ++it)
+	{
+		CvPlot* pkPlot = *it;
+		if (pkPlot)
+		{
+			CvLuaPlot::Push(L, pkPlot);
+			iReturnValues++;
+		}
+	}
+
+    return iReturnValues;
 }
 //------------------------------------------------------------------------------
 //int GetRange();
@@ -2799,7 +2762,7 @@ int CvLuaUnit::lGetRouteBuildType(lua_State* L)
 	lua_pushinteger(L, iRoute);
 	return 1;
 }
-#if defined(MOD_CIV6_WORKER)
+
 //------------------------------------------------------------------------------
 //int getBuilderStrength();
 int CvLuaUnit::lGetBuilderStrength(lua_State* L)
@@ -2810,7 +2773,7 @@ int CvLuaUnit::lGetBuilderStrength(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-#endif
+
 //------------------------------------------------------------------------------
 //bool isNoBadGoodies();
 int CvLuaUnit::lIsNoBadGoodies(lua_State* L)
@@ -2912,7 +2875,6 @@ int CvLuaUnit::lCanCoexistWithEnemyUnit(lua_State* L)
 	lua_pushboolean(L, bResult);
 	return 1;
 }
-#if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
 //bool IsContractUnit
 int CvLuaUnit::lIsContractUnit(lua_State* L)
@@ -2942,7 +2904,6 @@ int CvLuaUnit::lGetContractUnit(lua_State* L)
 	lua_pushinteger(L, eResult);
 	return 1;
 }
-#endif
 // bool IsNoMaintenance()
 int CvLuaUnit::lIsNoMaintenance(lua_State* L)
 {
@@ -3379,7 +3340,12 @@ int CvLuaUnit::lGetAirCombatDamage(lua_State* L)
 	CvCity* pkCity = CvLuaCity::GetInstance(L, 3);
 	const bool bIncludeRand = lua_toboolean(L, 4);
 
-	const int iResult = pkUnit->GetAirCombatDamage(pkDefender, pkCity, bIncludeRand);
+	int iGarrisonDamage = 0;
+	int iGarrisonMaxHP = 0;
+	if (pkCity->HasGarrison())
+		iGarrisonMaxHP = pkCity->GetGarrisonedUnit()->GetMaxHitPoints();
+
+	const int iResult = pkUnit->GetAirCombatDamage(pkDefender, pkCity, iGarrisonMaxHP, iGarrisonDamage, bIncludeRand);
 	lua_pushinteger(L, iResult);
 	return 1;
 }
@@ -3392,18 +3358,12 @@ int CvLuaUnit::lGetRangeCombatDamage(lua_State* L)
 	CvCity* pkCity = CvLuaCity::GetInstance(L, 3, false);
 	const bool bIncludeRand = lua_toboolean(L, 4);
 
-	int iResult = pkUnit->GetRangeCombatDamage(pkDefender, pkCity, bIncludeRand);
+	int iGarrisonMaxHP = 0;
+	if (pkCity && pkCity->GetGarrisonedUnit())
+		iGarrisonMaxHP = pkCity->GetGarrisonedUnit()->GetMaxHitPoints();
 
-	//for visual feedback, take care that we show the precise value
-	if (pkCity && pkCity->HasGarrison())
-	{
-		CvUnit* pGarrison = pkCity->GetGarrisonedUnit();
-		if (pGarrison)
-		{
-			int iGarrisonShare = (iResult*2*pGarrison->GetMaxHitPoints()) / (pkCity->GetMaxHitPoints()+2*pGarrison->GetMaxHitPoints());
-			iResult -= iGarrisonShare;
-		}
-	}
+	int iGarrisonDamage = 0;
+	int iResult = pkUnit->GetRangeCombatDamage(pkDefender, pkCity, iGarrisonMaxHP, iGarrisonDamage, bIncludeRand, 0, NULL, NULL, false, false);
 
 	lua_pushinteger(L, iResult);
 	return 1;
@@ -3783,7 +3743,6 @@ int CvLuaUnit::lGetWithdrawChance(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-#if defined(MOD_PROMOTIONS_IMPROVEMENT_BONUS)
 //------------------------------------------------------------------------------
 int CvLuaUnit::lGetNearbyImprovementCombatBonus(lua_State* L)
 {
@@ -3811,8 +3770,6 @@ int CvLuaUnit::lGetCombatBonusImprovement(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-#endif
-#if defined(MOD_PROMOTIONS_CROSS_MOUNTAINS)
 //------------------------------------------------------------------------------
 //bool canCrossMountains();
 int CvLuaUnit::lCanCrossMountains(lua_State* L)
@@ -3823,8 +3780,6 @@ int CvLuaUnit::lCanCrossMountains(lua_State* L)
 	lua_pushboolean(L, bResult);
 	return 1;
 }
-#endif
-#if defined(MOD_PROMOTIONS_CROSS_OCEANS)
 //------------------------------------------------------------------------------
 //bool canCrossOceans();
 int CvLuaUnit::lCanCrossOceans(lua_State* L)
@@ -3835,8 +3790,6 @@ int CvLuaUnit::lCanCrossOceans(lua_State* L)
 	lua_pushboolean(L, bResult);
 	return 1;
 }
-#endif
-#if defined(MOD_PROMOTIONS_CROSS_ICE)
 //------------------------------------------------------------------------------
 //bool canCrossIce();
 int CvLuaUnit::lCanCrossIce(lua_State* L)
@@ -3847,8 +3800,6 @@ int CvLuaUnit::lCanCrossIce(lua_State* L)
 	lua_pushboolean(L, bResult);
 	return 1;
 }
-#endif
-#if defined(MOD_PROMOTIONS_GG_FROM_BARBARIANS)
 //------------------------------------------------------------------------------
 //bool isGGFromBarbarians();
 int CvLuaUnit::lIsGGFromBarbarians(lua_State* L)
@@ -3859,7 +3810,6 @@ int CvLuaUnit::lIsGGFromBarbarians(lua_State* L)
 	lua_pushboolean(L, bResult);
 	return 1;
 }
-#endif
 //------------------------------------------------------------------------------
 //bool isNeverInvisible();
 int CvLuaUnit::lIsNeverInvisible(lua_State* L)
@@ -4320,7 +4270,6 @@ int CvLuaUnit::lUnitCombatModifier(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-#if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
 //int getCombatModPerAdjacentUnitCombatModifier(int /*UnitCombatTypes*/ eUnitCombat);
 int CvLuaUnit::lPerAdjacentUnitCombatModifier(lua_State* L)
@@ -4480,7 +4429,6 @@ int CvLuaUnit::lGetMultiAttackBonusCity(lua_State* L)
 	return 1;
 }
 
-#endif
 //------------------------------------------------------------------------------
 //int domainModifier(int /*DomainTypes*/ eDomain);
 int CvLuaUnit::lDomainModifier(lua_State* L)
@@ -4543,16 +4491,10 @@ int CvLuaUnit::lGetEmbarkDefensiveModifier(lua_State* L)
 	return BasicLuaMethod(L, &CvUnit::GetEmbarkDefensiveModifier);
 }
 //------------------------------------------------------------------------------
-//int CapitalDefenseModifier();
-int CvLuaUnit::lCapitalDefenseModifier(lua_State* L)
+//int GetCombatModifierFromCapitalDistance();
+int CvLuaUnit::lGetCombatModifierFromCapitalDistance(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvUnit::GetCapitalDefenseModifier);
-}
-//------------------------------------------------------------------------------
-//int CapitalDefenseFalloff();
-int CvLuaUnit::lCapitalDefenseFalloff(lua_State* L)
-{
-	return BasicLuaMethod(L, &CvUnit::GetCapitalDefenseFalloff);
+	return BasicLuaMethod(L, &CvUnit::GetCombatModifierFromCapitalDistance);
 }
 //------------------------------------------------------------------------------
 //int /*SpecialUnitTypes*/ specialCargo();
@@ -5127,11 +5069,10 @@ int CvLuaUnit::lIsHealOutsideFriendly(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
-//bool isHillsDoubleMove();
 int CvLuaUnit::lIsHillsDoubleMove(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
-	const bool bResult = pkUnit->isHillsDoubleMove();
+	const bool bResult = pkUnit->isTerrainDoubleMove(TERRAIN_HILL);
 
 	lua_pushboolean(L, bResult);
 	return 1;
@@ -5165,7 +5106,6 @@ int CvLuaUnit::lGetExtraVisibilityRange(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-#if defined(MOD_PROMOTIONS_VARIABLE_RECON)
 //------------------------------------------------------------------------------
 //int getExtraReconRange();
 int CvLuaUnit::lGetExtraReconRange(lua_State* L)
@@ -5176,7 +5116,6 @@ int CvLuaUnit::lGetExtraReconRange(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-#endif
 //------------------------------------------------------------------------------
 //int getExtraMoves();
 int CvLuaUnit::lGetExtraMoves(lua_State* L)
@@ -5770,7 +5709,6 @@ int CvLuaUnit::lIsNearSapper(lua_State* L)
 	return 1;
 }
 
-#if defined(MOD_BALANCE_CORE)
 int CvLuaUnit::lIsHalfNearSapper(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
@@ -5805,7 +5743,7 @@ int CvLuaUnit::lGetSapperAreaEffectBonus(lua_State* L)
 int CvLuaUnit::lGetGiveCombatModToUnit(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
-	if (MOD_CORE_AREA_EFFECT_PROMOTIONS)
+	if (MOD_API_AREA_EFFECT_PROMOTIONS)
 	{
 		const int bResult = pkUnit->GetGiveCombatModToUnit();
 		lua_pushinteger(L, bResult);
@@ -5832,18 +5770,13 @@ int CvLuaUnit::lGetNearbyUnitClassModifierFromUnitClass(lua_State* L)
 	lua_pushinteger(L, bResult);
 	return 1;
 }
-#endif
 //------------------------------------------------------------------------------
 //bool GetNearbyImprovementModifier();
 int CvLuaUnit::lGetNearbyImprovementModifier(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
-#if defined(MOD_BALANCE_CORE_MILITARY)
 	CvPlot* pkPlot = CvLuaPlot::GetInstance(L, 2, false);
 	const int bResult = pkUnit->GetNearbyImprovementModifier(pkPlot);
-#else
-	const int bResult = pkUnit->GetNearbyImprovementModifier();
-#endif
 	lua_pushinteger(L, bResult);
 	return 1;
 }
@@ -5987,7 +5920,7 @@ int CvLuaUnit::lIsFeatureDoubleMove(lua_State* L)
 	lua_pushboolean(L, bResult);
 	return 1;
 }
-#if defined(MOD_PROMOTIONS_HALF_MOVE)
+
 //------------------------------------------------------------------------------
 //bool isTerrainHalfMove(int /*TerrainTypes*/ eIndex);
 int CvLuaUnit::lIsTerrainHalfMove(lua_State* L)
@@ -6010,7 +5943,7 @@ int CvLuaUnit::lIsFeatureHalfMove(lua_State* L)
 	lua_pushboolean(L, bResult);
 	return 1;
 }
-#endif
+
 //------------------------------------------------------------------------------
 //string getScriptData() const;
 int CvLuaUnit::lGetScriptData(lua_State* L)
@@ -6519,7 +6452,6 @@ int CvLuaUnit::lSetDeployFromOperationTurn(lua_State* L)
 	pkUnit->SetDeployFromOperationTurn(iTurn);
 	return 0;
 }
-#if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
 //bool IsHigherPopThan(CvUnit *pOtherUnit);
 int CvLuaUnit::lIsHigherPopThan(lua_State* L)
@@ -6576,8 +6508,20 @@ int CvLuaUnit::lGetAllianceCSStrength(lua_State* L)
 
 	return 1;
 }
-#endif
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
+//int GetCombatModFromUnitLevel();
+int CvLuaUnit::lGetCombatModFromUnitLevel(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	int iStrengthMod = 0;
+	if (pkUnit->GetCombatModPerLevel() > 0)
+	{
+		iStrengthMod += pkUnit->GetCombatModPerLevel() * (pkUnit->getLevel() - 1);
+	}
+	lua_pushinteger(L, iStrengthMod);
+	
+	return 1;
+}
+
 //int GetMonopolyAttackBonus();
 int CvLuaUnit::lGetMonopolyAttackBonus(lua_State* L)
 {
@@ -6652,7 +6596,7 @@ int CvLuaUnit::lGetMonopolyDefenseBonus(lua_State* L)
 
 	return 1;
 }
-#endif
+
 //------------------------------------------------------------------------------
 //bool IsHigherTechThan(UnitTypes eOtherUnit );
 int CvLuaUnit::lIsHigherTechThan(lua_State* L)
@@ -6696,9 +6640,6 @@ int CvLuaUnit::lAddMessage(lua_State* L)
 	SHOW_UNIT_MESSAGE(pUnit, ePlayer, szMessage);
 	return 0;
 }
-
-#if defined(MOD_BALANCE_CORE_MILITARY)
-#include "../CvPlayerAI.h"
 
 //------------------------------------------------------------------------------
 int CvLuaUnit::lGetAIOperationInfo(lua_State* L)
@@ -6751,8 +6692,6 @@ int CvLuaUnit::lGetDanger(lua_State* L)
 	lua_pushinteger(L, iDanger);
 	return 1;
 }
-
-#endif
 
 LUAAPIIMPL(Unit, IsCivilization)
 LUAAPIIMPL(Unit, HasPromotion)

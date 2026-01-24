@@ -112,16 +112,16 @@ bool CvMilitaryAIStrategyXMLEntry::CacheResults(Database::Results& kResults, CvD
 /// What player flavors will be added by adopting this Strategy?
 int CvMilitaryAIStrategyXMLEntry::GetPlayerFlavorValue(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFlavorTypes(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFlavorTypes(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piPlayerFlavorValue ? m_piPlayerFlavorValue[i] : -1;
 }
 
 /// What city flavors will be added by adopting this Strategy?
 int CvMilitaryAIStrategyXMLEntry::GetCityFlavorValue(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFlavorTypes(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFlavorTypes(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piCityFlavorValue ? m_piCityFlavorValue[i] : -1;
 }
 
@@ -134,8 +134,8 @@ int CvMilitaryAIStrategyXMLEntry::GetWeightThreshold() const
 /// How do a player's Personality Flavors affect the Threshold for adopting a Strategy? (if applicable)
 int CvMilitaryAIStrategyXMLEntry::GetPersonalityFlavorThresholdMod(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFlavorTypes(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFlavorTypes(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piPersonalityFlavorThresholdMod ? m_piPersonalityFlavorThresholdMod[i] : -1;
 }
 
@@ -275,10 +275,10 @@ void CvMilitaryAI::Init(CvMilitaryAIStrategyXMLEntries* pAIStrategies, CvPlayer*
 	m_pDiplomacyAI = pDiplomacyAI;
 
 	// Initialize arrays
-	ASSERT_DEBUG(m_pabUsingStrategy==NULL, "about to leak memory, CvMilitaryAI::m_pabUsingStrategy");
+	ASSERT(m_pabUsingStrategy==NULL, "about to leak memory, CvMilitaryAI::m_pabUsingStrategy");
 	m_pabUsingStrategy = FNEW(bool[m_pAIStrategies->GetNumMilitaryAIStrategies()], c_eCiv5GameplayDLL, 0);
 
-	ASSERT_DEBUG(m_paiTurnStrategyAdopted==NULL, "about to leak memory, CvMilitaryAI::m_paiTurnStrategyAdopted");
+	ASSERT(m_paiTurnStrategyAdopted==NULL, "about to leak memory, CvMilitaryAI::m_paiTurnStrategyAdopted");
 	m_paiTurnStrategyAdopted = FNEW(int[m_pAIStrategies->GetNumMilitaryAIStrategies()], c_eCiv5GameplayDLL, 0);
 
 	m_aiTempFlavors.init();
@@ -311,9 +311,9 @@ void CvMilitaryAI::Reset()
 	m_iNumNavalUnitsInArmies = 0;
 	m_iBarbarianCampCount = 0;
 	m_iVisibleBarbarianCount = 0;
-	m_iRecDefensiveLandUnits = 0;
-	m_iRecOffensiveLandUnits = 0;
-	m_iRecOffensiveNavalUnits = 0;
+	m_iRecLandUnits = 0;
+	m_iRecNavalUnits = 0;
+	m_iRecExplorerUnits = 0;
 	m_eLandDefenseState = NO_DEFENSE_STATE;
 	m_eNavalDefenseState = NO_DEFENSE_STATE;
 	m_iNumberOfTimesOpsBuildSkippedOver = 0;
@@ -348,16 +348,40 @@ void CvMilitaryAI::Reset()
 template<typename MilitaryAI, typename Visitor>
 void CvMilitaryAI::Serialize(MilitaryAI& militaryAI, Visitor& visitor)
 {
-	ASSERT_DEBUG(militaryAI.m_pAIStrategies != NULL && militaryAI.m_pAIStrategies->GetNumMilitaryAIStrategies() > 0, "Number of AIStrategies to serialize is expected to greater than 0");
+	ASSERT(militaryAI.m_pAIStrategies != NULL && militaryAI.m_pAIStrategies->GetNumMilitaryAIStrategies() > 0, "Number of AIStrategies to serialize is expected to greater than 0");
 	visitor(militaryAI.m_iNumberOfTimesOpsBuildSkippedOver);
 	visitor(militaryAI.m_iNumberOfTimesSettlerBuildSkippedOver);
 
-	visitor(militaryAI.m_iNumAntiAirUnits);
 	visitor(militaryAI.m_iNumLandUnits);
+	visitor(militaryAI.m_iNumRangedLandUnits);
+	visitor(militaryAI.m_iNumMobileLandUnits);
+	visitor(militaryAI.m_iNumMeleeLandUnits);
 	visitor(militaryAI.m_iNumNavalUnits);
-	visitor(militaryAI.m_iRecOffensiveLandUnits);
-	visitor(militaryAI.m_iRecOffensiveNavalUnits);
+	visitor(militaryAI.m_iNumLandUnitsInArmies);
+	visitor(militaryAI.m_iNumNavalUnitsInArmies);
+	visitor(militaryAI.m_iRecNavalUnits);
+	visitor(militaryAI.m_iNumAirUnits);
+	visitor(militaryAI.m_iNumAntiAirUnits);
+	visitor(militaryAI.m_iBarbarianCampCount);
+	visitor(militaryAI.m_iVisibleBarbarianCount);
+	visitor(militaryAI.m_iRecLandUnits);
+	visitor(militaryAI.m_iRecExplorerUnits);
 	visitor(militaryAI.m_iNumFreeCarriers);
+	visitor(militaryAI.m_iNumArcherLandUnits);
+	visitor(militaryAI.m_iNumSiegeLandUnits);
+	visitor(militaryAI.m_iNumSkirmisherLandUnits);
+	visitor(militaryAI.m_iNumReconLandUnits);
+	visitor(militaryAI.m_iNumBomberAirUnits);
+	visitor(militaryAI.m_iNumFighterAirUnits);
+	visitor(militaryAI.m_iNumMeleeNavalUnits);
+	visitor(militaryAI.m_iNumRangedNavalUnits);
+	visitor(militaryAI.m_iNumSubmarineNavalUnits);
+	visitor(militaryAI.m_iNumCarrierNavalUnits);
+	visitor(militaryAI.m_iNumMissileUnits);
+	visitor(militaryAI.m_iNumActiveUniqueUnits);
+
+	visitor(militaryAI.m_eLandDefenseState);
+	visitor(militaryAI.m_eNavalDefenseState);
 	visitor(militaryAI.m_potentialAttackTargets);
 	visitor(militaryAI.m_exposedCities);
 
@@ -390,6 +414,21 @@ FDataStream& operator<<(FDataStream& stream, const CvMilitaryAI& militaryAI)
 {
 	militaryAI.Write(stream);
 	return stream;
+}
+
+FDataStream& operator<<(FDataStream& saveTo, const DefenseState& readFrom)
+{
+	int v = static_cast<int>(readFrom);
+	saveTo << v;
+	return saveTo;
+}
+
+FDataStream& operator>>(FDataStream& loadFrom, DefenseState& writeTo)
+{
+	int v = 0;
+	loadFrom >> v;
+	writeTo = static_cast<DefenseState>(v);
+	return loadFrom;
 }
 
 /// Returns the Player object the Strategies are associated with
@@ -442,10 +481,7 @@ int CvMilitaryAI::GetTurnStrategyAdopted(MilitaryAIStrategyTypes eStrategy)
 /// Sets the turn number eStrategy was most recently adopted
 void CvMilitaryAI::SetTurnStrategyAdopted(MilitaryAIStrategyTypes eStrategy, int iValue)
 {
-	if(m_paiTurnStrategyAdopted[(int) eStrategy] != iValue)
-	{
-		m_paiTurnStrategyAdopted[(int) eStrategy] = iValue;
-	}
+	m_paiTurnStrategyAdopted[(int) eStrategy] = iValue;
 }
 
 /// Process through all the military activities for a player's turn
@@ -460,10 +496,13 @@ void CvMilitaryAI::DoTurn()
 	//do this also for humans because AI relies on the data!
 	UpdateAttackTargets();
 
-	if(!m_pPlayer->isHuman())
+	if(!m_pPlayer->isHuman(ISHUMAN_AI_UNITS))
 	{
 		UpdateOperations();
-		MakeEmergencyPurchases();
+		if (!m_pPlayer->isHuman(ISHUMAN_AI_ECONOMY))
+		{
+			MakeEmergencyPurchases();
+		}
 		DisbandObsoleteUnits();
 	}
 
@@ -545,19 +584,28 @@ CvUnit* CvMilitaryAI::BuyEmergencyUnit(UnitAITypes eUnitType, CvCity* pCity)
 			//make sure we want to spend our gold on this
 			int iGoldCost = pCity->GetPurchaseCost(eType);
 			int iPriority = /*500*/ GD_INT_GET(AI_GOLD_PRIORITY_UNIT);
-			if(m_pPlayer->GetEconomicAI()->CanWithdrawMoneyForPurchase(PURCHASE_TYPE_UNIT, iGoldCost, iPriority))
-				//try with gold first
-				pUnit = pCity->PurchaseUnit(eType, YIELD_GOLD);
-
-			if (pUnit)
-				bGold = true;
-			else
+			int iTempWeight = 100;
+			iTempWeight = pCity->GetCityStrategyAI()->GetUnitProductionAI()->CheckUnitBuildSanity(eType, false, iTempWeight, true);
+			if (iTempWeight > 0)
 			{
-				//try again with Faith (only because this is any emergency)
-				pUnit = pCity->PurchaseUnit(eType, YIELD_FAITH);
+				if (m_pPlayer->GetEconomicAI()->CanWithdrawMoneyForPurchase(PURCHASE_TYPE_UNIT, iGoldCost, iPriority))
+					//try with gold first
+					pUnit = pCity->PurchaseUnit(eType, YIELD_GOLD);
+
+				if (pUnit)
+					bGold = true;
+				else
+				{
+					//try again with Faith (only because this is any emergency)
+					pUnit = pCity->PurchaseUnit(eType, YIELD_FAITH);
+				}
 			}
 		}
 	}
+
+	// AI unit promotions have already been processed, so we need to do it explicitly here
+	if (pUnit && !pUnit->isHuman(ISHUMAN_AI_UNIT_PROMOTIONS))
+		pUnit->AI_promote();
 
 	if (pUnit)
 	{
@@ -594,7 +642,7 @@ bool CvMilitaryAI::BuyEmergencyBuilding(CvCity* pCity)
 						int iResult = pCity->CreateBuilding(eBldg);
 
 						DEBUG_VARIABLE(iResult);
-						ASSERT_DEBUG(iResult != -1, "Unable to create building");
+						ASSERT(iResult != -1, "Unable to create building");
 
 						CvString szMsg;
 						szMsg.Format("Emergency Building Purchased: %s, ", pkBuildingInfo->GetDescription());
@@ -1181,7 +1229,7 @@ int CvMilitaryAI::ScoreAttackTarget(const CvAttackTarget& target)
 		}
 	}
 
-	if (MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
+	if (MOD_BALANCE_RESOURCE_MONOPOLIES)
 	{
 		for(int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 		{
@@ -1544,11 +1592,11 @@ void CvMilitaryAI::LogDeficitScrapUnit(CvUnit* pUnit, bool bGifted)
 
 		if(pUnit->getDomainType() == DOMAIN_LAND)
 		{
-			strTemp.Format("Num Land Units: %d, In Armies %d, Rec Size: %d, ", m_iNumLandUnits, m_iNumLandUnitsInArmies, m_iRecOffensiveLandUnits + m_iRecDefensiveLandUnits);
+			strTemp.Format("Num Land Units: %d, In Armies %d, Rec Size: %d, ", m_iNumLandUnits, m_iNumLandUnitsInArmies, m_iRecLandUnits + m_iRecExplorerUnits);
 		}
 		else
 		{
-			strTemp.Format("Num Naval Units: %d, In Armies %d, Rec Size %d, ", m_iNumNavalUnits, m_iNumNavalUnitsInArmies, m_iRecOffensiveNavalUnits);
+			strTemp.Format("Num Naval Units: %d, In Armies %d, Rec Size %d, ", m_iNumNavalUnits, m_iNumNavalUnitsInArmies, m_iRecNavalUnits);
 		}
 
 		strOutBuf += strTemp;
@@ -1573,7 +1621,7 @@ void CvMilitaryAI::UpdateBaseData()
 	m_iNumNavalUnits = 0;
 	m_iNumLandUnitsInArmies = 0;
 	m_iNumNavalUnitsInArmies = 0;
-	m_iRecOffensiveNavalUnits = 0;
+	m_iRecNavalUnits = 0;
 	m_iNumFreeCarriers = 0;
 	
 	// new counters
@@ -1674,16 +1722,15 @@ void CvMilitaryAI::UpdateBaseData()
 void CvMilitaryAI::SetRecommendedArmyNavySize()
 {
 	// how many units can we afford?
-	int iMaxPossibleUnits = max(0, m_pPlayer->GetNumUnitsSupplied() + m_pPlayer->getNumUnitsSupplyFree());
+	int iMaxPossibleUnits = m_pPlayer->GetEconomicAI()->GetSoftSupplyCap();
 
 	// offense is simple for minors
 	if (m_pPlayer->isMinorCiv())
 	{
-		m_iRecOffensiveLandUnits = 0;
-		m_iRecOffensiveNavalUnits = 0;
+		m_iRecNavalUnits = 0;
 		if (m_pPlayer->getCapitalCity() && m_pPlayer->getCapitalCity()->isCoastal())
-			m_iRecOffensiveNavalUnits = 2;
-		m_iRecDefensiveLandUnits = iMaxPossibleUnits - m_iRecOffensiveNavalUnits;
+			m_iRecNavalUnits = 2;
+		m_iRecLandUnits = iMaxPossibleUnits - m_iRecNavalUnits;
 		return;
 	}
 
@@ -1694,7 +1741,7 @@ void CvMilitaryAI::SetRecommendedArmyNavySize()
 
 	// 1 Unit per City & 1 per Settler
 	iLandDefenseWeight += (int)(m_pPlayer->getNumCities() * 10 * /*1.0f*/ GD_FLOAT_GET(AI_STRATEGY_DEFEND_MY_LANDS_UNITS_PER_CITY));
-	iLandDefenseWeight += m_pPlayer->GetNumUnitsWithUnitAI(UNITAI_SETTLE, true) * 10;
+	iLandDefenseWeight += m_pPlayer->GetNumUnitsWithUnitAI(UNITAI_SETTLE, true, true) * 10;
 
 	iNavalDefenseWeight += (int)(iNumCoastalCities * 7 * /*1.0f*/ GD_FLOAT_GET(AI_STRATEGY_DEFEND_MY_LANDS_UNITS_PER_CITY));
 
@@ -1746,35 +1793,45 @@ void CvMilitaryAI::SetRecommendedArmyNavySize()
 	int iFlavorOffense = m_pPlayer->GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_OFFENSE"));
 	int iOffenseModifier = 100 + m_pPlayer->GetDiplomacyAI()->GetBoldness() + iFlavorOffense;
 
-	iLandDefenseWeight = iLandDefenseWeight * iDefenseModifier / 100;
-	iNavalDefenseWeight = iNavalDefenseWeight * iDefenseModifier / 100;
-	iTotalOffenseWeight = iTotalOffenseWeight * iOffenseModifier / 100;
+	iLandDefenseWeight = iLandDefenseWeight * iDefenseModifier;
+	iNavalDefenseWeight = iNavalDefenseWeight * iDefenseModifier;
+	iTotalOffenseWeight = iTotalOffenseWeight * iOffenseModifier;
 
 	int iTotalWeight = iTotalOffenseWeight + iLandDefenseWeight + iNavalDefenseWeight;
 
-	iMaxPossibleUnits -= m_pPlayer->GetEconomicAI()->GetExplorersNeeded();
+	int iNumExplorers = m_pPlayer->GetNumUnitsWithUnitAI(UNITAI_EXPLORE, false, true);
+	int iNumUnitsToSupply = m_pPlayer->GetNumUnitsToSupply();
+	int iNumUnitsSupplied = m_pPlayer->GetNumUnitsSupplied();
 
-	// We don't want to max out our supply cap
-	//if (iMaxPossibleUnits * 10 > iTotalWeight)
-	//	iMaxPossibleUnits = iTotalWeight / 10;
+	// Limit explorers to 1/4 of total supply
+	int iExplorersNeeded = min(iMaxPossibleUnits / 4, m_pPlayer->GetEconomicAI()->GetExplorersNeeded());
+
+	// If we have too many units to be able to supply this many explorers, limit the number of explorers
+	if (iNumUnitsToSupply - iNumExplorers + iExplorersNeeded > iNumUnitsSupplied)
+		iExplorersNeeded = iNumExplorers + iNumUnitsSupplied - iNumUnitsToSupply;
+
+	m_iRecExplorerUnits = iExplorersNeeded;
+
+	// If we have more explorers than we need, don't build more units above the force limit anyway
+	iMaxPossibleUnits -= max(iExplorersNeeded, iNumExplorers);
 	
-	m_iRecDefensiveLandUnits = static_cast<int>((iMaxPossibleUnits * iLandDefenseWeight / static_cast<double>(iTotalWeight)) + 0.5f);
-	m_iRecOffensiveNavalUnits = static_cast<int>((iMaxPossibleUnits * iNavalDefenseWeight / static_cast<double>(iTotalWeight)) + 0.5f);
-	m_iRecOffensiveLandUnits = static_cast<int>((iMaxPossibleUnits * iTotalOffenseWeight * (100 - iNavalPercent) / static_cast<double>(iTotalWeight * 100)) + 0.5f);
-	m_iRecOffensiveNavalUnits += static_cast<int>((iMaxPossibleUnits * iTotalOffenseWeight * iNavalPercent / static_cast<double>(iTotalWeight * 100)) + 0.5f);
+	m_iRecLandUnits = static_cast<int>((iMaxPossibleUnits * (100 * iLandDefenseWeight + iTotalOffenseWeight * (100 - iNavalPercent)) / (100.0f * iTotalWeight)) + 0.5f);
+	m_iRecNavalUnits = static_cast<int>((iMaxPossibleUnits * (100 * iNavalDefenseWeight + iTotalOffenseWeight * iNavalPercent)) / (100.0f * iTotalWeight) + 0.5f);
 
-	// Adjust if sum exceeds iMaxPossibleUnits
-	int iTotalAssignedUnits = m_iRecDefensiveLandUnits + m_iRecOffensiveLandUnits + m_iRecOffensiveNavalUnits;
-	if (iTotalAssignedUnits > iMaxPossibleUnits)
+	int iNumLandUnits = m_pPlayer->GetNumUnitsWithDomain(DOMAIN_LAND, true) - iNumExplorers;
+	int iNumNavalUnits = m_pPlayer->GetNumUnitsWithDomain(DOMAIN_SEA, true);
+
+	if (iNumLandUnits > m_iRecLandUnits)
 	{
-		int iExcess = iTotalAssignedUnits - iMaxPossibleUnits;
-
-		if (m_iRecOffensiveNavalUnits >= iExcess)
-			m_iRecOffensiveNavalUnits -= iExcess;
-		else if (m_iRecOffensiveLandUnits >= iExcess)
-			m_iRecOffensiveLandUnits -= iExcess;
-		else
-			m_iRecDefensiveLandUnits -= iExcess;
+		int iDiff = iNumLandUnits - m_iRecLandUnits;
+		m_iRecLandUnits += iDiff;
+		m_iRecNavalUnits -= iDiff;
+	}
+	else if (iNumNavalUnits > m_iRecNavalUnits)
+	{
+		int iDiff = iNumNavalUnits - m_iRecNavalUnits;
+		m_iRecNavalUnits += iDiff;
+		m_iRecLandUnits -= iDiff;
 	}
 }
 
@@ -1782,15 +1839,15 @@ void CvMilitaryAI::SetRecommendedArmyNavySize()
 /// Update how we're doing on defensive units
 void CvMilitaryAI::UpdateDefenseState()
 {
-	if(m_iNumLandUnits < m_iRecDefensiveLandUnits)
+	if(m_iNumLandUnits < m_iRecLandUnits)
 	{
 		m_eLandDefenseState = DEFENSE_STATE_CRITICAL;
 	}
-	else if(m_iNumLandUnits < (m_iRecDefensiveLandUnits+m_iRecOffensiveLandUnits) * 3 / 4)
+	else if(m_iNumLandUnits < m_iRecLandUnits * 3 / 4)
 	{
 		m_eLandDefenseState = DEFENSE_STATE_NEEDED;
 	}
-	else if(m_iNumLandUnits < (m_iRecDefensiveLandUnits+m_iRecOffensiveLandUnits) * 5 / 4)
+	else if(m_iNumLandUnits < m_iRecLandUnits * 5 / 4)
 	{
 		m_eLandDefenseState = DEFENSE_STATE_NEUTRAL;
 	}
@@ -1812,15 +1869,15 @@ void CvMilitaryAI::UpdateDefenseState()
 		}
 	}
 
-	if(m_iNumNavalUnits <= (m_iRecOffensiveNavalUnits / 2))
+	if(m_iNumNavalUnits <= (m_iRecNavalUnits / 2))
 	{
 		m_eNavalDefenseState = DEFENSE_STATE_CRITICAL;
 	}
-	else if(m_iNumNavalUnits <= m_iRecOffensiveNavalUnits)
+	else if(m_iNumNavalUnits <= m_iRecNavalUnits)
 	{
 		m_eNavalDefenseState = DEFENSE_STATE_NEEDED;
 	}
-	else if(m_iNumNavalUnits <= m_iRecOffensiveNavalUnits * 5 / 4)
+	else if(m_iNumNavalUnits <= m_iRecNavalUnits * 5 / 4)
 	{
 		m_eNavalDefenseState = DEFENSE_STATE_NEUTRAL;
 	}
@@ -2325,7 +2382,7 @@ void CvMilitaryAI::DoCityAttacks(PlayerTypes ePlayer)
 {
 	//Not perfect, as some operations are mixed, but it will keep us from sending everyone to slaughter all at once.
 	int iReservesTotal = ((m_iNumLandUnits + m_iNumNavalUnits) - (m_iNumNavalUnitsInArmies + m_iNumLandUnitsInArmies));
-	if (iReservesTotal >= m_iRecDefensiveLandUnits || (m_pPlayer->GetNumOffensiveOperations(DOMAIN_LAND)+m_pPlayer->GetNumOffensiveOperations(DOMAIN_SEA)) <= 0)
+	if (iReservesTotal >= m_iRecLandUnits || (m_pPlayer->GetNumOffensiveOperations(DOMAIN_LAND)+m_pPlayer->GetNumOffensiveOperations(DOMAIN_SEA)) <= 0)
 	{
 		WarStateTypes eWarState = GET_PLAYER(ePlayer).isMajorCiv() ? m_pPlayer->GetDiplomacyAI()->GetWarState(ePlayer) : WAR_STATE_OFFENSIVE;
 		if (eWarState >= WAR_STATE_TROUBLED)
@@ -2448,7 +2505,7 @@ void CvMilitaryAI::DisbandObsoleteUnits()
 	int iUnitLoop = 0;
 	for (CvUnit* pLoopUnit = m_pPlayer->firstUnit(&iUnitLoop); pLoopUnit != NULL; pLoopUnit = m_pPlayer->nextUnit(&iUnitLoop))
 	{
-		if (pLoopUnit->IsCannotHeal() && !pLoopUnit->isDelayedDeath() && pLoopUnit->canScrap() && !pLoopUnit->HasPlague())
+		if (pLoopUnit->IsCannotHeal(/*bConsiderResourceShortage*/ false) && !pLoopUnit->isDelayedDeath() && pLoopUnit->canScrap() && !pLoopUnit->HasPlague())
 		{
 			if (pLoopUnit->GetCurrHitPoints() < 75 || (GetNumberCivsAtWarWith(m_pPlayer->isMinorCiv()) > 0 && pLoopUnit->GetCurrHitPoints() < 25))
 				pLoopUnit->scrap();
@@ -2955,7 +3012,7 @@ void CvMilitaryAI::LogMilitaryStatus()
 		strOutBuf = strBaseString + strTemp;
 
 		// Military size Info
-		strTemp.Format("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, ", m_iNumLandUnits, m_iNumLandUnitsInArmies, m_iRecOffensiveLandUnits, m_iRecDefensiveLandUnits, m_iNumNavalUnits, m_iNumNavalUnitsInArmies, m_iRecOffensiveNavalUnits, m_iNumMeleeLandUnits, m_iNumMobileLandUnits, m_iNumReconLandUnits, m_iNumArcherLandUnits, m_iNumSiegeLandUnits, m_iNumSkirmisherLandUnits, m_iNumRangedLandUnits, m_iNumAntiAirUnits, m_iNumMeleeNavalUnits, m_iNumRangedNavalUnits, m_iNumSubmarineNavalUnits, m_iNumCarrierNavalUnits, m_iNumAirUnits, m_iNumBomberAirUnits, m_iNumFighterAirUnits, m_pPlayer->getNumNukeUnits(), m_iNumMissileUnits);
+		strTemp.Format("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, ", m_iNumLandUnits, m_iNumLandUnitsInArmies, m_iRecLandUnits, m_iNumNavalUnits, m_iNumNavalUnitsInArmies, m_iRecNavalUnits, m_iNumMeleeLandUnits, m_iNumMobileLandUnits, m_iNumReconLandUnits, m_iNumArcherLandUnits, m_iNumSiegeLandUnits, m_iNumSkirmisherLandUnits, m_iNumRangedLandUnits, m_iNumAntiAirUnits, m_iNumMeleeNavalUnits, m_iNumRangedNavalUnits, m_iNumSubmarineNavalUnits, m_iNumCarrierNavalUnits, m_iNumAirUnits, m_iNumBomberAirUnits, m_iNumFighterAirUnits, m_pPlayer->getNumNukeUnits(), m_iNumMissileUnits);
 		strOutBuf += strTemp;
 
 		// Unit supply
@@ -3172,7 +3229,7 @@ void CvMilitaryAI::LogScrapUnit(CvUnit* pUnit, bool bDeficit, bool bSupply)
 		}
 		else
 		{
-			strTemp.Format("Num Naval Units: %d, In Armies %d, Rec Size: %d ", m_iNumNavalUnits, m_iNumNavalUnitsInArmies, m_iRecOffensiveNavalUnits);
+			strTemp.Format("Num Naval Units: %d, In Armies %d, Rec Size: %d ", m_iNumNavalUnits, m_iNumNavalUnitsInArmies, m_iRecNavalUnits);
 		}
 		strOutBuf += strTemp;
 		pLog->Msg(strOutBuf);
@@ -3219,7 +3276,7 @@ void CvMilitaryAI::LogGiftUnit(CvUnit* pUnit, bool bDeficit, bool bSupply)
 		}
 		else
 		{
-			strTemp.Format("Num Naval Units: %d, In Armies %d, Rec: %d ", m_iNumNavalUnits, m_iNumNavalUnitsInArmies, m_iRecOffensiveNavalUnits);
+			strTemp.Format("Num Naval Units: %d, In Armies %d, Rec: %d ", m_iNumNavalUnits, m_iNumNavalUnitsInArmies, m_iRecNavalUnits);
 		}
 		strOutBuf += strTemp;
 		pLog->Msg(strOutBuf);
@@ -3296,7 +3353,7 @@ void CvMilitaryAI::UpdateWarType()
 
 	for (CvUnit* pLoopUnit = m_pPlayer->firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = m_pPlayer->nextUnit(&iLoop))
 	{
-		if (pLoopUnit != NULL && pLoopUnit->IsCombatUnit())
+		if (pLoopUnit->IsCombatUnit())
 		{
 			if (pLoopUnit->getDomainType() == DOMAIN_SEA)
 			{
@@ -3325,14 +3382,22 @@ void CvMilitaryAI::UpdateWarType()
 
 	for (CvCity* pLoopCity = m_pPlayer->firstCity(&iLoop); pLoopCity != NULL; pLoopCity = m_pPlayer->nextCity(&iLoop))
 	{
-		if (pLoopCity != NULL)
+		for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 		{
-			for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
+			PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
+			if (eLoopPlayer != NO_PLAYER && GET_PLAYER(eLoopPlayer).isAlive() && eLoopPlayer != m_pPlayer->GetID() && !GET_PLAYER(eLoopPlayer).isMinorCiv())
 			{
-				PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
-				if (eLoopPlayer != NO_PLAYER && GET_PLAYER(eLoopPlayer).isAlive() && eLoopPlayer != m_pPlayer->GetID() && !GET_PLAYER(eLoopPlayer).isMinorCiv())
+				if (GET_TEAM(GET_PLAYER(eLoopPlayer).getTeam()).isAtWar(m_pPlayer->getTeam()) || m_pPlayer->GetDiplomacyAI()->GetCivApproach(eLoopPlayer) == CIV_APPROACH_WAR)
 				{
-					if (GET_TEAM(GET_PLAYER(eLoopPlayer).getTeam()).isAtWar(m_pPlayer->getTeam()) || m_pPlayer->GetDiplomacyAI()->GetCivApproach(eLoopPlayer) == CIV_APPROACH_WAR)
+					if (pLoopCity->isCoastal())
+					{
+						iFriendlySeaCities += 50;
+					}
+					else
+					{
+						iFriendlyLandCities += 50;
+					}
+					if (pLoopCity->IsInDanger(eLoopPlayer))
 					{
 						if (pLoopCity->isCoastal())
 						{
@@ -3341,17 +3406,6 @@ void CvMilitaryAI::UpdateWarType()
 						else
 						{
 							iFriendlyLandCities += 50;
-						}
-						if (pLoopCity->IsInDanger(eLoopPlayer))
-						{
-							if (pLoopCity->isCoastal())
-							{
-								iFriendlySeaCities += 50;
-							}
-							else
-							{
-								iFriendlyLandCities += 50;
-							}
 						}
 					}
 				}
@@ -3369,7 +3423,7 @@ void CvMilitaryAI::UpdateWarType()
 			{
 				for(CvUnit* pLoopUnit = GET_PLAYER(eLoopPlayer).firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = GET_PLAYER(eLoopPlayer).nextUnit(&iLoop))
 				{
-					if (pLoopUnit != NULL && pLoopUnit->IsCombatUnit())
+					if (pLoopUnit->IsCombatUnit())
 					{
 						if(pLoopUnit->getDomainType() == DOMAIN_SEA)
 						{
@@ -3427,27 +3481,24 @@ void CvMilitaryAI::UpdateWarType()
 				int iLoopCity = 0;
 				for(pLoopCity = GET_PLAYER(eLoopPlayer).firstCity(&iLoopCity); pLoopCity != NULL; pLoopCity = GET_PLAYER(eLoopPlayer).nextCity(&iLoopCity))
 				{
-					if(pLoopCity != NULL)
+					if (pLoopCity->IsInDanger(m_pPlayer->GetID()))
 					{
-						if (pLoopCity->IsInDanger(m_pPlayer->GetID()))
+						if (pLoopCity->isCoastal())
 						{
-							if (pLoopCity->isCoastal())
-							{
-								iFriendlySeaCities += 50;
-							}
-							else
-							{
-								iFriendlyLandCities += 50;
-							}
-						}
-						if(pLoopCity->isCoastal())
-						{
-							iEnemyWaterCities += 50;
+							iFriendlySeaCities += 50;
 						}
 						else
 						{
-							iEnemyLandCities += 50;
+							iFriendlyLandCities += 50;
 						}
+					}
+					if(pLoopCity->isCoastal())
+					{
+						iEnemyWaterCities += 50;
+					}
+					else
+					{
+						iEnemyLandCities += 50;
 					}
 				}
 			}
@@ -3535,7 +3586,7 @@ int MilitaryAIHelpers::GetWeightThresholdModifier(MilitaryAIStrategyTypes eStrat
 		FlavorTypes eFlavor = (FlavorTypes) iFlavorLoop;
 		int iPersonalityFlavor = pkFlavorManager->GetPersonalityIndividualFlavor(eFlavor);
 		CvMilitaryAIStrategyXMLEntry* pkEntry = pkAIStrategies->GetEntry(eStrategy);
-		ASSERT_DEBUG(pkEntry != NULL);
+		ASSERT(pkEntry != NULL);
 		if(pkEntry)
 		{
 			int iStrategyFlavorMod = pkEntry->GetPersonalityFlavorThresholdMod(eFlavor);
@@ -3669,7 +3720,7 @@ bool MilitaryAIHelpers::IsTestStrategy_WarMobilization(MilitaryAIStrategyTypes e
 	}
 
 	CvMilitaryAIStrategyXMLEntry* pStrategy = pPlayer->GetMilitaryAI()->GetMilitaryAIStrategies()->GetEntry(eStrategy);
-	ASSERT_DEBUG(pStrategy != NULL);
+	ASSERT(pStrategy != NULL);
 	if(pStrategy)
 	{
 		int iWeightThreshold = pStrategy->GetWeightThreshold();	// 100
@@ -3731,7 +3782,7 @@ bool MilitaryAIHelpers::IsTestStrategy_EradicateBarbarians(MilitaryAIStrategyTyp
 	}
 
 	CvMilitaryAIStrategyXMLEntry* pStrategy = pPlayer->GetMilitaryAI()->GetMilitaryAIStrategies()->GetEntry(eStrategy);
-	ASSERT_DEBUG(pStrategy != NULL);
+	ASSERT(pStrategy != NULL);
 	if(pStrategy)
 	{
 		int iStrategyWeight = iBarbarianCampCount * 75 + iVisibleBarbarianCount * 25;   // Two visible camps or 3 roving Barbarians will trigger this
@@ -3775,7 +3826,7 @@ bool MilitaryAIHelpers::IsTestStrategy_EradicateBarbariansCritical(MilitaryAIStr
 	int iStrategyWeight = 0;
 
 	CvMilitaryAIStrategyXMLEntry* pStrategy = pPlayer->GetMilitaryAI()->GetMilitaryAIStrategies()->GetEntry(eStrategy);
-	ASSERT_DEBUG(pStrategy != NULL);
+	ASSERT(pStrategy != NULL);
 	if(pStrategy)
 	{
 		iStrategyWeight = iBarbarianCampCount * 75 + iVisibleBarbarianCount * 25;

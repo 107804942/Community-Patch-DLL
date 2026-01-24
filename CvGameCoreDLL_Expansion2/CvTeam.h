@@ -79,7 +79,7 @@ public:
 	int countTotalPopulationByArea(CvArea* pArea) const;
 	int countEnemyDangerByArea(CvArea* pArea) const;
 
-	bool isHuman() const;
+	bool isHuman(IsHumanReason eIsHumanReason = OTHER_ISHUMAN_REASON) const;
 	bool isObserver() const;
 	bool isBarbarian() const;
 	bool isMinorCiv() const;
@@ -99,7 +99,6 @@ public:
 
 	int getNumMembers() const;
 
-#if defined(MOD_BALANCE_CORE)
 	bool addPlayer(PlayerTypes eID);
 	void removePlayer(PlayerTypes eID);
 	const std::vector<PlayerTypes>& getPlayers();
@@ -110,7 +109,6 @@ public:
 	int getCorporationsEnabledCount() const;
 	bool IsCorporationsEnabled() const;
 	void changeCorporationsEnabledCount(int iChange);
-#endif
 
 	int getAliveCount() const;
 	void changeAliveCount(int iChange);
@@ -177,23 +175,18 @@ public:
 	bool IsResearchAgreementTradingAllowedWithTeam(TeamTypes eTeam) const;
 	void ChangeResearchAgreementTradingAllowedCount(int iChange);
 
-#if defined(MOD_TECHS_CITY_WORKING)
 	int GetCityWorkingChange() const;
 	bool isCityWorkingChange() const;
 	void changeCityWorkingChange(int iChange);
-#endif
-	
-#if defined(MOD_TECHS_CITY_AUTOMATON_WORKERS)
+
 	int GetCityAutomatonWorkersChange() const;
 	bool isCityAutomatonWorkersChange() const;
 	void changeCityAutomatonWorkersChange(int iChange);
-#endif
 
 	int getBridgeBuildingCount() const;
 	bool isBridgeBuilding() const;
 	void changeBridgeBuildingCount(int iChange);
 
-#if defined(MOD_BALANCE_CORE_EMBARK_CITY_NO_COST)
 	int getCityLessEmbarkCost() const;
 	bool isCityLessEmbarkCost() const;
 	void changeCityLessEmbarkCost(int iChange);
@@ -201,7 +194,6 @@ public:
 	int getCityNoEmbarkCost() const;
 	bool isCityNoEmbarkCost() const;
 	void changeCityNoEmbarkCost(int iChange);
-#endif
 
 	int getWaterWorkCount() const;
 	bool isWaterWork() const;
@@ -306,10 +298,8 @@ public:
 	int getRouteChange(RouteTypes eIndex) const;
 	void changeRouteChange(RouteTypes eIndex, int iChange);
 
-#if defined(MOD_BALANCE_CORE)
 	int getTradeRouteDomainExtraRange(DomainTypes eIndex) const;
 	void changeTradeRouteDomainExtraRange(DomainTypes eIndex, int iChange);
-#endif
 
 	int getBuildTimeChange(BuildTypes eIndex) const;
 	void changeBuildTimeChange(BuildTypes eIndex, int iChange);
@@ -385,12 +375,13 @@ public:
 
 	int getVictoryPoints() const;
 	void changeVictoryPoints(int iChange);
+	
+	int GetBuildingDefenseModifier() const;
+	void ChangeBuildingDefenseModifier(int iChange);
 
 	void DoTestSmallAwards();
 	bool IsSmallAwardAchieved(SmallAwardTypes eAward) const;
 	void SetSmallAwardAchieved(SmallAwardTypes eAward, bool bValue);
-
-	void verifySpyUnitsValidPlot();
 
 	void setForceRevealedResource(ResourceTypes eResource, bool bRevealed);
 	bool isForceRevealedResource(ResourceTypes eResource) const;
@@ -474,6 +465,9 @@ public:
 
 	int GetSSProjectCount(bool bIncludeApollo = true);
 
+	bool CanBuildOceanCrossingUnit() const;
+	void SetCanBuildOceanCrossingUnit(bool bValue);
+
 	// Wrapper for giving Players on this Team a notification message
 	void AddNotification(NotificationTypes eNotificationType, const char* strMessage, const char* strSummary, int iX = -1, int iY = -1, int iGameDataIndex = -1, int iExtraGameData = -1);
 
@@ -488,14 +482,12 @@ protected:
 
 	static CvTeam* m_aTeams;
 
-#if defined(MOD_BALANCE_CORE)
 	//we care about iteration speed, so use a vector over a set
 	std::vector<PlayerTypes> m_members;
 	std::map<std::pair<TeamTypes,PlayerTypes>,bool> m_cacheCanDeclareWar;
 	bool m_bIsMinorTeam;
 	bool m_bIsObserverTeam;
 	int m_iCorporationsEnabledCount;
-#endif
 
 	int m_iAliveCount;
 	int m_iEverAliveCount;
@@ -511,17 +503,11 @@ protected:
 	int m_iOpenBordersTradingAllowedCount;
 	int m_iDefensivePactTradingAllowedCount;
 	int m_iResearchAgreementTradingAllowedCount;
-#if defined(MOD_TECHS_CITY_WORKING)
 	int m_iCityWorkingChange;
-#endif
-#if defined(MOD_TECHS_CITY_AUTOMATON_WORKERS)
 	int m_iCityAutomatonWorkersChange;
-#endif
 	int m_iBridgeBuildingCount;
-#if defined(MOD_BALANCE_CORE_EMBARK_CITY_NO_COST)
 	int m_iCityLessEmbarkCost;
 	int m_iCityNoEmbarkCost;
-#endif
 	int m_iWaterWorkCount;
 	int m_iRiverTradeCount;
 	int m_iBorderObstacleCount;
@@ -534,9 +520,12 @@ protected:
 	int m_iNumLandmarksBuilt;
 	int m_iBestPossibleRoute;
 	int m_iNumMinorCivsAttacked;
+	int m_iBuildingDefenseModifier;
 
 	bool m_bMapCentering;
 	bool m_bHasTechForWorldCongress;
+
+	bool m_bCanBuildOceanCrossingUnit;
 
 	EraTypes m_eCurrentEra;
 

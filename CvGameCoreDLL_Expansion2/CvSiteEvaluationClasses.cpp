@@ -12,10 +12,8 @@
 #include "CvCitySpecializationAI.h"
 #include "CvDiplomacyAI.h"
 #include "CvGrandStrategyAI.h"
-#if defined(MOD_BALANCE_CORE)
 #include "CvEconomicAI.h"
 #include "CvMilitaryAI.h"
-#endif
 
 // include this after all other headers!
 #include "LintFree.h"
@@ -56,7 +54,7 @@ CvCitySiteEvaluator::CvCitySiteEvaluator()
 /// Is it valid for this player to found a city here?
 bool CvCitySiteEvaluator::CanFoundCity(const CvPlot* pPlot, const CvPlayer* pPlayer, bool bIgnoreDistanceToExistingCities) const
 {
-	ASSERT_DEBUG(pPlot);
+	ASSERT(pPlot);
 	if(!pPlot)
 		return false;
 
@@ -64,7 +62,7 @@ bool CvCitySiteEvaluator::CanFoundCity(const CvPlot* pPlot, const CvPlayer* pPla
 
 	if(GC.getGame().isFinalInitialized())
 	{
-		if(GC.getGame().isOption(GAMEOPTION_ONE_CITY_CHALLENGE) && pPlayer && pPlayer->isHuman())
+		if(GC.getGame().isOption(GAMEOPTION_ONE_CITY_CHALLENGE) && pPlayer && pPlayer->isHuman(ISHUMAN_MECHANICS))
 		{
 			if(pPlayer->getNumCities() > 0)
 			{
@@ -111,7 +109,7 @@ bool CvCitySiteEvaluator::CanFoundCity(const CvPlot* pPlot, const CvPlayer* pPla
 		}
 
 		// Has the AI agreed to not settle here?
-		if (!pPlayer->isHuman() && pPlayer->isMajorCiv())
+		if (!pPlayer->isHuman(ISHUMAN_AI_DIPLOMACY) && pPlayer->isMajorCiv())
 		{
 			vector<PlayerTypes> vNoSettlePlayers = pPlayer->GetDiplomacyAI()->GetPlayersWithNoSettlePolicy();
 			for (size_t i = 0; i < vNoSettlePlayers.size(); i++)
@@ -154,7 +152,6 @@ bool CvCitySiteEvaluator::CanFoundCity(const CvPlot* pPlot, const CvPlayer* pPla
 		return false;
 	}
 
-#if defined(MOD_BALANCE_CORE)
 	if(!bIgnoreDistanceToExistingCities)
 	{
 		int iMinDist = /*3*/ GD_INT_GET(MIN_CITY_RANGE);
@@ -176,7 +173,6 @@ bool CvCitySiteEvaluator::CanFoundCity(const CvPlot* pPlot, const CvPlayer* pPla
 		if (iDistanceToExisting <= iMinDist)
 			return false;
 	}
-#endif
 
 	return true;
 }
@@ -277,7 +273,7 @@ void CvSiteEvaluatorForSettler::ComputeFlavorMultipliers(const CvPlayer* pPlayer
 /// Retrieve the relative value of this plot (including plots that would be in city radius)
 int CvSiteEvaluatorForSettler::PlotFoundValue(CvPlot* pPlot, const CvPlayer* pPlayer, const std::vector<int>& ignorePlots, bool bCoastOnly, CvString* pDebug)
 {
-	ASSERT_DEBUG(pPlot);
+	ASSERT(pPlot);
 	if(!pPlot)
 		return -1;
 
@@ -306,7 +302,7 @@ int CvSiteEvaluatorForSettler::PlotFoundValue(CvPlot* pPlot, const CvPlayer* pPl
 	TeamTypes eTeam = pPlayer ? pPlayer->getTeam() : NO_TEAM;
 
 	// To avoid a bug, AI does not settle on Antiquity Sites
-	ResourceTypes ePlotResource = pPlot->getResourceType(pPlayer->isHuman() ? eTeam : NO_TEAM);
+	ResourceTypes ePlotResource = pPlot->getResourceType(pPlayer->isHuman(ISHUMAN_AI_UNITS) ? eTeam : NO_TEAM);
 	if (ePlotResource == (ResourceTypes)GD_INT_GET(ARTIFACT_RESOURCE) ||
 		ePlotResource == (ResourceTypes)GD_INT_GET(HIDDEN_ARTIFACT_RESOURCE))
 	{
@@ -371,7 +367,7 @@ int CvSiteEvaluatorForSettler::PlotFoundValue(CvPlot* pPlot, const CvPlayer* pPl
 
 		//ignore some plots (typically enemy or close to enemy)
 		if (plotDistance(*pLoopPlot,*pPlot)>1) //but only if we can't instantly claim them
-			if (ignorePlots.size()==GC.getMap().numPlots() && ignorePlots[pLoopPlot->GetPlotIndex()] > 0)
+			if (static_cast<int>(ignorePlots.size())==GC.getMap().numPlots() && ignorePlots[pLoopPlot->GetPlotIndex()] > 0)
 				continue;
 
 		int iDistance = plotDistance(*pPlot,*pLoopPlot);
@@ -780,10 +776,8 @@ int CvSiteEvaluatorForSettler::PlotFoundValue(CvPlot* pPlot, const CvPlayer* pPl
 			}
 
 			//personality also plays a role
-			if (pPlayer->GetDiplomacyAI()->GetBoldness() > 6)
-				iModifierPercent += 30;
-			if (pPlayer->GetDiplomacyAI()->GetBoldness() < 4)
-				iModifierPercent -= 30;
+			int BoldnessModifiers[10] = {-30, -25, -20, -10, 0, 10, 20, 25, 30, 30};
+			iModifierPercent += BoldnessModifiers[pPlayer->GetDiplomacyAI()->GetBoldness() - 1];
 
 			//finally
 			int iAdjustedEffect =  (/*30*/ GD_INT_GET(BALANCE_EMPIRE_BORDERLAND_STRATEGIC_VALUE) * iModifierPercent) / 100;
@@ -920,7 +914,7 @@ int CvCitySiteEvaluator::ComputeFoodValue(CvPlot* pPlot, const CvPlayer* pPlayer
 {
 	TeamTypes eTeam = pPlayer ? pPlayer->getTeam() : NO_TEAM;
 	// From tile yield
-	int rtnValue = pPlot->calculateNatureYield(YIELD_FOOD, pPlayer ? pPlayer->GetID() : NO_PLAYER, pPlot->getFeatureType(), pPlot->getResourceType(eTeam), NULL);
+	int rtnValue = pPlot->calculateNatureYield(YIELD_FOOD, pPlayer ? pPlayer->GetID() : NO_PLAYER, pPlot->getFeatureType(), pPlot->getResourceType(eTeam), pPlot->getImprovementType(), NULL);
 
 	// assume a farm or similar on suitable terrain ... should be build sooner or later. value averages out with other improvements
 	if (((pPlot->getTerrainType()==TERRAIN_GRASS || pPlot->getTerrainType()==TERRAIN_PLAINS) && pPlot->getFeatureType() == NO_FEATURE) || pPlot->getFeatureType() == FEATURE_FLOOD_PLAINS)
@@ -950,7 +944,7 @@ int CvCitySiteEvaluator::ComputeFoodValue(CvPlot* pPlot, const CvPlayer* pPlayer
 int CvCitySiteEvaluator::ComputeProductionValue(CvPlot* pPlot, const CvPlayer* pPlayer)
 {
 	TeamTypes eTeam = pPlayer ? pPlayer->getTeam() : NO_TEAM;
-	int rtnValue = pPlot->calculateNatureYield(YIELD_PRODUCTION, pPlayer ? pPlayer->GetID() : NO_PLAYER, pPlot->getFeatureType(), pPlot->getResourceType(eTeam), NULL);
+	int rtnValue = pPlot->calculateNatureYield(YIELD_PRODUCTION, pPlayer ? pPlayer->GetID() : NO_PLAYER, pPlot->getFeatureType(), pPlot->getResourceType(eTeam), pPlot->getImprovementType(), NULL);
 
 	// assume a mine or similar in friendly climate. don't run off into the snow
 	if (pPlot->isHills() && (pPlot->getTerrainType()==TERRAIN_GRASS || pPlot->getTerrainType()==TERRAIN_PLAINS || pPlot->getTerrainType()==TERRAIN_TUNDRA) && pPlot->getFeatureType() == NO_FEATURE)
@@ -975,7 +969,7 @@ int CvCitySiteEvaluator::ComputeProductionValue(CvPlot* pPlot, const CvPlayer* p
 int CvCitySiteEvaluator::ComputeGoldValue(CvPlot* pPlot, const CvPlayer* pPlayer)
 {
 	TeamTypes eTeam = pPlayer ? pPlayer->getTeam() : NO_TEAM;
-	int rtnValue = pPlot->calculateNatureYield(YIELD_GOLD, pPlayer ? pPlayer->GetID() : NO_PLAYER, pPlot->getFeatureType(), pPlot->getResourceType(eTeam), NULL);
+	int rtnValue = pPlot->calculateNatureYield(YIELD_GOLD, pPlayer ? pPlayer->GetID() : NO_PLAYER, pPlot->getFeatureType(), pPlot->getResourceType(eTeam), pPlot->getImprovementType(), NULL);
 
 	// From resource
 	ResourceTypes eResource = pPlot->getResourceType(eTeam);
@@ -997,7 +991,7 @@ int CvCitySiteEvaluator::ComputeGoldValue(CvPlot* pPlot, const CvPlayer* pPlayer
 int CvCitySiteEvaluator::ComputeScienceValue(CvPlot* pPlot, const CvPlayer* pPlayer)
 {
 	TeamTypes eTeam = pPlayer ? pPlayer->getTeam() : NO_TEAM;
-	int rtnValue = pPlot->calculateNatureYield(YIELD_SCIENCE, pPlayer ? pPlayer->GetID() : NO_PLAYER, pPlot->getFeatureType(), pPlot->getResourceType(eTeam), NULL);
+	int rtnValue = pPlot->calculateNatureYield(YIELD_SCIENCE, pPlayer ? pPlayer->GetID() : NO_PLAYER, pPlot->getFeatureType(), pPlot->getResourceType(eTeam), pPlot->getImprovementType(), NULL);
 
 	// From resource
 	ResourceTypes eResource = pPlot->getResourceType(eTeam);
@@ -1019,7 +1013,7 @@ int CvCitySiteEvaluator::ComputeScienceValue(CvPlot* pPlot, const CvPlayer* pPla
 int CvCitySiteEvaluator::ComputeFaithValue(CvPlot* pPlot, const CvPlayer* pPlayer)
 {
 	TeamTypes eTeam = pPlayer ? pPlayer->getTeam() : NO_TEAM;
-	int rtnValue = pPlot->calculateNatureYield(YIELD_FAITH, pPlayer ? pPlayer->GetID() : NO_PLAYER, pPlot->getFeatureType(), pPlot->getResourceType(eTeam), NULL);
+	int rtnValue = pPlot->calculateNatureYield(YIELD_FAITH, pPlayer ? pPlayer->GetID() : NO_PLAYER, pPlot->getFeatureType(), pPlot->getResourceType(eTeam), pPlot->getImprovementType(), NULL);
 
 	// From resource
 	ResourceTypes eResource = pPlot->getResourceType(eTeam);
@@ -1103,8 +1097,7 @@ int CvCitySiteEvaluator::ComputeTradeableResourceValue(CvPlot* pPlot, const CvPl
 				if(pPlayer->getNumResourceTotal(eResource) == 0)
 					rtnValue *= 3;
 
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
-				if(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES && (GC.getMap().getNumResources(eResource) > 0))
+				if(MOD_BALANCE_RESOURCE_MONOPOLIES && (GC.getMap().getNumResources(eResource) > 0))
 				{
 					//Will this get us closer to a monopoly?
 					if((((pPlot->getNumResource() + pPlayer->getNumResourceTotal(eResource, false) + pPlayer->getResourceExport(eResource)) * 100) / GC.getMap().getNumResources(eResource)) >= 30)
@@ -1116,7 +1109,6 @@ int CvCitySiteEvaluator::ComputeTradeableResourceValue(CvPlot* pPlot, const CvPl
 						rtnValue *= 10;
 					}
 				}
-#endif
 			}
 		}
 	}

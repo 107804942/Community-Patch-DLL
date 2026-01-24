@@ -8,8 +8,6 @@
 // must be included after all other headers
 #include "LintFree.h"
 
-#if defined(MOD_BALANCE_CORE)
-
 CvCorporationEntry::CvCorporationEntry(void):
 	m_eHeadquartersBuildingClass(NO_BUILDINGCLASS),
 	m_eOfficeBuildingClass(NO_BUILDINGCLASS),
@@ -127,7 +125,7 @@ uint CvCorporationEntry::GetResourceMonopolyAndSize() const
 }
 int CvCorporationEntry::GetResourceMonopolyAnd(uint ui) const
 {
-	ASSERT_DEBUG(ui < m_viResourceMonopolyAnds.size(), "Index out of bounds");
+	PRECONDITION(ui < m_viResourceMonopolyAnds.size(), "Index out of bounds");
 	return m_viResourceMonopolyAnds[ui];
 }
 
@@ -138,72 +136,72 @@ uint CvCorporationEntry::GetResourceMonopolyOrSize() const
 }
 int CvCorporationEntry::GetResourceMonopolyOr(uint ui) const
 {
-	ASSERT_DEBUG(ui < m_viResourceMonopolyOrs.size(), "Index out of bounds");
+	PRECONDITION(ui < m_viResourceMonopolyOrs.size(), "Index out of bounds");
 	return m_viResourceMonopolyOrs[ui];
 }
 
 int CvCorporationEntry::GetNumFreeResource(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piNumFreeResource ? m_piNumFreeResource[i] : -1;
 }
 
 int CvCorporationEntry::GetUnitResourceProductionModifier(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piUnitResourceProductionModifier ? m_piUnitResourceProductionModifier[i] : -1;
 }
 
 /// Yield Modifier for Trade Routes to cities from an office to cities with a Franchise
 int CvCorporationEntry::GetTradeRouteMod(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piTradeRouteMod ? m_piTradeRouteMod[i] : -1;
 }
 
 int CvCorporationEntry::GetTradeRouteCityMod(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piTradeRouteCityMod ? m_piTradeRouteCityMod[i] : -1;
 }
 
 /// Change to Resource yield by type
 int CvCorporationEntry::GetResourceYieldChange(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppaiResourceYieldChange ? m_ppaiResourceYieldChange[i][j] : -1;
 }
 
 /// Array of changes to Resource yield
 int* CvCorporationEntry::GetResourceYieldChangeArray(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_ppaiResourceYieldChange[i];
 }
 
 /// Change to specialist yield by type
 int CvCorporationEntry::GetSpecialistYieldChange(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumSpecialistInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumSpecialistInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppaiSpecialistYieldChange ? m_ppaiSpecialistYieldChange[i][j] : -1;
 }
 
 /// Array of changes to specialist yield
 int* CvCorporationEntry::GetSpecialistYieldChangeArray(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumSpecialistInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumSpecialistInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_ppaiSpecialistYieldChange[i];
 }
 
@@ -220,10 +218,10 @@ CvString CvCorporationEntry::GetTradeRouteBenefitHelper() const
 /// Yield change for a specific BuildingClass by yield type
 int CvCorporationEntry::GetBuildingClassYieldChange(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiBuildingClassYieldChanges[i][j];
 }
 
@@ -716,7 +714,7 @@ void CvPlayerCorporations::ChangeNoForeignCorpsInCities(int iValue)
 {
 	int iOldValue = m_iNoForeignCorpsInCities;
 	m_iNoForeignCorpsInCities += iValue;
-	if (iOldValue <= 0 && m_iNoForeignCorpsInCities > 0)
+	if (iOldValue <= 0 && m_iNoForeignCorpsInCities > 0 && GetFoundedCorporation() != NO_CORPORATION)
 	{
 		int iLoop = 0;
 		for (CvCity* pLoopCity = m_pPlayer->firstCity(&iLoop); pLoopCity != NULL; pLoopCity = m_pPlayer->nextCity(&iLoop))
@@ -743,15 +741,15 @@ void CvPlayerCorporations::ChangeNoFranchisesInForeignCities(int iValue)
 
 int CvPlayerCorporations::GetFranchisesPerImprovement(ImprovementTypes eIndex) const
 {
-	ASSERT_DEBUG(eIndex < GC.getNumImprovementInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eIndex > -1, "Index out of bounds");
+	PRECONDITION(eIndex < GC.getNumImprovementInfos(), "Index out of bounds");
+	PRECONDITION(eIndex > -1, "Index out of bounds");
 	return m_aiFranchisesPerImprovement[eIndex];
 }
 
 void CvPlayerCorporations::ChangeFranchisesPerImprovement(ImprovementTypes eIndex, int iValue)
 {
-	ASSERT_DEBUG(eIndex < GC.getNumImprovementInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eIndex > -1, "Index out of bounds");
+	PRECONDITION(eIndex < GC.getNumImprovementInfos(), "Index out of bounds");
+	PRECONDITION(eIndex > -1, "Index out of bounds");
 	if (iValue != 0)
 	{
 		m_aiFranchisesPerImprovement[eIndex] += iValue;
@@ -801,12 +799,9 @@ void CvPlayerCorporations::RecalculateNumOffices()
 	int iLoop = 0;
 	for (pLoopCity = m_pPlayer->firstCity(&iLoop); pLoopCity != NULL; pLoopCity = m_pPlayer->nextCity(&iLoop))
 	{
-		if (pLoopCity != NULL)
+		if (pLoopCity->IsHasOffice())
 		{
-			if (pLoopCity->IsHasOffice())
-			{
-				iOffices++;
-			}
+			iOffices++;
 		}
 	}
 
@@ -840,17 +835,14 @@ void CvPlayerCorporations::RecalculateNumFranchises()
 				int iLoop = 0;
 				for (pLoopCity = GET_PLAYER(ePlayer).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER(ePlayer).nextCity(&iLoop))
 				{
-					if (pLoopCity != NULL)
+					if (pLoopCity->IsHasFranchise(eCorporation))
 					{
-						if (pLoopCity->IsHasFranchise(eCorporation))
-						{
-							iFranchises++;
+						iFranchises++;
 
-							// Free franchise above Popular?
-							if (GetCorporationFreeFranchiseAbovePopular() != 0 && GET_PLAYER(ePlayer).isMajorCiv() && m_pPlayer->GetCulture()->GetInfluenceLevel(ePlayer) >= INFLUENCE_LEVEL_POPULAR)
-							{
-								iFreeFranchises += GetCorporationFreeFranchiseAbovePopular();
-							}
+						// Free franchise above Popular?
+						if (GetCorporationFreeFranchiseAbovePopular() != 0 && GET_PLAYER(ePlayer).isMajorCiv() && m_pPlayer->GetCulture()->GetInfluenceLevel(ePlayer) >= INFLUENCE_LEVEL_POPULAR)
+						{
+							iFreeFranchises += GetCorporationFreeFranchiseAbovePopular();
 						}
 					}
 				}
@@ -1041,38 +1033,32 @@ void CvPlayerCorporations::BuildRandomFranchiseInCity()
 		int iLoop = 0;
 		for (CvCity* pLoopCity = GET_PLAYER(ePlayer).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER(ePlayer).nextCity(&iLoop))
 		{
-			if (pLoopCity != NULL)
+			if (m_pPlayer->GetTrade()->IsCityAlreadyConnectedByTrade(pLoopCity))
+				continue;
+
+			// City can not contain our franchise already
+			if (pLoopCity->IsHasFranchise(GetFoundedCorporation()))
+				continue;
+
+			int iChance = GC.getGame().randRangeExclusive(0, 101, CvSeeder::fromRaw(0x61e74940).mix(pLoopCity->plot()->GetPseudoRandomSeed())) + GC.getGame().randRangeExclusive(0, 101, CvSeeder::fromRaw(0x533dfdcd).mix(pLoopCity->plot()->GetPseudoRandomSeed()));
+			int iScore = 500 - iChance;
+
+			int iLoop2 = 0;
+			for (CvCity* pLoopCity2 = m_pPlayer->firstCity(&iLoop2); pLoopCity2 != NULL; pLoopCity2 = m_pPlayer->nextCity(&iLoop2))
 			{
-				if (m_pPlayer->GetTrade()->IsCityAlreadyConnectedByTrade(pLoopCity))
+				if (!m_pPlayer->GetTrade()->CanCreateTradeRoute(pLoopCity2, pLoopCity, DOMAIN_LAND, TRADE_CONNECTION_INTERNATIONAL, false) && !m_pPlayer->GetTrade()->CanCreateTradeRoute(pLoopCity2, pLoopCity, DOMAIN_SEA, TRADE_CONNECTION_INTERNATIONAL, false))
 					continue;
 
-				// City can not contain our franchise already
-				if (pLoopCity->IsHasFranchise(GetFoundedCorporation()))
-					continue;
-
-				int iChance = GC.getGame().randRangeExclusive(0, 101, CvSeeder::fromRaw(0x61e74940).mix(pLoopCity->plot()->GetPseudoRandomSeed())) + GC.getGame().randRangeExclusive(0, 101, CvSeeder::fromRaw(0x533dfdcd).mix(pLoopCity->plot()->GetPseudoRandomSeed()));
-				int iScore = 500 - iChance;
-
-				int iLoop2 = 0;
-				for (CvCity* pLoopCity2 = m_pPlayer->firstCity(&iLoop2); pLoopCity2 != NULL; pLoopCity2 = m_pPlayer->nextCity(&iLoop2))
-				{
-					if (pLoopCity2 != NULL)
-					{
-						if (!m_pPlayer->GetTrade()->CanCreateTradeRoute(pLoopCity2, pLoopCity, DOMAIN_LAND, TRADE_CONNECTION_INTERNATIONAL, false) && !m_pPlayer->GetTrade()->CanCreateTradeRoute(pLoopCity2, pLoopCity, DOMAIN_SEA, TRADE_CONNECTION_INTERNATIONAL, false))
-							continue;
-
-						//Prioritize closer cities first.
-						int iDistance = plotDistance(pLoopCity->getX(), pLoopCity->getY(), pCapital->getX(), pCapital->getY());
-						iScore -= (iDistance * 5);
-						if (iScore <= 0)
-							iScore = 1;
-					}
-				}
-				if (iScore > iBestScore)
-				{
-					iBestScore = iScore;
-					pBestCity = pLoopCity;
-				}
+				//Prioritize closer cities first.
+				int iDistance = plotDistance(pLoopCity->getX(), pLoopCity->getY(), pCapital->getX(), pCapital->getY());
+				iScore -= (iDistance * 5);
+				if (iScore <= 0)
+					iScore = 1;
+			}
+			if (iScore > iBestScore)
+			{
+				iBestScore = iScore;
+				pBestCity = pLoopCity;
 			}
 		}
 	}
@@ -1090,10 +1076,7 @@ void CvPlayerCorporations::BuildRandomFranchiseInCity()
 				int iLoop = 0;
 				for (pLoopCity = m_pPlayer->firstCity(&iLoop); pLoopCity != NULL; pLoopCity = m_pPlayer->nextCity(&iLoop))
 				{
-					if (pLoopCity != NULL)
-					{
-						pLoopCity->UpdateYieldFromCorporationFranchises((YieldTypes)iI);
-					}
+					pLoopCity->UpdateYieldFromCorporationFranchises((YieldTypes)iI);
 				}
 			}
 
@@ -1303,8 +1286,8 @@ int CvPlayerCorporations::GetMaxNumFranchises() const
 	else
 	{
 		iReturnValue += pkCorporationInfo->GetBaseFranchises();
-		iReturnValue += (int)(m_pPlayer->GetTrade()->GetNumTradeRoutesPossible() * /*1.0f*/ GD_FLOAT_GET(BALANCE_CORE_CORP_OFFICE_TR_CONVERSION));
-		iReturnValue += (int)(GetNumOffices() * /*0.5f*/ GD_FLOAT_GET(BALANCE_CORE_CORP_OFFICE_FRANCHISE_CONVERSION));
+		iReturnValue += (int)(m_pPlayer->GetTrade()->GetNumTradeRoutesPossible() * /*1.0f*/ GD_FLOAT_GET(BALANCE_CORP_OFFICE_TR_CONVERSION));
+		iReturnValue += (int)(GetNumOffices() * /*0.5f*/ GD_FLOAT_GET(BALANCE_CORP_OFFICE_FRANCHISE_CONVERSION));
 
 		// Add in any "bonus" franchises from policies
 		iReturnValue += GetAdditionalNumFranchises();
@@ -1324,12 +1307,9 @@ int CvPlayerCorporations::GetMaxNumFranchises() const
 					int iLoop = 0;
 					for (pLoopCity = GET_PLAYER(ePlayer).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER(ePlayer).nextCity(&iLoop))
 					{
-						if (pLoopCity != NULL)
+						if (pLoopCity->IsHasFranchise(GetFoundedCorporation()))
 						{
-							if (pLoopCity->IsHasFranchise(GetFoundedCorporation()))
-							{
-								iReturnValue += GetCorporationFreeFranchiseAbovePopular();
-							}
+							iReturnValue += GetCorporationFreeFranchiseAbovePopular();
 						}
 					}
 				}
@@ -1367,10 +1347,10 @@ CvString CvPlayerCorporations::GetNumFranchisesTooltip()
 	}
 
 	int iTotal = pkCorporationInfo->GetBaseFranchises();
-	int iNumTrades = (int)(m_pPlayer->GetTrade()->GetNumTradeRoutesPossible() * /*1.0f*/ GD_FLOAT_GET(BALANCE_CORE_CORP_OFFICE_TR_CONVERSION));
+	int iNumTrades = (int)(m_pPlayer->GetTrade()->GetNumTradeRoutesPossible() * /*1.0f*/ GD_FLOAT_GET(BALANCE_CORP_OFFICE_TR_CONVERSION));
 	iTotal += iNumTrades;
 
-	iTotal += (int)(GetNumOffices() * /*0.5f*/ GD_FLOAT_GET(BALANCE_CORE_CORP_OFFICE_FRANCHISE_CONVERSION));
+	iTotal += (int)(GetNumOffices() * /*0.5f*/ GD_FLOAT_GET(BALANCE_CORP_OFFICE_FRANCHISE_CONVERSION));
 
 	// Add in any "bonus" franchises from policies
 	int iPolicy = GetAdditionalNumFranchises();
@@ -1384,7 +1364,7 @@ CvString CvPlayerCorporations::GetNumFranchisesTooltip()
 		iModTotal = 0;
 
 	
-	strTooltip = GetLocalizedText("TXT_KEY_CORP_MAX_FRANCHISE_TT", pkCorporationInfo->GetBaseFranchises(), (GetNumOffices() * /*0.5f*/ GD_FLOAT_GET(BALANCE_CORE_CORP_OFFICE_FRANCHISE_CONVERSION)), iNumTrades, iModTotal);
+	strTooltip = GetLocalizedText("TXT_KEY_CORP_MAX_FRANCHISE_TT", pkCorporationInfo->GetBaseFranchises(), (GetNumOffices() * /*0.5f*/ GD_FLOAT_GET(BALANCE_CORP_OFFICE_FRANCHISE_CONVERSION)), iNumTrades, iModTotal);
 
 	return strTooltip;
 }
@@ -1432,8 +1412,8 @@ void CvPlayerCorporations::ClearAllCorporationsFromCity(CvCity* pCity)
 // Clear foreign Corporations from pCity
 void CvPlayerCorporations::ClearCorporationFromCity(CvCity* pCity, CorporationTypes eCorporation, bool bAllButThis)
 {
-	ASSERT_DEBUG(pCity);
-	ASSERT_DEBUG(eCorporation != NO_CORPORATION);
+	ASSERT(pCity);
+	PRECONDITION(eCorporation != NO_CORPORATION);
 
 	if (!pCity)
 		return;
@@ -1683,19 +1663,16 @@ int CvPlayerCorporations::GetFranchiseTourismMod(PlayerTypes ePlayer, bool bJust
 	int iLoop = 0;
 	for (pLoopCity = GET_PLAYER(ePlayer).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER(ePlayer).nextCity(&iLoop))
 	{
-		if (pLoopCity != NULL)
+		if (pLoopCity->IsHasFranchise(eFounded))
 		{
-			if (pLoopCity->IsHasFranchise(eFounded))
-			{
-				iNumFranchises++;
-				if (bJustCheckOne)
-					return iNumFranchises;
+			iNumFranchises++;
+			if (bJustCheckOne)
+				return iNumFranchises;
 
-				// Free franchise above Popular?
-				if (GetCorporationFreeFranchiseAbovePopular() != 0 && GET_PLAYER(ePlayer).isMajorCiv() && m_pPlayer->GetCulture()->GetInfluenceLevel(ePlayer) >= INFLUENCE_LEVEL_POPULAR)
-				{
-					iNumFranchises += GetCorporationFreeFranchiseAbovePopular();
-				}
+			// Free franchise above Popular?
+			if (GetCorporationFreeFranchiseAbovePopular() != 0 && GET_PLAYER(ePlayer).isMajorCiv() && m_pPlayer->GetCulture()->GetInfluenceLevel(ePlayer) >= INFLUENCE_LEVEL_POPULAR)
+			{
+				iNumFranchises += GetCorporationFreeFranchiseAbovePopular();
 			}
 		}
 	}
@@ -1876,7 +1853,7 @@ void CvGameCorporations::FoundCorporation(PlayerTypes ePlayer, CorporationTypes 
 			if(GET_TEAM(GET_PLAYER(ePlayer).getTeam()).isHasMet(GET_PLAYER(eLoopPlayer).getTeam()))
 			{
 				CvPlayerAI& player = GET_PLAYER(ePlayer);
-				if(GC.getGame().isGameMultiPlayer() && player.isHuman())
+				if(GC.getGame().isGameMultiPlayer() && player.isHuman(ISHUMAN_UI))
 				{
 					strMessage << player.getNickName();
 					strSummary << player.getNickName();
@@ -1985,5 +1962,3 @@ FDataStream& operator<<(FDataStream& saveTo, const CvGameCorporations& readFrom)
 	CvGameCorporations::Serialize(readFrom, serialVisitor);
 	return saveTo;
 }
-
-#endif

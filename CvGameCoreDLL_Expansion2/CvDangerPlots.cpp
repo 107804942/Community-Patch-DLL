@@ -27,7 +27,7 @@
 CvDangerPlots::CvDangerPlots(void)
 	: m_ePlayer(NO_PLAYER)
 	, m_bDirty(false)
-	, m_iTurnBuilt(0)
+	, m_iTurnBuilt(-1)
 	, m_DangerPlots()
 {
 }
@@ -51,7 +51,7 @@ void CvDangerPlots::Uninit()
 {
 	m_ePlayer = NO_PLAYER;
 	m_bDirty = false;
-	m_iTurnBuilt = 0;
+	m_iTurnBuilt = -1;
 	m_DangerPlots.clear();
 	m_knownUnits.clear();
 	m_vanishedUnits.clear();
@@ -65,7 +65,7 @@ bool CvDangerPlots::UpdateDangerSingleUnit(const CvUnit* pLoopUnit, bool bIgnore
 	//the IGNORE_DANGER flag is extremely important here, otherwise we can get into endless loops
 	//(when the pathfinder does a lazy danger update)
 	int iFlags = CvUnit::MOVEFLAG_IGNORE_STACKING_SELF | CvUnit::MOVEFLAG_IGNORE_STACKING_NEUTRAL | CvUnit::MOVEFLAG_IGNORE_ENEMIES | CvUnit::MOVEFLAG_IGNORE_DANGER;
-	if (MOD_CORE_TWO_PASS_DANGER)
+	if (MOD_COMBATAI_TWO_PASS_DANGER)
 		iFlags |= CvUnit::MOVEFLAG_SELECTIVE_ZOC;
 	else
 		iFlags |= CvUnit::MOVEFLAG_IGNORE_ZOC;
@@ -121,10 +121,6 @@ void CvDangerPlots::UpdateDanger()
 	bool bTurnChange = !bReload && (m_iTurnBuilt != GC.getGame().getGameTurn());
 	bool bWarChange = !bReload && !bTurnChange;
 
-	//do not update from the UI thread, might lead to desyncs!
-	if (!bReload && !gDLL->IsGameCoreThread())
-		return;
-
 	//note: we do not do a dirty check here, that is done in GetDanger()
 
 	//allocate on demand
@@ -140,7 +136,7 @@ void CvDangerPlots::UpdateDanger()
 	}
 
 	//two pass danger is dangerous ... it might happen that a covering unit moves away, leaving other exposed
-	if (MOD_CORE_TWO_PASS_DANGER)
+	if (MOD_COMBATAI_TWO_PASS_DANGER)
 	{
 		CvPlayer& thisPlayer = GET_PLAYER(m_ePlayer);
 		PlotIndexContainer plotsWithOwnedUnitsLikelyToBeKilled;
@@ -480,7 +476,7 @@ bool CvDangerPlots::ShouldIgnoreUnit(const CvUnit* pUnit, bool bIgnoreVisibility
 		return true;
 
 	//invisible but revealed camp/city. count the unit there anyways (for AI), humans would guess so
-	if (!GET_PLAYER(m_ePlayer).isHuman())
+	if (!GET_PLAYER(m_ePlayer).isHuman(ISHUMAN_AI_UNITS))
 	{
 		bIgnoreVisibility |= pUnit->plot()->isCity();
 		bIgnoreVisibility |= pUnit->plot()->getRevealedImprovementType(pUnit->getTeam()) == GD_INT_GET(BARBARIAN_CAMP_IMPROVEMENT);
@@ -637,16 +633,17 @@ int CvDangerPlotContents::GetDanger(bool bFixedDamageOnly)
 			continue;
 		}
 
+		int iUnusedReferenceVariable = 0;
 		CvPlot* pAttackerPlot = NULL;
 		if (pUnit->IsCanAttackRanged())
 		{
 			if (pUnit->getDomainType() == DOMAIN_AIR)
 			{
-				iPlotDamage += pUnit->GetAirCombatDamage(NULL, NULL, false, 0, m_pPlot, NULL, true);
+				iPlotDamage += pUnit->GetAirCombatDamage(NULL, NULL, 0, iUnusedReferenceVariable, false, 0, m_pPlot, NULL, true);
 			}
 			else
 			{
-				iPlotDamage += pUnit->GetRangeCombatDamage(NULL, NULL, false, 0, m_pPlot, NULL, true, true);
+				iPlotDamage += pUnit->GetRangeCombatDamage(NULL, NULL, 0, iUnusedReferenceVariable, false, 0, m_pPlot, NULL, true, true);
 			}
 		}
 		else
@@ -655,14 +652,16 @@ int CvDangerPlotContents::GetDanger(bool bFixedDamageOnly)
 				pAttackerPlot = pUnit->plot();
 
 			//we don't know the defender strength, so assume it's equal to attacker strength!
-			iPlotDamage += pUnit->getCombatDamage(
+			int iSelfDamage = 0;
+			iPlotDamage += pUnit->getMeleeCombatDamage(
 				pUnit->GetMaxAttackStrength(pAttackerPlot, m_pPlot, NULL, true, true),
 				pUnit->GetBaseCombatStrength()*100, 
-				false, false, false);
+				iSelfDamage,
+				false, NULL);
 
 			if (pUnit->isRangedSupportFire())
 			{
-				iPlotDamage += pUnit->GetRangeCombatDamage(NULL, NULL, false, 0, m_pPlot, pAttackerPlot, true, true);
+				iPlotDamage += pUnit->GetRangeCombatDamage(NULL, NULL, 0, iUnusedReferenceVariable, false, 0, m_pPlot, pAttackerPlot, true, true);
 			}
 		}
 	}
@@ -691,20 +690,16 @@ int CvDangerPlotContents::GetAirUnitDamage(const CvUnit* pUnit, AirActionType iA
 			iAttackerStrength /= 100;
 
 			int iDefenderStrength = pUnit->GetMaxRangedCombatStrength(pUnit, /*pCity*/ NULL, false);
-			iCurrentAirSweepDamage = pUnit->getCombatDamage(iDefenderStrength, iAttackerStrength,
-				/*bIncludeRand*/ false, /*bAttackerIsCity*/ false, /*bDefenderIsCity*/ false);
+			int iReceiverDamage = 0;
+			iCurrentAirSweepDamage = pUnit->getMeleeCombatDamage(iDefenderStrength, iAttackerStrength, iReceiverDamage,
+				/*bIncludeRand*/ false, pAttacker);
 
 			// It's a slower to have this in the unit loop instead of after the best damage has been calculated, but it's also more accurate
-			if (iCurrentAirSweepDamage >= pAttacker->GetCurrHitPoints())
+			if (iCurrentAirSweepDamage >= pAttacker->GetCurrHitPoints() && iReceiverDamage >= pUnit->GetCurrHitPoints())
 			{
-				int iReceiverDamage = pAttacker->getCombatDamage(iAttackerStrength, iDefenderStrength,
-					/*bIncludeRand*/ false, /*bAttackerIsCity*/ false, /*bDefenderIsCity*/ false);
-				if (iReceiverDamage >= pUnit->GetCurrHitPoints())
+				if (iReceiverDamage + pUnit->getDamage() > iCurrentAirSweepDamage + pAttacker->getDamage())
 				{
-					if (iReceiverDamage + pUnit->getDamage() > iCurrentAirSweepDamage + pAttacker->getDamage())
-					{
-						iCurrentAirSweepDamage = pUnit->GetCurrHitPoints() - 1;
-					}
+					iCurrentAirSweepDamage = pUnit->GetCurrHitPoints() - 1;
 				}
 			}
 			if (iCurrentAirSweepDamage > iBestAirSweepDamage)
@@ -732,18 +727,14 @@ int CvDangerPlotContents::GetAirUnitDamage(const CvUnit* pUnit, AirActionType iA
 					iAttackerStrength *= (100 + pUnit->GetAirSweepCombatModifier());
 					iAttackerStrength /= 100;
 					int iDefenderStrength = pInterceptor->GetMaxRangedCombatStrength(pUnit, /*pCity*/ NULL, false);
-					int iReceiveDamage = pInterceptor->getCombatDamage(iDefenderStrength, iAttackerStrength,
-						/*bIncludeRand*/ false, /*bAttackerIsCity*/ false, /*bDefenderIsCity*/ false);
-					if (iReceiveDamage >= pUnit->GetCurrHitPoints())
+					int iDamageDealt = 0; // referemce variable
+					int iReceiveDamage = pInterceptor->getMeleeCombatDamage(iDefenderStrength, iAttackerStrength, iDamageDealt,
+						/*bIncludeRand*/ false, pUnit);
+					if (iReceiveDamage >= pUnit->GetCurrHitPoints() && iDamageDealt >= pInterceptor->GetCurrHitPoints())
 					{
-						int iDamageDealt = pUnit->getCombatDamage(iAttackerStrength, iDefenderStrength,
-							/*bIncludeRand*/ false, /*bAttackerIsCity*/ false, /*bDefenderIsCity*/ false);
-						if (iDamageDealt >= pInterceptor->GetCurrHitPoints())
+						if (iDamageDealt + pInterceptor->getDamage() > iReceiveDamage + pUnit->getDamage())
 						{
-							if (iDamageDealt + pInterceptor->getDamage() > iReceiveDamage + pUnit->getDamage())
-							{
-								iReceiveDamage = pUnit->GetCurrHitPoints() - 1;
-							}
+							iReceiveDamage = pUnit->GetCurrHitPoints() - 1;
 						}
 					}
 					return iReceiveDamage;
@@ -933,7 +924,11 @@ int CvDangerPlotContents::GetDanger(const CvCity* pCity, const CvUnit* pPretendG
 
 	CvCityGarrisonOverride guard(pCity,pPretendGarrison);
 
-	// Damage from ranged units and melees that cannot capture 
+	//if we have a garrison, split the damage
+	int iGarrisonMaxHP = pCity->GetGarrisonedUnit() ? pCity->GetGarrisonedUnit()->GetMaxHitPoints() : 0;
+	int iGarrisonHPLeft = pCity->GetGarrisonedUnit() ? pCity->GetGarrisonedUnit()->GetCurrHitPoints() : 0;
+	int iGarrisonDamage = 0; // called by reference
+
 	for (DangerUnitVector::iterator it = m_apUnits.begin(); it < m_apUnits.end(); ++it)
 	{
 		CvUnit* pUnit = GET_PLAYER(it->first).getUnit(it->second);
@@ -954,63 +949,30 @@ int CvDangerPlotContents::GetDanger(const CvCity* pCity, const CvUnit* pPretendG
 					// Always assume interception is successful
 					iInterceptDamage = pInterceptor->GetInterceptionDamage(pUnit, false, m_pPlot);
 				}
-				iPlotDamage += pUnit->GetAirCombatDamage(NULL, pCity, false, iInterceptDamage, m_pPlot);
+				iPlotDamage += pUnit->GetAirCombatDamage(NULL, pCity, (iGarrisonHPLeft <= 0 ? 0 : iGarrisonMaxHP), iGarrisonDamage, false, iInterceptDamage, m_pPlot);
+				iGarrisonHPLeft -= iGarrisonDamage;
 			}
 			else
 			{
-				iPlotDamage += pUnit->GetRangeCombatDamage(NULL, pCity, false, 0, m_pPlot);
+				iPlotDamage += pUnit->GetRangeCombatDamage(NULL, pCity, (iGarrisonHPLeft <= 0 ? 0 : iGarrisonMaxHP), iGarrisonDamage, false, 0, m_pPlot);
+				iGarrisonHPLeft -= iGarrisonDamage;
 			}
 		}
-		else if (pUnit->isNoCapture())
+		else
 		{
 			if (plotDistance(iCityX, iCityY, pUnit->getX(), pUnit->getY()) == 1)
 			{
 				pAttackerPlot = pUnit->plot();
 			}
-			iPlotDamage += pUnit->getCombatDamage(pUnit->GetMaxAttackStrength(pAttackerPlot, pCityPlot, NULL),
-				pCity->getStrengthValue(), false, false, true);
-			
-			if (pUnit->isRangedSupportFire())
-			{
-				iPlotDamage += pUnit->GetRangeCombatDamage(NULL, pCity, false, 0, pCityPlot);
-			}
+			int iSelfDamageAttacker = 0;
+			// check if the garrison is dead
+			iPlotDamage += pUnit->getMeleeCombatDamageCity(pUnit->GetMaxAttackStrength(pAttackerPlot, pCityPlot, NULL, !pUnit->isNoCapture(), !pUnit->isNoCapture()),
+				pCity, iSelfDamageAttacker, (iGarrisonHPLeft <= 0 ? 0 : iGarrisonMaxHP), iGarrisonDamage, false);
+			iGarrisonHPLeft -= iGarrisonDamage;
 		}
 	}
 
-	// Damage from melee units
-	for (DangerUnitVector::iterator it = m_apUnits.begin(); it < m_apUnits.end(); ++it)
-	{
-		CvUnit* pUnit = GET_PLAYER(it->first).getUnit(it->second);
-		if (!pUnit || pUnit->isDelayedDeath() || pUnit->IsDead())
-		{
-			continue;
-		}
 
-		CvPlot* pAttackerPlot = NULL;
-		if (!pUnit->IsCanAttackRanged() && !pUnit->isNoCapture())
-		{
-			if (plotDistance(iCityX, iCityY, pUnit->getX(), pUnit->getY()) == 1)
-			{
-				pAttackerPlot = pUnit->plot();
-			}
-
-			iPlotDamage += pUnit->getCombatDamage(pUnit->GetMaxAttackStrength(pAttackerPlot, pCityPlot, NULL, true, true),
-				pCity->getStrengthValue(), false, false, true);
-
-			if (pUnit->isRangedSupportFire())
-			{
-				iPlotDamage += pUnit->GetRangeCombatDamage(NULL, pCity, false, 0, pCityPlot, NULL, true, true);
-			}
-		}
-	}
-
-	//if we have a garrison, split the damage
-	CvUnit* pGarrison = pCity->GetGarrisonedUnit();
-	if (pGarrison)
-	{
-		int iUnitShare = (iPlotDamage*2*pGarrison->GetMaxHitPoints())/(pCity->GetMaxHitPoints()+2*pGarrison->GetMaxHitPoints());
-		iPlotDamage -= iUnitShare;
-	}
 
 	return iPlotDamage;
 }

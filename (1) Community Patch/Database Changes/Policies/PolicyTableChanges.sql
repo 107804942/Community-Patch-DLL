@@ -104,11 +104,11 @@ ALTER TABLE Policies ADD CityCaptureHealGlobal integer DEFAULT 0;
 ALTER TABLE Policies ADD CityCaptureHealLocal integer DEFAULT 0;
 
 -- Flat reductions to Unhappiness from Needs in all Cities
-ALTER TABLE Policies ADD DistressFlatReductionGlobal integer DEFAULT 0;
-ALTER TABLE Policies ADD PovertyFlatReductionGlobal integer DEFAULT 0;
-ALTER TABLE Policies ADD IlliteracyFlatReductionGlobal integer DEFAULT 0;
-ALTER TABLE Policies ADD BoredomFlatReductionGlobal integer DEFAULT 0;
-ALTER TABLE Policies ADD ReligiousUnrestFlatReductionGlobal integer DEFAULT 0;
+ALTER TABLE Policies ADD DistressFlatReduction integer DEFAULT 0;
+ALTER TABLE Policies ADD PovertyFlatReduction integer DEFAULT 0;
+ALTER TABLE Policies ADD IlliteracyFlatReduction integer DEFAULT 0;
+ALTER TABLE Policies ADD BoredomFlatReduction integer DEFAULT 0;
+ALTER TABLE Policies ADD ReligiousUnrestFlatReduction integer DEFAULT 0;
 
 -- Changes the global median for a Need in the capital by x% - values should be negative to be good!
 ALTER TABLE Policies ADD BasicNeedsMedianModifierCapital integer DEFAULT 0;
@@ -118,11 +118,11 @@ ALTER TABLE Policies ADD CultureMedianModifierCapital integer DEFAULT 0;
 ALTER TABLE Policies ADD ReligiousUnrestModifierCapital integer DEFAULT 0;
 
 -- Changes the global median for a Need in all cities by x% - values should be negative to be good!
-ALTER TABLE Policies ADD BasicNeedsMedianModifierGlobal integer DEFAULT 0;
-ALTER TABLE Policies ADD GoldMedianModifierGlobal integer DEFAULT 0;
-ALTER TABLE Policies ADD ScienceMedianModifierGlobal integer DEFAULT 0;
-ALTER TABLE Policies ADD CultureMedianModifierGlobal integer DEFAULT 0;
-ALTER TABLE Policies ADD ReligiousUnrestModifierGlobal integer DEFAULT 0;
+ALTER TABLE Policies ADD BasicNeedsMedianModifier integer DEFAULT 0;
+ALTER TABLE Policies ADD GoldMedianModifier integer DEFAULT 0;
+ALTER TABLE Policies ADD ScienceMedianModifier integer DEFAULT 0;
+ALTER TABLE Policies ADD CultureMedianModifier integer DEFAULT 0;
+ALTER TABLE Policies ADD ReligiousUnrestModifier integer DEFAULT 0;
 
 -- Puppets and/or Occupied cities receive a % production modifier. Values should be positive to be good.
 ALTER TABLE Policies ADD PuppetProdMod integer DEFAULT 0;
@@ -215,6 +215,12 @@ ALTER TABLE Policies ADD InternalTradeGold integer DEFAULT 0;
 -- Boost Culture Bomb from Citadel
 ALTER TABLE Policies ADD CultureBombBoost integer DEFAULT 0;
 
+-- Allows you to plant Citadels in other teams' lands, provided other requirements are met (including adjacency to own territory)
+ALTER TABLE Policies ADD CultureBombForeignTerritory boolean DEFAULT 0;
+
+-- Retain tiles owned by cities that you raze
+ALTER TABLE Policies ADD RetainRazedTerritory boolean DEFAULT 0;
+
 -- Unlock Era for Policy (Unlocks later eras earlier than normal)
 ALTER TABLE Policies ADD UnlocksPolicyBranchEra text REFERENCES Eras (Type);
 
@@ -245,7 +251,7 @@ ALTER TABLE Policies ADD RazingSpeedBonus integer DEFAULT 0;
 -- Allows you to set whether or not partisans spawn from razing cities (via policy)
 ALTER TABLE Policies ADD NoPartisans boolean DEFAULT 0;
 
--- Allows you to set whether or not units gain full XP when purchased
+-- Allows you to set whether or not units gain full XP when purchased with Gold or Faith (BALANCE_HALF_XP_GOLD_PURCHASES)
 ALTER TABLE Policies ADD NoXPLossUnitPurchase boolean DEFAULT 0;
 
 -- Allows you to set a % of warscore that is added to a tourism bonus against a civ
@@ -278,7 +284,7 @@ ALTER TABLE Policies ADD CityAutomatonWorkersChange integer DEFAULT 0;
 
 ALTER TABLE Policies ADD CityWorkingChange integer DEFAULT 0;
 
--- RELIGION_CONVERSION_MODIFIERS
+-- RELIGION_CONVERSION_MODIFIERS (integrated)
 ALTER TABLE Policies ADD ConversionModifier integer DEFAULT 0;
 
 ALTER TABLE Policies ADD TRSpeedBoost integer DEFAULT 0;

@@ -703,6 +703,7 @@
 			<Description>TXT_KEY_UNIT_GREAT_DIPLOMAT</Description>
 			<Civilopedia>TXT_KEY_UNIT_GREAT_DIPLOMAT_TEXT</Civilopedia>
 			<Strategy>TXT_KEY_UNIT_GREAT_DIPLOMAT_STRATEGY</Strategy>
+			<Help>TXT_KEY_UNIT_GREAT_DIPLOMAT_HELP</Help>
 			<Domain>DOMAIN_LAND</Domain>
 			<Class>UNITCLASS_GREAT_DIPLOMAT</Class>
 			<Special>SPECIALUNIT_PEOPLE</Special>
@@ -1071,6 +1072,7 @@
 			<CombatClass>UNITCOMBAT_FIGHTER</CombatClass>
 			<Class>UNITCLASS_TRIPLANE</Class>
 			<Special>SPECIALUNIT_FIGHTER</Special>
+			<Immobile>true</Immobile>
 			<DefaultUnitAI>UNITAI_DEFENSE_AIR</DefaultUnitAI>
 			<PrereqTech>TECH_FLIGHT</PrereqTech>
 			<ObsoleteTech>TECH_RADAR</ObsoleteTech>
@@ -1107,7 +1109,7 @@
 			<Strategy>TXT_KEY_UNIT_KLEPHT_STRATEGY</Strategy>
 			<Help>TXT_KEY_UNIT_KLEPHT_HELP</Help>
 			<Domain>DOMAIN_LAND</Domain>
-			<CombatClass>UNITCOMBAT_SIEGE</CombatClass>
+			<CombatClass>UNITCOMBAT_RECON</CombatClass>
 			<Class>UNITCLASS_COMMANDO</Class>
 			<DefaultUnitAI>UNITAI_EXPLORE</DefaultUnitAI>
 			<PrereqTech>TECH_RAILROAD</PrereqTech>
@@ -1218,7 +1220,7 @@
 			<Help>TXT_KEY_UNIT_PROWLER_HELP</Help>
 			<Domain>DOMAIN_LAND</Domain>
 			<CombatClass>UNITCOMBAT_ARCHER</CombatClass>
-			<Class>UNITCLASS_CROSSBOWMAN</Class>
+			<Class>UNITCLASS_MUSKETMAN</Class>
 			<DefaultUnitAI>UNITAI_RANGED</DefaultUnitAI>
 			<PrereqTech>TECH_MACHINERY</PrereqTech>
 			<ObsoleteTech>TECH_INDUSTRIALIZATION</ObsoleteTech>
@@ -1233,6 +1235,7 @@
 			<Description>TXT_KEY_UNIT_TADODAHO</Description>
 			<Civilopedia>TXT_KEY_UNIT_TADODAHO_TEXT</Civilopedia>
 			<Strategy>TXT_KEY_UNIT_TADODAHO_STRATEGY</Strategy>
+			<Help>TXT_KEY_UNIT_TADODAHO_HELP</Help>
 			<Domain>DOMAIN_LAND</Domain>
 			<Class>UNITCLASS_GREAT_DIPLOMAT</Class>
 			<Special>SPECIALUNIT_PEOPLE</Special>
@@ -1531,6 +1534,7 @@
 			<Description>TXT_KEY_UNIT_INDUNA</Description>
 			<Civilopedia>TXT_KEY_UNIT_INDUNA_TEXT</Civilopedia>
 			<Strategy>TXT_KEY_UNIT_INDUNA_STRATEGY</Strategy>
+			<Help>TXT_KEY_UNIT_INDUNA_HELP</Help>
 			<Domain>DOMAIN_LAND</Domain>
 			<Class>UNITCLASS_GREAT_GENERAL</Class>
 			<Special>SPECIALUNIT_PEOPLE</Special>
@@ -1921,10 +1925,10 @@
 			<SelectionSound>AS2D_SELECT_SETTLER</SelectionSound>
 			<FirstSelectionSound>AS2D_BIRTH_SETTLER</FirstSelectionSound>
 		</Row>
-		<Row> 
-			<UnitType>UNIT_INDUNA</UnitType> 
-			<SelectionSound>AS2D_BUILD_UNIT</SelectionSound> 
-			<FirstSelectionSound>AS2D_BUILD_UNIT</FirstSelectionSound> 
+		<Row>
+			<UnitType>UNIT_INDUNA</UnitType>
+			<SelectionSound>AS2D_BUILD_UNIT</SelectionSound>
+			<FirstSelectionSound>AS2D_BUILD_UNIT</FirstSelectionSound>
 		</Row>
 	</UnitGameplay2DScripts>
 </GameData>

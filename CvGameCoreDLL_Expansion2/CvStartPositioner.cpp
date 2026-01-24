@@ -54,7 +54,7 @@ void CvStartPositioner::DivideMapIntoRegions(int iNumRegions)
 	int iNumRegionsPlaced = 0;
 
 	// Initialize
-	m_ContinentVector.clear();
+	m_potentialStartingAreaVector.clear();
 	m_StartRegionVector.clear();
 
 	// Compute fertility for each plot
@@ -66,30 +66,30 @@ void CvStartPositioner::DivideMapIntoRegions(int iNumRegions)
 		// Throw out oceans and desert islands
 		if (pLoopArea->getNumTiles() >= /*4*/ GD_INT_GET(MIN_START_AREA_TILES))
 		{
-			CvContinent continent;
-			continent.SetFertility(pLoopArea->getTotalFoundValue());
-			continent.SetArea(pLoopArea->GetID());
-			m_ContinentVector.push_back(continent);
+			CvPotentialStartingArea potentialStartingArea;
+			potentialStartingArea.SetFertility(pLoopArea->getTotalFoundValue());
+			potentialStartingArea.SetArea(pLoopArea->GetID());
+			m_potentialStartingAreaVector.push_back(potentialStartingArea);
 		}
 	}
 
-	if(m_ContinentVector.size() > 0)
+	if(m_potentialStartingAreaVector.size() > 0)
 	{
 		// Assign all the regions to continents
 		while(iNumRegionsPlaced < iNumRegions)
 		{
-			std::stable_sort(m_ContinentVector.begin(), m_ContinentVector.end());
+			std::stable_sort(m_potentialStartingAreaVector.begin(), m_potentialStartingAreaVector.end());
 
 			// Add a region to the first in our list
-			m_ContinentVector[0].AddRegion();
+			m_potentialStartingAreaVector[0].AddRegion();
 			iNumRegionsPlaced++;
 		}
 	}
 
 	// Divide the continents according to our algorithm
-	for(unsigned int iI=0; iI < m_ContinentVector.size(); iI++)
+	for(unsigned int iI=0; iI < m_potentialStartingAreaVector.size(); iI++)
 	{
-		DivideContinentIntoRegions(m_ContinentVector[iI]);
+		DividePotentialStartingAreaIntoRegions(m_potentialStartingAreaVector[iI]);
 	}
 
 	// Sort the regions by fertility
@@ -238,7 +238,7 @@ void CvStartPositioner::AssignStartingLocations()
 		}
 	}
 
-	ASSERT_DEBUG(iPlayersPlaced == iMajorCivs, "AssignStartingLocations() can't find enough starting locations for major civs");
+	ASSERT(iPlayersPlaced == iMajorCivs, "AssignStartingLocations() can't find enough starting locations for major civs");
 
 	// MINOR CIVS
 	m_iRequiredSeparation = StartingPlotRange();
@@ -321,22 +321,22 @@ int CvStartPositioner::GetRegion(int iX, int iY)
 // PRIVATE METHODS
 
 /// Compute the fertility of each tile on the map
-void CvStartPositioner::DivideContinentIntoRegions(const CvContinent& continent)
+void CvStartPositioner::DividePotentialStartingAreaIntoRegions(const CvPotentialStartingArea& potentialStartingArea)
 {
-	// Create a start region out of the entire continent
+	// Create a start region out of the entire area
 	CvStartRegion region;
-	region.m_uiFertility = continent.GetFertility();
-	region.m_iAreaID = continent.GetArea();
-	region.m_Boundaries = GC.getMap().getAreaById(continent.GetArea())->getAreaBoundaries();
+	region.m_uiFertility = potentialStartingArea.GetFertility();
+	region.m_iAreaID = potentialStartingArea.GetArea();
+	region.m_Boundaries = GC.getMap().getAreaById(potentialStartingArea.GetArea())->getAreaBoundaries();
 
-	// Make sure this is a continent that is getting a start region
-	if(continent.GetNumRegions() > 0)
+	// Make sure this is an area that is getting a start region
+	if(potentialStartingArea.GetNumRegions() > 0)
 	{
 		// If so, call recursive routine to subdivide it appropriately
-		SubdivideRegion(region, continent.GetNumRegions());
+		SubdivideRegion(region, potentialStartingArea.GetNumRegions());
 	}
 
-	// If the continent is too small for a major civ, it still could be useful for a minor
+	// If the area is too small for a major civ, it still could be useful for a minor
 	else
 	{
 		region.m_bLargeEnoughForMajorCiv = false;
@@ -369,7 +369,7 @@ void CvStartPositioner::ComputeTileFertilityValues()
 		{
 			// Add to total for area
 			CvArea* pArea = GC.getMap().getAreaById(pLoopPlot->getArea());
-			ASSERT_DEBUG(pArea);
+			ASSERT(pArea);
 			if(!pArea) 
 				continue;
 			pArea->setTotalFoundValue(pArea->getTotalFoundValue() + iFertility);
@@ -493,7 +493,7 @@ void CvStartPositioner::SubdivideRegion(CvStartRegion region, int iNumDivisions)
 			iLaterSubdivisions = 8;
 			break;
 		default:
-			ASSERT_DEBUG(false, "Trying to create regions for more than 18 major civs.");
+			ASSERT(false, "Trying to create regions for more than 18 major civs.");
 		}
 #endif
 		// CUSTOMLOG(" divide now %i, divide later %i", iNumDivides, iLaterSubdivisions);
@@ -520,9 +520,9 @@ void CvStartPositioner::SubdivideRegion(CvStartRegion region, int iNumDivisions)
 /// Performs the mechanics of dividing a region into two equal fertility subregions
 void CvStartPositioner::ChopIntoTwoRegions(bool bTaller, CvStartRegion* region, CvStartRegion* secondRegion, int iChopPercent)
 {
-	ASSERT_DEBUG(region);
+	ASSERT(region);
 	if(!region) return;
-	ASSERT_DEBUG(secondRegion);
+	ASSERT(secondRegion);
 	if(!secondRegion) return;
 
 	int uiTargetFertility = 0;
@@ -588,11 +588,11 @@ void CvStartPositioner::ChopIntoTwoRegions(bool bTaller, CvStartRegion* region, 
 /// Performs the mechanics of dividing a region into three equal fertility subregions
 void CvStartPositioner::ChopIntoThreeRegions(bool bTaller, CvStartRegion* region, CvStartRegion* secondRegion, CvStartRegion* thirdRegion)
 {
-	ASSERT_DEBUG(region);
+	ASSERT(region);
 	if(!region) return;
-	ASSERT_DEBUG(secondRegion);
+	ASSERT(secondRegion);
 	if(!secondRegion) return;
-	ASSERT_DEBUG(thirdRegion);
+	ASSERT(thirdRegion);
 	if(!thirdRegion) return;
 
 	// Chop off the first third
@@ -729,7 +729,7 @@ bool PlotTooCloseToAnotherCiv(CvPlot* pPlot, int iRequiredSeparation)
 {
 	bool rtnValue = false;
 
-	ASSERT_DEBUG(pPlot);
+	ASSERT(pPlot);
 	if(!pPlot)
 		return rtnValue;
 
@@ -772,7 +772,7 @@ bool PlotMeetsFoodRequirement(CvPlot* pPlot, PlayerTypes ePlayer, int iFoodRequi
 {
 	bool bFoundFoodPlot = false;
 
-	ASSERT_DEBUG(pPlot);
+	ASSERT(pPlot);
 	if(!pPlot)
 		return bFoundFoodPlot;
 
@@ -785,7 +785,7 @@ bool PlotMeetsFoodRequirement(CvPlot* pPlot, PlayerTypes ePlayer, int iFoodRequi
 		}
 		else
 		{
-			if(pLoopPlot->calculateNatureYield(YIELD_FOOD, ePlayer, pPlot->getFeatureType(), pPlot->getResourceType(GET_PLAYER(ePlayer).getTeam()), pLoopPlot->getOwningCity()) >= iFoodRequirement)
+			if(pLoopPlot->calculateNatureYield(YIELD_FOOD, ePlayer, pPlot->getFeatureType(), pPlot->getResourceType(GET_PLAYER(ePlayer).getTeam()), pPlot->getImprovementType(), pLoopPlot->getOwningCity()) >= iFoodRequirement)
 			{
 				bFoundFoodPlot = true;
 				break;

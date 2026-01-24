@@ -61,9 +61,7 @@ void CvLuaPlot::PushMethods(lua_State* L, int t)
 	Method(ShareAdjacentArea);
 	Method(IsAdjacentToLand);
 	Method(IsAdjacentToShallowWater);
-#if defined(MOD_PROMOTIONS_CROSS_ICE)
 	Method(IsAdjacentToIce);
-#endif
 	Method(IsCoastalLand);
 
 	Method(IsWithinTeamCityRadius);
@@ -126,9 +124,7 @@ void CvLuaPlot::PushMethods(lua_State* L, int t)
 
 	Method(IsCity);
 	Method(IsFriendlyCity);
-#if defined(MOD_GLOBAL_PASSABLE_FORTS)
 	Method(isFriendlyCityOrPassableImprovement);
-#endif
 	Method(IsEnemyCity);
 	Method(IsBeingWorked);
 
@@ -164,6 +160,7 @@ void CvLuaPlot::PushMethods(lua_State* L, int t)
 	Method(GetArea);
 	Method(SetArea);
 	Method(GetLandmass);
+	Method(GetContinent);
 	Method(GetFeatureVariety);
 
 	Method(GetOwnershipDuration);
@@ -307,6 +304,9 @@ void CvLuaPlot::PushMethods(lua_State* L, int t)
 	Method(GetArchaeologyArtifactPlayer2);
 	Method(GetArchaeologyArtifactWork);
 	Method(HasWrittenArtifact);
+
+	Method(IsEligibleForNormalDigSite);
+	Method(IsEligibleForHiddenDigSite);
 
 	Method(GetCityPurchaseID);
 	Method(SetCityPurchaseID);
@@ -575,14 +575,12 @@ int CvLuaPlot::lIsAdjacentToShallowWater(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvPlot::isAdjacentToShallowWater);
 }
-#if defined(MOD_PROMOTIONS_CROSS_ICE)
 //------------------------------------------------------------------------------
 //bool IsAdjacentToIce()
 int CvLuaPlot::lIsAdjacentToIce(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvPlot::isAdjacentToIce);
 }
-#endif
 //------------------------------------------------------------------------------
 //bool isCoastalLand();
 int CvLuaPlot::lIsCoastalLand(lua_State* L)
@@ -668,17 +666,38 @@ int CvLuaPlot::lSeeThroughLevel(lua_State* L)
 	return BasicLuaMethod(L, &CvPlot::seeThroughLevel);
 }
 //------------------------------------------------------------------------------
-//bool canHaveResource(ResourceTypes eResource, bool bIgnoreLatitude);
+//bool canHaveResource(ResourceTypes eResource, bool bIgnoreLatitude, bIgnoreCiv);
 int CvLuaPlot::lCanHaveResource(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvPlot::canHaveResource);
+	CvPlot* pkPlot = GetInstance(L); CHECK_PLOT_VALID(pkPlot);
+	const ResourceTypes eResource = (ResourceTypes)lua_tointeger(L, 2);
+	static const ResourceTypes eArtifact = static_cast<ResourceTypes>(GD_INT_GET(ARTIFACT_RESOURCE));
+	static const ResourceTypes eHiddenArtifact = static_cast<ResourceTypes>(GD_INT_GET(HIDDEN_ARTIFACT_RESOURCE));
+	// Antiquity Sites have special validations
+	if (eResource == eArtifact)
+		lua_pushboolean(L, pkPlot->IsEligibleForNormalDigSite(false));
+	else if (eResource == eHiddenArtifact)
+		lua_pushboolean(L, pkPlot->IsEligibleForHiddenDigSite(false));
+	else
+	{
+		const bool bIgnoreLatitude = luaL_optbool(L, 3, false);
+		const bool bIgnoreCiv = luaL_optbool(L, 4, false);
+		lua_pushboolean(L, pkPlot->canHaveResource(eResource, bIgnoreLatitude, bIgnoreCiv));
+	}
+
+	return 1;
 }
 //------------------------------------------------------------------------------
-//bool canHaveImprovement(ImprovementTypes eImprovement, TeamTypes eTeam, bool bPotential);
+//bool canHaveImprovement(ImprovementTypes eImprovement, PlayerTypes ePlayer, bool bCheckAdjacency, bTestXAdjacent);
 int CvLuaPlot::lCanHaveImprovement(lua_State* L)
 {
-	//this is a hack, Lua uses a TeamType and we use it as a PlayerType
-	return BasicLuaMethod(L, &CvPlot::canHaveImprovement);
+	CvPlot* pkPlot = GetInstance(L); CHECK_PLOT_VALID(pkPlot);
+	const ImprovementTypes eImprovement = (ImprovementTypes)lua_tointeger(L, 2);
+	const PlayerTypes ePlayer = (PlayerTypes)luaL_optint(L, 3, -1); // this is a hack; in vanilla BNW, Lua uses a TeamType; we use it as a PlayerType
+	const bool bCheckAdjacency = luaL_optbool(L, 4, false); // in vanilla BNW this function has parameter bOnlyTestVisible in this position, but it is never used by either the vanilla CvPlot::canHaveImprovement() or in Lua, so we just replace it
+	const bool bTestXAdjacent = luaL_optbool(L, 5, false);
+	lua_pushboolean(L, pkPlot->canHaveImprovement(eImprovement, ePlayer, bCheckAdjacency, bTestXAdjacent));
+	return 1;
 }
 //------------------------------------------------------------------------------
 //bool canBuild(BuildTypes eBuild, PlayerTypes ePlayer, bool bTestVisible);
@@ -995,7 +1014,6 @@ int CvLuaPlot::lIsFriendlyCity(lua_State* L)
 	lua_pushboolean(L, bResult);
 	return 1;
 }
-#if defined(MOD_GLOBAL_PASSABLE_FORTS)
 //bool isFriendlyCityOrPassableImprovement(CyUnit* pUnit, bool bCheckImprovement);
 int CvLuaPlot::lisFriendlyCityOrPassableImprovement(lua_State* L)
 {
@@ -1009,7 +1027,6 @@ int CvLuaPlot::lisFriendlyCityOrPassableImprovement(lua_State* L)
 	lua_pushboolean(L, bResult);
 	return 1;
 }
-#endif
 //------------------------------------------------------------------------------
 //bool isEnemyCity(CyUnit* pUnit);
 int CvLuaPlot::lIsEnemyCity(lua_State* L)
@@ -1152,15 +1169,11 @@ int CvLuaPlot::lIsCityConnection(lua_State* L)
 //bool isImpassable();
 int CvLuaPlot::lIsImpassable(lua_State* L)
 {
-#if defined(MOD_BALANCE_CORE)
 	CvPlot* pkPlot = GetInstance(L); CHECK_PLOT_VALID(pkPlot);
 	TeamTypes eTeam = (TeamTypes) luaL_optinteger(L, 2, NO_TEAM);
 	const bool bResult = pkPlot->isImpassable(eTeam);
 	lua_pushboolean(L, bResult);
 	return 1;
-#else
-	return BasicLuaMethod(L, &CvPlot::isImpassable);
-#endif
 }
 
 //------------------------------------------------------------------------------
@@ -1233,6 +1246,12 @@ int CvLuaPlot::lSetArea(lua_State* L)
 int CvLuaPlot::lGetLandmass(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvPlot::getLandmass);
+}
+//------------------------------------------------------------------------------
+//int getContinent();
+int CvLuaPlot::lGetContinent(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvPlot::getContinent);
 }
 //------------------------------------------------------------------------------
 //int getFeatureVariety();
@@ -1686,7 +1705,7 @@ int CvLuaPlot::lCalculateNatureYield(lua_State* L)
 	CvPlot* pkPlot = GetInstance(L); CHECK_PLOT_VALID(pkPlot);
 	const YieldTypes eIndex = (YieldTypes)lua_tointeger(L, 2);
 	const PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
-	const int iResult = pkPlot->calculateNatureYield(eIndex, ePlayer, pkPlot->getFeatureType(), pkPlot->getResourceType(GET_PLAYER(ePlayer).getTeam()), pkPlot->getPlotCity());
+	const int iResult = pkPlot->calculateNatureYield(eIndex, ePlayer, pkPlot->getFeatureType(), pkPlot->getResourceType(GET_PLAYER(ePlayer).getTeam()), pkPlot->getImprovementType(), pkPlot->getPlotCity());
 	lua_pushinteger(L, iResult);
 	return 1;
 }
@@ -1761,9 +1780,9 @@ int CvLuaPlot::lGetYieldWithBuild(lua_State* L)
 		const CvReligion* pReligion = (eMajority != NO_RELIGION) ? GC.getGame().GetGameReligions()->GetReligion(eMajority, pOwningCity->getOwner()) : 0;
 		const CvBeliefEntry* pBelief = (eSecondaryPantheon != NO_BELIEF) ? GC.GetGameBeliefs()->GetEntry(eSecondaryPantheon) : 0;
 		int iResult = pkPlot->getYieldWithBuild(eBuild, eYield, bUpgrade, NUM_ROUTE_TYPES, ePlayer, pOwningCity, pReligion, pBelief);
-#if defined(MOD_RELIGION_PERMANENT_PANTHEON)
+
 		// Mod for civs keeping their pantheon belief forever
-		if (MOD_RELIGION_PERMANENT_PANTHEON)
+		if (MOD_BALANCE_PERMANENT_PANTHEONS)
 		{
 			if (GC.getGame().GetGameReligions()->HasCreatedPantheon(pOwningCity->getOwner()))
 			{
@@ -1771,14 +1790,14 @@ int CvLuaPlot::lGetYieldWithBuild(lua_State* L)
 				BeliefTypes ePantheonBelief = GC.getGame().GetGameReligions()->GetBeliefInPantheon(pOwningCity->getOwner());
 				if (pPantheon != NULL && ePantheonBelief != NO_BELIEF && ePantheonBelief != eSecondaryPantheon)
 				{
-					if (pReligion == NULL || (pReligion != NULL && !pReligion->m_Beliefs.IsPantheonBeliefInReligion(ePantheonBelief, eMajority, pOwningCity->getOwner()))) // check that the our religion does not have our belief, to prevent double counting
+					if (pReligion == NULL || !pReligion->m_Beliefs.IsPantheonBeliefInReligion(ePantheonBelief, eMajority, pOwningCity->getOwner())) // check that the our religion does not have our belief, to prevent double counting
 					{
 						iResult += pkPlot->getYieldWithBuild(eBuild, eYield, bUpgrade, NUM_ROUTE_TYPES, ePlayer, pOwningCity, pPantheon, NULL);
 					}
 				}
 			}
 		}
-#endif
+
 		lua_pushinteger(L, iResult);
 		return 1;
 	}
@@ -2181,8 +2200,9 @@ int CvLuaPlot::lSetArchaeologicalRecord(lua_State* L)
 	EraTypes eEra = CvLuaArgs::toValue<EraTypes>(L, 3);
 	PlayerTypes ePlayer1 = CvLuaArgs::toValue<PlayerTypes>(L, 4);
 	PlayerTypes ePlayer2 = (PlayerTypes) luaL_optinteger(L, 5, NO_PLAYER);
+	const bool bIgnoreNormalRestrictions = luaL_optbool(L, 6, true);
 	
-	pPlot->SetArchaeologicalRecord(eType, eEra, ePlayer1, ePlayer2);
+	pPlot->SetArchaeologicalRecord(eType, eEra, ePlayer1, ePlayer2, bIgnoreNormalRestrictions);
 	return 0;
 }
 //------------------------------------------------------------------------------
@@ -2193,8 +2213,9 @@ int CvLuaPlot::lAddArchaeologicalRecord(lua_State* L)
 	EraTypes eEra = CvLuaArgs::toValue<EraTypes>(L, 3);
 	PlayerTypes ePlayer1 = CvLuaArgs::toValue<PlayerTypes>(L, 4);
 	PlayerTypes ePlayer2 = (PlayerTypes) luaL_optinteger(L, 5, NO_PLAYER);
+	const bool bIgnoreNormalRestrictions = luaL_optbool(L, 6, false);
 	
-	pPlot->AddArchaeologicalRecord(eType, eEra, ePlayer1, ePlayer2);
+	pPlot->AddArchaeologicalRecord(eType, eEra, ePlayer1, ePlayer2, bIgnoreNormalRestrictions);
 	return 0;
 }
 
@@ -2250,6 +2271,24 @@ int CvLuaPlot::lGetArchaeologyArtifactWork(lua_State* L)
 int CvLuaPlot::lHasWrittenArtifact(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvPlot::HasWrittenArtifact);
+}
+
+//------------------------------------------------------------------------------
+int CvLuaPlot::lIsEligibleForNormalDigSite(lua_State* L)
+{
+	CvPlot* kPlot = GetInstance(L);
+	bool bResult = kPlot->IsEligibleForNormalDigSite(false);
+	lua_pushboolean(L, bResult);
+	return 1;
+}
+
+//------------------------------------------------------------------------------
+int CvLuaPlot::lIsEligibleForHiddenDigSite(lua_State* L)
+{
+	CvPlot* kPlot = GetInstance(L);
+	bool bResult = kPlot->IsEligibleForHiddenDigSite(false);
+	lua_pushboolean(L, bResult);
+	return 1;
 }
 
 //------------------------------------------------------------------------------

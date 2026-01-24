@@ -73,7 +73,6 @@ public:
 	int GetLuxuryCopiesSiphonedFromMinor() const;
 	int GetCityStateExtraVote() const;
 	int GetHappinessOnConstruction() const;
-#if defined(MOD_BALANCE_CORE)
 	int GetResourceFromImprovement() const;
 	int GetResourceQuantityFromImprovement() const;
 	int GetUnitFreePromotion() const;
@@ -87,33 +86,23 @@ public:
 	bool IsRemovesSelf() const;
 	bool IsNewOwner() const;
 	bool IsOwnerOnly() const;
-#endif
 	int GetImprovementPillage() const;
 	void SetImprovementPillage(int i);
 	int GetImprovementUpgrade() const;
 	void SetImprovementUpgrade(int i);
 	int GetRequiresXAdjacentLand() const;
 	int GetRequiresXAdjacentWater() const;
-
-#if defined(MOD_GLOBAL_NO_FOLLOWUP_FROM_CITIES)
 	bool IsNoFollowUp() const;
-#endif
 
-#if defined(MOD_GLOBAL_RELOCATION)
 	bool IsAllowsRebaseTo() const;
 	bool IsAllowsAirliftFrom() const;
 	bool IsAllowsAirliftTo() const;
-#endif
 
 	bool IsBlockTileSteal() const;
 
 	bool IsHillsMakesValid() const;
-#if defined(MOD_GLOBAL_ALPINE_PASSES)
 	bool IsMountainsMakesValid() const;
-#endif
-#if defined(MOD_GLOBAL_PASSABLE_FORTS)
 	bool IsMakesPassable() const;
-#endif
 	bool IsWaterAdjacencyMakesValid() const;
 	bool IsFreshWaterMakesValid() const;
 	bool IsRiverSideMakesValid() const;
@@ -140,13 +129,11 @@ public:
 	bool IsIgnoreOwnership() const;
 	bool IsOnlyCityStateTerritory() const;
 	bool IsEmbassy() const;
-#if defined(MOD_BALANCE_CORE)
 	int GetObsoleteTech() const;
 	bool IsNoAdjacentCity() const;
 	bool IsAdjacentCity() const;
 	bool IsAdjacentLake() const;
 	int GetGrantsVision() const;
-#endif
 	bool IsNoTwoAdjacent() const;
 	int GetXSameAdjacentMakesValid() const;
 	bool IsAdjacentLuxury() const;
@@ -259,7 +246,6 @@ protected:
 	int m_iLuxuryCopiesSiphonedFromMinor;
 	int m_iImprovementLeagueVotes;
 	int m_iHappinessOnConstruction;
-#if defined(MOD_BALANCE_CORE)
 	int m_iImprovementResource;
 	int m_iImprovementResourceQuantity;
 	int m_iUnitFreePromotionImprovement;
@@ -273,30 +259,21 @@ protected:
 	bool m_bOwnerOnly;
 	int m_iMovesChange;
 	bool m_bRestoreMoves;
-#endif
 	int m_iImprovementPillage;
 	int m_iImprovementUpgrade;
 	int m_iRequiresXAdjacentLand;
 	int m_iRequiresXAdjacentWater;
-#if defined(MOD_GLOBAL_NO_FOLLOWUP_FROM_CITIES)
 	bool m_bNoFollowUp;
-#endif
 
-#if defined(MOD_GLOBAL_RELOCATION)
 	bool m_bAllowsRebaseTo;
 	bool m_bAllowsAirliftFrom;
 	bool m_bAllowsAirliftTo;
-#endif
 
 	bool m_bBlockTileSteal;
 
 	bool m_bHillsMakesValid;
-#if defined(MOD_GLOBAL_ALPINE_PASSES)
 	bool m_bMountainsMakesValid;
-#endif
-#if defined(MOD_GLOBAL_PASSABLE_FORTS)
 	bool m_bMakesPassable;
-#endif
 	bool m_bWaterAdjacencyMakesValid;
 	bool m_bFreshWaterMakesValid;
 	bool m_bRiverSideMakesValid;
@@ -323,13 +300,11 @@ protected:
 	bool m_bIgnoreOwnership;
 	bool m_bOnlyCityStateTerritory;
 	bool m_bIsEmbassy;
-#if defined(MOD_BALANCE_CORE)
 	int m_iGetObsoleteTech;
 	bool m_bNoAdjacentCity;
 	bool m_bAdjacentCity;
 	bool m_bAdjacentLake;
 	int m_iGrantsVision;
-#endif
 	bool m_bNoTwoAdjacent;
 	int m_iXSameAdjacentMakesValid;
 	bool m_bAdjacentLuxury;

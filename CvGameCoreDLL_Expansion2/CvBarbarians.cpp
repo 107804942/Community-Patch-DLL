@@ -301,7 +301,7 @@ void CvBarbarians::DoBarbCampCleared(CvPlot* pPlot, PlayerTypes ePlayer, CvUnit*
 		if (pBestCity)
 		{
 			int iNumGold = kPlayer.getHandicapInfo().getBarbarianCampGold();
-			iNumGold += kPlayer.isHuman() ? 0 : GC.getGame().getHandicapInfo().getAIBarbarianCampGold();
+			iNumGold += kPlayer.isHuman(ISHUMAN_HANDICAP) ? 0 : GC.getGame().getHandicapInfo().getAIBarbarianCampGold();
 			kPlayer.doInstantYield(INSTANT_YIELD_TYPE_BARBARIAN_CAMP_CLEARED, false, NO_GREATPERSON, NO_BUILDING, iNumGold, MOD_BALANCE_VP, NO_PLAYER, NULL, false, pBestCity, false, true, false, YIELD_GOLD, pUnit);
 
 			if (GET_PLAYER(ePlayer).GetPlayerPolicies()->GetNumericModifier(POLICYMOD_CULTURE_FROM_BARBARIAN_KILLS) > 0 || GET_PLAYER(ePlayer).GetBarbarianCombatBonus(true) > 0)
@@ -342,7 +342,7 @@ void CvBarbarians::DoBarbCampCleared(CvPlot* pPlot, PlayerTypes ePlayer, CvUnit*
 				CancelActivePlayerEndTurn();
 
 				//Increment Stat
-				if (MOD_API_ACHIEVEMENTS && kPlayer.isHuman() && !GC.getGame().isGameMultiPlayer())
+				if (MOD_ENABLE_ACHIEVEMENTS && kPlayer.isHuman(ISHUMAN_ACHIEVEMENTS) && !GC.getGame().isGameMultiPlayer())
 				{
 					gDLL->IncrementSteamStatAndUnlock(ESTEAMSTAT_BARBARIANCAMPS, 100, ACHIEVEMENT_100CAMPS);
 				}
@@ -383,7 +383,7 @@ void CvBarbarians::DoBarbCityCleared(CvPlot* pPlot)
 //return false if stealing is impossible and the unit should do something else instead
 bool CvBarbarians::DoStealFromCity(CvUnit* pUnit, CvCity* pCity)
 {
-	if (!MOD_BALANCE_CORE_BARBARIAN_THEFT)
+	if (!MOD_BALANCE_BARBARIAN_THEFT)
 		return false;
 
 	if (!pUnit || !pUnit->IsCanAttack() || !pCity)
@@ -735,26 +735,16 @@ void CvBarbarians::DoCamps()
 		if (iNumCampsToAdd <= 0)
 			continue;
 
-		// No camps on Improvements in Community Patch only, and no camps on embassies, GPTI or Landmarks
+		// No camps on Improvements in Community Patch only, and no camps on Ancient Ruins, Embassies, GPTI or Landmarks
 		if (eImprovement != NO_IMPROVEMENT)
 		{
+			if (!MOD_BALANCE_VP || eImprovement == eLandmark)
+				continue;
+
 			CvImprovementEntry* pkImprovementInfo = GC.getImprovementInfo(eImprovement);
-			if (pkImprovementInfo)
-			{
-				if (!MOD_BALANCE_VP)
-					continue;
-
-				if (eImprovement == eLandmark)
-					continue;
-
-				if (pkImprovementInfo->IsPermanent() || pkImprovementInfo->IsCreatedByGreatPerson())
-					continue;
-			}
+			if (pkImprovementInfo->IsGoody() || pkImprovementInfo->IsPermanent() || pkImprovementInfo->IsCreatedByGreatPerson())
+				continue;
 		}
-
-		// No camps on Ancient Ruins
-		if (pLoopPlot->isGoody())
-			continue;
 
 		// No camps on Natural Wonders
 		if (pLoopPlot->getFeatureType() != NO_FEATURE && GC.getFeatureInfo(pLoopPlot->getFeatureType())->isNoImprovement())
@@ -908,7 +898,7 @@ void CvBarbarians::DoCamps()
 	if (bInitialSpawning)
 	{
 		iNumInitialUnits = /*1 in CP, 2 in VP*/ GD_INT_GET(BARBARIAN_NUM_UNITS_INITIAL_ENCAMPMENT_CREATION_SPAWN);
-		iNumInitialUnits += kGame.isOption(GAMEOPTION_CHILL_BARBARIANS) ? /*-1*/ GD_INT_GET(BARBARIAN_NUM_UNITS_INITIAL_ENCAMPMENT_CREATION_SPAWN_CHILL) : 0;
+		iNumInitialUnits += kGame.isOption(GAMEOPTION_CHILL_BARBARIANS) ? /*0 in CP, -1 in VP*/ GD_INT_GET(BARBARIAN_NUM_UNITS_INITIAL_ENCAMPMENT_CREATION_SPAWN_CHILL) : 0;
 		iNumInitialUnits += kGame.isOption(GAMEOPTION_RAGING_BARBARIANS) ? /*0*/ GD_INT_GET(BARBARIAN_NUM_UNITS_INITIAL_ENCAMPMENT_CREATION_SPAWN_RAGING) : 0;
 		if (iEra > 0)
 			iNumInitialUnits += iEra * /*0*/ GD_INT_GET(BARBARIAN_NUM_UNITS_INITIAL_ENCAMPMENT_CREATION_SPAWN_PER_ERA) / 100;
@@ -916,7 +906,7 @@ void CvBarbarians::DoCamps()
 	else
 	{
 		iNumInitialUnits = /*1 in CP, 2 in VP*/ GD_INT_GET(BARBARIAN_NUM_UNITS_ENCAMPMENT_CREATION_SPAWN);
-		iNumInitialUnits += kGame.isOption(GAMEOPTION_CHILL_BARBARIANS) ? /*0*/ GD_INT_GET(BARBARIAN_NUM_UNITS_ENCAMPMENT_CREATION_SPAWN_CHILL) : 0;
+		iNumInitialUnits += kGame.isOption(GAMEOPTION_CHILL_BARBARIANS) ? /*0 in CP, -1 in VP*/ GD_INT_GET(BARBARIAN_NUM_UNITS_ENCAMPMENT_CREATION_SPAWN_CHILL) : 0;
 		iNumInitialUnits += kGame.isOption(GAMEOPTION_RAGING_BARBARIANS) ? /*0*/ GD_INT_GET(BARBARIAN_NUM_UNITS_ENCAMPMENT_CREATION_SPAWN_RAGING) : 0;
 		if (iEra > 0)
 			iNumInitialUnits += iEra * /*0*/ GD_INT_GET(BARBARIAN_NUM_UNITS_ENCAMPMENT_CREATION_SPAWN_PER_ERA) / 100;
@@ -1141,11 +1131,8 @@ void CvBarbarians::SpawnBarbarianUnits(CvPlot* pPlot, int iNumUnits, BarbSpawnRe
 		for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 		{
 			ResourceTypes eResource = (ResourceTypes)iResourceLoop;
-			if (eResource != NO_RESOURCE)
-			{
-				if (GET_PLAYER(eMajor).getNumResourceTotal(eResource) > 0)
-					vValidResources.push_back(eResource);
-			}
+			if (GET_PLAYER(eMajor).getNumResourceTotal(eResource) > 0)
+				vValidResources.push_back(eResource);
 		}
 	}
 	else if (eReason == BARB_SPAWN_HORDE_QUEST || eReason == BARB_SPAWN_CITY_STATE_CAPTURE)

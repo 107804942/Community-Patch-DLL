@@ -52,8 +52,8 @@ bool CvImprovementResourceInfo::isResourceTrade() const
 //------------------------------------------------------------------------------
 int CvImprovementResourceInfo::getYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYieldChange ? m_piYieldChange[i] : -1;
 }
 //------------------------------------------------------------------------------
@@ -66,9 +66,7 @@ CvImprovementEntry::CvImprovementEntry(void):
 	m_iCultureBombRadius(0),
 	m_iRequiresXAdjacentLand(-1),
 	m_iRequiresXAdjacentWater(-1),
-#if defined(MOD_GLOBAL_NO_FOLLOWUP_FROM_CITIES)
 	m_bNoFollowUp(false),
-#endif
 #if defined(MOD_GLOBAL_STACKING_RULES)
 	m_iAdditionalUnits(0),
 #endif
@@ -85,7 +83,6 @@ CvImprovementEntry::CvImprovementEntry(void):
 	m_iResourceExtractionMod(0),
 	m_iLuxuryCopiesSiphonedFromMinor(0),
 	m_iImprovementLeagueVotes(0),
-#if defined(MOD_BALANCE_CORE)
 	m_iHappinessOnConstruction(0),
 	m_iImprovementResource(NO_RESOURCE),
 	m_iImprovementResourceQuantity(0),
@@ -96,22 +93,15 @@ CvImprovementEntry::CvImprovementEntry(void):
 	m_eCreatesFeature(NO_FEATURE),
 	m_bNewOwner(false),
 	m_bOwnerOnly(true),
-#endif
 	m_iImprovementPillage(NO_IMPROVEMENT),
 	m_iImprovementUpgrade(NO_IMPROVEMENT),
-#if defined(MOD_GLOBAL_RELOCATION)
 	m_bAllowsRebaseTo(false),
 	m_bAllowsAirliftFrom(false),
 	m_bAllowsAirliftTo(false),
-#endif
 	m_bBlockTileSteal(false),
 	m_bHillsMakesValid(false),
-#if defined(MOD_GLOBAL_ALPINE_PASSES)
 	m_bMountainsMakesValid(false),
-#endif
-#if defined(MOD_GLOBAL_PASSABLE_FORTS)
 	m_bMakesPassable(false),
-#endif
 	m_bWaterAdjacencyMakesValid(false),
 	m_bFreshWaterMakesValid(false),
 	m_bRiverSideMakesValid(false),
@@ -138,7 +128,6 @@ CvImprovementEntry::CvImprovementEntry(void):
 	m_bIgnoreOwnership(false),
 	m_bOnlyCityStateTerritory(false),
 	m_bIsEmbassy(false),
-#if defined(MOD_BALANCE_CORE)
 	m_iGetObsoleteTech(NO_TECH),
 	m_bNoAdjacentCity(false),
 	m_bAdjacentCity(false),
@@ -146,7 +135,6 @@ CvImprovementEntry::CvImprovementEntry(void):
 	m_iGrantsVision(0),
 	m_iMovesChange(0),
 	m_bRestoreMoves(false),
-#endif
 	m_bNoTwoAdjacent(false),
 	m_iXSameAdjacentMakesValid(0),
 	m_bAdjacentLuxury(false),
@@ -277,25 +265,17 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	m_iCultureBombRadius = kResults.GetInt("CultureBombRadius");
 	m_iRequiresXAdjacentLand = kResults.GetInt("RequiresXAdjacentLand");
 	m_iRequiresXAdjacentWater = kResults.GetInt("RequiresXAdjacentWater");
-#if defined(MOD_GLOBAL_NO_FOLLOWUP_FROM_CITIES)
 	m_bNoFollowUp = kResults.GetBool("NoFollowUp");
-#endif
 #if defined(MOD_GLOBAL_STACKING_RULES)
 	m_iAdditionalUnits = kResults.GetInt("AdditionalUnits");
 #endif
-#if defined(MOD_GLOBAL_RELOCATION)
 	m_bAllowsRebaseTo = kResults.GetBool("AllowsRebaseTo");
 	m_bAllowsAirliftFrom = kResults.GetBool("AllowsAirliftFrom");
 	m_bAllowsAirliftTo = kResults.GetBool("AllowsAirliftTo");
-#endif
 	m_bBlockTileSteal = kResults.GetBool("BlockTileSteal");
 	m_bHillsMakesValid = kResults.GetBool("HillsMakesValid");
-#if defined(MOD_GLOBAL_ALPINE_PASSES)
 	m_bMountainsMakesValid = kResults.GetBool("MountainsMakesValid");
-#endif
-#if defined(MOD_GLOBAL_PASSABLE_FORTS)
 	m_bMakesPassable = kResults.GetBool("MakesPassable");
-#endif
 	m_bWaterAdjacencyMakesValid = kResults.GetBool("WaterAdjacencyMakesValid");
 	m_bFreshWaterMakesValid = kResults.GetBool("FreshWaterMakesValid");
 	m_bRiverSideMakesValid = kResults.GetBool("RiverSideMakesValid");
@@ -333,7 +313,6 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	m_bIgnoreOwnership = kResults.GetBool("IgnoreOwnership");
 	m_bOnlyCityStateTerritory = kResults.GetBool("OnlyCityStateTerritory");
 	m_bIsEmbassy = kResults.GetBool("IsEmbassy");
-#if defined(MOD_BALANCE_CORE)
 	const char* szObsoleteTech = kResults.GetText("ObsoleteTech");
 	m_iGetObsoleteTech = GC.getInfoTypeForString(szObsoleteTech, true);
 	m_bNoAdjacentCity = kResults.GetBool("NoAdjacentCity");
@@ -350,7 +329,6 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	m_bOwnerOnly = kResults.GetBool("OwnerOnly");
 	m_iMovesChange = kResults.GetInt("MovesChange");
 	m_bRestoreMoves = kResults.GetBool("RestoreMoves");
-#endif
 	m_bNoTwoAdjacent = kResults.GetBool("NoTwoAdjacent");
 	m_iXSameAdjacentMakesValid = kResults.GetInt("XSameAdjacentMakesValid");
 	m_bAdjacentLuxury = kResults.GetBool("AdjacentLuxury");
@@ -365,7 +343,6 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 
 	const char* szCivilizationType = kResults.GetText("CivilizationType");
 	m_eRequiredCivilization = (CivilizationTypes)GC.getInfoTypeForString(szCivilizationType, true);
-#if defined(MOD_BALANCE_CORE)
 	m_iHappinessOnConstruction = kResults.GetInt("HappinessOnConstruction");
 	const char* szImprovementResource = kResults.GetText("ImprovementResource");
 	m_iImprovementResource = (ResourceTypes)GC.getInfoTypeForString(szImprovementResource, true);
@@ -377,7 +354,6 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 		m_iUnitFreePromotionImprovement = GC.getInfoTypeForString(szTextVal, true);
 	}
 	m_iWonderProductionModifier = kResults.GetInt("WonderProductionModifier");
-#endif
 	//References
 	const char* szWorldsoundscapeAudioScript = kResults.GetText("WorldSoundscapeAudioScript");
 	if(szWorldsoundscapeAudioScript != NULL)
@@ -532,15 +508,15 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 		while (pResults->Step())
 		{
 			const YieldTypes yield_idx = YieldTypes(pResults->GetInt(0));
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const ImprovementTypes improvement_idx = ImprovementTypes(pResults->GetInt(1));
-			ASSERT_DEBUG(improvement_idx > -1);
+			PRECONDITION(improvement_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 			
 			const int nRequired = pResults->GetInt(3);
-			ASSERT_DEBUG(nRequired > 0);
+			ASSERT(nRequired > 0);
 
 			m_YieldPerXAdjacentImprovement[yield_idx][improvement_idx] += fraction(yield, nRequired);
 		}
@@ -562,15 +538,15 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 		while (pResults->Step())
 		{
 			const YieldTypes yield_idx = YieldTypes(pResults->GetInt(0));
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const TerrainTypes terrain_idx = TerrainTypes(pResults->GetInt(1));
-			ASSERT_DEBUG(terrain_idx > -1);
+			PRECONDITION(terrain_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 
 			const int nRequired = pResults->GetInt(3);
-			ASSERT_DEBUG(nRequired > 0);
+			ASSERT(nRequired > 0);
 
 			m_YieldPerXAdjacentTerrain[yield_idx][terrain_idx] += fraction(yield, nRequired);
 		}
@@ -581,7 +557,7 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	//m_ppiAdjacentResourceYieldChanges
 	{
 		const int iNumResources = kUtility.MaxRows("Resources");
-		ASSERT_DEBUG(iNumResources > 0, "Num Resource Infos <= 0");
+		ASSERT(iNumResources > 0, "Num Resource Infos <= 0");
 		kUtility.Initialize2DArray(m_ppiAdjacentResourceYieldChanges, iNumResources, iNumYields);
 
 		std::string strKey = "Improvements - AdjacentResourceYieldChanges";
@@ -596,10 +572,10 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 		while(pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int resource_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(resource_idx > -1);
+			PRECONDITION(resource_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 
@@ -611,7 +587,7 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	//m_ppiAdjacentTerrainYieldChanges
 	{
 		const int iNumTerrains = kUtility.MaxRows("Terrains");
-		ASSERT_DEBUG(iNumTerrains > 0, "Num Terrain Infos <= 0");
+		ASSERT(iNumTerrains > 0, "Num Terrain Infos <= 0");
 		kUtility.Initialize2DArray(m_ppiAdjacentTerrainYieldChanges, iNumTerrains, iNumYields);
 
 		std::string strKey = "Terrains - AdjacentTerrainYieldChanges";
@@ -626,10 +602,10 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 		while(pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int terrain_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(terrain_idx > -1);
+			PRECONDITION(terrain_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 
@@ -642,7 +618,7 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	//m_ppiAdjacentFeatureYieldChanges
 	{
 		const int iNumFeatures = kUtility.MaxRows("Features");
-		ASSERT_DEBUG(iNumFeatures > 0, "Num Feature Infos <= 0");
+		ASSERT(iNumFeatures > 0, "Num Feature Infos <= 0");
 		kUtility.Initialize2DArray(m_ppiAdjacentFeatureYieldChanges, iNumFeatures, iNumYields);
 
 		std::string strKey = "Features - AdjacentFeatureYieldChanges";
@@ -657,10 +633,10 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 		while (pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int feature_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(feature_idx > -1);
+			PRECONDITION(feature_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 
@@ -673,7 +649,7 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	//m_ppiFeatureYieldChanges
 	{
 		const int iNumFeatures = kUtility.MaxRows("Features");
-		ASSERT_DEBUG(iNumFeatures > 0, "Num Feature Infos <= 0");
+		ASSERT(iNumFeatures > 0, "Num Feature Infos <= 0");
 		kUtility.Initialize2DArray(m_ppiFeatureYieldChanges, iNumFeatures, iNumYields);
 
 		std::string strKey = "Features - FeatureYieldChanges";
@@ -688,10 +664,10 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 		while (pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int feature_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(feature_idx > -1);
+			PRECONDITION(feature_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 
@@ -702,7 +678,7 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 	}
 	
 	const int iNumTechs = GC.getNumTechInfos();
-	ASSERT_DEBUG(iNumTechs > 0, "Num Tech Infos <= 0");
+	ASSERT(iNumTechs > 0, "Num Tech Infos <= 0");
 
 	//TechYieldChanges
 	{
@@ -720,10 +696,10 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 		while(pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int tech_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(tech_idx > -1);
+			PRECONDITION(tech_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 
@@ -747,10 +723,10 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 		while(pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int tech_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(tech_idx > -1);
+			PRECONDITION(tech_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 
@@ -777,10 +753,10 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 		while(pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int tech_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(tech_idx > -1);
+			PRECONDITION(tech_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 
@@ -808,10 +784,10 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 		while(pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int route_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(route_idx > -1);
+			PRECONDITION(route_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 
@@ -839,10 +815,10 @@ bool CvImprovementEntry::CacheResults(Database::Results& kResults, CvDatabaseUti
 		while (pResults->Step())
 		{
 			const int yield_idx = pResults->GetInt(0);
-			ASSERT_DEBUG(yield_idx > -1);
+			PRECONDITION(yield_idx > -1);
 
 			const int accomplishment_idx = pResults->GetInt(1);
-			ASSERT_DEBUG(accomplishment_idx > -1);
+			PRECONDITION(accomplishment_idx > -1);
 
 			const int yield = pResults->GetInt(2);
 
@@ -880,13 +856,11 @@ int CvImprovementEntry::GetRequiresXAdjacentWater() const
 	return m_iRequiresXAdjacentWater;
 }
 
-#if defined(MOD_GLOBAL_NO_FOLLOWUP_FROM_CITIES)
 /// Units that stand on this improvement don't leave it when they attack (like from a city)
 bool CvImprovementEntry::IsNoFollowUp() const
 {
 	return m_bNoFollowUp;
 }
-#endif
 
 #if defined(MOD_GLOBAL_STACKING_RULES)
 /// Additional units that can stack in this improvement
@@ -899,10 +873,10 @@ int CvImprovementEntry::GetAdditionalUnits() const
 /// Bonus yield if another improvement is adjacent
 fraction CvImprovementEntry::GetYieldPerXAdjacentImprovement(YieldTypes eYield, ImprovementTypes eImprovement) const
 {
-	ASSERT_DEBUG(eImprovement < GC.getNumImprovementInfos(), "Index out of bounds");
-	ASSERT_DEBUG(eImprovement > -1, "Index out of Bounds");
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield > -1, "Index out of bounds");
+	PRECONDITION(eImprovement < GC.getNumImprovementInfos(), "Index out of bounds");
+	PRECONDITION(eImprovement > -1, "Index out of Bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield > -1, "Index out of bounds");
 
 	fraction fYield = 0;
 	map<YieldTypes, map<ImprovementTypes, fraction>>::const_iterator itImprovement = m_YieldPerXAdjacentImprovement.find(eYield);
@@ -918,8 +892,8 @@ fraction CvImprovementEntry::GetYieldPerXAdjacentImprovement(YieldTypes eYield, 
 }
 bool CvImprovementEntry::IsYieldPerXAdjacentImprovement(YieldTypes eYield) const
 {
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield >= -1, "Index out of bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield >= -1, "Index out of bounds");
 	
 	if (eYield == NO_YIELD)
 		return !m_YieldPerXAdjacentImprovement.empty();
@@ -932,10 +906,10 @@ bool CvImprovementEntry::IsYieldPerXAdjacentImprovement(YieldTypes eYield) const
 /// Bonus yield if a terrain is adjacent
 fraction CvImprovementEntry::GetYieldPerXAdjacentTerrain(YieldTypes eYield, TerrainTypes eTerrain) const
 {
-	ASSERT_DEBUG(eTerrain < NUM_TERRAIN_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eTerrain > -1, "Index out of Bounds");
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield > -1, "Index out of bounds");
+	PRECONDITION(eTerrain < NUM_TERRAIN_TYPES, "Index out of bounds");
+	PRECONDITION(eTerrain > -1, "Index out of Bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield > -1, "Index out of bounds");
 
 	fraction fYield = 0;
 	map<YieldTypes, map<TerrainTypes, fraction>>::const_iterator itTerrain = m_YieldPerXAdjacentTerrain.find(eYield);
@@ -951,8 +925,8 @@ fraction CvImprovementEntry::GetYieldPerXAdjacentTerrain(YieldTypes eYield, Terr
 }
 bool CvImprovementEntry::IsYieldPerXAdjacentTerrain(YieldTypes eYield) const
 {
-	ASSERT_DEBUG(eYield < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(eYield >= -1, "Index out of bounds");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(eYield >= -1, "Index out of bounds");
 
 	if (eYield == NO_YIELD)
 		return !m_YieldPerXAdjacentTerrain.empty();
@@ -1122,7 +1096,6 @@ void CvImprovementEntry::SetImprovementUpgrade(int i)
 	m_iImprovementUpgrade = i;
 }
 
-#if defined(MOD_GLOBAL_RELOCATION)
 bool CvImprovementEntry::IsAllowsRebaseTo() const
 {
 	return m_bAllowsRebaseTo;
@@ -1137,7 +1110,6 @@ bool CvImprovementEntry::IsAllowsAirliftTo() const
 {
 	return m_bAllowsAirliftTo;
 }
-#endif
 
 bool CvImprovementEntry::IsBlockTileSteal() const
 {
@@ -1150,21 +1122,17 @@ bool CvImprovementEntry::IsHillsMakesValid() const
 	return m_bHillsMakesValid;
 }
 
-#if defined(MOD_GLOBAL_ALPINE_PASSES)
 /// Requires mountains to be constructed
 bool CvImprovementEntry::IsMountainsMakesValid() const
 {
 	return m_bMountainsMakesValid;
 }
-#endif
 
-#if defined(MOD_GLOBAL_PASSABLE_FORTS)
 /// Permits the tile to be passed by ships
 bool CvImprovementEntry::IsMakesPassable() const
 {
 	return m_bMakesPassable;
 }
-#endif
 
 // Requires any body of water to build
 bool CvImprovementEntry::IsWaterAdjacencyMakesValid() const
@@ -1314,7 +1282,6 @@ bool CvImprovementEntry::IsEmbassy() const
 {
 	return m_bIsEmbassy;
 }
-#if defined(MOD_BALANCE_CORE)
 int CvImprovementEntry::GetObsoleteTech() const
 {
 	return m_iGetObsoleteTech;
@@ -1335,7 +1302,6 @@ int CvImprovementEntry::GetGrantsVision() const
 {
 	return m_iGrantsVision;
 }
-#endif
 /// Can this improvement not be built adjacent to another one of the same type?
 bool CvImprovementEntry::IsNoTwoAdjacent() const
 {
@@ -1421,16 +1387,16 @@ int CvImprovementEntry::GetWorldSoundscapeScriptId() const
 /// What resource is required to build this improvement?
 int CvImprovementEntry::GetResourceQuantityRequirement(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piResourceQuantityRequirements ? m_piResourceQuantityRequirements[i] : -1;
 }
 
 /// How much of a resource yield is required before this improvement can be built
 int CvImprovementEntry::GetPrereqNatureYield(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piPrereqNatureYield ? m_piPrereqNatureYield[i] : -1;
 }
 
@@ -1442,8 +1408,8 @@ int* CvImprovementEntry::GetPrereqNatureYieldArray()
 /// How much this improvement improves a certain yield
 int CvImprovementEntry::GetYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYieldChange ? m_piYieldChange[i] : 0;
 }
 
@@ -1455,16 +1421,16 @@ int* CvImprovementEntry::GetYieldChangeArray()
 /// How much this improvement improves a certain yield for each era of age
 int CvImprovementEntry::GetYieldChangePerEra(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYieldPerEra ? m_piYieldPerEra[i] : 0;
 }
 
 // How much the city having a We Love the King Day improves the yield of this improvement
 int CvImprovementEntry::GetWLTKDYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piWLTKDYieldChange ? m_piWLTKDYieldChange[i] : 0;	
 }
 
@@ -1476,8 +1442,8 @@ int* CvImprovementEntry::GetWLTKDYieldChangeArray()
 // How much the city having a Golden Age improves the yield of this improvement
 int CvImprovementEntry::GetGoldenAgeYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piGoldenAgeYieldChange ? m_piGoldenAgeYieldChange[i] : 0;
 }
 
@@ -1489,8 +1455,8 @@ int* CvImprovementEntry::GetGoldenAgeYieldChangeArray()
 /// How much being next to a river improves the yield of this improvement
 int CvImprovementEntry::GetRiverSideYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piRiverSideYieldChange ? m_piRiverSideYieldChange[i] : 0;
 }
 
@@ -1502,8 +1468,8 @@ int* CvImprovementEntry::GetRiverSideYieldChangeArray()
 /// How much being on a coastal tile improves the yield of this improvement
 int CvImprovementEntry::GetCoastalLandYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piCoastalLandYieldChange ? m_piCoastalLandYieldChange[i] : 0;
 }
 
@@ -1515,8 +1481,8 @@ int* CvImprovementEntry::GetCoastalLandYieldChangeArray()
 /// How much being on a hill tile improves the yield of this improvement
 int CvImprovementEntry::GetHillsYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piHillsYieldChange ? m_piHillsYieldChange[i] : 0;
 }
 
@@ -1528,8 +1494,8 @@ int* CvImprovementEntry::GetHillsYieldChangeArray()
 /// How much having access to fresh water improves the yield of this improvement
 int CvImprovementEntry::GetFreshWaterYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piFreshWaterChange ? m_piFreshWaterChange[i] : 0;
 }
 
@@ -1541,8 +1507,8 @@ int* CvImprovementEntry::GetFreshWaterYieldChangeArray() // For Moose - CvWidget
 /// How much being adjacent to a city improves the yield of this improvement
 int CvImprovementEntry::GetAdjacentCityYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piAdjacentCityYieldChange ? m_piAdjacentCityYieldChange[i] : 0;
 }
 
@@ -1554,8 +1520,8 @@ int* CvImprovementEntry::GetAdjacentCityYieldChangeArray()
 /// How much being adjacent to a mountain improves the yield of this improvement
 int CvImprovementEntry::GetAdjacentMountainYieldChange(int i) const
 {
-	ASSERT_DEBUG(i < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piAdjacentMountainYieldChange ? m_piAdjacentMountainYieldChange[i] : 0;
 }
 
@@ -1567,34 +1533,34 @@ int* CvImprovementEntry::GetAdjacentMountainYieldChangeArray()
 /// If this improvement requires a terrain type to be valid
 bool CvImprovementEntry::GetTerrainMakesValid(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumTerrainInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTerrainInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbTerrainMakesValid ? m_pbTerrainMakesValid[i] : false;
 }
 
 /// If this improvement requires a feature to be valid
 bool CvImprovementEntry::GetFeatureMakesValid(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbFeatureMakesValid ? m_pbFeatureMakesValid[i] : false;
 }
 
 /// If this improvement requires a different improvement to be valid
 bool CvImprovementEntry::GetImprovementMakesValid(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumImprovementInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumImprovementInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_pbImprovementMakesValid ? m_pbImprovementMakesValid[i] : false;
 }
 
 /// How much an improvement yields if built next to a resource
 int CvImprovementEntry::GetAdjacentResourceYieldChanges(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiAdjacentResourceYieldChanges[i][j];
 }
 
@@ -1606,10 +1572,10 @@ int* CvImprovementEntry::GetAdjacentResourceYieldChangesArray(int i)
 /// How much bonus yields an improvement gives to adjacent tiles with a certain terrain
 int CvImprovementEntry::GetAdjacentTerrainYieldChanges(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumTerrainInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTerrainInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiAdjacentTerrainYieldChanges[i][j];
 }
 
@@ -1621,10 +1587,10 @@ int* CvImprovementEntry::GetAdjacentTerrainYieldChangesArray(int i)
 /// How much an improvement yields if built next to a feature
 int CvImprovementEntry::GetAdjacentFeatureYieldChanges(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiAdjacentFeatureYieldChanges[i][j];
 }
 
@@ -1635,10 +1601,10 @@ int* CvImprovementEntry::GetAdjacentFeatureYieldChangesArray(int i)
 
 int CvImprovementEntry::GetFeatureYieldChanges(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumFeatureInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiFeatureYieldChanges[i][j];
 }
 int* CvImprovementEntry::GetFeatureYieldChangesArray(int i)
@@ -1649,10 +1615,10 @@ int* CvImprovementEntry::GetFeatureYieldChangesArray(int i)
 /// How much a tech improves the yield of this improvement
 int CvImprovementEntry::GetTechYieldChanges(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumTechInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTechInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiTechYieldChanges[i][j];
 }
 
@@ -1664,10 +1630,10 @@ int* CvImprovementEntry::GetTechYieldChangesArray(int i)
 /// How much a tech improves the yield of this improvement if it DOES NOT have fresh water
 int CvImprovementEntry::GetTechNoFreshWaterYieldChanges(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumTechInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTechInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiTechNoFreshWaterYieldChanges[i][j];
 }
 
@@ -1679,10 +1645,10 @@ int* CvImprovementEntry::GetTechNoFreshWaterYieldChangesArray(int i)
 /// How much a tech improves the yield of this improvement if it has fresh water
 int CvImprovementEntry::GetTechFreshWaterYieldChanges(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumTechInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumTechInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiTechFreshWaterYieldChanges[i][j];
 }
 
@@ -1694,10 +1660,10 @@ int* CvImprovementEntry::GetTechFreshWaterYieldChangesArray(int i)
 /// How much a type of route improves the yield of this improvement
 int CvImprovementEntry::GetRouteYieldChanges(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumRouteInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumRouteInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiRouteYieldChanges[i][j];
 }
 
@@ -1709,10 +1675,10 @@ int* CvImprovementEntry::GetRouteYieldChangesArray(int i)				// For Moose - CvWi
 /// Improvement yields from completing accomplishments
 int CvImprovementEntry::GetAccomplishmentYieldChanges(int i, int j) const
 {
-	ASSERT_DEBUG(i < NUM_ACCOMPLISHMENTS_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_ACCOMPLISHMENTS_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_ppiAccomplishmentYieldChanges[i][j];
 }
 
@@ -1724,33 +1690,33 @@ int* CvImprovementEntry::GetAccomplishmentYieldChangesArray(int i)				// For Moo
 /// How much a yield improves when a resource is present with the improvement
 int CvImprovementEntry::GetImprovementResourceYield(int i, int j) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
-	ASSERT_DEBUG(j < NUM_YIELD_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(j > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(j > -1, "Index out of bounds");
 	return m_paImprovementResource[i].m_piYieldChange ? m_paImprovementResource[i].getYieldChange(j) : 0;
 }
 
 /// What resources does this improvement require to be built
 bool CvImprovementEntry::IsImprovementResourceMakesValid(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_paImprovementResource[i].m_bResourceMakesValid;
 }
 
 /// Does this improvement enable a tradeable resource
 bool CvImprovementEntry::IsImprovementResourceTrade(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_paImprovementResource[i].m_bResourceTrade;
 }
 
 bool CvImprovementEntry::IsConnectsResource(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	ASSERT(i < GC.getNumResourceInfos(), "Index out of bounds");
+	ASSERT(i > -1, "Index out of bounds");
 	if (i >= 0 && i < GC.getNumResourceInfos())
 	{
 		if (m_paImprovementResource[i].m_bResourceTrade)
@@ -1771,32 +1737,32 @@ ResourceTypes CvImprovementEntry::SpawnsAdjacentResource() const
 /// the chance of the specified Resource appearing randomly when the Improvement is present with no current Resource
 int CvImprovementEntry::GetImprovementResourceDiscoverRand(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumResourceInfos(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumResourceInfos(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_paImprovementResource[i].m_iDiscoverRand;
 }
 
 /// Gets the flavor value of the improvement
 int CvImprovementEntry::GetFlavorValue(int i) const
 {
-	ASSERT_DEBUG(i < GC.getNumFlavorTypes(), "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < GC.getNumFlavorTypes(), "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piFlavorValue[i];
 }
 
 // Production modifier from improvement for given domain
 int CvImprovementEntry::GetDomainProductionModifier(int i) const
 {
-	ASSERT_DEBUG(i < NUM_DOMAIN_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_DOMAIN_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piDomainProductionModifier[i];
 }
 
 // Free unit experience from improvement for given domain
 int CvImprovementEntry::GetDomainFreeExperience(int i) const
 {
-	ASSERT_DEBUG(i < NUM_DOMAIN_TYPES, "Index out of bounds");
-	ASSERT_DEBUG(i > -1, "Index out of bounds");
+	PRECONDITION(i < NUM_DOMAIN_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piDomainFreeExperience[i];
 }
 
@@ -1883,7 +1849,7 @@ void ImprovementArrayHelpers::Read(FDataStream& kStream, int* paiImprovementArra
 				CvString szError;
 				szError.Format("LOAD ERROR: Improvement Type not found");
 				GC.LogMessage(szError.GetCString());
-				ASSERT_DEBUG(false, szError);
+				ASSERT(false, szError);
 
 				int iDummy = 0;
 				kStream >> iDummy;
@@ -1939,7 +1905,7 @@ void ImprovementArrayHelpers::ReadYieldArray(FDataStream& kStream, int** ppaaiIm
 				CvString szError;
 				szError.Format("LOAD ERROR: Improvement Type not found: %08x", iHash);
 				GC.LogMessage(szError.GetCString());
-				ASSERT_DEBUG(false, szError);
+				ASSERT(false, szError);
 
 				for(int jJ = 0; jJ < iNumYields; jJ++)
 				{

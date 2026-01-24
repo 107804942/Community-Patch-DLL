@@ -10,10 +10,8 @@
 #include "CvPolicyAI.h"
 #include "CvGrandStrategyAI.h"
 #include "CvInfosSerializationHelper.h"
-#if defined(MOD_BALANCE_CORE)
 #include "CvTypes.h"
 #include "CvEconomicAI.h"
-#endif
 
 // Include this after all other headers.
 #include "LintFree.h"
@@ -36,11 +34,11 @@ void CvPolicyAI::Reset()
 	m_iPolicyWeightPropagationLevels = /*2*/ GD_INT_GET(POLICY_WEIGHT_PROPAGATION_LEVELS);
 	m_iPolicyWeightPercentDropNewBranch = /*90*/ max(GD_INT_GET(POLICY_WEIGHT_PERCENT_DROP_NEW_BRANCH), 0);
 
-	ASSERT_DEBUG(m_pCurrentPolicies != NULL, "Policy AI init failure: player policy data is NULL");
+	ASSERT(m_pCurrentPolicies != NULL, "Policy AI init failure: player policy data is NULL");
 	if(m_pCurrentPolicies != NULL)
 	{
 		CvPolicyXMLEntries* pPolicyEntries = m_pCurrentPolicies->GetPolicies();
-		ASSERT_DEBUG(pPolicyEntries != NULL, "Policy AI init failure: no policy data");
+		ASSERT(pPolicyEntries != NULL, "Policy AI init failure: no policy data");
 		if(pPolicyEntries != NULL)
 		{
 			// Loop through reading each one and add an entry with 0 weight to our vector
@@ -283,13 +281,9 @@ void CvPolicyAI::DoChooseIdeology(CvPlayer *pPlayer)
 	PolicyBranchTypes eFreedomBranch = (PolicyBranchTypes)GD_INT_GET(POLICY_BRANCH_FREEDOM);
 	PolicyBranchTypes eAutocracyBranch = (PolicyBranchTypes)GD_INT_GET(POLICY_BRANCH_AUTOCRACY);
 	PolicyBranchTypes eOrderBranch = (PolicyBranchTypes)GD_INT_GET(POLICY_BRANCH_ORDER);
-#if defined(MOD_ISKA_HERITAGE)
 	PolicyBranchTypes eHeritageBranch = (PolicyBranchTypes)GD_INT_GET(POLICY_BRANCH_HERITAGE);
-#endif
 	if (eFreedomBranch == NO_POLICY_BRANCH_TYPE || eAutocracyBranch == NO_POLICY_BRANCH_TYPE || eOrderBranch == NO_POLICY_BRANCH_TYPE)
-	{
 		return;
-	}
 
 	// Vassals are forced to choose the master's ideology
 	TeamTypes eMasterTeam = GET_TEAM(pPlayer->getTeam()).GetMaster();
@@ -328,7 +322,7 @@ void CvPolicyAI::DoChooseIdeology(CvPlayer *pPlayer)
 		if (!GET_PLAYER(eTeamMember).isAlive() || GET_PLAYER(eTeamMember).getNumCities() == 0)
 			continue;
 
-		if (GET_PLAYER(eTeamMember).isHuman()) // AI shall bow before the human even if they're a weakling!
+		if (GET_PLAYER(eTeamMember).isHuman(ISHUMAN_AI_DIPLOMACY)) // AI shall bow before the human even if they're a weakling!
 		{
 			eTeamLeader = eTeamMember;
 			break;
@@ -413,26 +407,23 @@ void CvPolicyAI::DoChooseIdeology(CvPlayer *pPlayer)
 	int iTechPriority = iScienceInterest;
 	int iCulturePriority = iCultureInterest;
 
-#if defined(MOD_EVENTS_IDEOLOGIES)
-	if (MOD_EVENTS_IDEOLOGIES) {
+	if (MOD_EVENTS_IDEOLOGIES)
+	{
 		CvPlayerPolicies* pPolicies = pPlayer->GetPlayerPolicies();
 
 		// Just jump on the band-wagon and hard code for three ideologies!!!
-		if (!pPolicies->CanAdoptIdeology(eFreedomBranch)) {
+		if (!pPolicies->CanAdoptIdeology(eFreedomBranch))
 			iFreedomMultiplier = 0;
-		}
-		if (!pPolicies->CanAdoptIdeology(eAutocracyBranch)) {
-			iAutocracyMultiplier = 0;
-		}
-		if (!pPolicies->CanAdoptIdeology(eOrderBranch)) {
-			iOrderMultiplier = 0;
-		}
-	}
-#endif
 
-#if defined(MOD_EVENTS_IDEOLOGIES)
-	if (iFreedomMultiplier != 0 && iAutocracyMultiplier != 0 && iOrderMultiplier != 0) {
-#endif
+		if (!pPolicies->CanAdoptIdeology(eAutocracyBranch))
+			iAutocracyMultiplier = 0;
+
+		if (!pPolicies->CanAdoptIdeology(eOrderBranch))
+			iOrderMultiplier = 0;
+	}
+
+	if (iFreedomMultiplier != 0 && iAutocracyMultiplier != 0 && iOrderMultiplier != 0)
+	{
 		// Rule out one ideology if we are clearly (at least 25% more priority) going for the victory this ideology doesn't support
 		int iClearPrefPercent = /*25*/ GD_INT_GET(IDEOLOGY_PERCENT_CLEAR_VICTORY_PREF);
 		if (iConquestPriority > (iDiploPriority   * (100 + iClearPrefPercent) / 100) &&
@@ -453,9 +444,7 @@ void CvPolicyAI::DoChooseIdeology(CvPlayer *pPlayer)
 		{
 			iAutocracyMultiplier = 0;
 		}
-#if defined(MOD_EVENTS_IDEOLOGIES)
 	}
-#endif
 
 	int iFreedomTotal = iDiploPriority + iTechPriority + iCulturePriority;
 	int iAutocracyTotal = iDiploPriority + iConquestPriority + iCulturePriority;
@@ -767,10 +756,10 @@ void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 				PolicyBranchTypes eMasterIdeology = GET_PLAYER(eMaster).GetPlayerPolicies()->GetLateGamePolicyTree();
 				if (eMasterIdeology != NO_POLICY_BRANCH_TYPE && eMasterIdeology != eCurrentIdeology)
 				{
-					if (MOD_API_ACHIEVEMENTS && eMasterIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
+					if (MOD_ENABLE_ACHIEVEMENTS && eMasterIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
 					{
 						PlayerTypes eActivePlayer = GC.getGame().getActivePlayer();
-						if (GET_PLAYER(eActivePlayer).isAlive() && GET_PLAYER(eActivePlayer).isHuman() && GET_PLAYER(eActivePlayer).getTeam() == eMasterTeam)
+						if (GET_PLAYER(eActivePlayer).isAlive() && GET_PLAYER(eActivePlayer).isHuman(ISHUMAN_ACHIEVEMENTS) && GET_PLAYER(eActivePlayer).getTeam() == eMasterTeam)
 						{
 							gDLL->UnlockAchievement(ACHIEVEMENT_XP2_39);
 						}
@@ -789,7 +778,7 @@ void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 	}
 
 	// Humans halt here!
-	if (pPlayer->isHuman())
+	if (pPlayer->isHuman(ISHUMAN_AI_DIPLOMACY))
 		return;
 
 	int iPublicOpinionUnhappiness = pPlayer->GetCulture()->GetPublicOpinionUnhappiness();
@@ -850,7 +839,7 @@ void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 			if (!GET_PLAYER(eTeamMember).isAlive() || GET_PLAYER(eTeamMember).getNumCities() == 0)
 				continue;
 
-			if (GET_PLAYER(eTeamMember).isHuman()) // AI shall bow before the human even if they're a weakling!
+			if (GET_PLAYER(eTeamMember).isHuman(ISHUMAN_AI_DIPLOMACY)) // AI shall bow before the human even if they're a weakling!
 			{
 				eTeamLeader = eTeamMember;
 				break;
@@ -891,7 +880,7 @@ void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 			return;
 		}
 
-		if (MOD_API_ACHIEVEMENTS && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
+		if (MOD_ENABLE_ACHIEVEMENTS && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
 		{
 			PlayerTypes eMostPressure = pPlayer->GetCulture()->GetPublicOpinionBiggestInfluence();
 			if (eMostPressure != NO_PLAYER && GET_PLAYER(eMostPressure).GetID() == GC.getGame().getActivePlayer())
@@ -929,7 +918,7 @@ void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 
 		if (bSwitch)
 		{
-			if (MOD_API_ACHIEVEMENTS && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
+			if (MOD_ENABLE_ACHIEVEMENTS && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
 			{
 				PlayerTypes eMostPressure = pPlayer->GetCulture()->GetPublicOpinionBiggestInfluence();
 				if (eMostPressure != NO_PLAYER && GET_PLAYER(eMostPressure).GetID() == GC.getGame().getActivePlayer())
@@ -998,7 +987,7 @@ void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 			return;
 		}
 
-		if (MOD_API_ACHIEVEMENTS && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
+		if (MOD_ENABLE_ACHIEVEMENTS && ePreferredIdeology == GD_INT_GET(POLICY_BRANCH_FREEDOM) && eCurrentIdeology == GD_INT_GET(POLICY_BRANCH_ORDER))
 		{
 			PlayerTypes eMostPressure = pPlayer->GetCulture()->GetPublicOpinionBiggestInfluence();
 			if (eMostPressure != NO_PLAYER && GET_PLAYER(eMostPressure).GetID() == GC.getGame().getActivePlayer())
@@ -1957,7 +1946,6 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 			yield[YIELD_FOOD] += PolicyInfo->GetHappinessPerXGreatWorks() * 5;
 		}
 	}
-#if defined(MOD_BALANCE_CORE_POLICIES)
 	if (PolicyInfo->GetExtraMissionaryStrength() != 0)
 	{
 		if (pPlayerTraits->IsReligious())
@@ -1981,7 +1969,7 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 			yield[YIELD_FAITH] += PolicyInfo->GetExtraMissionarySpreads() * 5;
 		}
 	}
-#endif
+
 	if (PolicyInfo->GetExtraHappinessPerLuxury() != 0)
 	{
 		if (pPlayerTraits->IsExpansionist() || pPlayerTraits->IsDiplomat())
@@ -3044,114 +3032,114 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 			}
 		}
 	}
-	if (PolicyInfo->GetDistressFlatReductionGlobal() != 0)
+	if (PolicyInfo->GetDistressFlatReduction() != 0)
 	{
 		if (pPlayerTraits->IsExpansionist() || pPlayer->GetUnhappinessFromDistress() > 0)
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetDistressFlatReductionGlobal() * 100;
+			yield[YIELD_FOOD] += PolicyInfo->GetDistressFlatReduction() * 100;
 		}
 		else
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetDistressFlatReductionGlobal() * 50;
+			yield[YIELD_FOOD] += PolicyInfo->GetDistressFlatReduction() * 50;
 		}
 	}
-	if (PolicyInfo->GetPovertyFlatReductionGlobal() != 0)
+	if (PolicyInfo->GetPovertyFlatReduction() != 0)
 	{
 		if (pPlayerTraits->IsExpansionist() || pPlayer->GetUnhappinessFromPoverty() > 0)
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetPovertyFlatReductionGlobal() * 40;
+			yield[YIELD_FOOD] += PolicyInfo->GetPovertyFlatReduction() * 40;
 		}
 		else
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetPovertyFlatReductionGlobal() * 20;
+			yield[YIELD_FOOD] += PolicyInfo->GetPovertyFlatReduction() * 20;
 		}
 	}
-	if (PolicyInfo->GetIlliteracyFlatReductionGlobal() != 0)
+	if (PolicyInfo->GetIlliteracyFlatReduction() != 0)
 	{
 		if (pPlayerTraits->IsExpansionist() || pPlayer->GetUnhappinessFromIlliteracy() > 0)
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetIlliteracyFlatReductionGlobal() * 100;
+			yield[YIELD_FOOD] += PolicyInfo->GetIlliteracyFlatReduction() * 100;
 		}
 		else
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetIlliteracyFlatReductionGlobal() * 50;
+			yield[YIELD_FOOD] += PolicyInfo->GetIlliteracyFlatReduction() * 50;
 		}
 	}
-	if (PolicyInfo->GetBoredomFlatReductionGlobal() != 0)
+	if (PolicyInfo->GetBoredomFlatReduction() != 0)
 	{
 		if (pPlayerTraits->IsExpansionist() || pPlayer->GetUnhappinessFromBoredom() > 0)
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetBoredomFlatReductionGlobal() * 100;
+			yield[YIELD_FOOD] += PolicyInfo->GetBoredomFlatReduction() * 100;
 		}
 		else
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetBoredomFlatReductionGlobal() * 50;
+			yield[YIELD_FOOD] += PolicyInfo->GetBoredomFlatReduction() * 50;
 		}
 	}
-	if (PolicyInfo->GetReligiousUnrestFlatReductionGlobal() != 0)
+	if (PolicyInfo->GetReligiousUnrestFlatReduction() != 0)
 	{
 		if (pPlayerTraits->IsExpansionist() || pPlayer->GetUnhappinessFromReligiousUnrest() > 0)
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetReligiousUnrestFlatReductionGlobal() * 100;
+			yield[YIELD_FOOD] += PolicyInfo->GetReligiousUnrestFlatReduction() * 100;
 		}
 		else
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetReligiousUnrestFlatReductionGlobal() * 50;
+			yield[YIELD_FOOD] += PolicyInfo->GetReligiousUnrestFlatReduction() * 50;
 		}
 	}
-	if (PolicyInfo->GetBasicNeedsMedianModifierGlobal() != 0)
+	if (PolicyInfo->GetBasicNeedsMedianModifier() != 0)
 	{
 		if (pPlayerTraits->IsExpansionist() || pPlayer->GetUnhappinessFromDistress() > 0)
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetBasicNeedsMedianModifierGlobal() * -10;
+			yield[YIELD_FOOD] += PolicyInfo->GetBasicNeedsMedianModifier() * -10;
 		}
 		else
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetBasicNeedsMedianModifierGlobal() * -5;
+			yield[YIELD_FOOD] += PolicyInfo->GetBasicNeedsMedianModifier() * -5;
 		}
 	}
-	if (PolicyInfo->GetGoldMedianModifierGlobal() != 0)
+	if (PolicyInfo->GetGoldMedianModifier() != 0)
 	{
 		if (pPlayerTraits->IsExpansionist() || pPlayer->GetUnhappinessFromPoverty() > 0)
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetGoldMedianModifierGlobal() * -4;
+			yield[YIELD_FOOD] += PolicyInfo->GetGoldMedianModifier() * -4;
 		}
 		else
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetGoldMedianModifierGlobal() * -2;
+			yield[YIELD_FOOD] += PolicyInfo->GetGoldMedianModifier() * -2;
 		}
 	}
-	if (PolicyInfo->GetScienceMedianModifierGlobal() != 0)
+	if (PolicyInfo->GetScienceMedianModifier() != 0)
 	{
 		if (pPlayerTraits->IsExpansionist() || pPlayer->GetUnhappinessFromIlliteracy() > 0)
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetScienceMedianModifierGlobal() * -10;
+			yield[YIELD_FOOD] += PolicyInfo->GetScienceMedianModifier() * -10;
 		}
 		else
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetScienceMedianModifierGlobal() * -5;
+			yield[YIELD_FOOD] += PolicyInfo->GetScienceMedianModifier() * -5;
 		}
 	}
-	if (PolicyInfo->GetCultureMedianModifierGlobal() != 0)
+	if (PolicyInfo->GetCultureMedianModifier() != 0)
 	{
 		if (pPlayerTraits->IsExpansionist() || pPlayer->GetUnhappinessFromBoredom() > 0)
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetCultureMedianModifierGlobal() * -10;
+			yield[YIELD_FOOD] += PolicyInfo->GetCultureMedianModifier() * -10;
 		}
 		else
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetCultureMedianModifierGlobal() * -5;
+			yield[YIELD_FOOD] += PolicyInfo->GetCultureMedianModifier() * -5;
 		}
 	}
-	if (PolicyInfo->GetReligiousUnrestModifierGlobal() != 0)
+	if (PolicyInfo->GetReligiousUnrestModifier() != 0)
 	{
 		if (pPlayerTraits->IsExpansionist() || pPlayer->GetUnhappinessFromReligiousUnrest() > 0)
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetReligiousUnrestModifierGlobal() * -10;
+			yield[YIELD_FOOD] += PolicyInfo->GetReligiousUnrestModifier() * -10;
 		}
 		else
 		{
-			yield[YIELD_FOOD] += PolicyInfo->GetReligiousUnrestModifierGlobal() * -5;
+			yield[YIELD_FOOD] += PolicyInfo->GetReligiousUnrestModifier() * -5;
 		}
 	}
 	if (PolicyInfo->GetBasicNeedsMedianModifierCapital() != 0)
@@ -3476,6 +3464,28 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetCultureBombBoost() * 50;
 		}
 	}
+	if (PolicyInfo->GetCultureBombForeignTerritory() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 200;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 40;
+		}
+	}
+	if (PolicyInfo->GetRetainRazedTerritory() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 50;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 10;
+		}
+	}
 	if (PolicyInfo->GetPuppetProdMod() != 0)
 	{
 		if (pPlayerTraits->IsWarmonger())
@@ -3711,17 +3721,6 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 						}
 					}
 				}
-			}
-		}
-		if (PolicyInfo->GetBuildingClassCultureChange(eBuildingClass) != 0)
-		{
-			if (pPlayerTraits->IsTourism())
-			{
-				yield[YIELD_CULTURE] += 2 * PolicyInfo->GetBuildingClassCultureChange(eBuildingClass) * iNumCities;
-			}
-			else
-			{
-				yield[YIELD_CULTURE] += PolicyInfo->GetBuildingClassCultureChange(eBuildingClass) * iNumCities;
 			}
 		}
 		if (PolicyInfo->GetBuildingClassSecurityChange(eBuildingClass) != 0)
@@ -4453,6 +4452,17 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 				yield[eYield] += PolicyInfo->GetYieldFromTech(eYield) * 10;
 			}
 		}
+		if (PolicyInfo->GetYieldFromUnitProduction(eYield) != 0)
+		{
+			if (pPlayerTraits->IsWarmonger())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromUnitProduction(eYield) * 2;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromUnitProduction(eYield);
+			}
+		}
 		if (PolicyInfo->GetYieldFromBorderGrowth(eYield) != 0)
 		{
 			if (pPlayerTraits->IsExpansionist() && pPlayerTraits->GetExtraFoundedCityTerritoryClaimRange() == 0)
@@ -5166,7 +5176,7 @@ int CvPolicyAI::WeighBranch(CvPlayer* pPlayer, PolicyBranchTypes eBranch)
 bool CvPolicyAI::IsBranchEffectiveInGame(PolicyBranchTypes eBranch)
 {
 	CvPolicyBranchEntry* pBranchInfo = GC.getPolicyBranchInfo(eBranch);
-	ASSERT_DEBUG(pBranchInfo, "Branch info not found!");
+	ASSERT(pBranchInfo, "Branch info not found!");
 	if (!pBranchInfo) return false;
 	
 	if (pBranchInfo->IsDelayWhenNoReligion())

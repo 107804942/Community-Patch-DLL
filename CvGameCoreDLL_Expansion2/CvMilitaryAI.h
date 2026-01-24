@@ -208,7 +208,7 @@ public:
 	int GetNumberCivsAtWarWith(bool bIncludeMinor = true) const;
 	int GetRecommendedMilitarySize() const
 	{
-		return m_iRecDefensiveLandUnits + m_iRecOffensiveLandUnits + m_iRecOffensiveNavalUnits;
+		return m_iRecLandUnits + m_iRecNavalUnits + m_iRecExplorerUnits;
 	};
 
 	int GetPowerOfStrongestBuildableUnit(DomainTypes eDomain);
@@ -257,20 +257,21 @@ public:
 	void LogPeace(TeamTypes eOpponentTeam);
 	void LogDeficitScrapUnit(CvUnit* pUnit, bool bGifted);
 
-#if defined(MOD_BALANCE_CORE)
 	WarTypes GetWarType(PlayerTypes ePlayer = NO_PLAYER);
 	void UpdateWarType();
 	void SetupInstantDefenses(PlayerTypes ePlayer);
-#endif
 
-#if defined(MOD_BALANCE_CORE_MILITARY)
 	int GetRecommendLandArmySize() const
 	{
-		return m_iRecOffensiveLandUnits + m_iRecDefensiveLandUnits;
+		return m_iRecLandUnits;
 	};
 	int GetRecommendNavySize() const
 	{
-		return m_iRecOffensiveNavalUnits;
+		return m_iRecNavalUnits;
+	};
+	int GetRecommendedExplorers() const
+	{
+		return m_iRecExplorerUnits;
 	};
 	int GetNumLandUnits() const
 	{
@@ -288,7 +289,6 @@ public:
 	{
 		return m_iNumFreeCarriers;
 	}
-#endif
 
 private:
 
@@ -298,13 +298,11 @@ private:
 	void UpdateDefenseState();
 	void UpdateMilitaryStrategies();
 	void UpdateOperations();
-#if defined(MOD_BALANCE_CORE)
 	void DoNuke(PlayerTypes ePlayer);
 	void CheckLandDefenses(PlayerTypes eEnemy, CvCity* pThreatenedCity);
 	void CheckSeaDefenses(PlayerTypes ePlayer, CvCity* pThreatenedCity);
 	void DoCityAttacks(PlayerTypes ePlayer);
 	void SetRecommendedArmyNavySize();
-#endif
 	void MakeEmergencyPurchases();
 	void DisbandObsoleteUnits();
 
@@ -329,12 +327,9 @@ private:
 	int m_iNumberOfTimesOpsBuildSkippedOver;
 	int m_iNumberOfTimesSettlerBuildSkippedOver;
 
-#if defined(MOD_BALANCE_CORE_MILITARY)
 	vector<CvAttackTarget> m_potentialAttackTargets; //enemy cities we might want to attack
 	vector<CvAttackTarget> m_exposedCities; //those of our cities which might be tempting to the enemies
-#endif
 
-	// Data recomputed each turn (no need to serialize)
 	int m_iNumLandUnits;
 	int m_iNumRangedLandUnits;
 	int m_iNumMobileLandUnits;
@@ -342,13 +337,13 @@ private:
 	int m_iNumNavalUnits;
 	int m_iNumLandUnitsInArmies;
 	int m_iNumNavalUnitsInArmies;
-	int m_iRecOffensiveNavalUnits;
+	int m_iRecNavalUnits;
 	int m_iNumAirUnits;
 	int m_iNumAntiAirUnits;
 	int m_iBarbarianCampCount;
 	int m_iVisibleBarbarianCount;
-	int m_iRecOffensiveLandUnits;
-	int m_iRecDefensiveLandUnits;
+	int m_iRecLandUnits;
+	int m_iRecExplorerUnits;
 	int m_iNumFreeCarriers;
 
 	//new unit counters
@@ -372,6 +367,9 @@ private:
 
 FDataStream& operator>>(FDataStream&, CvMilitaryAI&);
 FDataStream& operator<<(FDataStream&, const CvMilitaryAI&);
+
+FDataStream& operator<<(FDataStream&, const DefenseState&);
+FDataStream& operator>>(FDataStream&, DefenseState&);
 
 namespace MilitaryAIHelpers
 {

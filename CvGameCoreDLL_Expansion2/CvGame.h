@@ -34,10 +34,8 @@ class CvGameTrade;
 class CvTacticalAnalysisMap;
 class CvAdvisorCounsel;
 class CvAdvisorRecommender;
-#if defined(MOD_BALANCE_CORE)
 class CvGameCorporations;
 class CvGameContracts;
-#endif
 
 class CvGameInitialItemsOverrides
 {
@@ -340,49 +338,15 @@ public:
 	int ComputeRatingStrengthAdjustment(PlayerTypes ePlayer, PlayerTypes ePerceivingPlayer) const;
 	int ComputeAverageMajorMilitaryRating(PlayerTypes ePerceivingPlayer, PlayerTypes eExcludedPlayer = NO_PLAYER) const;
 
-	// Diplomacy AI Options (all except the first two are configurable in DiploAIOptions.sql)
-	// Also consolidates some checks from various game options, for simplicity.
+	// Global Diplomacy AI Options
 	bool IsVictoryCompetitionEnabled() const;
 	bool IsEndgameAggressionEnabled() const;
-	bool IsNoPrimaryVictoryPursuitRandomization() const;
-	bool IsNoSecondaryVictoryPursuitRandomization() const;
-	bool IsNuclearGandhiEnabled() const;
-	bool IsAllWarBribesDisabled() const;
-	bool IsAIWarBribesDisabled() const;
-	bool IsAICityTradingHumanOnly() const;
-	bool IsAICityTradingDisabled() const;
-	bool IsAllCityTradingDisabled() const;
-	bool IsInsultMessagesDisabled() const; // Only affects AI messages sent to humans
-	bool IsComplimentMessagesDisabled() const; // Only affects AI messages sent to humans
-	bool IsNoFakeOpinionModifiers() const;
-	bool IsShowHiddenOpinionModifiers() const;
-	bool IsShowAllOpinionValues() const;
-	bool IsShowBaseHumanOpinion() const;
-
-	// Advanced Options
-	bool IsHideOpinionTable() const;
-	bool IsHumanPermanentForAITemporaryTradingAllowed() const;
-	bool IsPermanentForTemporaryTradingAllowed() const;
-	bool IsFriendshipRequestsDisabled() const; // Only affects AI messages sent to humans
-	bool IsGiftOffersDisabled() const; // Only affects AI messages sent to humans
-	bool IsCoopWarRequestsWithHumansDisabled() const; // Only affects AI messages sent to humans
-	bool IsCoopWarRequestsDisabled() const;
-	bool IsHelpRequestsDisabled() const; // Only affects AI messages sent to humans
-	bool IsTradeOffersDisabled(bool bIncludeRenewals = false) const; // Only affects AI messages sent to humans
-	bool IsPeaceOffersDisabled() const; // Only affects AI messages sent to humans
-	bool IsDemandsDisabled() const; // Only affects AI messages sent to humans
-	bool IsIndependenceRequestsDisabled() const; // Only affects AI messages sent to humans
-	bool IsAllDiploStatementsDisabled() const; // Only affects AI messages sent to humans
 	bool IsAIPassiveMode() const;
 	bool IsAIPassiveTowardsHumans() const;
 	bool CanPlayerAttemptDominationVictory(PlayerTypes ePlayer, PlayerTypes eMakePeacePlayer, bool bCheckEliminationPossible) const;
 	bool WouldMakingPeacePreventDominationVictory(PlayerTypes ePlayer, PlayerTypes eMakePeacePlayer) const;
 	bool IsAIAggressiveMode() const;
 	bool IsAIAggressiveTowardsHumans() const;
-
-	// Debug Mode Options
-	bool IsDiploDebugModeEnabled() const;
-	bool IsAIMustAcceptHumanDiscussRequests() const;
 
 	UnitTypes getBestLandUnit();
 	int getBestLandUnitCombat();
@@ -396,10 +360,8 @@ public:
 
 	void LogTurnScores() const;
 	void LogGameResult(const char* victoryTypeText, const char* victoryCivText) const;
-#if defined(MOD_BALANCE_CORE)
 	bool isVictoryRandomizationDone() const;
 	void setVictoryRandomizationDone(bool bValue);
-#endif
 
 	bool isVictoryAvailable(VictoryTypes eVictory) const;
 	int GetNextAvailableVictoryCompetitionRank(VictoryTypes eVictory) const;
@@ -577,17 +539,14 @@ public:
 	int calculateSyncChecksum();
 	int calculateOptionsChecksum();
 
-#if defined(MOD_BALANCE_CORE)
 	void debugSyncChecksum();
 
 	PlayerTypes GetCorporationFounder( CorporationTypes eCorporation ) const;
 	int GetNumCorporationsFounded() const;
-#if defined (MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
+
 	void UpdateGreatestPlayerResourceMonopoly(ResourceTypes eTestResource = NO_RESOURCE);
 	int GetGreatestPlayerResourceMonopoly(ResourceTypes eResource) const;
 	int GetGreatestPlayerResourceMonopolyValue(ResourceTypes eResource) const;
-#endif
-#endif
 
 	void addReplayMessage(ReplayMessageTypes eType, PlayerTypes ePlayer, const CvString& pszText, int iPlotX = -1, int iPlotY = -1);
 	void clearReplayMessageMap();
@@ -635,13 +594,12 @@ public:
 	void saveReplay();
 
 	void addPlayer(PlayerTypes eNewPlayer, LeaderHeadTypes eLeader, CivilizationTypes eCiv);
+	void changeMinorPlayer(PlayerTypes ePlayer, MinorCivTypes m);
 
 	void testVictory();
 	bool testVictory(VictoryTypes eVictory, TeamTypes eTeam, bool* pbEndScore = NULL) const;
 
-#if defined(MOD_BALANCE_CORE)
 	void doVictoryRandomization();
-#endif
 
 	int getPlotExtraYield(int iX, int iY, YieldTypes eYield) const;
 	void setPlotExtraYield(int iX, int iY, YieldTypes eYield, int iExtraYield);
@@ -674,10 +632,8 @@ public:
 	CvGameLeagues* GetGameLeagues();
 	CvGameTrade* GetGameTrade();
 	CvString getDllGuid() const;
-#if defined(MOD_BALANCE_CORE)
 	CvGameCorporations* GetGameCorporations();
 	CvGameContracts* GetGameContracts();
-#endif
 
 	int GetAction(int iKeyStroke, bool bAlt, bool bShift, bool bCtrl);
 	int IsAction(int iKeyStroke, bool bAlt, bool bShift, bool bCtrl);
@@ -759,6 +715,9 @@ public:
 	bool IsArchaeologyTriggered() const;
 	int GetNumArchaeologySites() const;
 	int GetNumHiddenArchaeologySites() const;
+	CvWeightedVector<GreatWorkArtifactClass> GetWeightedArchaeologyArtifactsList() const;
+	CvWeightedVector<EraTypes> GetWeightedArchaeologyErasList() const;
+	void PopulateDigSite(CvPlot& kPlot, EraTypes eEra, GreatWorkArtifactClass eArtifact, GreatWorkType eWrittenWork = NO_GREAT_WORK);
 
 	TeamTypes GetTeamThatCircumnavigated() const;
 	void SetTeamThatCircumnavigated(TeamTypes eNewValue);
@@ -786,10 +745,9 @@ public:
 	bool AnyoneHasUnit(UnitTypes iUnitType) const;
 	bool AnyoneHasUnitClass(UnitClassTypes iUnitClassType) const;
 
-#if defined(MOD_BALANCE_CORE_JFD)	
 	void SetContractUnits(ContractTypes eContract, UnitTypes eUnit, int iValue);
 	int GetContractUnits(ContractTypes eContract, UnitTypes eUnit) const;
-#endif
+
 	//Function to determine city size from city population
 	unsigned int GetVariableCitySizeFromPopulation(unsigned int nPopulation);
 
@@ -965,9 +923,7 @@ protected:
 	CvEnumMap<SpecialUnitTypes, bool> m_pabSpecialUnitValid;
 
 	CvEnumMap<VictoryTypes, TeamTypes*> m_ppaaiTeamVictoryRank;
-#if defined(MOD_BALANCE_CORE_JFD)
 	CvEnumMap<ContractTypes, CvEnumMap<UnitTypes, int> > m_ppaiContractUnits;
-#endif
 
 	Database::Results* m_pDiploResponseQuery;
 
@@ -999,11 +955,8 @@ protected:
 	CvAdvisorRecommender*      m_pAdvisorRecommender;
 
 	CvGameDeals                m_kGameDeals;
-
-#if defined(MOD_BALANCE_CORE)
 	CvGameCorporations*		   m_pGameCorporations;
 	CvGameContracts*		   m_pGameContracts;
-#endif
 
 	//necessary because we only want to hide the mouseover of the most recently moused over unit -KS
 	int                        m_iLastMouseoverUnitID;
@@ -1058,8 +1011,11 @@ protected:
 
 	void CheckPlayerTurnDeactivate();
 
-	void PopulateDigSite(CvPlot& kPlot, EraTypes eEra, GreatWorkArtifactClass eArtifact);
 	void SpawnArchaeologySitesHistorically();
+	void CalculateDigSiteScores(CvWeightedVector<CvPlot*>& viDigSiteScores);
+	void AdjustDigSiteScoresByProximity(CvWeightedVector<CvPlot*>& viDigSiteScores, vector<CvPlot*>& vExistingDigSites);
+	PlayerTypes GetRandomMajorPlayer(CvPlot* pPlot);
+	PlayerTypes GetRandomPlayer(CvPlot* pPlot);
 };
 
 extern int gTactMovesCount[NUM_AI_TACTICAL_MOVES];

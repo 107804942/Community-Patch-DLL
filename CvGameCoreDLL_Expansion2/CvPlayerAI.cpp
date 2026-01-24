@@ -33,9 +33,7 @@
 #include "CvBarbarians.h"
 #include "CvEnumMap.h"
 
-#if defined(MOD_BALANCE_CORE)
 #include "CvDistanceMap.h"
-#endif
 
 // Include this after all other headers.
 #include "LintFree.h"
@@ -46,8 +44,8 @@ static CvEnumMap<PlayerTypes, CvPlayerAI> s_players;
 
 CvPlayerAI& CvPlayerAI::getPlayer(PlayerTypes ePlayer)
 {
-	ASSERT_DEBUG(ePlayer != NO_PLAYER, "Player is not assigned a valid value");
-	ASSERT_DEBUG(ePlayer < MAX_PLAYERS, "Player is not assigned a valid value");
+	PRECONDITION(ePlayer != NO_PLAYER, "Player is not assigned a valid value");
+	PRECONDITION(ePlayer < MAX_PLAYERS, "Player is not assigned a valid value");
 
 	if (ePlayer <= NO_PLAYER || ePlayer >= MAX_PLAYERS)
 		ePlayer = BARBARIAN_PLAYER;
@@ -101,45 +99,37 @@ void CvPlayerAI::AI_reset()
 
 void CvPlayerAI::AI_doTurnPre()
 {
-	ASSERT_DEBUG(getPersonalityType() != NO_LEADER, "getPersonalityType() is not expected to be equal with NO_LEADER");
-	ASSERT_DEBUG(getLeaderType() != NO_LEADER, "getLeaderType() is not expected to be equal with NO_LEADER");
-	ASSERT_DEBUG(getCivilizationType() != NO_CIVILIZATION, "getCivilizationType() is not expected to be equal with NO_CIVILIZATION");
+	PRECONDITION(getPersonalityType() != NO_LEADER, "getPersonalityType() is not expected to be equal with NO_LEADER");
+	PRECONDITION(getLeaderType() != NO_LEADER, "getLeaderType() is not expected to be equal with NO_LEADER");
+	PRECONDITION(getCivilizationType() != NO_CIVILIZATION, "getCivilizationType() is not expected to be equal with NO_CIVILIZATION");
 
-	if(isHuman())
+	if (!isHuman(ISHUMAN_AI_UNITS))
 	{
-		return;
-	}
-
-#if defined(MOD_BALANCE_CORE)
-	//make sure we iterate our units in a sensible order
-	struct CompareUnitPowerAscending
-	{
-		bool operator()(const CvUnit* a, const CvUnit* b)
+		//make sure we iterate our units in a sensible order
+		struct CompareUnitPowerAscending
 		{
-			if (a->GetPower() != b->GetPower())
-				return a->GetPower() > b->GetPower();
-			else //tiebreak
-				return a->GetID() < b->GetID();
-		}
-	};
+			bool operator()(const CvUnit* a, const CvUnit* b)
+			{
+				if (a->GetPower() != b->GetPower())
+					return a->GetPower() > b->GetPower();
+				else //tiebreak
+					return a->GetID() < b->GetID();
+			}
+		};
 
-	//this orders units by combat strength
-	m_units.OrderByContent( CompareUnitPowerAscending() );
-#endif
-
-	AI_doResearch();
-	AI_considerAnnex();
-	AI_considerRaze();
+		//this orders units by combat strength
+		m_units.OrderByContent( CompareUnitPowerAscending() );
+	}
+	if (!isHuman(ISHUMAN_AI_CITY_MANAGEMENT))
+	{
+		AI_considerAnnex();
+		AI_considerRaze();
+	}
 }
 
 
 void CvPlayerAI::AI_doTurnPost()
 {
-	if(isHuman())
-	{
-		return;
-	}
-
 	if(isBarbarian())
 	{
 		return;
@@ -150,14 +140,20 @@ void CvPlayerAI::AI_doTurnPost()
 		return;
 	}
 
-	for(int i = 0; i < GC.getNumVictoryInfos(); ++i)
+	if (!isHuman())
 	{
-		AI_launch((VictoryTypes)i);
+		for (int i = 0; i < GC.getNumVictoryInfos(); ++i)
+		{
+			AI_launch((VictoryTypes)i);
+		}
 	}
 
-	ProcessGreatPeople();
-	GetEspionageAI()->DoTurn();
-	GetTradeAI()->DoTurn();
+	if (!isHuman(ISHUMAN_AI_UNITS))
+		ProcessGreatPeople();
+	if (!isHuman(ISHUMAN_AI_ESPIONAGE))
+		GetEspionageAI()->DoTurn();
+	if (!isHuman(ISHUMAN_AI_DIPLOMACY))
+		GetTradeAI()->DoTurn();
 }
 
 
@@ -211,7 +207,7 @@ void CvPlayerAI::AI_doTurnUnitsPost()
 	CvUnit* pLoopUnit = NULL;
 	int iLoop = 0;
 
-	if(!isHuman())
+	if(!isHuman(ISHUMAN_AI_UNIT_PROMOTIONS))
 	{
 		for(pLoopUnit = firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = nextUnit(&iLoop))
 		{
@@ -273,7 +269,7 @@ void CvPlayerAI::AI_unitUpdate(bool bUpdateHomelandAI)
 		return;
 	}
 
-	if(isHuman())
+	if(isHuman(ISHUMAN_AI_UNITS))
 	{
 		CvUnit::dispatchingNetMessage(true);
 		GetTacticalAI()->UpdateVisibility();
@@ -293,7 +289,7 @@ void CvPlayerAI::AI_unitUpdate(bool bUpdateHomelandAI)
 
 void CvPlayerAI::AI_conquerCity(CvCity* pCity, bool bGift, bool bAllowSphereRemoval)
 {
-	if (isHuman())
+	if (isHuman(ISHUMAN_AI_CITY_MANAGEMENT))
 		return;
 
 	// What are our options for this city?
@@ -325,8 +321,9 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, bool bGift, bool bAllowSphereRemo
 		return;
 	}
 
-	// Burn them all to the ground! (Timurids modmod)
-	if (MOD_BALANCE_CORE_SETTLER_ADVANCED && GetPlayerTraits()->GetRazeSpeedModifier() > 0 && canRaze(pCity))
+	// Burn them all to the ground!
+	CvString szLeaderName = (CvString)getLeaderTypeKey();
+	if (szLeaderName == "LEADER_TIMUR_MOD" && canRaze(pCity))
 	{
 		pCity->doTask(TASK_RAZE);
 		return;
@@ -636,7 +633,7 @@ void CvPlayerAI::AI_chooseResearch()
 
 void CvPlayerAI::AI_considerAnnex()
 {
-	if (isHuman())
+	if (isHuman(ISHUMAN_AI_CITY_MANAGEMENT))
 		return;
 
 	AI_PERF("AI-perf.csv", "AI_ considerAnnex");
@@ -789,7 +786,7 @@ void CvPlayerAI::AI_considerAnnex()
 
 void CvPlayerAI::AI_considerRaze()
 {
-	if (isHuman() || !isMajorCiv())
+	if (isHuman(ISHUMAN_AI_CITY_MANAGEMENT) || !isMajorCiv())
 		return;
 
 	AI_PERF("AI-perf.csv", "AI_ considerRaze");
@@ -1047,7 +1044,6 @@ int CvPlayerAI::AI_computeHappinessFromRazing(CvCity* pCity, int iCurrentHappy, 
 	return iFutureHappiness - iCurrentHappiness;
 }
 
-#if defined(MOD_BALANCE_CORE_EVENTS)
 void CvPlayerAI::AI_DoEventChoice(EventTypes eChosenEvent)
 {
 	if(eChosenEvent != NO_EVENT)
@@ -1192,12 +1188,12 @@ void CvPlayerAI::AI_DoEventChoice(EventTypes eChosenEvent)
 		}
 	}
 }
-#endif
+
 // Protected Functions...
 
 void CvPlayerAI::AI_doResearch()
 {
-	ASSERT_DEBUG(!isHuman(), "isHuman did not return false as expected");
+	ASSERT(!isHuman(ISHUMAN_AI_TECH_CHOICE), "isHuman did not return false as expected");
 
 	if(GetPlayerTechs()->GetCurrentResearch() == NO_TECH)
 	{
@@ -1339,7 +1335,7 @@ void CvPlayerAI::ProcessGreatPeople(void)
 {
 	SpecialUnitTypes eSpecialUnitGreatPerson = (SpecialUnitTypes) GC.getInfoTypeForString("SPECIALUNIT_PEOPLE");
 
-	ASSERT_DEBUG(isAlive());
+	ASSERT(isAlive());
 
 	if(!isAlive())
 		return;
@@ -1347,7 +1343,6 @@ void CvPlayerAI::ProcessGreatPeople(void)
 	int iLoop = 0;
 	for(CvUnit* pLoopUnit = firstUnit(&iLoop); pLoopUnit; pLoopUnit = nextUnit(&iLoop))
 	{
-#if defined(MOD_BALANCE_CORE)
 		if(pLoopUnit->IsCityAttackSupport())
 		{
 			pLoopUnit->SetGreatPeopleDirective(GREAT_PEOPLE_DIRECTIVE_FIELD_COMMAND);
@@ -1365,7 +1360,6 @@ void CvPlayerAI::ProcessGreatPeople(void)
 			continue;
 		}
 		else
-#endif
 		if(pLoopUnit->getSpecialUnitType() != eSpecialUnitGreatPerson || pLoopUnit->getArmyID()!=-1)
 		{
 			continue;
@@ -1414,13 +1408,13 @@ void CvPlayerAI::ProcessGreatPeople(void)
 
 bool PreparingForWar(CvPlayerAI* pPlayer)
 {
-	ASSERT_DEBUG(pPlayer, "Need a player");
+	ASSERT(pPlayer, "Need a player");
 	if(!pPlayer)
 	{
 		return false;
 	}
 	CvMilitaryAI* pMilitaryAI = pPlayer->GetMilitaryAI();
-	ASSERT_DEBUG(pMilitaryAI, "No military AI");
+	ASSERT(pMilitaryAI, "No military AI");
 	if(!pMilitaryAI)
 	{
 		return false;
@@ -1718,7 +1712,7 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveScientist(CvUnit* /*pGreatScie
 GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveGeneral(CvUnit* pGreatGeneral)
 {
 	bool bHasGeneralNegation = false;
-	if (MOD_ERA_RESTRICTED_GENERALS)
+	if (MOD_BALANCE_ERA_RESTRICTED_GENERALS)
 	{
 		string GGNegationPromotions[4] = {
 			"PROMOTION_NEGATE_GENERAL",
@@ -1867,7 +1861,7 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveProphet(CvUnit* pUnit)
 GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveAdmiral(CvUnit* pGreatAdmiral)
 {
 	bool bHasAdmiralNegation = false;
-	if (MOD_ERA_RESTRICTED_GENERALS)
+	if (MOD_BALANCE_ERA_RESTRICTED_GENERALS)
 	{
 		string GANegationPromotions[4] = {
 			"PROMOTION_NEGATE_ADMIRAL",
@@ -1953,11 +1947,9 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveAdmiral(CvUnit* pGreatAdmiral)
 	}
 
 	// We're unhappy or have too many admirals; expend some!
-	if (pGreatAdmiral->canGetFreeLuxury())
+	if (pGreatAdmiral->canGetFreeLuxury() && IsEmpireUnhappy())
 	{
-		int iThreshold = IsEmpireUnhappy() ? 0 : GetNumEffectiveCoastalCities() / 2 + 1;
-		if (iCommanders > iThreshold)
-			return GREAT_PEOPLE_DIRECTIVE_USE_POWER;
+		return GREAT_PEOPLE_DIRECTIVE_USE_POWER;
 	}
 
 	return bHasAdmiralNegation ? NO_GREAT_PEOPLE_DIRECTIVE_TYPE : GREAT_PEOPLE_DIRECTIVE_FIELD_COMMAND;
@@ -2038,7 +2030,17 @@ CvPlot* CvPlayerAI::FindBestMerchantTargetPlotForPuppet(CvUnit* pMerchant)
 			pMerchant->GeneratePath(pCity->plot(), CvUnit::MOVEFLAG_APPROX_TARGET_RING1, 23, &iPathTurns);
 			if (iPathTurns < INT_MAX)
 			{
-				int iScore =  (pCity->getEconomicValue(GetID())*(100+10*kPlayer.getNumMilitaryUnits())) / (1+iPathTurns*iPathTurns);
+				// Prevent integer overflow when squaring iPathTurns
+				int iDenominator = 1;
+				if (iPathTurns <= 46340) // sqrt(INT_MAX) ≈ 46340
+				{
+					iDenominator = 1 + iPathTurns*iPathTurns;
+				}
+				else
+				{
+					iDenominator = INT_MAX; // Use max value to avoid overflow
+				}
+				int iScore = (pCity->getEconomicValue(GetID())*(100+10*kPlayer.getNumMilitaryUnits())) / iDenominator;
 
 				//political fudge factor
 				iScore -= (iScore*iPoliticalReduction)/100;
@@ -2134,6 +2136,9 @@ const vector<CvCity*> CvPlayerAI::GetBestCitiesForSpaceshipParts()
 			continue;
 
 		if (pLoopCity->isUnderSiege())
+			continue;
+
+		if (pLoopCity->IsResistance() || pLoopCity->IsRazing() || pLoopCity->isInDangerOfFalling())
 			continue;
 
 		// city too far away?
@@ -2318,7 +2323,7 @@ const vector<CvCity*> CvPlayerAI::GetBestCitiesForSpaceshipParts()
 /// if going for spaceship victory, the results from GetBestCitiesForSpaceshipParts are used to overwrite normal AI city production selection
 void CvPlayerAI::AI_doSpaceshipProduction()
 {
-	if (isHuman() || isMinorCiv() || !GetDiplomacyAI()->IsGoingForSpaceshipVictory())
+	if (isHuman(ISHUMAN_AI_CITY_PRODUCTION) || isMinorCiv())
 		return;
 
 	if (GetNumSpaceshipPartsBuildableNow(true) == 0)
@@ -2603,7 +2608,7 @@ int CvPlayerAI::ScoreCityForMessenger(CvCity* pCity, CvUnit* pUnit)
 	}
 
 	int iScore = 100;
-	if (!isHuman())
+	if (!isHuman(ISHUMAN_AI_DIPLOMACY))
 	{
 		EconomicAIStrategyTypes eNeedHappiness = (EconomicAIStrategyTypes)GC.getInfoTypeForString("ECONOMICAISTRATEGY_NEED_HAPPINESS");
 		EconomicAIStrategyTypes eNeedHappinessCritical = (EconomicAIStrategyTypes)GC.getInfoTypeForString("ECONOMICAISTRATEGY_NEED_HAPPINESS_CRITICAL");
@@ -2757,17 +2762,14 @@ int CvPlayerAI::ScoreCityForMessenger(CvCity* pCity, CvUnit* pUnit)
 		int iCityLoop = 0;
 		for (CvCity* pLoopCity = GET_PLAYER(GetID()).firstCity(&iCityLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER(GetID()).nextCity(&iCityLoop))
 		{
-			if (pLoopCity != NULL)
+			ResourceTypes eResourceDemanded = pLoopCity->GetResourceDemanded();
+			if (eResourceDemanded != NO_RESOURCE)
 			{
-				ResourceTypes eResourceDemanded = pLoopCity->GetResourceDemanded();
-				if (eResourceDemanded != NO_RESOURCE)
+				//Will we get a WLTKD from this? We want it a bit more, please.
+				if (kMinor.getResourceInOwnedPlots(eResourceDemanded) > 0)
 				{
-					//Will we get a WLTKD from this? We want it a bit more, please.
-					if (kMinor.getResourceInOwnedPlots(eResourceDemanded) > 0)
-					{
-						iScore *= 3;
-						iScore /= 2;
-					}
+					iScore *= 3;
+					iScore /= 2;
 				}
 			}
 		}
@@ -3008,8 +3010,7 @@ priority_queue<SPlotWithScore> CvPlayerAI::GetBestCultureBombPlots(const UnitTyp
 		for (int iJ = 0; iJ < GC.getMap().numPlots(); iJ++)
 		{
 			CvPlot* pPlot = GC.getMap().plotByIndexUnchecked(iJ);
-			if (!pPlot)
-				continue;
+			ASSERT(pPlot != NULL, "plotByIndexUnchecked returned null - invalid plot index");
 
 			// Don't consider plots we already targeted
 			bool bTooClose = false;

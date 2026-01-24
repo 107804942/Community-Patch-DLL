@@ -3,8 +3,9 @@
 -- Bonus XP to Gold-purchased military units, scaling with era.
 ALTER TABLE Traits ADD PurchasedUnitsBonusXP integer DEFAULT 0;
 
--- Trade Route yields no longer scale from distance.
-ALTER TABLE Traits ADD IgnoreTradeDistanceScaling boolean DEFAULT 0;
+-- Negates the proximity penalty for sending/receiving Trade Routes to/from nearby cities
+-- Only does anything if BALANCE_TRADE_ROUTE_PROXIMITY_PENALTY=1
+ALTER TABLE Traits ADD NoTradeRouteProximityPenalty boolean DEFAULT 0;
 
 -- Trade Routes can be plundered without being at war
 ALTER TABLE Traits ADD CanPlunderWithoutWar boolean DEFAULT 0;
@@ -118,11 +119,11 @@ ALTER TABLE Traits ADD MonopolyModFlat integer DEFAULT 0;
 ALTER TABLE Traits ADD MonopolyModPercent integer DEFAULT 0;
 
 -- Changes the global median for a Need in all cities by x% - values should be negative to be good!
-ALTER TABLE Traits ADD BasicNeedsMedianModifierGlobal integer DEFAULT 0;
-ALTER TABLE Traits ADD GoldMedianModifierGlobal integer DEFAULT 0;
-ALTER TABLE Traits ADD ScienceMedianModifierGlobal integer DEFAULT 0;
-ALTER TABLE Traits ADD CultureMedianModifierGlobal integer DEFAULT 0;
-ALTER TABLE Traits ADD ReligiousUnrestModifierGlobal integer DEFAULT 0;
+ALTER TABLE Traits ADD BasicNeedsMedianModifier integer DEFAULT 0;
+ALTER TABLE Traits ADD GoldMedianModifier integer DEFAULT 0;
+ALTER TABLE Traits ADD ScienceMedianModifier integer DEFAULT 0;
+ALTER TABLE Traits ADD CultureMedianModifier integer DEFAULT 0;
+ALTER TABLE Traits ADD ReligiousUnrestModifier integer DEFAULT 0;
 
 -- Get more tenets when you adopt for first time
 ALTER TABLE Traits ADD ExtraTenetsFirstAdoption integer DEFAULT 0;
@@ -148,7 +149,7 @@ ALTER TABLE Traits ADD ProphetFervor boolean DEFAULT 0;
 -- New Traits - % of capital culture converted to tourism during a GA
 ALTER TABLE Traits ADD TourismGABonus integer DEFAULT 0;
 
--- New Traits - Additioanl WC vote for every x CS Alliances
+-- New Traits - Additional WC vote for every x CS Alliances
 ALTER TABLE Traits ADD VotePerXCSAlliance integer DEFAULT 0;
 
 -- New Traits - Golden Age received from favorable peace treaty
@@ -163,8 +164,11 @@ ALTER TABLE Traits ADD NewCitiesStartWithCapitalReligion boolean DEFAULT 0;
 -- New Traits - No Foreign Religious Spread in cities or allied CSs
 ALTER TABLE Traits ADD NoSpread boolean DEFAULT 0;
 
--- OBSOLETE: to be removed in VP5.0, replaced by Trait_BonusFromGPBirth
-ALTER TABLE Traits ADD XPBonusFromGGBirth integer DEFAULT 0;
+-- New Traits: - XP Bonus to all Land Units when a Great Person is born
+ALTER TABLE Traits ADD XPBonusFromGreatPersonBirth integer DEFAULT 0;
+
+-- New Traits: - All Land Units are healed the specified amount when a Great Person is born
+ALTER TABLE Traits ADD UnitHealFromGreatPersonBirth integer DEFAULT 0;
 
 -- New Traits - Military x% better at intimidating CSs
 ALTER TABLE Traits ADD CSBullyMilitaryStrengthModifier integer DEFAULT 0;
@@ -310,7 +314,7 @@ ALTER TABLE Traits ADD FreeZuluPikemanToImpi boolean DEFAULT 0;
 ALTER TABLE Traits ADD ExtraMissionaryStrength integer DEFAULT 0;
 
 -- Can send gold internal trade routes; gold yield calculated as if international, culture and science calculated as if allied city state. Only sender city gets the yields.
--- Note: Requires BALANCE_CORE_GOLD_INTERNAL_TRADE_ROUTES in CustomModOptions to be set to 1 (0 by default for performance).
+-- Note: Requires TRADE_INTERNAL_GOLD_ROUTES in CustomModOptions to be set to 1 (0 by default for performance).
 ALTER TABLE Traits ADD CanGoldInternalTradeRoutes boolean DEFAULT 0;
 
 -- Additional trade routes based on the number of owned cities
@@ -344,13 +348,5 @@ ALTER TABLE Traits ADD PrereqPolicy text REFERENCES Policies (Type);
 
 ALTER TABLE Traits ADD SeaTradeRouteRangeBonus integer DEFAULT 0;
 
--- All cities gain this production modifier for units when empire is unhappy
-ALTER TABLE Traits ADD UnhappyUnitProductionMod integer DEFAULT 0;
-
--- Cities cannot avoid growth
-ALTER TABLE Traits ADD NoAvoidGrowth boolean DEFAULT 0;
-
--- Modifier for city revolution countdown timer when empire is very unhappy
-ALTER TABLE Traits ADD RevoltTimerMod integer DEFAULT 0;
 -- Artists Open Golden Age to Receive Current Median One-Time Research Points in Researchable Technology
 ALTER TABLE Traits ADD ArtistGoldenAgeTechBoost boolean DEFAULT 0;

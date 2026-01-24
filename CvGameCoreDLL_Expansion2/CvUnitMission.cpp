@@ -22,7 +22,7 @@
 #include "CvDllUnit.h"
 #include "CvTypes.h"
 
-#if !defined(FINAL_RELEASE)
+#if !defined(FINAL_RELEASE) || defined(VPDEBUG)
 #include <sstream>
 
 // If defined, various operations related to the movement of units will be logged.
@@ -32,7 +32,6 @@
 // include this after all other headers
 #include "LintFree.h"
 
-#if defined(MOD_EVENTS_CUSTOM_MISSIONS)
 // There are three types of mission -
 //  - instantaneous (eg MISSION_FOUND_RELIGION)
 //  - duration (eg MISSION_ROUTE_TO)
@@ -53,13 +52,12 @@
 // ACC: CustomMissionTargetPlot(iPlayer, iUnit, iMission, iData1, iData2, iFlags, iTurn) = iPlotIndex
 // ACC: CustomMissionCycleTime(iPlayer, iUnit, iMission, iData1, iData2, iFlags, iTurn) = iCameraTime (0, 1, 5 or 10)
 // ACC: CustomMissionTimerInc(iPlayer, iUnit, iMission, iData1, iData2, iFlags, iTurn) = iTimerInc
-#endif
 
 //	---------------------------------------------------------------------------
 /// Perform automated mission
 void CvUnitMission::AutoMission(CvUnit* hUnit)
 {
-	ASSERT_DEBUG(hUnit->getOwner() != NO_PLAYER);
+	PRECONDITION(hUnit->getOwner() != NO_PLAYER);
 
 	const MissionData* pkMissionNode = HeadMissionData(hUnit->m_missionQueue);
 	if(pkMissionNode != NULL)
@@ -100,16 +98,16 @@ void CvUnitMission::AutoMission(CvUnit* hUnit)
 /// Queue up a new mission
 void CvUnitMission::PushMission(CvUnit* hUnit, MissionTypes eMission, int iData1, int iData2, int iFlags, bool bAppend, bool bManual, MissionAITypes eMissionAI, CvPlot* pMissionAIPlot, CvUnit* pMissionAIUnit)
 {
-	if(CvPreGame::isHuman(hUnit->getOwner()))
+	if(hUnit->isHuman(ISHUMAN_AI_UNITS))
 	{
-		ASSERT_DEBUG(CvUnit::dispatchingNetMessage(), "Multiplayer Error! CvUnit::PushMission invoked for a human player outside of a network message!");
+		//ASSERT(CvUnit::dispatchingNetMessage(), "Multiplayer Error! CvUnit::PushMission invoked for a human player outside of a network message!");
 		if(!CvUnit::dispatchingNetMessage())
 			gDLL->netMessageDebugLog("*** PROTOCOL ERROR *** : PushMission invoked for a human controlled player outside of a network message!");
 	}
 
 	MissionData mission;
 
-	ASSERT_DEBUG(hUnit->getOwner() != NO_PLAYER);
+	PRECONDITION(hUnit->getOwner() != NO_PLAYER);
 
 	if (!bAppend)
 	{
@@ -228,7 +226,7 @@ void CvUnitMission::PushMission(CvUnit* hUnit, MissionTypes eMission, int iData1
 /// Retrieve next mission
 void CvUnitMission::PopMission(CvUnit* hUnit)
 {
-	ASSERT_DEBUG(hUnit->getOwner() != NO_PLAYER);
+	PRECONDITION(hUnit->getOwner() != NO_PLAYER);
 
 	// Update Resource info
 	if(hUnit->getBuildType() != NO_BUILD)
@@ -297,12 +295,12 @@ void CvUnitMission::WaitFor(CvUnit* hUnit, CvUnit* hWaitForUnit)
 {
 	if(CvPreGame::isHuman(hUnit->getOwner()))
 	{
-		ASSERT_DEBUG(CvUnit::dispatchingNetMessage(), "Multiplayer Error! CvUnit::PushMission invoked for a human player outside of a network message!");
+		//ASSERT(CvUnit::dispatchingNetMessage(), "Multiplayer Error! CvUnit::PushMission invoked for a human player outside of a network message!");
 		if(!CvUnit::dispatchingNetMessage())
 			gDLL->netMessageDebugLog("*** PROTOCOL ERROR *** : PushMission invoked for a human controlled player outside of a network message!");
 	}
 
-	ASSERT_DEBUG(hUnit->getOwner() != NO_PLAYER);
+	PRECONDITION(hUnit->getOwner() != NO_PLAYER);
 
 	MissionData mission;
 	mission.eMissionType = CvTypes::getMISSION_WAIT_FOR();
@@ -316,7 +314,7 @@ void CvUnitMission::WaitFor(CvUnit* hUnit, CvUnit* hWaitForUnit)
 	//  Insert head of mission list
 	kQueue.insertAtBeginning(&mission);
 
-	ASSERT_DEBUG(kQueue.getLength() < 10);
+	ASSERT(kQueue.getLength() < 10);
 
 	if((hUnit->getOwner() == GC.getGame().getActivePlayer()) && hUnit->IsSelected())
 	{
@@ -369,10 +367,10 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 		bool bDone = false;   // are we done with mission?
 		bool bAction = false; // are we taking an action this turn?
 
-		ASSERT_DEBUG(!hUnit->isInCombat());
-		ASSERT_DEBUG(hUnit->HeadMissionData() != NULL);
-		ASSERT_DEBUG(hUnit->getOwner() != NO_PLAYER);
-		ASSERT_DEBUG(hUnit->GetActivityType() == ACTIVITY_MISSION);
+		ASSERT(!hUnit->isInCombat());
+		ASSERT(hUnit->HeadMissionData() != NULL);
+		PRECONDITION(hUnit->getOwner() != NO_PLAYER);
+		ASSERT(hUnit->GetActivityType() == ACTIVITY_MISSION);
 
 		if(HeadMissionData(hUnit->m_missionQueue) == NULL)
 		{
@@ -381,7 +379,7 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 			return;
 		}
 
-		ASSERT_DEBUG(iSteps < 100);
+		ASSERT(iSteps < 100);
 		if(iSteps >= 100)
 		{
 			OutputDebugString("warning: endless loop in ContinueMission\n");
@@ -409,7 +407,7 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 				{
 					bool bCityAttackInterrupt = gDLL->GetAdvisorCityAttackInterrupt();
 					bool bBadAttackInterrupt = gDLL->GetAdvisorBadAttackInterrupt();
-					if(hUnit->isHuman() && !CvPreGame::isNetworkMultiplayerGame() && !GC.getGame().IsCombatWarned() && (bCityAttackInterrupt || bBadAttackInterrupt))
+					if(hUnit->isHuman(ISHUMAN_UI) && !CvPreGame::isNetworkMultiplayerGame() && !GC.getGame().IsCombatWarned() && (bCityAttackInterrupt || bBadAttackInterrupt))
 					{
 						if(hUnit->canMoveInto(*pDestPlot, CvUnit::MOVEFLAG_ATTACK) && pDestPlot->isVisible(hUnit->getTeam()))
 						{
@@ -716,21 +714,22 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 				}
 			}
 
-#if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-			else if (MOD_EVENTS_CUSTOM_MISSIONS) {
+			else if (MOD_EVENTS_CUSTOM_MISSIONS)
+			{
 				int iValue = 0;
-				if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_CustomMissionDoStep, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_VALUE) {
-					if (iValue == CUSTOM_MISSION_ACTION ) {
+				if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_CustomMissionDoStep, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_VALUE)
+				{
+					if (iValue == CUSTOM_MISSION_ACTION)
 						bAction = true;
-					} else if (iValue == CUSTOM_MISSION_DONE ) {
+					else if (iValue == CUSTOM_MISSION_DONE)
 						bDone = true;
-					} else if (iValue == CUSTOM_MISSION_ACTION_AND_DONE ) {
+					else if (iValue == CUSTOM_MISSION_ACTION_AND_DONE)
+					{
 						bAction = true;
 						bDone = true;
 					}
 				}
 			}
-#endif
 		}
 
 		// check to see if mission is done
@@ -818,9 +817,7 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 				kMissionData.eMissionType == CvTypes::getMISSION_SELL_EXOTIC_GOODS() ||
 				kMissionData.eMissionType == CvTypes::getMISSION_GIVE_POLICIES() ||
 				kMissionData.eMissionType == CvTypes::getMISSION_ONE_SHOT_TOURISM() ||
-#if defined(MOD_BALANCE_CORE)
 				kMissionData.eMissionType == CvTypes::getMISSION_FREE_LUXURY() ||
-#endif
 				kMissionData.eMissionType == CvTypes::getMISSION_CHANGE_ADMIRAL_PORT())
 			{
 				bDone = true;
@@ -840,13 +837,11 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 				}
 			}
 
-#if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-			if (MOD_EVENTS_CUSTOM_MISSIONS) {
-				if (GAMEEVENTINVOKE_TESTANY(GAMEEVENT_CustomMissionCompleted, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_TRUE) {
+			if (MOD_EVENTS_CUSTOM_MISSIONS)
+			{
+				if (GAMEEVENTINVOKE_TESTANY(GAMEEVENT_CustomMissionCompleted, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_TRUE)
 					bDone = true;
-				}
 			}
-#endif
 		}
 
 		if(HeadMissionData(kMissionQueue) != NULL)
@@ -865,7 +860,6 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 					gDLL->GameplayUnitWork(pDllUnit.get(), -1);
 				}
 
-#if defined(MOD_IMPROVEMENTS_EXTENSIONS)
 				// update the amount of a Resource used up by cancelled Build
 				if (MOD_IMPROVEMENTS_EXTENSIONS)
 				{
@@ -919,7 +913,6 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 						}
 					}
 				}
-#endif
 
 				if(hUnit->GetMissionTimer() == 0 && !hUnit->isInCombat())	// Was hUnit->IsBusy(), but its ok to clear the mission if the unit is just completing a move visualization
 				{
@@ -951,20 +944,21 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 
 							GC.GetEngineUserInterface()->changeCycleSelectionCounter(iCameraTime);
 						}
-#if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-						if (MOD_EVENTS_CUSTOM_MISSIONS) {
+
+						if (MOD_EVENTS_CUSTOM_MISSIONS)
+						{
 							int iCameraTime = 0;
-							if (GAMEEVENTINVOKE_VALUE(iCameraTime, GAMEEVENT_CustomMissionCameraTime, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_VALUE) {
-								if (iCameraTime > 0 && iCameraTime <= 10) {
-									if(GET_PLAYER(hUnit->getOwner()).isOption(PLAYEROPTION_QUICK_MOVES)) {
+							if (GAMEEVENTINVOKE_VALUE(iCameraTime, GAMEEVENT_CustomMissionCameraTime, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_VALUE)
+							{
+								if (iCameraTime > 0 && iCameraTime <= 10)
+								{
+									if (GET_PLAYER(hUnit->getOwner()).isOption(PLAYEROPTION_QUICK_MOVES))
 										iCameraTime = 1;
-									}
 
 									GC.GetEngineUserInterface()->changeCycleSelectionCounter(iCameraTime);
 								}
 							}
 						}
-#endif
 					}
 
 					hUnit->PublishQueuedVisualizationMoves();
@@ -1049,8 +1043,8 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 	}
 	else if(iMission == CvTypes::getMISSION_MOVE_TO_UNIT())
 	{
-		ASSERT_DEBUG(iData1 != NO_PLAYER, "iData1 should be a valid Player");
-		ASSERT_DEBUG(iData2 != NO_UNIT, "iData2 should be a valid Unit ID");
+		PRECONDITION(iData1 != NO_PLAYER, "iData1 should be a valid Player");
+		PRECONDITION(iData2 != NO_UNIT, "iData2 should be a valid Unit ID");
 		if (iData1 != NO_PLAYER && iData2 != NO_UNIT)
 		{
 			pTargetUnit = GET_PLAYER((PlayerTypes)iData1).getUnit(iData2);
@@ -1196,7 +1190,6 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 	}
 	else if(iMission == CvTypes::getMISSION_HURRY())
 	{
-		//if (hUnit->IsCanRushBuilding(pPlot->getPlotCity(), bTestVisible))
 		if(hUnit->canHurry(pPlot, bTestVisible))
 		{
 			return true;
@@ -1280,7 +1273,7 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 	}
 	else if(iMission == CvTypes::getMISSION_BUILD())
 	{
-		ASSERT_DEBUG(((BuildTypes)iData1) < GC.getNumBuildInfos(), "Invalid Build");
+		PRECONDITION(((BuildTypes)iData1) < GC.getNumBuildInfos(), "Invalid Build");
 		if(hUnit->canBuild(pPlot, ((BuildTypes)iData1), bTestVisible))
 		{
 			return true;
@@ -1361,7 +1354,6 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 			return true;
 		}
 	}
-#if defined(MOD_BALANCE_CORE)
 	else if (iMission == CvTypes::getMISSION_FREE_LUXURY())
 	{
 		if (hUnit->canGetFreeLuxury())
@@ -1369,14 +1361,12 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 			return true;
 		}
 	}
-#endif
-#if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-	if (MOD_EVENTS_CUSTOM_MISSIONS) {
-		if (GAMEEVENTINVOKE_TESTANY(GAMEEVENT_CustomMissionPossible, hUnit->getOwner(), hUnit->GetID(), iMission, iData1, iData2, 0, -1, pPlot->getX(), pPlot->getY(), bTestVisible) == GAMEEVENTRETURN_TRUE) {
+
+	if (MOD_EVENTS_CUSTOM_MISSIONS)
+	{
+		if (GAMEEVENTINVOKE_TESTANY(GAMEEVENT_CustomMissionPossible, hUnit->getOwner(), hUnit->GetID(), iMission, iData1, iData2, 0, -1, pPlot->getX(), pPlot->getY(), bTestVisible) == GAMEEVENTRETURN_TRUE)
 			return true;
-		}
 	}
-#endif
 
 	return false;
 }
@@ -1392,11 +1382,11 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 	static int stackDepth = 0;
 	++stackDepth; // JAR debugging
 
-	ASSERT_DEBUG(stackDepth < 100);
+	ASSERT(stackDepth < 100);
 
-	ASSERT_DEBUG(!hUnit->IsBusy());
-	ASSERT_DEBUG(hUnit->getOwner() != NO_PLAYER);
-	ASSERT_DEBUG(hUnit->HeadMissionData() != NULL);
+	ASSERT(!hUnit->IsBusy());
+	PRECONDITION(hUnit->getOwner() != NO_PLAYER);
+	ASSERT(hUnit->HeadMissionData() != NULL);
 
 	CvPlayerAI& kUnitOwner = GET_PLAYER(hUnit->getOwner());
 
@@ -1437,7 +1427,7 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 	}
 	else
 	{
-		ASSERT_DEBUG(kUnitOwner.isTurnActive() || kUnitOwner.isHuman(), "It's expected that either the turn is active for this player or the player is human");
+		ASSERT(kUnitOwner.isTurnActive() || kUnitOwner.isHuman(), "It's expected that either the turn is active for this player or the player is human");
 
 		if(pkQueueData->eMissionType == CvTypes::getMISSION_SKIP())
 		{
@@ -1481,26 +1471,27 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 			bDelete = true;
 		}
 
-#if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-		if (MOD_EVENTS_CUSTOM_MISSIONS) {
+		if (MOD_EVENTS_CUSTOM_MISSIONS)
+		{
 			int iValue = 0;
-			if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_CustomMissionSetActivity, hUnit->getOwner(), hUnit->GetID(), pkQueueData->eMissionType, pkQueueData->iData1, pkQueueData->iData2, pkQueueData->iFlags, pkQueueData->iPushTurn) == GAMEEVENTRETURN_VALUE) {
-				if (iValue == CUSTOM_MISSION_ACTION ) {
+			if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_CustomMissionSetActivity, hUnit->getOwner(), hUnit->GetID(), pkQueueData->eMissionType, pkQueueData->iData1, pkQueueData->iData2, pkQueueData->iFlags, pkQueueData->iPushTurn) == GAMEEVENTRETURN_VALUE)
+			{
+				if (iValue == CUSTOM_MISSION_ACTION)
 					bNotify = true;
-				} else if (iValue == CUSTOM_MISSION_DONE ) {
+				else if (iValue == CUSTOM_MISSION_DONE)
 					bDelete = true;
-				} else if (iValue == CUSTOM_MISSION_ACTION_AND_DONE ) {
+				else if (iValue == CUSTOM_MISSION_ACTION_AND_DONE)
+				{
 					bNotify = true;
 					bDelete = true;
 				}
 			}
 		}
-#endif
 
 		if(bNotify)
 		{
 			// The entity should not futz with the missions, but...
-			ASSERT_DEBUG(GetHeadMissionData(hUnit) == pkQueueData);
+			ASSERT(GetHeadMissionData(hUnit) == pkQueueData);
 			pkQueueData = GetHeadMissionData(hUnit);
 		}
 
@@ -1652,7 +1643,6 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 
 			else if(pkQueueData->eMissionType == CvTypes::getMISSION_HURRY())
 			{
-				//if (hUnit->DoRushBuilding())
 				if(hUnit->hurry())
 				{
 					bAction = true;
@@ -1750,7 +1740,7 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 			else if (pkQueueData->eMissionType == CvTypes::getMISSION_ESTABLISH_TRADE_ROUTE())
 			{
 				CvPlot* pPlot = GC.getMap().plotByIndex(pkQueueData->iData1);
-				ASSERT_DEBUG(pPlot, "pPlot is null! OH NOES, JOEY!");
+				ASSERT(pPlot, "pPlot is null! OH NOES, JOEY!");
 				if (pPlot)
 				{
 					if (GC.getGame().isNetworkMultiPlayer())
@@ -1829,7 +1819,7 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 						if(eImprovement != NO_IMPROVEMENT)
 						{
 							CvImprovementEntry* pkImprovementInfo = GC.getImprovementInfo(eImprovement);
-							ASSERT_DEBUG(pkImprovementInfo);
+							ASSERT(pkImprovementInfo);
 							if(pkImprovementInfo)
 							{
 								iNumResource += pkImprovementInfo->GetResourceQuantityRequirement(iResourceLoop);
@@ -1838,7 +1828,7 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 						else if(eRoute != NO_ROUTE)
 						{
 							CvRouteInfo* pkRouteInfo = GC.getRouteInfo(eRoute);
-							ASSERT_DEBUG(pkRouteInfo);
+							ASSERT(pkRouteInfo);
 							if(pkRouteInfo)
 							{
 								iNumResource += pkRouteInfo->getResourceQuantityRequirement(iResourceLoop);
@@ -1908,7 +1898,6 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 					bAction = true;
 				}
 			}
-#if defined(MOD_BALANCE_CORE)
 			else if (pkQueueData->eMissionType == CvTypes::getMISSION_FREE_LUXURY())
 			{
 				if(hUnit->createFreeLuxury())
@@ -1916,18 +1905,16 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 					bAction = true;
 				}
 			}
-#endif
 
-#if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-			if (MOD_EVENTS_CUSTOM_MISSIONS) {
+			if (MOD_EVENTS_CUSTOM_MISSIONS)
+			{
 				int iValue = 0;
-				if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_CustomMissionStart, hUnit->getOwner(), hUnit->GetID(), pkQueueData->eMissionType, pkQueueData->iData1, pkQueueData->iData2, pkQueueData->iFlags, pkQueueData->iPushTurn) == GAMEEVENTRETURN_VALUE) {
-					if (iValue == CUSTOM_MISSION_ACTION) {
+				if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_CustomMissionStart, hUnit->getOwner(), hUnit->GetID(), pkQueueData->eMissionType, pkQueueData->iData1, pkQueueData->iData2, pkQueueData->iFlags, pkQueueData->iPushTurn) == GAMEEVENTRETURN_VALUE)
+				{
+					if (iValue == CUSTOM_MISSION_ACTION)
 						bAction = true;
-					}
 				}
 			}
-#endif
 		}
 	}
 
@@ -1991,20 +1978,19 @@ CvPlot* CvUnitMission::LastMissionPlot(const CvUnit* hUnit)
 			}
 		}
 
-#if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-		if (MOD_EVENTS_CUSTOM_MISSIONS) {
+		if (MOD_EVENTS_CUSTOM_MISSIONS)
+		{
 			int iPlotIndex = -1;
-			if (GAMEEVENTINVOKE_VALUE(iPlotIndex, GAMEEVENT_CustomMissionTargetPlot, hUnit->getOwner(), hUnit->GetID(), pMissionNode->eMissionType, pMissionNode->iData1, pMissionNode->iData2, pMissionNode->iFlags, pMissionNode->iPushTurn) == GAMEEVENTRETURN_VALUE) {
-				if (iPlotIndex >= 0 ) {
+			if (GAMEEVENTINVOKE_VALUE(iPlotIndex, GAMEEVENT_CustomMissionTargetPlot, hUnit->getOwner(), hUnit->GetID(), pMissionNode->eMissionType, pMissionNode->iData1, pMissionNode->iData2, pMissionNode->iFlags, pMissionNode->iPushTurn) == GAMEEVENTRETURN_VALUE)
+			{
+				if (iPlotIndex >= 0)
+				{
 					CvPlot* pPlot = GC.getMap().plotByIndex(iPlotIndex);
-
-					if (pPlot) {
+					if (pPlot)
 						return pPlot;
-					}
 				}
 			}
 		}
-#endif
 
 		pMissionNode = PrevMissionData(hUnit->m_missionQueue, pMissionNode);
 	}
@@ -2068,16 +2054,16 @@ int CvUnitMission::CalculateMissionTimer(CvUnit* hUnit, int iSteps)
 				iTime = std::min(iTime, 2);
 			}
 		}
-#if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-		if (MOD_EVENTS_CUSTOM_MISSIONS) {
+
+		if (MOD_EVENTS_CUSTOM_MISSIONS)
+		{
 			int iValue = 0;
-			if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_CustomMissionTimerInc, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_VALUE) {
-				if (iValue != 0) {
+			if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_CustomMissionTimerInc, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_VALUE)
+			{
+				if (iValue != 0)
 					iTime += iValue;
-				}
 			}
 		}
-#endif
 
 		if(hUnit->isHuman() && (hUnit->IsAutomated() /*|| (GET_PLAYER((GC.getGame().isNetworkMultiPlayer()) ? hUnit->getOwner() : GC.getGame().getActivePlayer()).isOption(PLAYEROPTION_QUICK_MOVES))*/))
 		{
@@ -2126,12 +2112,12 @@ const MissionData* CvUnitMission::GetMissionData(CvUnit* hUnit, int iNode)
 /// Push onto back end of mission queue
 void CvUnitMission::InsertAtEndMissionQueue(CvUnit* hUnit, MissionData mission, bool bStart)
 {
-	ASSERT_DEBUG(hUnit->getOwner() != NO_PLAYER);
+	PRECONDITION(hUnit->getOwner() != NO_PLAYER);
 
 	MissionQueue& kQueue = hUnit->m_missionQueue;
 	kQueue.insertAtEnd(&mission);
 
-	ASSERT_DEBUG(kQueue.getLength() < 10);
+	ASSERT(kQueue.getLength() < 10);
 
 	if((GetLengthMissionQueue(kQueue) == 1) && bStart)
 	{
@@ -2153,8 +2139,8 @@ MissionData* CvUnitMission::DeleteMissionData(CvUnit* hUnit, MissionData* pNode)
 {
 	MissionData* pNextMissionNode = NULL;
 
-	ASSERT_DEBUG(pNode != NULL, "Node is not assigned a valid value");
-	ASSERT_DEBUG(hUnit->getOwner() != NO_PLAYER);
+	ASSERT(pNode != NULL, "Node is not assigned a valid value");
+	PRECONDITION(hUnit->getOwner() != NO_PLAYER);
 
 	MissionQueue& kQueue = hUnit->m_missionQueue;
 	if(pNode == HeadMissionData(kQueue))
@@ -2183,7 +2169,7 @@ MissionData* CvUnitMission::DeleteMissionData(CvUnit* hUnit, MissionData* pNode)
 void CvUnitMission::ClearMissionQueue(CvUnit* hUnit, bool bKeepPathCache, int iUnitCycleTimerOverride)
 {
 	//VALIDATE_OBJECT();
-	ASSERT_DEBUG(hUnit->getOwner() != NO_PLAYER);
+	PRECONDITION(hUnit->getOwner() != NO_PLAYER);
 
 	DeactivateHeadMission(hUnit, iUnitCycleTimerOverride);
 
@@ -2209,7 +2195,7 @@ void CvUnitMission::ClearMissionQueue(CvUnit* hUnit, bool bKeepPathCache, int iU
 /// Start our first mission
 void CvUnitMission::ActivateHeadMission(CvUnit* hUnit)
 {
-	ASSERT_DEBUG(hUnit->getOwner() != NO_PLAYER);
+	PRECONDITION(hUnit->getOwner() != NO_PLAYER);
 	if(hUnit->GetLengthMissionQueue() != 0)
 	{
 		if(!hUnit->IsBusy())
@@ -2223,7 +2209,7 @@ void CvUnitMission::ActivateHeadMission(CvUnit* hUnit)
 /// Deactivate our first mission, waking up the unit
 void CvUnitMission::DeactivateHeadMission(CvUnit* hUnit, int iUnitCycleTimer)
 {
-	ASSERT_DEBUG(hUnit->getOwner() != NO_PLAYER);
+	PRECONDITION(hUnit->getOwner() != NO_PLAYER);
 
 	if(hUnit->GetLengthMissionQueue() != 0)
 	{
@@ -2306,7 +2292,7 @@ int	CvUnitMission::GetLengthMissionQueue(const MissionQueue& kQueue)
 //	---------------------------------------------------------------------------
 const MissionData* CvUnitMission::GetHeadMissionData(CvUnit* hUnit)
 {
-	ASSERT_DEBUG(hUnit != NULL);
+	ASSERT(hUnit != NULL);
 	if(hUnit->m_missionQueue.getLength())
 		return (hUnit->m_missionQueue.head());
 	return NULL;
@@ -2315,7 +2301,7 @@ const MissionData* CvUnitMission::GetHeadMissionData(CvUnit* hUnit)
 //	---------------------------------------------------------------------------
 const MissionData* CvUnitMission::IsHeadMission(CvUnit* hUnit, int iMission)
 {
-	ASSERT_DEBUG(hUnit != NULL);
+	ASSERT(hUnit != NULL);
 	if(hUnit->m_missionQueue.getLength())
 	{
 		const MissionData& kMissionData = *hUnit->m_missionQueue.head();
@@ -2361,13 +2347,11 @@ bool CvUnitMission::HasCompletedMoveMission(CvUnit* hUnit)
 				return true;
 			}
 		}
-#if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-		if (MOD_EVENTS_CUSTOM_MISSIONS) {
-			if (GAMEEVENTINVOKE_TESTANY(GAMEEVENT_CustomMissionCompleted, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_TRUE) {
+		if (MOD_EVENTS_CUSTOM_MISSIONS)
+		{
+			if (GAMEEVENTINVOKE_TESTANY(GAMEEVENT_CustomMissionCompleted, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_TRUE)
 				return true;
-			}
 		}
-#endif
 	}
 
 	return false;

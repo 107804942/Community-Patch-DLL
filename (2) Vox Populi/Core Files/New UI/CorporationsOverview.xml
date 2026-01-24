@@ -143,19 +143,20 @@
 	<Instance Name="WorldMonopolyResourceInstance">
 		<Box Size="958,28" Color="0,0,0,0" ID="Base">
 			<Stack StackGrowth="Right">
-				<Box Size="350,25" Color="0,0,0,0">
-					<Label ID="ResourceLabel" Anchor="L,C" Offset="42,0" ColorSet="Beige_Black_Alpha" Font="TwCenMT18" FontStyle="Shadow"/>
+				<Box Size="250,25" Color="0,0,0,0">
+					<Label ID="ResourceLabel" Anchor="L,C" Offset="82,0" ColorSet="Beige_Black_Alpha" Font="TwCenMT18" FontStyle="Shadow"/>
+				</Box>
+				<Box Size="230,25" Color="0,0,0,0">
+					<Label ID="PercentLabel" Anchor="R,C" Offset="122,0" ColorSet="Beige_Black_Alpha" Font="TwCenMT18" FontStyle="Shadow"/>
+					<Label ID="PercentLabel2" Anchor="L,C" Offset="115,0" ColorSet="Beige_Black_Alpha" Font="TwCenMT18" FontStyle="Shadow"/>
 				</Box>
 				<Box Size="350,25" Color="0,0,0,0">
-					<Box Size="32,32" Anchor="L,T" Offset="0,-3" Color="0,0,0,0" ID="CivIconBox">
+					<Box Size="32,32" Anchor="L,T" Offset="52,-3" Color="0,0,0,0" ID="CivIconBox">
 						<Image ID="CivIconBG" Size="32.32" Anchor="C,C" Offset="0,0" TextureOffset="32,0" Texture="CivIconBGSizes.dds"/>
 						<Image ID="CivIconShadow" Size="24.24" Anchor="C,C" Offset="1,1" Texture="CivSymbolAtlas16.dds" Color="Black.128"/>
 						<Image ID="CivIcon" Size="24.24" Offset="0,0" Anchor="C,C" Texture="CivSymbolsColor256.dds"/>
 					</Box>
-					<Label ID="CivName" Anchor="L,C" Offset="32,0" TruncateWidth="300" ColorSet="Beige_Black_Alpha" Font="TwCenMT18" FontStyle="Shadow"/>
-				</Box>
-				<Box Size="250,25" Color="0,0,0,0">
-					<Label ID="PercentLabel" Anchor="L,C" Offset="42,0" ColorSet="Beige_Black_Alpha" Font="TwCenMT18" FontStyle="Shadow"/>
+					<Label ID="CivName" Anchor="L,C" Offset="86,0" TruncateWidth="300" ColorSet="Beige_Black_Alpha" Font="TwCenMT18" FontStyle="Shadow"/>
 				</Box>
 			</Stack>
 		</Box>
@@ -457,19 +458,19 @@
 					<Stack Anchor="L,T" StackGrowth="Bottom">
 						<Box Anchor="L,T" Size="956,20" Color="0,0,0,0">
 							<Stack Anchor="L,T" StackGrowth="Right">
-								<Box Size="280,18" Color="0,0,0,0">
+								<Box Size="250,18" Color="0,0,0,0">
 									<TextButton Offset="0,0" Anchor="C,B" Font="TwCenMT20" ColorSet="Beige_Black_Alpha" ToolTip="TXT_KEY_CPO_MP_RESOURCE_SORT_TT" String="TXT_KEY_CPO_MP_RESOURCE" FontStyle="Shadow" MouseOverStyle="SoftShadow" ConsumeMouse="1" ID="MPSortByResource">
 										<Image Anchor="L,C" AnchorSide="O.I" Offset="2,0" Texture="assets/UI/Art/Controls/9 Grids/SelectedUp.dds" Size="18,18" ID="MPSortByResourceImage"/>
 									</TextButton>
 								</Box>
-								<Box Size="350,18" Color="0,0,0,0">
-									<TextButton Offset="0,0" Anchor="C,B" Font="TwCenMT20" ColorSet="Beige_Black_Alpha" ToolTip="TXT_KEY_CPO_MP_CIVILIZATION_SORT_TT" String="TXT_KEY_CPO_MP_CIVILIZATION" FontStyle="Shadow" MouseOverStyle="SoftShadow" ConsumeMouse="1" ID="MPSortByCivilization">
-										<Image Anchor="L,C" AnchorSide="O.I" Offset="2,0" Texture="assets/UI/Art/Controls/9 Grids/SelectedUp.dds" Size="18,18" ID="MPSortByCivilizationImage"/>
+								<Box Size="230,18" Color="0,0,0,0">
+									<TextButton Offset="0,0" Anchor="C,B" Font="TwCenMT20" ColorSet="Beige_Black_Alpha" ToolTip="TXT_KEY_CPO_MP_OWNED_SORT_TT" String="TXT_KEY_CPO_MP_OWNED" FontStyle="Shadow" MouseOverStyle="SoftShadow" ConsumeMouse="1" ID="MPSortByPercent">
+										<Image Anchor="L,C" AnchorSide="O.I" Offset="2,0" Texture="assets/UI/Art/Controls/9 Grids/SelectedUp.dds" Size="18,18" ID="MPSortByPercentImage"/>
 									</TextButton>
 								</Box>
-								<Box Size="250,18" Color="0,0,0,0">
-									<TextButton Offset="0,0" Anchor="C,B" Font="TwCenMT20" ColorSet="Beige_Black_Alpha" ToolTip="TXT_KEY_CPO_MP_MONOPOLY_SORT_TT" String="TXT_KEY_CPO_MP_MONOPOLY" FontStyle="Shadow" MouseOverStyle="SoftShadow" ConsumeMouse="1" ID="MPSortByPercent">
-										<Image Anchor="L,C" AnchorSide="O.I" Offset="2,0" Texture="assets/UI/Art/Controls/9 Grids/SelectedUp.dds" Size="18,18" ID="MPSortByPercentImage"/>
+								<Box Size="350,18" Color="0,0,0,0">
+									<TextButton Offset="-30,0" Anchor="C,B" Font="TwCenMT20" ColorSet="Beige_Black_Alpha" ToolTip="TXT_KEY_CPO_MP_CIVILIZATION_SORT_TT" String="TXT_KEY_CPO_MP_CIVILIZATION" FontStyle="Shadow" MouseOverStyle="SoftShadow" ConsumeMouse="1" ID="MPSortByCivilization">
+										<Image Anchor="L,C" AnchorSide="O.I" Offset="2,0" Texture="assets/UI/Art/Controls/9 Grids/SelectedUp.dds" Size="18,18" ID="MPSortByCivilizationImage"/>
 									</TextButton>
 								</Box>
 							</Stack>

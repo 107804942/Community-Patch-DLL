@@ -200,11 +200,6 @@ UPDATE Buildings
 SET Cost = 450
 WHERE Type = 'BUILDING_BARBICAN';
 
--- Skola
-UPDATE Buildings
-SET Cost = 800, GoldMaintenance = 4
-WHERE Type = 'BUILDING_SKOLA';
-
 -- Museum, Military Academy
 UPDATE Buildings
 SET GoldMaintenance = 6
@@ -261,7 +256,12 @@ WHERE BuildingClass IN (
 );
 
 -- Wat
-UPDATE Buildings SET Cost = -1, FaithCost = 300, GoldMaintenance = 0 WHERE BuildingClass = 'BUILDINGCLASS_WAT';
+UPDATE Buildings
+SET
+	Cost = -1,
+	FaithCost = 300,
+	GoldMaintenance = 0
+WHERE BuildingClass = 'BUILDINGCLASS_WAT';
 
 -- Reformation buildings
 UPDATE Buildings SET Cost = 125 WHERE IsReformation = 1;

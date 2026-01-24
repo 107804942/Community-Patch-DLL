@@ -57,7 +57,7 @@
 		<Column name="YieldType" type="text" reference="Yields(Type)" notnull="true"/>
 		<Column name="Yield" type="integer" notnull="true"/>
 	</Table>
-	<!-- Yields in city when the unit is a garrison, scaling with unit's combat strength / 8 -->
+	<!-- Yields on city tile when the unit is a garrison, scaling with unit's combat strength / 8 -->
 	<Table name="UnitPromotions_GarrisonYield">
 		<Column name="PromotionType" type="text" reference="UnitPromotions(Type)" notnull="true"/>
 		<Column name="YieldType" type="text" reference="Yields(Type)" notnull="true"/>
@@ -116,7 +116,6 @@
 	</Table>
 
 	<!-- Unit has its name changed when gaining this promotion -->
-	<!-- Needs the PROMOTIONS_UNIT_NAMING option to function -->
 	<Table name="UnitPromotions_UnitName">
 		<Column name="PromotionType" type="text" reference="UnitPromotions(Type)" notnull="true"/>
 		<Column name="UnitType" type="text" reference="Units(Type)" notnull="true"/>

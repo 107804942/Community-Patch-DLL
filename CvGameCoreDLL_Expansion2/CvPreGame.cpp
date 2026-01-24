@@ -2299,7 +2299,7 @@ void setCalendar(const CvString& c)
 	Database::SingleResult kResult;
 	if(!DB.SelectAt(kResult, "Calendars", "Type", c.c_str()))
 	{
-		ASSERT_DEBUG(false, "Cannot find calendar info.");
+		ASSERT(false, "Cannot find calendar info.");
 	}
 	s_calendarInfo.CacheResult(kResult);
 
@@ -2366,7 +2366,7 @@ void setClimate(const CvString& c)
 
 void setCustomWorldSize(int iWidth, int iHeight, int iPlayers, int iMinorCivs)
 {
-	ASSERT_DEBUG(iWidth >= 20 && iHeight >= 20, "Cannot have a map that small!");
+	ASSERT(iWidth >= 20 && iHeight >= 20, "Cannot have a map that small!");
 
 	const int iArea = iWidth * iHeight;
 
@@ -2566,14 +2566,8 @@ void onGameStarted()
 					uint uRand = GC.getGame().urandLimitExclusive(vHumanCivsNotChosen.size(), CvSeeder::fromRaw(0x3153de36).mix(iCounter));
 					eRandomCiv = static_cast<CivilizationTypes>(vHumanCivsNotChosen[uRand]);
 					vHumanCivsNotChosen.erase(vHumanCivsNotChosen.begin() + uRand);
-					for (uint ui = 0; ui < vAICivsNotChosen.size(); ui++)
-					{
-						if (vAICivsNotChosen[ui] == eRandomCiv)
-						{
-							vAICivsNotChosen.erase(vAICivsNotChosen.begin() + ui);
-							break;
-						}
-					}
+					vector<CivilizationTypes>::const_iterator it = std::find(vAICivsNotChosen.begin(), vAICivsNotChosen.end(), eRandomCiv);
+					vAICivsNotChosen.erase(it);
 				}
 				else if (vHumanCivs.size() > 0)
 				{
@@ -2590,14 +2584,8 @@ void onGameStarted()
 					uint uRand = GC.getGame().urandLimitExclusive(vAICivsNotChosen.size(), CvSeeder::fromRaw(0x9f2b8561).mix(iCounter));
 					eRandomCiv = static_cast<CivilizationTypes>(vAICivsNotChosen[uRand]);
 					vAICivsNotChosen.erase(vAICivsNotChosen.begin() + uRand);
-					for (uint ui = 0; ui < vHumanCivsNotChosen.size(); ui++)
-					{
-						if (vHumanCivsNotChosen[ui] == eRandomCiv)
-						{
-							vHumanCivsNotChosen.erase(vHumanCivsNotChosen.begin() + ui);
-							break;
-						}
-					}
+					vector<CivilizationTypes>::const_iterator it = std::find(vHumanCivsNotChosen.begin(), vHumanCivsNotChosen.end(), eRandomCiv);
+					vHumanCivsNotChosen.erase(it);
 				}
 				else if (vAICivs.size() > 0)
 				{
@@ -2960,7 +2948,7 @@ void setGameType(const CvString& g)
 	}
 	else
 	{
-		//ASSERT_DEBUG(false, "Invalid game type in ini file!");
+		//ASSERT(false, "Invalid game type in ini file!");
 		setGameType(GAME_TYPE_NONE);
 	}
 }
@@ -3105,10 +3093,7 @@ void setLoadFileName(const CvString& f)
 
 void setLoadFileName(const CvString& f, StorageLocation eStorage)
 {
-	if(s_loadFileName != f)
-	{
-		s_loadFileName = f;
-	}
+	s_loadFileName = f;
 
 	s_loadFileStorage = eStorage;
 }
@@ -3368,7 +3353,7 @@ void setTurnTimer(TurnTimerTypes t)
 	Database::SingleResult kResult;
 	if(!DB.SelectAt(kResult, "TurnTimers", "ID", static_cast<int>(t)))
 	{
-		ASSERT_DEBUG(false, "Cannot find turn timer info.");
+		ASSERT(false, "Cannot find turn timer info.");
 	}
 	s_turnTimer.CacheResult(kResult);
 }
@@ -3378,7 +3363,7 @@ void setTurnTimer(const CvString& t)
 	Database::SingleResult kResult;
 	if(!DB.SelectAt(kResult, "TurnTimers", "Type", t.c_str()))
 	{
-		ASSERT_DEBUG(false, "Cannot find turn timer info.");
+		ASSERT(false, "Cannot find turn timer info.");
 	}
 	s_turnTimer.CacheResult(kResult);
 
@@ -3403,7 +3388,7 @@ void setVictory(VictoryTypes v, bool isValid)
 
 void setVictories(const std::vector<bool>& v)
 {
-	ASSERT_DEBUG(v.size() <= std::size_t(s_numVictoryInfos));
+	ASSERT(v.size() <= std::size_t(s_numVictoryInfos));
 	for (std::size_t i = 0; i < v.size(); i++)
 		s_victories[i] = v[i];
 }
@@ -3472,7 +3457,7 @@ void VerifyHandicap(PlayerTypes p, bool bHumanPlayerSwap)
 
 void setWorldSize(WorldSizeTypes w, bool bResetSlots)
 {
-	ASSERT_DEBUG(!gameStarted() || isNetworkMultiplayerGame() || isHotSeatGame());
+	ASSERT(!gameStarted() || isNetworkMultiplayerGame() || isHotSeatGame());
 
 	//Query
 	Database::Results kQuery;
@@ -3488,13 +3473,13 @@ void setWorldSize(WorldSizeTypes w, bool bResetSlots)
 	}
 	else
 	{
-		ASSERT_DEBUG(false, "Could not find world size entry.")
+		ASSERT(false, "Could not find world size entry.")
 	}
 }
 
 void setWorldSize(const CvString& w)
 {
-	ASSERT_DEBUG(!gameStarted() || isNetworkMultiplayerGame() || isHotSeatGame());
+	ASSERT(!gameStarted() || isNetworkMultiplayerGame() || isHotSeatGame());
 
 	Database::Results kQuery;
 
@@ -3509,7 +3494,7 @@ void setWorldSize(const CvString& w)
 	}
 	else
 	{
-		ASSERT_DEBUG(false, "Could not find world size entry.")
+		ASSERT(false, "Could not find world size entry.")
 	}
 }
 
@@ -3534,7 +3519,7 @@ const std::vector<SlotStatus>& GetSlotStatus()
 
 void StringToBools(const char* szString, int* iNumBools, bool** ppBools)
 {
-	ASSERT_DEBUG(szString, "null string");
+	ASSERT(szString, "null string");
 	if(szString)
 	{
 		*iNumBools = strlen(szString);
@@ -3936,7 +3921,7 @@ bool isKnownPlayerReq(PlayerTypes ePlayer)
 bool handleKnownPlayerReq(PlayerTypes ePlayer)
 {
 	// Only makes sense for Network MP
-	ASSERT_DEBUG(isNetworkMultiplayerGame(), "Checking known players table does not make sense outside of Network MP games!");
+	ASSERT(isNetworkMultiplayerGame(), "Checking known players table does not make sense outside of Network MP games!");
 	
 	// decode actual player ID - it was encoded as -(ePlayer+2), probably in StagingRoom.lua
 	ePlayer = static_cast<PlayerTypes>(-ePlayer - 2);

@@ -645,6 +645,7 @@ namespace FLua
 			// whose signature is not yet recognized by FLua.  You cannot expose this function
 			// until a template specialization for its signature is added.
 			FLUA_COMPILE_TIME_ERROR(CantDoCall);
+			return 0; // Should never be reached due to compile-time error above
 		}
 
 		// Call for lua_CFunctions
@@ -1019,7 +1020,7 @@ namespace FLua
 	extern FCriticalSection	ms_CriticalSection;
 }
 
-#if !defined(FINAL_RELEASE)
+#if !defined(FINAL_RELEASE) || defined(VPDEBUG)
 #define FLUA_OUTPUT_CALLSTACKS
 #endif
 

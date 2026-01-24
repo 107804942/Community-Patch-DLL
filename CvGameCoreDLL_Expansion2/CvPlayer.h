@@ -129,7 +129,6 @@ public:
 	// Declared public because CvPlayerCorporations needs to access this. Maybe want to use a friend
 	void processCorporations(CorporationTypes eCorporation, int iChange);
 
-#if defined(MOD_BALANCE_CORE_EVENTS)
 	void DoEvents(bool bEspionageOnly = false);
 	void DoCancelEventChoice(EventChoiceTypes eChosenEventChoice);
 	bool IsEventValid(EventTypes eEvent);
@@ -164,7 +163,7 @@ public:
 
 	bool IsEventFired(EventTypes eEvent) const;
 	void SetEventFired(EventTypes eEvent, bool bValue);
-#endif
+
 	void DoLiberatePlayer(PlayerTypes ePlayer, int iOldCityID, bool bForced, bool bSphereRemoval);
 	bool CanLiberatePlayer(PlayerTypes ePlayer);
 	bool CanLiberatePlayerCity(PlayerTypes ePlayer);
@@ -192,7 +191,7 @@ public:
 
 	bool HasActiveSettler();
 
-	int GetNumUnitsWithUnitAI(UnitAITypes eUnitAIType, bool bIncludeBeingTrained);
+	int GetNumUnitsWithUnitAI(UnitAITypes eUnitAIType, bool bIncludeBeingTrained, bool bDefaultAI=false);
 	int GetNumUnitsWithDomain(DomainTypes eDomain, bool bMilitaryOnly);
 	int GetNumUnitsWithUnitCombat(UnitCombatTypes eUnitCombat);
 	int GetNumUnitsOfType(UnitTypes eUnit, bool bIncludeBeingTrained = false);
@@ -201,7 +200,7 @@ public:
 	void UpdateDangerPlots();
 	void SetDangerPlotsDirty();
 
-	bool isHuman() const;
+	bool isHuman(IsHumanReason eIsHumanReason = OTHER_ISHUMAN_REASON) const;
 	bool isObserver() const;
 	bool isBarbarian() const;
 
@@ -244,7 +243,7 @@ public:
 	bool hasPromotableUnit() const;
 
 	bool hasReadyUnit() const;
-	int GetCountReadyUnits() const;
+	int GetCountReadyUnits(bool bCreatedThisTurnSlice = false) const;
 	const CvUnit* GetFirstReadyUnit() const;
 	void EndTurnsForReadyUnits(bool bLinkedUnitsOnly = false);
 	bool hasAutoUnit() const;
@@ -314,17 +313,17 @@ public:
 	int GetChainLength(BuildingTypes eBuilding);
 
 	void AwardFreeBuildings(CvCity* pCity); // slewis - broken out so that Venice can get free buildings when they purchase something
+	void SpawnResourceInOwnedLands(ResourceTypes eResource, int iQuantity, bool bSarcophagus = false, CvCity* pCityToExclude = NULL);
 
 	bool canFoundCityExt(int iX, int iY, bool bIgnoreDistanceToExistingCities, bool bIgnoreHappiness) const;
 	bool canFoundCity(int iX, int iY) const;
 
 	void foundCity(int iX, int iY, ReligionTypes eReligion = NO_RELIGION, bool bForce = false, CvUnitEntry* pkSettlerUnitEntry = NULL);
-	void cityBoost(int iX, int iY, CvUnitEntry* pkUnitEntry, int iExtraPlots, int iPopChange, int iFoodPercent);
 
 	bool canTrainUnit(UnitTypes eUnit, bool bContinue = false, bool bTestVisible = false, bool bIgnoreCost = false, bool bIgnoreUniqueUnitStatus = false, bool bIgnoreTechRequirements = false, CvString* toolTipSink = NULL) const;
 	bool canConstruct(BuildingTypes eBuilding, bool bContinue = false, bool bTestVisible = false, bool bIgnoreCost = false, CvString* toolTipSink = NULL) const;
 	bool canConstruct(BuildingTypes eBuilding, const std::vector<int>& vPreExistingBuildings, bool bContinue = false, bool bTestVisible = false, bool bIgnoreCost = false, CvString* toolTipSink = NULL) const;
-	bool canCreate(ProjectTypes eProject, bool bContinue = false, bool bTestVisible = false) const;
+	bool canCreate(ProjectTypes eProject, bool bContinue = false, bool bTestVisible = false, CvString* toolTipSink = NULL) const;
 	bool canMaintain(ProcessTypes eProcess, bool bContinue = false) const;
 	bool IsCanPurchaseAnyCity(bool bTestPurchaseCost, bool bTestTrainable, UnitTypes eUnit, BuildingTypes eBuilding, YieldTypes ePurchaseYield);
 	bool isProductionMaxedUnitClass(UnitClassTypes eUnitClass) const;
@@ -334,9 +333,7 @@ public:
 	int getProductionNeeded(BuildingTypes eBuilding) const;
 	int getProductionNeeded(ProjectTypes eProject) const;
 
-#if defined(MOD_PROCESS_STOCKPILE)
 	int getMaxStockpile() const;
-#endif
 
 	int getProductionModifier(CvString* toolTipSink = NULL) const;
 	int getProductionModifier(UnitTypes eUnit, CvString* toolTipSink = NULL) const;
@@ -347,10 +344,10 @@ public:
 	int getBuildingClassPrereqBuilding(BuildingTypes eBuilding, BuildingClassTypes ePrereqBuildingClass, int iExtra = 0) const;
 	void removeBuildingClass(BuildingClassTypes eBuildingClass);
 	void processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, CvCity* pSourceCity);
-	int GetBuildingClassYieldChange(BuildingClassTypes eBuildingClass, YieldTypes eYieldType);
-	int GetBuildingClassYieldModifier(BuildingClassTypes eBuildingClass, YieldTypes eYieldType);
-	int GetBuildingClassYieldChange(BuildingClassTypes eBuildingClass, YieldTypes eYieldType, const vector<int>& preexistingBuildingsCount);
-	int GetBuildingClassYieldModifier(BuildingClassTypes eBuildingClass, YieldTypes eYieldType, const vector<int>& preexistingBuildingsCount);
+	int GetBuildingClassYieldChange(const BuildingClassTypes eBuildingClass, const YieldTypes eYieldType) const;
+	int GetBuildingClassYieldModifier(const BuildingClassTypes eBuildingClass, const YieldTypes eYieldType) const;
+	int GetBuildingClassYieldChange(const BuildingClassTypes eBuildingClass, const YieldTypes eYieldType, const vector<int>& preexistingBuildingsCount) const;
+	int GetBuildingClassYieldModifier(const BuildingClassTypes eBuildingClass, const YieldTypes eYieldType, const vector<int>& preexistingBuildingsCount) const;
 
 	int GetWorldWonderYieldChange(int iYield);
 
@@ -465,9 +462,7 @@ public:
 	int GetJONSCulturePerTurnFromExcessHappinessTimes100() const;
 	int GetJONSCulturePerTurnFromTraits() const;
 
-#if defined(MOD_BALANCE_CORE)
 	int GetYieldPerTurnFromResources(YieldTypes eYield, bool bExported, bool bImported) const;
-#endif
 
 	int GetJONSCulturePerTurnForFree() const;
 	void ChangeJONSCulturePerTurnForFree(int iChange);
@@ -476,9 +471,6 @@ public:
 	int GetCulturePerTurnFromMinor(PlayerTypes eMinor) const;
 
 	int GetCulturePerTurnModifierFromReligion() const;
-
-	int GetJONSCultureCityModifier() const;
-	void ChangeJONSCultureCityModifier(int iChange);
 
 	int getJONSCultureTimes100() const;
 	void setJONSCultureTimes100(int iNewValue);
@@ -501,9 +493,6 @@ public:
 
 	int GetCulturePerTechResearched() const;
 	void ChangeCulturePerTechResearched(int iChange);
-
-	int GetSpecialistCultureChange() const;
-	void ChangeSpecialistCultureChange(int iChange);
 
 	int GetNumCitiesFreeCultureBuilding() const;
 	void ChangeNumCitiesFreeCultureBuilding(int iChange);
@@ -537,11 +526,9 @@ public:
 
 	void DoHealGlobal(int iHealPercent);
 	void DoHealLocal(int iHealPercent, CvPlot* pPlot);
-#if defined(MOD_BALANCE_CORE)
 	void DoFreeGreatWorkOnConquest(CvCity* pCity);
 	void DoWarVictoryBonuses();
 	void DoDifficultyBonus(HistoricEventTypes eHistoricEvent);
-#endif
 
 	int GetYieldPerTurnFromReligion(YieldTypes eYield) const;
 	int GetYieldPerTurnFromTraits(YieldTypes eYield) const;
@@ -549,7 +536,6 @@ public:
 	// Faith
 	int GetTotalFaithPerTurnTimes100() const;
 	int GetFaithPerTurnFromMinorCivs() const;
-#if defined(MOD_BALANCE_CORE)
 	int GetGoldPerTurnFromMinorCivs() const;
 	int GetGoldPerTurnFromMinor(PlayerTypes eMinor) const;
 
@@ -558,7 +544,6 @@ public:
 
 	int GetYieldPerTurnFromMinors(YieldTypes eYield) const;
 	void SetYieldPerTurnFromMinors(YieldTypes eYield, int iValue);
-#endif
 	int GetFaithPerTurnFromMinor(PlayerTypes eMinor) const;
 	int GetFaithPerTurnFromReligion() const;
 	int GetFaithTimes100() const;
@@ -684,19 +669,15 @@ public:
 	int GetHappinessPerXGreatWorks() const;
 	void ChangeHappinessPerXGreatWorks(int iChange);
 
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	int GetHappinessFromResourceMonopolies() const;
-#endif
 	int GetHappinessFromResources() const;
 	int GetHappinessFromResourceVariety() const;
 	int GetHappinessFromReligion();
 	int GetHappinessFromNaturalWonders() const;
 	void SetNaturalWonderOwned(FeatureTypes eFeature, bool bValue);
 
-#if defined(MOD_BALANCE_CORE)
 	void ChangeUnitClassProductionModifier(UnitClassTypes eUnitClass, int iValue);
 	int GetUnitClassProductionModifier(UnitClassTypes eUnitClass) const;
-#endif
 
 	int GetHappinessFromLuxury(ResourceTypes eResource, bool bIncludeImport = true) const;
 	int GetExtraHappinessPerLuxury() const;
@@ -709,6 +690,7 @@ public:
 	int GetUnhappinessFromCityCount(CvCity* pAssumeCityAnnexed = NULL, CvCity* pAssumeCityPuppeted = NULL) const;
 	int GetUnhappinessFromCapturedCityCount(CvCity* pAssumeCityAnnexed = NULL, CvCity* pAssumeCityPuppeted = NULL) const;
 	int GetUnhappinessFromCityPopulation(CvCity* pAssumeCityAnnexed = NULL, CvCity* pAssumeCityPuppeted = NULL) const;
+	int GetUnhappinessFromCityBuildings(CvCity* pAssumeCityAnnexed = NULL, CvCity* pAssumeCityPuppeted = NULL) const;
 	int GetUnhappinessFromCitySpecialists(CvCity* pAssumeCityAnnexed, CvCity* pAssumeCityPuppeted) const;
 	int GetUnhappinessFromPuppetCitySpecialists() const;
 	int GetUnhappinessFromPuppetCityPopulation() const;
@@ -733,6 +715,7 @@ public:
 	int GetUnhappinessFromPillagedTiles() const;
 	int GetUnhappinessFromFamine() const;
 	int GetUnhappinessFromReligiousUnrest() const;
+	int GetUnhappinessFromBuildings() const;
 	int GetUnhappinessFromCityJFDSpecial() const;
 
 	int GetCityCountUnhappinessMod() const;
@@ -792,10 +775,8 @@ public:
 	void CreateSpies(int iNumSpies, bool bScaling = true);
 	// END Espionage
 
-#if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	int GetConversionModifier() const;
 	void ChangeConversionModifier(int iChange);
-#endif
 
 	// City-level Extra Yields from Annexed Minors
 	int GetFoodInCapitalPerTurnFromAnnexedMinors() const;
@@ -910,13 +891,11 @@ public:
 	int GetCultureBonusTurns() const;
 	void ChangeCultureBonusTurns(int iChange);
 
-#if defined(MOD_BALANCE_CORE)
 	int GetCultureBonusTurnsConquest() const;
 	void ChangeCultureBonusTurnsConquest(int iChange);
 
 	int GetProductionBonusTurnsConquest() const;
 	void ChangeProductionBonusTurnsConquest(int iChange);
-#endif
 	int GetTourismBonusTurns() const;
 	void ChangeTourismBonusTurns(int iChange);
 
@@ -926,14 +905,10 @@ public:
 	// Golden Age Stuff
 
 	void DoProcessVotes();
-#if defined(MOD_BALANCE_CORE_YIELDS)
 	void DoChangeGreatGeneralRate();
 	void DoChangeGreatAdmiralRate();
-#endif
-#if defined(MOD_BALANCE_CORE)
 	int GetGoldenAgePointsFromEmpireTimes100();
 	int GetGoldenAgePointsFromCitiesTimes100();
-#endif
 	void DoProcessGoldenAge();
 
 	int GetGoldenAgeProgressThreshold() const;
@@ -1053,20 +1028,11 @@ public:
 	void recomputePolicyCostModifier();
 
 	int getGreatPeopleRateModifier() const;
-	int getGreatGeneralRateModifier() const;
-	int getGreatAdmiralRateModifier() const;
-	int getGreatWriterRateModifier() const;
-	int getGreatArtistRateModifier() const;
-	int getGreatMusicianRateModifier() const;
-	int getGreatMerchantRateModifier() const;
-	int getGreatScientistRateModifier() const;
-	int getGreatEngineerRateModifier() const;
-	int getGreatDiplomatRateModifier() const;
+	int GetGreatPersonRateModifier(GreatPersonTypes eGreatPerson) const;
+	void ChangeGreatPersonRateModifier(GreatPersonTypes eGreatPerson, int iChange);
 	int getDomesticGreatGeneralRateModifier() const;
-#if defined(MOD_BALANCE_CORE)
 	int getArtsyGreatPersonRateModifier();
 	int getScienceyGreatPersonRateModifier();
-#endif
 	void changeGreatPeopleRateModFromBldgs(int ichange);
 	void changeGreatGeneralRateModFromBldgs(int ichange);
 	void recomputeGreatPeopleModifiers();
@@ -1093,7 +1059,6 @@ public:
 
 	// Unit Killed in Combat
 	void DoUnitKilledCombat(CvUnit* pKillingUnit, PlayerTypes eKilledPlayer, UnitTypes eUnitType);
-#if defined(MOD_BALANCE_CORE)
 	void doInstantYield(InstantYieldType iType, bool bCityFaith = false, GreatPersonTypes eGreatPerson = NO_GREATPERSON, BuildingTypes ePassBuilding = NO_BUILDING, int iPassYield = 0, bool bEraScale = true, PlayerTypes ePlayer = NO_PLAYER, CvPlot* pPlot = NULL, bool bSuppress = false, CvCity* pCity = NULL, bool bDomainSea = false, bool bInternational = true, bool bEvent = false, YieldTypes ePassYield = NO_YIELD, CvUnit* pUnit = NULL, TerrainTypes ePassTerrain = NO_TERRAIN, CvMinorCivQuest* pQuestData = NULL, CvCity* pOtherCity = NULL, CvUnit* pAttackingUnit = NULL);
 	void addInstantYieldText(InstantYieldType iType, const CvString& strInstantYield);
 	void setInstantYieldText(InstantYieldType iType, const CvString& strInstantYield);
@@ -1104,7 +1069,6 @@ public:
 	void addInstantGreatPersonProgressText(InstantYieldType iType, const CvString& strInstantYield);
 	void setInstantGreatPersonProgressText(InstantYieldType iType, const CvString& strInstantYield);
 	CvString getInstantGreatPersonProgressText(InstantYieldType iType)  const;
-#endif
 	// Great People Expenditure
 	void DoGreatPersonExpended(UnitTypes eGreatPersonUnit, CvUnit* pGreatPersonUnit);
 	int GetGreatPersonExpendGold() const;
@@ -1143,9 +1107,7 @@ public:
 	int getWorkerSpeedModifier() const;
 	void changeWorkerSpeedModifier(int iChange);
 
-#if defined(MOD_CIV6_WORKER)
 	int GetImprovementBuilderCost(BuildTypes iBuild) const;
-#endif
 
 	int getImprovementCostModifier() const;
 	void changeImprovementCostModifier(int iChange);
@@ -1213,10 +1175,8 @@ public:
 	int GetImprovementGoldMaintenanceMod() const;
 	void ChangeImprovementGoldMaintenanceMod(int iChange);
 
-#if defined(MOD_CIV6_WORKER)
 	int GetRouteBuilderCostMod() const;
 	void ChangeRouteBuilderCostMod(int iChange);
-#endif
 
 	int GetBuildingGoldMaintenanceMod() const;
 	void ChangeBuildingGoldMaintenanceMod(int iChange);
@@ -1233,13 +1193,20 @@ public:
 	int GetNumMaintenanceFreeUnits(DomainTypes eDomain = NO_DOMAIN, bool bOnlyCombatUnits = false) const;
 
 	int getNumMilitaryUnits() const;
-	/*Changes to allow finer details of the Military Units that the Player has*/
+
 	int getNumMilitaryLandUnits() const;
 	int getNumMilitarySeaUnits() const;
 	int getNumMilitaryAirUnits() const;
-	int GetMilitarySeaMight() const;
-	int GetMilitaryAirMight() const;
+
 	int GetMilitaryLandMight() const;
+	void SetMilitaryLandMight(int iValue);
+
+	int GetMilitarySeaMight() const;
+	void SetMilitarySeaMight(int iValue);
+
+	int GetMilitaryAirMight() const;
+	void SetMilitaryAirMight(int iValue);
+
 	void changeNumMilitaryUnits(int iChange, DomainTypes eDomain = NO_DOMAIN);
 
 	int getHappyPerMilitaryUnit() const;
@@ -1261,7 +1228,6 @@ public:
 	bool isHalfSpecialistFood() const;
 	void changeHalfSpecialistFoodCount(int iChange);
 
-#if defined(MOD_BALANCE_CORE)
 	int getHalfSpecialistFoodCapitalCount() const;
 	bool isHalfSpecialistFoodCapital() const;
 	void changeHalfSpecialistFoodCapitalCount(int iChange);
@@ -1280,11 +1246,8 @@ public:
 
 	void SetNullifyInfluenceModifier(bool bValue);
 	bool IsNullifyInfluenceModifier() const;
-#endif
 
-#if defined(MOD_TRAITS_TRADE_ROUTE_PRODUCTION_SIPHON)
 	int GetTradeRouteProductionSiphonPercent(bool bInternationalOnly, CvPlayer* pOtherPlayer) const;
-#endif
 
 	int getMilitaryFoodProductionCount() const;
 	bool isMilitaryFoodProduction() const;
@@ -1356,7 +1319,6 @@ public:
 	bool IsOnlyTradeSameIdeology() const;
 	void ChangeOnlyTradeSameIdeology(int iChange);
 	
-#if defined(MOD_BALANCE_CORE)
 	//JFD
 	void SetPiety(int iValue);
 	void ChangePiety(int iValue);
@@ -1510,7 +1472,6 @@ public:
 	void SetNumCSFriends(int iChange);
 
 	void RefreshCSAlliesFriends();
-#endif
 
 	int GetNoUnhappfromXSpecialists() const;
 	void ChangeNoUnhappfromXSpecialists(int iChange);
@@ -1563,9 +1524,7 @@ public:
 	int GetLostHolyCityX();
 	int GetLostHolyCityY();
 	PlayerTypes GetHolyCityConqueror();
-#if defined(MOD_GLOBAL_NO_CONQUERED_SPACESHIPS)
 	void disassembleSpaceship(CvPlot* pPlot);
-#endif
 	PlayerTypes GetCapitalConqueror() const;
 
 	int getCitiesLost() const;
@@ -1713,7 +1672,10 @@ public:
 
 	int getYieldRateModifier(YieldTypes eIndex) const;
 	void changeYieldRateModifier(YieldTypes eIndex, int iChange);
-#if defined(MOD_BALANCE_CORE_POLICIES)
+
+	int getYieldFromExpendTileCapital(YieldTypes eIndex) const;
+	void changeYieldFromExpendTileCapital(YieldTypes eIndex, int iChange);
+
 	int GetTradeReligionModifier() const;
 	void changeTradeReligionModifier(int iChange);
 
@@ -1864,6 +1826,14 @@ public:
 	int GetCultureBombBoost() const;
 	void changeCultureBombBoost(int iChange);
 
+	bool IsCultureBombForeignTerritory() const;
+	int GetCultureBombForeignTerritory() const;
+	void changeCultureBombForeignTerritory(int iChange);
+
+	bool IsRetainRazedTerritory() const;
+	int GetRetainRazedTerritory() const;
+	void changeRetainRazedTerritory(int iChange);
+
 	bool IsPuppetProdMod() const;
 	int GetPuppetProdMod() const;
 	void changePuppetProdMod(int iChange);
@@ -1885,6 +1855,12 @@ public:
 	int GetInfluenceGPExpend() const;
 	void changeInfluenceGPExpend(int iChange);
 
+	int GetTradeRouteFromBuildings() const;
+	void changeTradeRouteFromBuildings(int iChange);
+
+	int GetTradeRouteFromTechs() const;
+	void changeTradeRouteFromTechs(int iChange);
+
 	int GetFreeTradeRoute() const;
 	void changeFreeTradeRoute(int iChange);
 
@@ -1893,9 +1869,6 @@ public:
 
 	int GetPressureMod() const;
 	void changePressureMod(int iChange);
-
-	int getBuildingClassCultureChange(BuildingClassTypes eIndex) const;
-	void changeBuildingClassCultureChange(BuildingClassTypes eIndex, int iChange);
 
 	int GetCityStateCombatModifier() const;
 	void changeCityStateCombatModifier(int iChange);
@@ -1908,8 +1881,8 @@ public:
 	void SetIdeologyPoint(int iValue);
 	void ChangeIdeologyPoint(int iChange);
 
+	bool IsNoXPLossUnitPurchase() const;
 	int GetNoXPLossUnitPurchase() const;
-	void SetNoXPLossUnitPurchase(int iValue);
 	void ChangeNoXPLossUnitPurchase(int iChange);
 
 	void ChangeCSAlliesLowersPolicyNeedWonders(int iChange);
@@ -1935,13 +1908,13 @@ public:
 
 	void ChangeBullyGlobalCSReduction(int iValue);
 	int GetBullyGlobalCSReduction() const;
-#endif
+
 	void changeMaxAirUnits(int iChange);
 	int getMaxAirUnits() const;
 
 	int GetImprovementExtraYield(ImprovementTypes eImprovement, YieldTypes eYield) const;
 	void ChangeImprovementExtraYield(ImprovementTypes eImprovement, YieldTypes eYield, int iChange);
-#if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
+
 	int GetInvestmentModifier() const;
 	void changeInvestmentModifier(int iChange);
 
@@ -1966,10 +1939,8 @@ public:
 	int GetAdmiralLuxuryBonus() const;
 	void changeAdmiralLuxuryBonus(int iChange);
 
-#if defined(MOD_POLICIES_UNIT_CLASS_REPLACEMENTS)
 	UnitClassTypes GetUnitClassReplacement(UnitClassTypes eUnitClass) const;
 	void SetUnitClassReplacement(UnitClassTypes eReplacedUnitClass, UnitClassTypes eReplacementUnitClass);
-#endif
 
 	int GetPromotionSameAttackBonus(PromotionTypes ePromotion) const;
 	void ProcessAttackForPromotionSameAttackBonus(PromotionTypes ePromotion);
@@ -1979,7 +1950,7 @@ public:
 	void changeCSResourcesCountMonopolies(int iChange);
 
 	int GetScalingNationalPopulationRequired(BuildingTypes eBuilding) const;
-#endif
+
 	int getCapitalYieldRateModifier(YieldTypes eIndex) const;
 	void changeCapitalYieldRateModifier(YieldTypes eIndex, int iChange);
 
@@ -2028,11 +1999,11 @@ public:
 	void DoUpdateWarDamageAndWeariness(bool bDamageOnly);
 	int GetWarWearinessPercent(PlayerTypes ePlayer) const;
 	int GetHighestWarWearinessPercent() const;
-	PlayerTypes GetHighestWarWearinessPlayer() const;
+	PlayerTypes GetHighestWarWearinessPlayer(bool bConsiderHappinessOnly = false) const;
 	int GetSupplyReductionFromWarWeariness() const;
 	int GetUnitCostIncreaseFromWarWeariness() const;
 	int GetUnhappinessFromWarWeariness() const;
-	int GetUnhappinessFromWarWearinessWithTeam(TeamTypes eTeam) const;
+	int GetUnhappinessFromWarWearinessWithTeam(TeamTypes eTeam, bool bConsiderHappinessOnly = false) const;
 
 	void changeUnitsBuiltCount(UnitTypes eUnitType, int iValue);
 	int getUnitsBuiltCount(UnitTypes eUnitType) const;
@@ -2050,9 +2021,7 @@ public:
 
 	void DoCivilianReturnLogic(bool bReturn, PlayerTypes eToPlayer, int iUnitID);
 
-#if defined(MOD_BALANCE_CORE)
 	void DoTradeInfluenceAP();
-#endif
 	void DoDistanceGift(PlayerTypes eFromPlayer, CvUnit* pUnit);
 	void AddIncomingUnit(PlayerTypes eFromPlayer, CvUnit* pUnit);
 	PlayerTypes GetBestGiftTarget(DomainTypes eUnitDomain);
@@ -2075,7 +2044,7 @@ public:
 	int getNumResourceFromBuildings(ResourceTypes eIndex) const;
 	int getNumResourceTotal(ResourceTypes eIndex, bool bIncludeImport = true) const;
 	int getNumResourcesFromOther(ResourceTypes eIndex) const;
-	void changeNumResourceTotal(ResourceTypes eIndex, int iChange, bool bFromBuilding = false, bool bCheckForMonopoly = true, bool bIgnoreResourceWarning = false);
+	void changeNumResourceTotal(ResourceTypes eIndex, int iChange, bool bFromBuilding = false, bool bCheckForMonopoly = true, bool bFromEvent = false);
 
 	int GetHighestResourceQuantity(ResourceTypes eIndex) const;
 	void SetHighestResourceQuantity(ResourceTypes eIndex, int iValue);
@@ -2176,25 +2145,21 @@ public:
 
 	int getResourceInOwnedPlots(ResourceTypes eIndex);
 
-	bool HasResourceForNewUnit(const UnitTypes eUnit, const bool bNoRequirement = false, const bool bCheckAluminum = false, const UnitTypes eFromUnit = NO_UNIT, const bool bContinue = false) const;
+	bool HasResourceForNewUnit(const UnitTypes eUnit, const bool bNoRequirement = false, const bool bCheckAluminum = false, const UnitTypes eFromUnit = NO_UNIT, const bool bContinue = false, CvString* toolTipSink = NULL) const;
 
 	int getTotalImprovementsBuilt() const;
 	void changeTotalImprovementsBuilt(int iChange);
 	int getImprovementCount(ImprovementTypes eIndex, bool bBuiltOnly = false) const;
 	void changeImprovementCount(ImprovementTypes eIndex, int iChange, bool bBuilt = false);
 
-#if defined(MOD_BALANCE_CORE)
 	int getTotalImprovementsBuilt(ImprovementTypes eIndex) const;
 	void changeTotalImprovementsBuilt(ImprovementTypes eIndex, int iChange);
-#endif
 
-#if defined(MOD_IMPROVEMENTS_EXTENSIONS)
 	int getResponsibleForRouteCount(RouteTypes eIndex) const;
 	void changeResponsibleForRouteCount(RouteTypes eIndex, int iChange);
 
 	int getResponsibleForImprovementCount(ImprovementTypes eIndex) const;
 	void changeResponsibleForImprovementCount(ImprovementTypes eIndex, int iChange);
-#endif
 
 	int getGreatPersonImprovementCount();
 
@@ -2208,6 +2173,8 @@ public:
 
 	int getUnitCombatProductionModifiers(UnitCombatTypes eIndex) const;
 	void changeUnitCombatProductionModifiers(UnitCombatTypes eIndex, int iChange);
+	int getYieldFromConquestAllCities(YieldTypes eIndex) const;
+	void changeYieldFromConquestAllCities(YieldTypes eIndex, int iChange);
 	int getUnitCombatFreeExperiences(UnitCombatTypes eIndex) const;
 	void changeUnitCombatFreeExperiences(UnitCombatTypes eIndex, int iChange);
 
@@ -2221,6 +2188,7 @@ public:
 	int getBuildingClassCount(BuildingClassTypes eIndex) const;
 	int getMaxPlayerInstances(BuildingTypes eIndex) const;
 	bool isBuildingMaxedOut(BuildingTypes eIndex, int iExtra = 0) const;
+	bool isProjectMaxedOut(ProjectTypes eIndex, int iExtra = 0) const;
 	void changeBuildingClassCount(BuildingClassTypes eIndex, int iChange);
 	int getBuildingClassMaking(BuildingClassTypes eIndex) const;
 	void changeBuildingClassMaking(BuildingClassTypes eIndex, int iChange);
@@ -2291,7 +2259,9 @@ public:
 	int GetYieldFromWLTKD(YieldTypes eYield) const;
 	void ChangeYieldFromWLTKD(YieldTypes eYield, int iChange);
 
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
+	int GetEmpireSizeModifierPerCityMod() const;
+	void ChangeEmpireSizeModifierPerCityMod(int iChange);
+
 	int getSpecificGreatPersonRateModifierFromMonopoly(GreatPersonTypes eGreatPerson, MonopolyTypes eMonopoly) const;
 	int getSpecificGreatPersonRateModifierFromMonopoly(GreatPersonTypes eGreatPerson) const;
 	void changeSpecificGreatPersonRateModifierFromMonopoly(GreatPersonTypes eGreatPerson, MonopolyTypes eMonopoly, int iChange);
@@ -2299,7 +2269,6 @@ public:
 	int getSpecificGreatPersonRateChangeFromMonopoly(GreatPersonTypes eGreatPerson, MonopolyTypes eMonopoly) const;
 	int getSpecificGreatPersonRateChangeFromMonopoly(GreatPersonTypes eGreatPerson) const;
 	void changeSpecificGreatPersonRateChangeFromMonopoly(GreatPersonTypes eGreatPerson, MonopolyTypes eMonopoly, int iChange);
-#endif
 
 	int getImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2) const;
 	void changeImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2, int iChange);
@@ -2335,10 +2304,8 @@ public:
 	CvCity* firstCity(int* pIterIdx, bool bRev=false);
 	const CvCity* nextCity(int* pIterIdx, bool bRev=false) const;
 	CvCity* nextCity(int* pIterIdx, bool bRev=false);
-#if defined(MOD_BALANCE_CORE)
 	const CvCity* nextCity(const CvCity* pCurrent, bool bRev=false) const;
 	CvCity* nextCity(const CvCity* pCurrent, bool bRev=false);
-#endif
 	int getNumCities() const;
 	CvCity* getCity(int iID) const;
 	CvCity* addCity();
@@ -2354,10 +2321,8 @@ public:
 
 	CvUnit* firstUnitInSquad(int* pIterIdx, int iSquadNum);
 	CvUnit* nextUnitInSquad(int* pIterIdx, int iSquadNum);
-#if defined(MOD_BALANCE_CORE)
 	CvUnit* nextUnit(const CvUnit* pCurrent, bool bRev);
 	const CvUnit* nextUnit(const CvUnit* pCurrent, bool bRev) const;
-#endif
 	CvUnit* getUnit(int iID) const;
 	CvUnit* addUnit();
 	void deleteUnit(int iID);
@@ -2403,7 +2368,7 @@ public:
 	int getReplayDataValue(const CvString& strDataset, unsigned int uiTurn) const;
 	void setReplayDataValue(const CvString& strDataset, unsigned int uiTurn, int iValue);
 
-	int getYieldPerTurnHistory(YieldTypes eYield, int iNumTurns, bool bIgnoreInstant = false);
+	int getYieldPerTurnHistory(YieldTypes eYield, int iNumTurns, bool bIgnoreInstant = false) const;
 	void UpdateUnitClassTrainingAllowedAnywhere(UnitClassTypes eUnitClass);
 	set<UnitClassTypes> GetUnitClassTrainingAllowedAnywhere() const;
 	void updateYieldPerTurnHistory();
@@ -2473,15 +2438,12 @@ public:
 
 	int GetPlotGoldCostMod() const;
 	void ChangePlotGoldCostMod(int iChange);
-#if defined(MOD_TRAITS_CITY_WORKING) || defined(MOD_BUILDINGS_CITY_WORKING) || defined(MOD_POLICIES_CITY_WORKING) || defined(MOD_TECHS_CITY_WORKING)
+
 	int GetCityWorkingChange() const;
 	void ChangeCityWorkingChange(int iChange);
-#endif
 
-#if defined(MOD_TRAITS_CITY_AUTOMATON_WORKERS) || defined(MOD_BUILDINGS_CITY_AUTOMATON_WORKERS) || defined(MOD_POLICIES_CITY_AUTOMATON_WORKERS) || defined(MOD_TECHS_CITY_AUTOMATON_WORKERS)
 	int GetCityAutomatonWorkersChange() const;
 	void ChangeCityAutomatonWorkersChange(int iChange);
-#endif
 
 	int GetBorderGrowthRateIncreaseGlobal() const;
 	void ChangeBorderGrowthRateIncreaseGlobal(int iChange);
@@ -2520,7 +2482,6 @@ public:
 	int GetNumEffectiveCities(bool bIncludePuppets = false) const;
 	int GetNumEffectiveCoastalCities() const;
 
-#if defined(MOD_BALANCE_CORE_MILITARY)
 	int GetFractionOriginalCapitalsUnderControl() const;
 	bool OwnsOurCity(PlayerTypes ePlayer);
 	int GetNumOurCitiesOwnedBy(PlayerTypes ePlayer);
@@ -2563,7 +2524,6 @@ public:
 	void ChangeUnitSupplyFromExpendedGreatPeople(int iChange);
 
 	int GetAvgUnitExp100() const;
-#endif
 
 	int GetNumNaturalWondersDiscoveredInArea() const;
 	void SetNumNaturalWondersDiscoveredInArea(int iValue);
@@ -2588,13 +2548,11 @@ public:
 	void ChangeNumPolicies(int iValue);
 	// End New Victory Stuff
 
-#if defined(MOD_BALANCE_CORE)
 	std::vector<int> GetTotalBuildingCount(bool bIncludePuppets=false) const;
 	void SetBestWonderCities();
 	bool isCapitalCompetitive();
 	CvCity* GetBestProductionCity( BuildingTypes eBuilding = NO_BUILDING, ProjectTypes eProject = NO_PROJECT);
 	bool IsCityCompetitive(CvCity* pCity, BuildingTypes eBuilding = NO_BUILDING, ProjectTypes eProject = NO_PROJECT);
-#endif
 	void DoAdoptedGreatPersonCityStatePolicy();
 
 	// New Religion Stuff
@@ -2610,9 +2568,7 @@ public:
 	void SetHolyCity(int iCityID);
 
 	PromotionTypes GetEmbarkationPromotion() const;
-#if defined(MOD_PROMOTIONS_DEEP_WATER_EMBARKATION)
 	PromotionTypes GetDeepWaterEmbarkationPromotion() const;
-#endif
 
 	// spaceship planning
 	void LogSpaceshipPlanMessage(const CvString& strMsg) const;
@@ -2653,6 +2609,9 @@ public:
 	void SetFaithPurchaseType(FaithPurchaseTypes eType);
 	int GetFaithPurchaseIndex() const;
 	void SetFaithPurchaseIndex(int iIndex);
+	bool IsDisableAutomaticFaithPurchase() const;
+	void SetDisableAutomaticFaithPurchase(bool bValue);
+	void DoSetDisableAutomaticFaithPurchase(bool bValue);
 
 	int GetNumFreePolicies() const;
 	void SetNumFreePolicies(int iValue);
@@ -2683,6 +2642,8 @@ public:
 	bool CanCrossMountain() const;
 	bool CanCrossIce() const;
 
+	bool HasAnyUnitCanEmbark();
+
 	// International Trade
 	bool IsAllowedToTradeWith(PlayerTypes eOtherPlayer);
 	// end International Trade
@@ -2712,16 +2673,12 @@ public:
 	CvTradeAI* GetTradeAI() const;
 	CvLeagueAI* GetLeagueAI() const;
 	CvNotifications* GetNotifications() const;
-#if defined(MOD_BALANCE_CORE)
 	CvPlayerCorporations* GetCorporations() const;
 	CvPlayerContracts* GetContracts() const;
-#endif
 	int AddNotification(NotificationTypes eNotificationType, const char* sMessage, const char* sSummary, CvPlot* pPlot = NULL, int iGameDataIndex = -1, int iExtraGameData = -1);
 	int AddNotification(NotificationTypes eNotificationType, const char* sMessage, const char* sSummary, int iGameDataIndex, int iExtraGameData = -1);
-#if defined(MOD_WH_MILITARY_LOG)
 	CvEventLog* GetMilitaryLog() const;
 	bool AddMilitaryEvent(const char* sMessage, CvPlot* pPlot, PlayerTypes eOtherPlayer, int iData1 = -1, int iData2 = -1, int iData3 = -1, int iData4 = -1);
-#endif
 
 	CvDiplomacyRequests* GetDiplomacyRequests() const;
 	bool HasActiveDiplomacyRequests() const;
@@ -2822,9 +2779,7 @@ public:
 	virtual void AI_conquerCity(CvCity* pCity, bool bGift, bool bAllowSphereRemoval) = 0;
 	bool HasSameIdeology(PlayerTypes ePlayer) const;
 
-#if defined(MOD_BALANCE_CORE_EVENTS)
 	virtual void AI_DoEventChoice(EventTypes eEvent) = 0;
-#endif
 
 	virtual void updatePlotFoundValues();
 	virtual void invalidatePlotFoundValues();
@@ -2856,10 +2811,8 @@ public:
 	CvPlayerAchievements& GetPlayerAchievements(){return m_kPlayerAchievements;}
 
 	bool hasTurnTimerExpired();
-#if defined(MOD_BALANCE_CORE)
 	int GetScoreFromMinorAllies() const;
 	int GetScoreFromMilitarySize() const;
-#endif
 
 	CvString GetVassalIndependenceTooltipAsMaster(PlayerTypes ePlayer) const;
 	CvString GetVassalIndependenceTooltipAsVassal() const;
@@ -2880,6 +2833,15 @@ public:
 	void DoVassalLevy();
 	void SetVassalLevy(bool bValue);
 	bool IsUnitValidForVassalLevy(UnitTypes eUnit, const CvTeam& kTeam, const CvCity* pMasterCity, bool bCheckMasterTech = true) const;
+
+	int GetScaleAmount(const CvUnitEntry* pkUnitInfo, int iAmount) const;
+	int GetTradeGold(UnitTypes eUnit) const;
+	int GetTradeWLTKDTurns(UnitTypes eUnit) const;
+	int GetDiscoverScience(UnitTypes eUnit) const;
+	int GetTreatiseCulture(UnitTypes eUnit) const;
+	int GetBlastGAP(UnitTypes eUnit) const;
+	int GetBlastTourism(UnitTypes eUnit) const;
+	int GetBlastTourismTurns(UnitTypes eUnit) const;
 
 	int GetCityDistancePathLength( const CvPlot* pPlot ) const;
 	CvCity* GetClosestCityByPathLength( const CvPlot* pPlot) const;
@@ -2902,7 +2864,7 @@ public:
 
 	UnitTypes GetCompetitiveSpawnUnitType(const bool bIncludeRanged = false, const bool bIncludeShips = false, const bool bIncludeRecon = false, const bool bIncludeUUs = false, const CvCity* pSpawnCity = NULL, const bool bNoResource = false, const bool bMinorCivGift = false, const bool bRandom = false, CvSeeder* pSeed = NULL, const vector<int> viUnitCombat = vector<int>()) const;
 
-	int calculateNuclearMight(PlayerTypes ePlayer = NO_PLAYER, bool bComputeShelterNumbers = false, int iBombShelterPercent = 0, int iNukeModifier = 0, int iInterceptionChance = 0) const;
+	int calculateNuclearMight(PlayerTypes ePlayer = NO_PLAYER, bool bComputeShelterNumbers = false, int iBombShelterPercent = 0, int iNukeModifier = 0, int iInterceptionChance = 0);
 
 protected:
 	class ConqueredByBoolField
@@ -2963,9 +2925,9 @@ protected:
 	};
 
 	void updateMightStatistics();
-	int calculateMilitaryMight(DomainTypes eDomain = NO_DOMAIN) const;
-	int calculateEconomicMight() const;
-	int calculateProductionMight() const;
+	int calculateMilitaryMight();
+	int calculateEconomicMight();
+	int calculateProductionMight();
 
 	SYNC_ARCHIVE_MEMBER(CvPlayer)
 
@@ -2979,7 +2941,6 @@ protected:
 	int m_iTotalLand;
 	int m_iTotalLandScored;
 	int m_iJONSCulturePerTurnForFree;
-	int m_iJONSCultureCityModifier;
 	int m_iJONSCultureTimes100;
 	long long m_lJONSCultureEverGeneratedTimes100;
 	int m_iWondersConstructed;
@@ -3013,9 +2974,9 @@ protected:
 	int m_iCenterOfMassY;
 	int m_iReformationFollowerReduction;
 	bool m_bIsReformation;
-	std::vector<int> m_viInstantYieldsTotal;
-	std::tr1::unordered_map<YieldTypes, int> m_miLocalInstantYieldsTotal;
-	std::tr1::unordered_map<YieldTypes, std::vector<int>> m_aiYieldHistory;
+	vector<int> m_viInstantYieldsTotal;
+	vector<int> m_viLocalInstantYieldsTotal;
+	vector<vector<int>> m_vviYieldHistory;
 	set<UnitClassTypes> m_sUnitClassTrainingAllowedAnywhere;
 	int m_iUprisingCounter;
 	int m_iExtraHappinessPerLuxury;
@@ -3029,7 +2990,6 @@ protected:
 	int m_iHappinessPerGarrisonedUnitCount;
 	int m_iHappinessPerTradeRouteCount;
 	int m_iHappinessPerXPopulation;
-#if defined(MOD_BALANCE_CORE_POLICIES)
 	int m_iHappinessPerXPopulationGlobal;
 	int m_iIdeologyPoint;
 	int m_iNoXPLossUnitPurchase;
@@ -3041,8 +3001,7 @@ protected:
 	int m_iMinimumAllyInfluenceIncreaseAtWar;
 	int m_iCanBullyFriendlyCS;
 	int m_iKeepConqueredBuildings;
-	int m_iBullyGlobalCSReduction;	
-#endif
+	int m_iBullyGlobalCSReduction;
 	int m_iIsVassalsNoRebel;
 	int m_iVassalYieldBonusModifier;
 	int m_iCSYieldBonusModifier;
@@ -3063,9 +3022,7 @@ protected:
 	int m_iSpyPoints;
 	int m_iSpyPointsTotal;
 	int m_iSpyStartingRank;
-#if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	int m_iConversionModifier;
-#endif
 
 	//for bookkeeping only, yields are added to cities
 	int m_iFoodInCapitalFromAnnexedMinors;
@@ -3103,7 +3060,6 @@ protected:
 	int m_iNumUnitGoldenAges;
 	int m_iStrikeTurns;
 	int m_iGoldenAgeModifier;
-#if defined(MOD_GLOBAL_TRULY_FREE_GP)
 	int m_iProductionBonusTurnsConquest;
 	int m_iCultureBonusTurnsConquest;
 	int m_iFreeGreatPeopleCreated;
@@ -3118,7 +3074,6 @@ protected:
 	int m_iFreeGreatArtistsCreated;
 	int m_iFreeGreatMusiciansCreated;
 	int m_iFreeGreatDiplomatsCreated;
-#if defined(MOD_BALANCE_CORE)
 	int m_iGPExtra1Created;
 	int m_iGPExtra2Created;
 	int m_iGPExtra3Created;
@@ -3129,8 +3084,6 @@ protected:
 	int m_iFreeGPExtra3Created;
 	int m_iFreeGPExtra4Created;
 	int m_iFreeGPExtra5Created;
-#endif
-#endif
 	int m_iGreatPeopleCreated;
 	int m_iGreatGeneralsCreated;
 	int m_iGreatAdmiralsCreated;
@@ -3144,13 +3097,11 @@ protected:
 	int m_iGreatMusiciansCreated;
 	int m_iGreatDiplomatsCreated;
 	int m_iDiplomatsFromFaith;
-#if defined(MOD_BALANCE_CORE)
 	int m_iGPExtra1FromFaith;
 	int m_iGPExtra2FromFaith;
 	int m_iGPExtra3FromFaith;
 	int m_iGPExtra4FromFaith;
 	int m_iGPExtra5FromFaith;
-#endif
 	int m_iMerchantsFromFaith;
 	int m_iScientistsFromFaith;
 	int m_iWritersFromFaith;
@@ -3167,21 +3118,13 @@ protected:
 	int m_iPolicyCostModifier;
 	int m_iGreatPeopleRateModifier;
 	int m_iGreatPeopleRateModFromBldgs;
-	int m_iGreatGeneralRateModifier;
 	int m_iGreatGeneralRateModFromBldgs;
 	int m_iDomesticGreatGeneralRateModifier;
-	int m_iGreatAdmiralRateModifier;
-	int m_iGreatWriterRateModifier;
-	int m_iGreatArtistRateModifier;
-	int m_iGreatMusicianRateModifier;
-	int m_iGreatMerchantRateModifier;
-	int m_iGreatDiplomatRateModifier;
-	int m_iGreatScientistRateModifier;
+	vector<int> m_viGreatPersonRateModifier;
 	int m_iGreatScientistBeakerModifier;
 	int m_iGreatEngineerHurryMod;
 	int m_iTechCostXCitiesModifier;
 	int m_iTourismCostXCitiesMod;
-	int m_iGreatEngineerRateModifier;
 	int m_iGreatPersonExpendGold;
 	int m_iNoUnhappfromXSpecialists;
 	int m_iHappfromXSpecialists;
@@ -3189,7 +3132,6 @@ protected:
 	int m_iSpecialistFoodChange;
 	int m_iWarWearinessModifier;
 	int m_iWarScoreModifier;
-#if defined(MOD_BALANCE_CORE_POLICIES)
 	int m_iGarrisonsOccupiedUnhappinessMod;
 	int m_iXPopulationConscription;
 	int m_iExtraMoves;
@@ -3199,12 +3141,16 @@ protected:
 	int m_iDoubleBorderGrowthWLTKD;
 	int m_iIncreasedQuestInfluence;
 	int m_iCultureBombBoost;
+	int m_iCultureBombForeignTerritory;
+	int m_iRetainRazedTerritory;
 	int m_iPuppetProdMod;
 	int m_iOccupiedProdMod;
 	int m_iGoldInternalTrade;
 	int m_iFreeWCVotes;
 	int m_iVotesPerFollowingCityTimes100;
 	int m_iInfluenceGPExpend;
+	int m_iTradeRouteFromBuildings;
+	int m_iTradeRouteFromTechs;
 	int m_iFreeTradeRoute;
 	int m_iReligionDistance;
 	int m_iPressureMod;
@@ -3215,9 +3161,7 @@ protected:
 	int m_iUnitsInLiberatedCities;
 	int m_iCityCaptureHealGlobal;
 	int m_iCityCaptureHealLocal;
-#endif
 	int m_iMaxAirUnits;
-#if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
 	int m_iInvestmentModifier;
 	int m_iMissionInfluenceModifier;
 	int m_iHappinessPerActiveTradeRoute;
@@ -3227,10 +3171,7 @@ protected:
 	int m_iPuppetYieldPenaltyMod;
 	int m_iNeedsModifierFromAirUnits;
 	int m_iFlatDefenseFromAirUnits;
-#endif
-#if defined(MOD_POLICIES_UNIT_CLASS_REPLACEMENTS)
 	std::map<UnitClassTypes, UnitClassTypes> m_piUnitClassReplacements;
-#endif
 	std::map<PromotionTypes, int> m_miPromotionSameAttackBonuses;
 	int m_iMaxGlobalBuildingProductionModifier;
 	int m_iMaxTeamBuildingProductionModifier;
@@ -3264,9 +3205,7 @@ protected:
 	int m_iGoldPerUnit;
 	int m_iGoldPerMilitaryUnit;
 	int m_iImprovementGoldMaintenanceMod;
-#if defined(MOD_CIV6_WORKER)
 	int m_iRouteBuilderCostMod;
-#endif
 	int m_iBuildingGoldMaintenanceMod;
 	int m_iUnitGoldMaintenanceMod;
 	int m_iUnitSupplyMod;
@@ -3277,12 +3216,10 @@ protected:
 	int m_iHappinessToScience;
 	int m_iHalfSpecialistUnhappinessCount;
 	int m_iHalfSpecialistFoodCount;
-#if defined(MOD_BALANCE_CORE)
 	int m_iHalfSpecialistFoodCapitalCount;
 	int m_iTradeRouteLandDistanceModifier;
 	int m_iTradeRouteSeaDistanceModifier;
 	bool m_bNullifyInfluenceModifier;
-#endif
 	int m_iMilitaryFoodProductionCount;
 	int m_iGoldenAgeCultureBonusDisabledCount;
 	int m_iNumMissionarySpreads;
@@ -3302,7 +3239,6 @@ protected:
 	int m_iMinorResourceBonusCount;
 	int m_iAbleToAnnexCityStatesCount;
 	int m_iOnlyTradeSameIdeology;
-#if defined(MOD_BALANCE_CORE)
 	int m_iSupplyFreeUnits; //military units which don't count against the supply limit
 	std::vector<CvString> m_aistrInstantYield; // not serialized
 	std::map<int, CvString> m_aistrInstantGreatPersonProgress;
@@ -3367,7 +3303,6 @@ protected:
 	int m_iCitySupplyFlatGlobal;
 	int m_iUnitSupplyFromExpendedGP;
 	int m_iMissionaryExtraStrength;
-#endif
 	int m_iFreeSpecialist;
 	int m_iCultureBombTimer;
 	int m_iConversionTimer;
@@ -3403,12 +3338,8 @@ protected:
 	int m_iCapitalGrowthMod;
 	int m_iNumPlotsBought;
 	int m_iPlotGoldCostMod;
-#if defined(MOD_TRAITS_CITY_WORKING) || defined(MOD_BUILDINGS_CITY_WORKING) || defined(MOD_POLICIES_CITY_WORKING) || defined(MOD_TECHS_CITY_WORKING)
 	int m_iCityWorkingChange;
-#endif
-#if defined(MOD_TRAITS_CITY_AUTOMATON_WORKERS) || defined(MOD_BUILDINGS_CITY_AUTOMATON_WORKERS) || defined(MOD_POLICIES_CITY_AUTOMATON_WORKERS) || defined(MOD_TECHS_CITY_AUTOMATON_WORKERS)
 	int m_iCityAutomatonWorkersChange;
-#endif
 	int m_iCachedGoldRate;
 	int m_iBorderGrowthRateIncreaseGlobal;
 	int m_iPlotCultureCostModifier;
@@ -3432,7 +3363,6 @@ protected:
 	int m_iTurnsSinceSettledLastCity;
 	int m_iNumNaturalWondersDiscoveredInArea;
 	int m_iStrategicResourceMod;
-	int m_iSpecialistCultureChange;
 	int m_iGreatPeopleSpawnCounter;
 
 	int m_iFreeTechCount;
@@ -3484,13 +3414,13 @@ protected:
 	std::vector<int> m_aiCapitalYieldPerPopChangeEmpire;
 	std::vector<int> m_aiSeaPlotYield;
 	std::vector<int> m_aiYieldRateModifier;
-#if defined(MOD_BALANCE_CORE_POLICIES)
 	std::vector<int> m_paiJFDPoliticPercent;
 	std::vector<int> m_aiYieldFromMinors;
 	std::vector<int> m_paiResourceFromCSAlliances;
 	std::vector<int> m_paiResourceShortageValue;
 	std::vector<int> m_aiYieldFromBirth;
 	std::vector<int> m_aiYieldFromBirthCapital;
+	std::vector<int> m_aiYieldFromExpendTileCapital;
 	std::vector<int> m_aiYieldFromDeath;
 	std::vector<int> m_aiYieldFromPillage;
 	std::vector<int> m_aiYieldFromVictory;
@@ -3524,17 +3454,13 @@ protected:
 	std::vector<int> m_aiYieldForSpyID;
 	std::vector<int> m_aiYieldForLiberation;
 	std::vector<int> m_aiBuildingClassInLiberatedCities;
-	std::vector<int> m_paiBuildingClassCulture;
 	std::vector<int> m_aiDomainFreeExperiencePerGreatWorkGlobal;
 	std::vector<int> m_aiCityYieldModFromMonopoly;
 	std::vector<UnitAITypes> m_neededUnitAITypes;
 	bool m_bAllowsProductionTradeRoutesGlobal;
 	bool m_bAllowsFoodTradeRoutesGlobal;
-	
-#endif
-#if defined(MOD_BALANCE_CORE)
+
 	std::map<int, int> m_piDomainFreeExperience;
-#endif
 
 	std::vector<int> m_aiCapitalYieldRateModifier;
 	std::vector<int> m_aiExtraYieldThreshold;
@@ -3564,6 +3490,7 @@ protected:
 	std::vector<int> m_paiNumResourceUsed;
 	std::vector<int> m_paiNumResourceFromTiles;
 	std::vector<int> m_paiNumResourceFromBuildings;
+	std::vector<int> m_paiNumResourceFromEvents;
 	std::vector<int> m_paiResourceGiftedToMinors;
 	std::vector<int> m_paiResourceExport; //always to majors
 	std::vector<int> m_paiResourceImportFromMajor;
@@ -3574,18 +3501,14 @@ protected:
 	std::vector<byte> m_aiNumResourceFromGP;
 	std::vector<int> m_paiImprovementCount;
 	std::vector<int> m_paiImprovementBuiltCount;
-#if defined(MOD_BALANCE_CORE)
 	std::vector<int> m_paiTotalImprovementsBuilt;
-#endif
-#if defined(MOD_IMPROVEMENTS_EXTENSIONS)
 	std::map<RouteTypes, int> m_piResponsibleForRouteCount;
 	std::map<ImprovementTypes, int> m_piResponsibleForImprovementCount;
-
 	std::vector<int> m_paiBuildingChainSteps;
-#endif
 	std::vector<int> m_paiFreeBuildingCount;
 	std::vector<int> m_paiFreePromotionCount;
 	std::vector<int> m_paiUnitCombatProductionModifiers;
+	std::vector<int> m_paiYieldFromConquestAllCities;
 	std::vector<int> m_paiUnitCombatFreeExperiences;
 	std::vector<int> m_paiUnitClassCount;
 	std::vector<int> m_paiUnitClassMaking;
@@ -3605,14 +3528,12 @@ protected:
 
 	std::vector<bool> m_pabLoyalMember;
 
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	std::vector<bool> m_pabHasGlobalMonopoly;
 	std::vector<bool> m_pabHasStrategicMonopoly;
 	std::vector<ResourceTypes> m_vResourcesWGlobalMonopoly;
 	std::vector<ResourceTypes> m_vResourcesWStrategicMonopoly;
 	int m_iCombatAttackBonusFromMonopolies;
 	int m_iCombatDefenseBonusFromMonopolies;
-#endif
 
 	std::vector<ResourceTypes> m_vResourcesNotForSale;
 	bool m_refuseOpenBordersTrade;
@@ -3647,11 +3568,10 @@ protected:
 	std::vector<int> m_piYieldChangeWorldWonder;
 	std::vector<int> m_piYieldFromMinorDemand;
 	std::vector<int> m_piYieldFromWLTKD;
+	int m_iEmpireSizeModifierPerCityMod;
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppaaiImprovementYieldChange;
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	std::map<GreatPersonTypes, std::map<MonopolyTypes, int>> m_ppiSpecificGreatPersonRateModifierFromMonopoly;
 	std::map<GreatPersonTypes, std::map<MonopolyTypes, int>> m_ppiSpecificGreatPersonRateChangeFromMonopoly;
-#endif
 
 	CvUnitCycler m_kUnitCycle;
 
@@ -3711,10 +3631,8 @@ protected:
 	CvPlayerReligions* m_pReligions;
 	CvReligionAI* m_pReligionAI;
 
-#if defined(MOD_BALANCE_CORE)
 	CvPlayerCorporations* m_pCorporations;
 	CvPlayerContracts* m_pContracts;
-#endif
 
 	// AI Tactics
 	CvTacticalAI* m_pTacticalAI;
@@ -3753,9 +3671,7 @@ protected:
 	CvPlayerCulture* m_pCulture;
 
 	CvNotifications* m_pNotifications;
-#if defined(MOD_WH_MILITARY_LOG)
 	CvEventLog* m_pMilitaryLog;
-#endif
 	CvDiplomacyRequests* m_pDiplomacyRequests;
 
 	PlotIndexContainer m_aiPlots;
@@ -3781,6 +3697,7 @@ protected:
 
 	FaithPurchaseTypes m_eFaithPurchaseType;
 	int m_iFaithPurchaseIndex;
+	bool m_bDisableAutomaticFaithPurchase;
 
 	void checkArmySizeAchievement();
 
@@ -3788,7 +3705,6 @@ protected:
 
 	CvPlayerAchievements m_kPlayerAchievements;
 
-#if defined(MOD_BALANCE_CORE_MILITARY)
 	//percent
 	int m_iFractionOriginalCapitalsUnderControl;
 	int m_iAvgUnitExp100;
@@ -3799,19 +3715,16 @@ protected:
 	std::vector<int> m_plotsAreaEffectPositiveFromTraits;
 	std::vector<PlayerTypes> m_playersWeAreAtWarWith;
 	std::vector<PlayerTypes> m_playersAtWarWithInFuture;
-#endif
 
 	mutable int m_iNumUnitsSuppliedCached; //not serialized
 	mutable int m_iNumUnitsSuppliedCachedWarWeariness; //not serialized
 
-#if defined(MOD_BATTLE_ROYALE)
 	int m_iNumMilitarySeaUnits;
 	int m_iNumMilitaryAirUnits;
 	int m_iNumMilitaryLandUnits;
 	int m_iMilitarySeaMight;
 	int m_iMilitaryAirMight;
 	int m_iMilitaryLandMight;
-#endif
 
 	std::vector<int> m_vCityConnectionPlots; //serialized
 	std::vector<int> m_vIndustrialCityConnectionPlots; //serialized
@@ -3849,7 +3762,6 @@ SYNC_ARCHIVE_VAR(int, m_iHighestPopulation)
 SYNC_ARCHIVE_VAR(int, m_iTotalLand)
 SYNC_ARCHIVE_VAR(int, m_iTotalLandScored)
 SYNC_ARCHIVE_VAR(int, m_iJONSCulturePerTurnForFree)
-SYNC_ARCHIVE_VAR(int, m_iJONSCultureCityModifier)
 SYNC_ARCHIVE_VAR(int, m_iJONSCultureTimes100)
 SYNC_ARCHIVE_VAR(long long, m_lJONSCultureEverGeneratedTimes100)
 SYNC_ARCHIVE_VAR(int, m_iWondersConstructed)
@@ -3883,9 +3795,9 @@ SYNC_ARCHIVE_VAR(int, m_iCenterOfMassX)
 SYNC_ARCHIVE_VAR(int, m_iCenterOfMassY)
 SYNC_ARCHIVE_VAR(int, m_iReformationFollowerReduction)
 SYNC_ARCHIVE_VAR(bool, m_bIsReformation)
-SYNC_ARCHIVE_VAR(std::vector<int>, m_viInstantYieldsTotal)
-SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::tr1::unordered_map<YieldTypes, int>), m_miLocalInstantYieldsTotal)
-SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::tr1::unordered_map<YieldTypes, std::vector<int>>), m_aiYieldHistory)
+SYNC_ARCHIVE_VAR(vector<int>, m_viInstantYieldsTotal)
+SYNC_ARCHIVE_VAR(vector<int>, m_viLocalInstantYieldsTotal)
+SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(vector<vector<int>>), m_vviYieldHistory)
 SYNC_ARCHIVE_VAR(set<UnitClassTypes>, m_sUnitClassTrainingAllowedAnywhere)
 SYNC_ARCHIVE_VAR(int, m_iUprisingCounter)
 SYNC_ARCHIVE_VAR(int, m_iExtraHappinessPerLuxury)
@@ -4019,21 +3931,13 @@ SYNC_ARCHIVE_VAR(int, m_iAnarchyNumTurns)
 SYNC_ARCHIVE_VAR(int, m_iPolicyCostModifier)
 SYNC_ARCHIVE_VAR(int, m_iGreatPeopleRateModifier)
 SYNC_ARCHIVE_VAR(int, m_iGreatPeopleRateModFromBldgs)
-SYNC_ARCHIVE_VAR(int, m_iGreatGeneralRateModifier)
+SYNC_ARCHIVE_VAR(vector<int>, m_viGreatPersonRateModifier)
 SYNC_ARCHIVE_VAR(int, m_iGreatGeneralRateModFromBldgs)
 SYNC_ARCHIVE_VAR(int, m_iDomesticGreatGeneralRateModifier)
-SYNC_ARCHIVE_VAR(int, m_iGreatAdmiralRateModifier)
-SYNC_ARCHIVE_VAR(int, m_iGreatWriterRateModifier)
-SYNC_ARCHIVE_VAR(int, m_iGreatArtistRateModifier)
-SYNC_ARCHIVE_VAR(int, m_iGreatMusicianRateModifier)
-SYNC_ARCHIVE_VAR(int, m_iGreatMerchantRateModifier)
-SYNC_ARCHIVE_VAR(int, m_iGreatDiplomatRateModifier)
-SYNC_ARCHIVE_VAR(int, m_iGreatScientistRateModifier)
 SYNC_ARCHIVE_VAR(int, m_iGreatScientistBeakerModifier)
 SYNC_ARCHIVE_VAR(int, m_iGreatEngineerHurryMod)
 SYNC_ARCHIVE_VAR(int, m_iTechCostXCitiesModifier)
 SYNC_ARCHIVE_VAR(int, m_iTourismCostXCitiesMod)
-SYNC_ARCHIVE_VAR(int, m_iGreatEngineerRateModifier)
 SYNC_ARCHIVE_VAR(int, m_iGreatPersonExpendGold)
 SYNC_ARCHIVE_VAR(int, m_iNoUnhappfromXSpecialists)
 SYNC_ARCHIVE_VAR(int, m_iHappfromXSpecialists)
@@ -4050,12 +3954,16 @@ SYNC_ARCHIVE_VAR(int, m_iDoubleBorderGrowthGA)
 SYNC_ARCHIVE_VAR(int, m_iDoubleBorderGrowthWLTKD)
 SYNC_ARCHIVE_VAR(int, m_iIncreasedQuestInfluence)
 SYNC_ARCHIVE_VAR(int, m_iCultureBombBoost)
+SYNC_ARCHIVE_VAR(int, m_iCultureBombForeignTerritory)
+SYNC_ARCHIVE_VAR(int, m_iRetainRazedTerritory)
 SYNC_ARCHIVE_VAR(int, m_iPuppetProdMod)
 SYNC_ARCHIVE_VAR(int, m_iOccupiedProdMod)
 SYNC_ARCHIVE_VAR(int, m_iGoldInternalTrade)
 SYNC_ARCHIVE_VAR(int, m_iFreeWCVotes)
 SYNC_ARCHIVE_VAR(int, m_iVotesPerFollowingCityTimes100)
 SYNC_ARCHIVE_VAR(int, m_iInfluenceGPExpend)
+SYNC_ARCHIVE_VAR(int, m_iTradeRouteFromBuildings)
+SYNC_ARCHIVE_VAR(int, m_iTradeRouteFromTechs)
 SYNC_ARCHIVE_VAR(int, m_iFreeTradeRoute)
 SYNC_ARCHIVE_VAR(int, m_iReligionDistance)
 SYNC_ARCHIVE_VAR(int, m_iPressureMod)
@@ -4254,7 +4162,6 @@ SYNC_ARCHIVE_VAR(int, m_iHolyCityID)
 SYNC_ARCHIVE_VAR(int, m_iTurnsSinceSettledLastCity)
 SYNC_ARCHIVE_VAR(int, m_iNumNaturalWondersDiscoveredInArea)
 SYNC_ARCHIVE_VAR(int, m_iStrategicResourceMod)
-SYNC_ARCHIVE_VAR(int, m_iSpecialistCultureChange)
 SYNC_ARCHIVE_VAR(int, m_iGreatPeopleSpawnCounter)
 SYNC_ARCHIVE_VAR(int, m_iFreeTechCount)
 SYNC_ARCHIVE_VAR(int, m_iMedianTechPercentage)
@@ -4301,6 +4208,7 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_paiResourceFromCSAlliances)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiResourceShortageValue)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromBirth)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromBirthCapital)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromExpendTileCapital)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromDeath)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromPillage)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromVictory)
@@ -4329,7 +4237,6 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldModifierFromLeague)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromDelegateCount)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromXMilitaryUnits)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldPerCityOverStrengthThreshold)
-SYNC_ARCHIVE_VAR(std::vector<int>, m_paiBuildingClassCulture)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiDomainFreeExperiencePerGreatWorkGlobal)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiCityYieldModFromMonopoly)
 SYNC_ARCHIVE_VAR(std::vector<UnitAITypes>, m_neededUnitAITypes)
@@ -4356,6 +4263,7 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_paiNumResourceUnimproved)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiNumResourceUsed)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiNumResourceFromTiles)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiNumResourceFromBuildings)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_paiNumResourceFromEvents)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiResourceGiftedToMinors)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiResourceExport)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiResourceImportFromMajor)
@@ -4371,6 +4279,7 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_paiBuildingChainSteps)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiFreeBuildingCount)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiFreePromotionCount)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiUnitCombatProductionModifiers)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_paiYieldFromConquestAllCities)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiUnitCombatFreeExperiences)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiUnitClassCount)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_paiUnitClassMaking)
@@ -4394,6 +4303,7 @@ SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::vector< Firaxis::Array<int, NUM_YIEL
 SYNC_ARCHIVE_VAR(bool, m_bEverPoppedGoody)
 SYNC_ARCHIVE_VAR(bool, m_bEverTrainedBuilder)
 SYNC_ARCHIVE_VAR(int, m_iPreviousBestSettlePlot)
+SYNC_ARCHIVE_VAR(int, m_iEmpireSizeModifierPerCityMod)
 SYNC_ARCHIVE_VAR(int, m_iNumFreeGreatPeople)
 SYNC_ARCHIVE_VAR(int, m_iNumMayaBoosts)
 SYNC_ARCHIVE_VAR(int, m_iNumFaithGreatPeople)

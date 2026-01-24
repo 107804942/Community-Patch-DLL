@@ -178,7 +178,7 @@ bool CvDllDatabaseUtility::CacheGameDatabaseData()
 	//Log Database Memory statistics
 	LogMsg(DB.CalculateMemoryStats());
 
-	ASSERT_DEBUG(bSuccess, "Failed to load Gameplay Database Data! Not Good!");
+	ASSERT(bSuccess, "Failed to load Gameplay Database Data! Not Good!");
 
 	GC.GameDataPostCache();
 
@@ -332,17 +332,12 @@ bool CvDllDatabaseUtility::PrefetchGameData()
 	PrefetchCollection(GC.getVictoryInfo(), "Victories");
 	PrefetchCollection(GC.getVoteInfo(), "Votes");
 	PrefetchCollection(GC.getVoteSourceInfo(), "VoteSources");
-#if defined(MOD_BALANCE_CORE)
 	PrefetchCollection(GC.getEventInfo(), "Events");
 	PrefetchCollection(GC.getEventChoiceInfo(), "EventChoices");
 	PrefetchCollection(GC.getCityEventInfo(), "CityEvents");
 	PrefetchCollection(GC.getCityEventChoiceInfo(), "CityEventChoices");
-#endif
 	PrefetchCollection(GC.getUnitDomainInfo(), "Domains");
-
-#if defined(MOD_EVENTS_DIPLO_MODIFIERS)
 	PrefetchCollection(GC.getDiploModifierInfo(), "DiploModifiers");
-#endif
 
 	//Leaders
 	PrefetchCollection(GC.getLeaderHeadInfo(), "Leaders");
@@ -396,14 +391,12 @@ bool CvDllDatabaseUtility::PrefetchGameData()
 	PrefetchCollection(GC.getLeagueProjectRewardInfo(), "LeagueProjectRewards");
 	PrefetchCollection(GC.getResolutionInfo(), "Resolutions");
 
-	if (MOD_API_ACHIEVEMENTS)
+	if (MOD_ENABLE_ACHIEVEMENTS)
 		PrefetchCollection(GC.getAchievementInfo(), "Achievements");
 
-#if defined(MOD_BALANCE_CORE)
 	// Must be after buildings because this calls from Buildings
 	PrefetchCollection(GC.getCorporationInfo(), "Corporations");
 	PrefetchCollection(GC.getContractInfo(), "Contracts");
-#endif
 
 	//Copy flavors into string array
 	{
@@ -420,7 +413,7 @@ bool CvDllDatabaseUtility::PrefetchGameData()
 			while(kResults.Step())
 			{
 				const int iFlavor = kResults.GetInt("ID");
-				ASSERT_DEBUG(iFlavor >= 0 && iFlavor < iNumFlavors);
+				ASSERT(iFlavor >= 0 && iFlavor < iNumFlavors);
 				if(iFlavor >= 0 && iFlavor < iNumFlavors)
 				{
 					paFlavors[iFlavor] = kResults.GetText("Type");
@@ -430,7 +423,7 @@ bool CvDllDatabaseUtility::PrefetchGameData()
 		}
 		else
 		{
-			ASSERT_DEBUG(false, DB.ErrorMessage());
+			ASSERT(false, DB.ErrorMessage());
 		}
 	}
 
@@ -495,15 +488,15 @@ void CvDllDatabaseUtility::DatabaseRemapper()
 							bool bFirst = true;
 							for (uint ui = 0; ui < vTableIDs.size(); ui++)
 							{
-								if (vTableIDs[ui] != ui)
+								if (vTableIDs[ui] != static_cast<int>(ui))
 								{
 									if (bFirst)
 									{
-										LogMsg("Table %s: Remapping %d incorrect IDs, starting with %d -> %d. ", szTableName, vTableIDs.size() - ui, vTableIDs[ui], ui);
+										LogMsg("Table %s: Remapping %u incorrect IDs, starting with %d -> %u. ", szTableName, vTableIDs.size() - ui, vTableIDs[ui], ui);
 										bFirst = false;
 									}
 									char szUpdate[512];
-									sprintf_s(szUpdate, "UPDATE %s SET ID = %d WHERE ID = %d;", szTableName, ui, vTableIDs[ui]);
+									sprintf_s(szUpdate, "UPDATE %s SET ID = %d WHERE ID = %d;", szTableName, (int)ui, vTableIDs[ui]);
 									DB.Execute(szUpdate);
 								}
 							}
@@ -670,12 +663,10 @@ bool CvDllDatabaseUtility::ValidatePrefetchProcess()
 	ValidateVectorSize(getNumUnitInfos);
 	ValidateVectorSize(getNumSpecialUnitInfos);
 	ValidateVectorSize(getNumVoteSourceInfos);
-#if defined(MOD_BALANCE_CORE_EVENTS)
 	ValidateVectorSize(getNumEventInfos);
 	ValidateVectorSize(getNumEventChoiceInfos);
 	ValidateVectorSize(getNumCityEventInfos);
 	ValidateVectorSize(getNumCityEventChoiceInfos);
-#endif
 	ValidateVectorSize(getNumUnitCombatClassInfos);
 
 	ValidateCount(gc.getUnitAIInfo().size);
@@ -700,11 +691,8 @@ bool CvDllDatabaseUtility::ValidatePrefetchProcess()
 	ValidateVectorSize(getNumUnitClassInfos);
 	//ValidateVectorSize(getNumActionInfos);	//Action Infos are generated as a post process.
 
-#if defined(MOD_EVENTS_DIPLO_MODIFIERS)
-	if (MOD_EVENTS_DIPLO_MODIFIERS) {
+	if (MOD_EVENTS_DIPLO_MODIFIERS)
 		ValidateVectorSize(getNumDiploModifierInfos);
-	}
-#endif
 
 	ValidateCount(gc.getMissionInfo().size);
 	ValidateCount(gc.getControlInfo().size);
@@ -725,10 +713,7 @@ bool CvDllDatabaseUtility::ValidatePrefetchProcess()
 	ValidateVectorSize(getNumHurryInfos);
 	ValidateVectorSize(getNumEmphasisInfos);
 	ValidateVectorSize(getNumVictoryInfos);
-
-#if defined(MOD_BALANCE_CORE)
 	ValidateVectorSize(getNumCorporationInfos);
-#endif
 
 	// The domains are a special case in that the contents must match a populated enum exactly.
 #define ValidateDomain(domain) { CvDomainInfo* pkDomainInfo; if (GC.getNumUnitDomainInfos() <= (int)domain || (pkDomainInfo = GC.getUnitDomainInfo(domain)) == NULL || strcmp(pkDomainInfo->GetType(), #domain) != 0) bError = true; }
@@ -985,7 +970,7 @@ bool CvDllDatabaseUtility::SetGlobalActionInfo()
 	for(i = 0; i < iTotalActionInfoCount; i++)
 	{
 		CvActionInfo* pActionInfo = FNEW(CvActionInfo, c_eCiv5GameplayDLL, 0);
-		ASSERT_DEBUG(piIndexList[piOrderedIndex[i]] != -1);
+		ASSERT(piIndexList[piOrderedIndex[i]] != -1);
 
 		pActionInfo->setOriginalIndex(piIndexList[piOrderedIndex[i]]);
 		pActionInfo->setSubType((ActionSubTypes)piActionInfoTypeList[piOrderedIndex[i]]);

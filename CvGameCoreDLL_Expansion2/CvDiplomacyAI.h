@@ -80,6 +80,7 @@ public:
 	vector<PlayerTypes> GetDefensiveWarAllies(PlayerTypes eOtherPlayer, bool bIncludeMinors, bool bReverseMode, bool bNewWarsOnly) const;
 	vector<PlayerTypes> GetWarAllies(PlayerTypes eOtherPlayer, bool bDefensive, bool bIncludeWars, bool bReverseMode, bool bNewWarsOnly) const;
 	bool IsNuclearGandhi(bool bPotentially = false) const;
+	bool IsAIMustAcceptHumanDiscussRequests() const;
 
 	// ************************************
 	// Personality Flavors
@@ -927,9 +928,6 @@ public:
 	void SetNumReevaluations(int iValue);
 	void ChangeNumReevaluations(int iChange);
 
-	bool IsWaitingForDigChoice() const;
-	void SetWaitingForDigChoice(bool bValue);
-
 	bool IsAvoidDeals() const;
 	void SetAvoidDeals(bool bValue);
 
@@ -967,8 +965,8 @@ public:
 	// C4DF Values
 	// ------------------------------------
 
-	ShareOpinionResponseTypes GetShareOpinionResponse(PlayerTypes ePlayer) const;
-	void SetShareOpinionResponse(PlayerTypes ePlayer, ShareOpinionResponseTypes eResponse);
+	ShareApproachResponseTypes GetShareApproachResponse(PlayerTypes ePlayer) const;
+	void SetShareApproachResponse(PlayerTypes ePlayer, ShareApproachResponseTypes eResponse);
 
 	bool IsPlayerMoveTroopsRequestAccepted(PlayerTypes ePlayer) const;
 	void SetPlayerMoveTroopsRequestAccepted(PlayerTypes ePlayer, bool bValue);
@@ -1072,7 +1070,7 @@ public:
 	// ------------------------------------
 
 	void DoUpdateWarStates();
-	int GetWarScore(PlayerTypes ePlayer);
+	int GetWarScore(PlayerTypes ePlayer) const;
 	int GetHighestWarscore();
 	PlayerTypes GetHighestWarscorePlayer();
 
@@ -1521,9 +1519,9 @@ public:
 	bool IsLuxuryGenerousOffer(PlayerTypes ePlayer, CvDeal* pDeal);
 	bool IsTechGenerousOffer(PlayerTypes ePlayer, CvDeal* pDeal);
 
-	// Sharing Opinion
-	bool IsShareOpinionAcceptable(PlayerTypes ePlayer);
-	bool IsTooEarlyForShareOpinion(PlayerTypes ePlayer);
+	// Sharing Approach
+	bool IsShareApproachAcceptable(PlayerTypes ePlayer);
+	bool IsTooEarlyForShareApproach(PlayerTypes ePlayer);
 
 	// Help Request
 	void DoHelpRequestMade(PlayerTypes ePlayer, DemandResponseTypes eResponse);
@@ -1758,6 +1756,30 @@ public:
 
 	void LogOpenEmbassy(PlayerTypes ePlayer);
 	void LogCloseEmbassy(PlayerTypes ePlayer);
+
+	// Vox Deorum: Personality values made public for Lua access via GetPersona/SetPersona
+	// These control the AI's diplomatic behavior and approach tendencies
+	unsigned char m_iVictoryCompetitiveness;
+	unsigned char m_iWonderCompetitiveness;
+	unsigned char m_iMinorCivCompetitiveness;
+	unsigned char m_iBoldness;
+	unsigned char m_iDiploBalance;
+	unsigned char m_iWarmongerHate;
+	unsigned char m_iDoFWillingness;
+	unsigned char m_iDenounceWillingness;
+	unsigned char m_iWorkWithWillingness;
+	unsigned char m_iWorkAgainstWillingness;
+	unsigned char m_iLoyalty;
+	unsigned char m_iForgiveness;
+	unsigned char m_iNeediness;
+	unsigned char m_iMeanness;
+	unsigned char m_iChattiness;
+	unsigned char m_aiMajorCivApproachBiases[NUM_CIV_APPROACHES];
+	unsigned char m_iMinorCivWarBias;
+	unsigned char m_iMinorCivHostileBias;
+	unsigned char m_iMinorCivNeutralBias;
+	unsigned char m_iMinorCivFriendlyBias;
+
 private:
 	/// Helper functions to return the Player and Team IDs more conveniently
 	inline PlayerTypes GetID() const { return (PlayerTypes)m_eID; }
@@ -1841,28 +1863,6 @@ private:
 	// Need a string member so that it doesn't go out of scope after translation
 	Localization::String m_strDiploText;
 
-	// Personality Values
-	unsigned char m_iVictoryCompetitiveness;
-	unsigned char m_iWonderCompetitiveness;
-	unsigned char m_iMinorCivCompetitiveness;
-	unsigned char m_iBoldness;
-	unsigned char m_iDiploBalance;
-	unsigned char m_iWarmongerHate;
-	unsigned char m_iDoFWillingness;
-	unsigned char m_iDenounceWillingness;
-	unsigned char m_iWorkWithWillingness;
-	unsigned char m_iWorkAgainstWillingness;
-	unsigned char m_iLoyalty;
-	unsigned char m_iForgiveness;
-	unsigned char m_iNeediness;
-	unsigned char m_iMeanness;
-	unsigned char m_iChattiness;
-	unsigned char m_aiMajorCivApproachBiases[NUM_CIV_APPROACHES];
-	unsigned char m_iMinorCivWarBias;
-	unsigned char m_iMinorCivHostileBias;
-	unsigned char m_iMinorCivNeutralBias;
-	unsigned char m_iMinorCivFriendlyBias;
-
 	// Key Players
 	PlayerTypes m_eMostValuableFriend;
 	PlayerTypes m_eMostValuableAlly;
@@ -1881,7 +1881,6 @@ private:
 	bool m_bEndedFriendshipThisTurn;
 	bool m_bUpdatedWarProgressThisTurn;
 	int m_iNumReevaluations; // Used for RNG
-	bool m_bWaitingForDigChoice;
 	bool m_bBackstabber;
 	bool m_bCompetingForVictory;
 	VictoryPursuitTypes m_ePrimaryVictoryPursuit;
@@ -2111,7 +2110,7 @@ private:
 	//char m_aeApproachTowardsUsGuessCounter[MAX_MAJOR_CIVS];
 
 	// C4DF Values
-	char m_aeShareOpinionResponse[MAX_MAJOR_CIVS];
+	char m_aeShareApproachResponse[MAX_MAJOR_CIVS];
 	int m_aiHelpRequestAcceptedTurn[MAX_MAJOR_CIVS];
 	char m_aiHelpRequestTooSoonNumTurns[MAX_MAJOR_CIVS];
 	bool m_abOfferingGift[MAX_MAJOR_CIVS];

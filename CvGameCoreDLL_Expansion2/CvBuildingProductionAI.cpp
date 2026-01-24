@@ -9,14 +9,12 @@
 #include "CvGameCoreDLLUtil.h"
 #include "CvBuildingProductionAI.h"
 #include "CvInfosSerializationHelper.h"
-#if defined(MOD_BALANCE_CORE)
 #include "CvGameCoreUtils.h"
 #include "CvInternalGameCoreUtils.h"
 #include "CvCitySpecializationAI.h"
 #include "CvEconomicAI.h"
 #include "CvGrandStrategyAI.h"
 #include "CvMilitaryAI.h"
-#endif
 // include after all other headers
 #include "LintFree.h"
 
@@ -35,7 +33,7 @@ CvBuildingProductionAI::~CvBuildingProductionAI(void)
 /// Clear out AI local variables
 void CvBuildingProductionAI::Reset()
 {
-	ASSERT_DEBUG(m_pCityBuildings != NULL, "Building Production AI init failure: city buildings are NULL");
+	ASSERT(m_pCityBuildings != NULL, "Building Production AI init failure: city buildings are NULL");
 
 	m_BuildingAIWeights.clear();
 
@@ -65,7 +63,7 @@ void CvBuildingProductionAI::Read(FDataStream& kStream)
 /// Serialization write
 void CvBuildingProductionAI::Write(FDataStream& kStream) const
 {
-	ASSERT_DEBUG(m_pCityBuildings != NULL, "Building Production AI init failure: city buildings are NULL");
+	ASSERT(m_pCityBuildings != NULL, "Building Production AI init failure: city buildings are NULL");
 
 	CvStreamSaveVisitor serialVisitor(kStream);
 	Serialize(*this, serialVisitor);
@@ -143,7 +141,6 @@ void CvBuildingProductionAI::LogPossibleBuilds()
 		}
 	}
 }
-#if defined(MOD_BALANCE_CORE)
 int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, int iValue,
 	bool bNoBestWonderCityCheck, bool bFreeBuilding, bool bIgnoreSituational)
 {
@@ -160,10 +157,6 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 		return SR_IMPOSSIBLE;
 
 	CvPlayerAI& kPlayer = GET_PLAYER(m_pCity->getOwner());
-
-	//no buildings for barbarians, pump units instead
-	if (kPlayer.isBarbarian())
-		return SR_IMPOSSIBLE;
 
 	//do not build any buildings at all when about to be captured
 	if (m_pCity->isInDangerOfFalling())
@@ -193,7 +186,7 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 		if (isWorldWonderClass(kBuildingClassInfo))
 		{
 			// Specific check to block non-founder AIs from building Hagia Sophia, Borobudur, Cathedral of St. Basil
-			ReligionTypes eOurReligion = kPlayer.GetReligions()->GetStateReligion(false);
+			ReligionTypes eOurReligion = kPlayer.GetReligions()->GetOwnedReligion();
 			if (eOurReligion == NO_RELIGION)
 			{
 				bool bCanFoundReligion = GC.getGame().GetGameReligions()->GetNumReligionsStillToFound() > 0 || kPlayer.GetPlayerTraits()->IsAlwaysReligion();
@@ -228,6 +221,23 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 					{
 						return SR_USELESS;
 					}
+				}
+			}
+
+			// Do we get free resources from completing any World Wonder? We should be more willing to build them in general.
+			for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
+			{
+				ResourceTypes eResourceLoop = (ResourceTypes) iResourceLoop;
+				int iQuantity = kPlayer.GetPlayerTraits()->GetNumFreeResourceOnWorldWonderCompletion(eResourceLoop);
+				if (iQuantity > 0)
+				{
+					ResourceUsageTypes eUsage = GC.getResourceInfo(eResourceLoop)->getResourceUsage();
+					if (eResourceLoop == GD_INT_GET(ARTIFACT_RESOURCE) || eResourceLoop == GD_INT_GET(HIDDEN_ARTIFACT_RESOURCE) || eUsage == RESOURCEUSAGE_LUXURY)
+						iBonus += 100 * iQuantity;
+					else if (eUsage == RESOURCEUSAGE_STRATEGIC)
+						iBonus += 50 * iQuantity;
+					else
+						iBonus += 25 * iQuantity;
 				}
 			}
 		}
@@ -472,8 +482,8 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 		CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
 		if(pkResource)
 		{
-			//Building uses resources? Not if we're a puppet or automated, thanks! 
-			if(pkBuildingInfo->GetResourceQuantityRequirement(eResource) > 0 && (CityStrategyAIHelpers::IsTestCityStrategy_IsPuppetAndAnnexable(m_pCity) || m_pCity->isHumanAutomated()))
+			//Building uses resources? Not if we're in resistance, a puppet or automated, thanks! 
+			if(pkBuildingInfo->GetResourceQuantityRequirement(eResource) > 0 && (CityStrategyAIHelpers::IsTestCityStrategy_IsPuppetAndAnnexable(m_pCity) || m_pCity->isHumanAutomated() || m_pCity->IsResistance()))
 			{
 				return SR_STRATEGY;
 			}
@@ -578,6 +588,11 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 	if (pkBuildingInfo->GetUnmoddedHappiness() > 0)
 	{
 		iBonus += iHappinessValue * pkBuildingInfo->GetUnmoddedHappiness();
+	}
+
+	if (pkBuildingInfo->GetUnhappiness() > 0)
+	{
+		iBonus -= iHappinessValue * pkBuildingInfo->GetUnhappiness();
 	}
 
 	if (pkBuildingInfo->GetGlobalHappinessPerMajorWar() > 0)
@@ -809,11 +824,11 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 	}
 	
 
-	if (MOD_BALANCE_CORE_BUILDING_INVESTMENTS && !bIgnoreSituational)
+	if (MOD_BALANCE_BUILDING_INVESTMENTS && !bIgnoreSituational)
 	{
-		//Virtually force this.
+		// Virtually force this.
 		const BuildingClassTypes eBuildingClass = pkBuildingInfo->GetBuildingClassType();
-		if(m_pCity->IsBuildingInvestment(eBuildingClass))
+		if (m_pCity->IsBuildingInvestment(eBuildingClass))
 		{
 			iBonus += 1000;
 		}
@@ -852,7 +867,8 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 	for (set<int>::const_iterator it = sUnitClasses.begin(); it != sUnitClasses.end(); ++it)
 	{
 		// don't need it if we can train the unit anyway
-		if (!kPlayer.canTrainUnit(kPlayer.GetSpecificUnitType((UnitClassTypes)*it)))
+		UnitTypes eUpgradeUnit = kPlayer.GetSpecificUnitType((UnitClassTypes)*it) ;
+		if (eUpgradeUnit != NO_UNIT && !kPlayer.canTrainUnit(eUpgradeUnit))
 		{
 			iBonus += 200;
 		}
@@ -961,58 +977,55 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 		for (int iDomainLoop = 0; iDomainLoop < NUM_DOMAIN_TYPES; iDomainLoop++)
 		{
 			DomainTypes eTestDomain = (DomainTypes)iDomainLoop;
-			if(eTestDomain != NO_DOMAIN)
+			int iTempBonus = 0;
+			int iTempMod = 0;
+
+			if (pkBuildingInfo->GetDomainFreeExperience(eTestDomain) > 0 || pkBuildingInfo->GetDomainFreeExperiencePerGreatWork(eTestDomain))
 			{
-				int iTempBonus = 0;
-				int iTempMod = 0;
+				iTempBonus += (m_pCity->getDomainFreeExperience(eTestDomain) + pkBuildingInfo->GetDomainFreeExperience(eTestDomain) + (pkBuildingInfo->GetDomainFreeExperiencePerGreatWork(eTestDomain) * m_pCity->GetCityCulture()->GetNumGreatWorks()));
+			}
+			if (!pkBuildingInfo->GetBonusFromAccomplishments().empty())
+			{
+				map<int, AccomplishmentBonusInfo> mBonusesFromAccomplishments = pkBuildingInfo->GetBonusFromAccomplishments();
+				map<int, AccomplishmentBonusInfo>::iterator it;
+				for (it = mBonusesFromAccomplishments.begin(); it != mBonusesFromAccomplishments.end(); it++)
+				{
+					if (it->second.eDomainType == eTestDomain)
+					{
+						iTempBonus += m_pCity->getDomainFreeExperience(eTestDomain) + kPlayer.GetNumTimesAccomplishmentCompleted((AccomplishmentTypes)it->first) > 0 * it->second.iDomainXP;
+					}
+				}
+			}
+			if(pkBuildingInfo->GetDomainProductionModifier(eTestDomain) > 0)
+			{
+				iTempBonus += m_pCity->getDomainProductionModifier(eTestDomain) + pkBuildingInfo->GetDomainProductionModifier(eTestDomain);
+			}
+			if(pkBuildingInfo->GetDomainFreeExperiencePerGreatWorkGlobal(eTestDomain) > 0)
+			{
+				iTempBonus += (m_pCity->getDomainFreeExperience(eTestDomain) +  pkBuildingInfo->GetDomainFreeExperiencePerGreatWorkGlobal(eTestDomain));
+			}
+			if (pkBuildingInfo->GetDomainFreeExperienceGlobal(eTestDomain) > 0)
+			{
+				iTempBonus += m_pCity->getDomainFreeExperience(eTestDomain) + kPlayer.GetDomainFreeExperience(eTestDomain) + pkBuildingInfo->GetDomainFreeExperienceGlobal(eTestDomain);
+			}
+			if(kPlayer.GetPlayerTraits()->GetDomainFreeExperienceModifier(eTestDomain) != 0)
+			{
+				iTempMod += kPlayer.GetPlayerTraits()->GetDomainFreeExperienceModifier(eTestDomain);
+			}
 
-				if (pkBuildingInfo->GetDomainFreeExperience(eTestDomain) > 0 || pkBuildingInfo->GetDomainFreeExperiencePerGreatWork(eTestDomain))
+			iTempBonus *= (100 + iTempMod);
+			iTempBonus /= 100;
+			if(iTempBonus > 0)
+			{
+				//Let's try to build our military buildings in our best cities only. More cities we have, the more this matters.
+				if(m_pCity == kPlayer.GetBestMilitaryCity(NO_UNITCOMBAT, eTestDomain))
 				{
-					iTempBonus += (m_pCity->getDomainFreeExperience(eTestDomain) + pkBuildingInfo->GetDomainFreeExperience(eTestDomain) + (pkBuildingInfo->GetDomainFreeExperiencePerGreatWork(eTestDomain) * m_pCity->GetCityCulture()->GetNumGreatWorks()));
+					iBonus += iTempBonus;
 				}
-				if (!pkBuildingInfo->GetBonusFromAccomplishments().empty())
+				//Discourage bad cities.
+				else
 				{
-					map<int, AccomplishmentBonusInfo> mBonusesFromAccomplishments = pkBuildingInfo->GetBonusFromAccomplishments();
-					map<int, AccomplishmentBonusInfo>::iterator it;
-					for (it = mBonusesFromAccomplishments.begin(); it != mBonusesFromAccomplishments.end(); it++)
-					{
-						if (it->second.eDomainType == eTestDomain)
-						{
-							iTempBonus += m_pCity->getDomainFreeExperience(eTestDomain) + kPlayer.GetNumTimesAccomplishmentCompleted((AccomplishmentTypes)it->first) > 0 * it->second.iDomainXP;
-						}
-					}
-				}
-				if(pkBuildingInfo->GetDomainProductionModifier(eTestDomain) > 0)
-				{
-					iTempBonus += m_pCity->getDomainProductionModifier(eTestDomain) + pkBuildingInfo->GetDomainProductionModifier(eTestDomain);
-				}
-				if(pkBuildingInfo->GetDomainFreeExperiencePerGreatWorkGlobal(eTestDomain) > 0)
-				{
-					iTempBonus += (m_pCity->getDomainFreeExperience(eTestDomain) +  pkBuildingInfo->GetDomainFreeExperiencePerGreatWorkGlobal(eTestDomain));
-				}
-				if (pkBuildingInfo->GetDomainFreeExperienceGlobal(eTestDomain) > 0)
-				{
-					iTempBonus += m_pCity->getDomainFreeExperience(eTestDomain) + kPlayer.GetDomainFreeExperience(eTestDomain) + pkBuildingInfo->GetDomainFreeExperienceGlobal(eTestDomain);
-				}
-				if(kPlayer.GetPlayerTraits()->GetDomainFreeExperienceModifier(eTestDomain) != 0)
-				{
-					iTempMod += kPlayer.GetPlayerTraits()->GetDomainFreeExperienceModifier(eTestDomain);
-				}
-
-				iTempBonus *= (100 + iTempMod);
-				iTempBonus /= 100;
-				if(iTempBonus > 0)
-				{
-					//Let's try to build our military buildings in our best cities only. More cities we have, the more this matters.
-					if(m_pCity == kPlayer.GetBestMilitaryCity(NO_UNITCOMBAT, eTestDomain))
-					{
-						iBonus += iTempBonus;
-					}
-					//Discourage bad cities.
-					else
-					{
-						iBonus += iTempBonus / 2;
-					}
+					iBonus += iTempBonus / 2;
 				}
 			}
 		}
@@ -1344,4 +1357,3 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 	//iValue is the compunded value of the items.
 	return max(1,iValue + iBonus);
 }
-#endif

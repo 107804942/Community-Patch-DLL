@@ -17,9 +17,7 @@ GreatWorkArtifactClass s_eARTIFACT_BATTLE_RANGED = NO_GREAT_WORK_ARTIFACT_CLASS;
 GreatWorkArtifactClass s_eARTIFACT_BATTLE_MELEE = NO_GREAT_WORK_ARTIFACT_CLASS;
 GreatWorkArtifactClass s_eARTIFACT_RAZED_CITY = NO_GREAT_WORK_ARTIFACT_CLASS;
 GreatWorkArtifactClass s_eARTIFACT_WRITING = NO_GREAT_WORK_ARTIFACT_CLASS;
-#if defined(MOD_BALANCE_CORE)
 GreatWorkArtifactClass s_eARTIFACT_SARCOPHAGUS = NO_GREAT_WORK_ARTIFACT_CLASS;
-#endif
 
 //GreatWorkSlots
 GreatWorkSlotType s_eGREAT_WORK_SLOT_ART_ARTIFACT = NO_GREAT_WORK_SLOT;
@@ -87,12 +85,8 @@ MissionTypes s_eMISSION_SELL_EXOTIC_GOODS = NO_MISSION;
 MissionTypes s_eMISSION_GIVE_POLICIES = NO_MISSION;
 MissionTypes s_eMISSION_ONE_SHOT_TOURISM = NO_MISSION;
 MissionTypes s_eMISSION_CHANGE_ADMIRAL_PORT = NO_MISSION;
-#if defined(MOD_BALANCE_CORE)
 MissionTypes s_eMISSION_FREE_LUXURY = NO_MISSION;
-#endif
 unsigned int s_uiNUM_MISSION_TYPES = 0;
-
-#if defined(MOD_BALANCE_CORE_MILITARY_LOGGING)
 
 std::tr1::unordered_map<MissionTypes, std::string> CvTypes::MissionNameLookup;
 std::string defaultMissionName("UNKNOWN_MISSION");
@@ -105,8 +99,6 @@ const std::string& CvTypes::GetMissionName(MissionTypes eMission)
 	else
 		return defaultMissionName;
 }
-
-#endif
 
 void CvTypes::AcquireTypes(Database::Connection& db)
 {
@@ -121,9 +113,7 @@ void CvTypes::AcquireTypes(Database::Connection& db)
 		kArtifactTypeLookupTable.insert(make_pair(std::string("ARTIFACT_BATTLE_MELEE"), &s_eARTIFACT_BATTLE_MELEE));
 		kArtifactTypeLookupTable.insert(make_pair(std::string("ARTIFACT_RAZED_CITY"), &s_eARTIFACT_RAZED_CITY));
 		kArtifactTypeLookupTable.insert(make_pair(std::string("ARTIFACT_WRITING"), &s_eARTIFACT_WRITING));
-#if defined(MOD_BALANCE_CORE)
 		kArtifactTypeLookupTable.insert(make_pair(std::string("ARTIFACT_SARCOPHAGUS"), &s_eARTIFACT_SARCOPHAGUS));
-#endif
 
 		Database::Results kResults;
 		if(db.Execute(kResults, "SELECT Type, ID from GreatWorkArtifactClasses"))
@@ -239,9 +229,7 @@ void CvTypes::AcquireTypes(Database::Connection& db)
 		kMissionTypesLookupTable.insert(make_pair(std::string("MISSION_GIVE_POLICIES"), &s_eMISSION_GIVE_POLICIES));
 		kMissionTypesLookupTable.insert(make_pair(std::string("MISSION_ONE_SHOT_TOURISM"), &s_eMISSION_ONE_SHOT_TOURISM));
 		kMissionTypesLookupTable.insert(make_pair(std::string("MISSION_CHANGE_ADMIRAL_PORT"), &s_eMISSION_CHANGE_ADMIRAL_PORT));
-#if defined(MOD_BALANCE_CORE)
 		kMissionTypesLookupTable.insert(make_pair(std::string("MISSION_FREE_LUXURY"), &s_eMISSION_FREE_LUXURY));
-#endif
 
 		Database::Results kResults;
 		if(db.Execute(kResults, "SELECT Type, ID from Missions"))
@@ -253,10 +241,7 @@ void CvTypes::AcquireTypes(Database::Connection& db)
 				if(it != kMissionTypesLookupTable.end())
 				{
 					(*it->second) = static_cast<MissionTypes>(kResults.GetInt(1));
-
-#if defined(MOD_BALANCE_CORE_MILITARY_LOGGING)
 					MissionNameLookup.insert( make_pair( (MissionTypes)kResults.GetInt(1),kResults.GetText(0) ) );
-#endif
 				}
 			}
 		}
@@ -312,13 +297,11 @@ const GreatWorkArtifactClass CvTypes::getARTIFACT_WRITING()
 {
 	return s_eARTIFACT_WRITING;
 }
-#if defined(MOD_BALANCE_CORE)
 //-------------------------------------------------------------------------
 const GreatWorkArtifactClass CvTypes::getARTIFACT_SARCOPHAGUS()
 {
 	return s_eARTIFACT_SARCOPHAGUS;
 }
-#endif
 //-------------------------------------------------------------------------
 
 //GreatWorkClass
@@ -587,10 +570,8 @@ const MissionTypes CvTypes::getMISSION_ONE_SHOT_TOURISM()
 {
 	return s_eMISSION_ONE_SHOT_TOURISM;
 }
-#if defined(MOD_BALANCE_CORE)
 const MissionTypes CvTypes::getMISSION_FREE_LUXURY()
 {
 	return s_eMISSION_FREE_LUXURY;
 }
-#endif
 //-------------------------------------------------------------------------

@@ -83,7 +83,6 @@ private:
 	CvPlot* m_pTarget;
 };
 
-#if defined(MOD_BALANCE_CORE_MILITARY)
 //a simple wrapper around std::vector so we can log/break on certain units being added (in a central place)
 class CHomelandUnitArray
 {
@@ -107,8 +106,6 @@ private:
 	std::vector<CvHomelandUnit> m_vec;
 	AIHomelandMove m_currentHomelandMove;
 };
-
-#endif
 
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -180,6 +177,37 @@ private:
 	int m_iAuxData;
 };
 
+typedef std::tr1::unordered_set<int> CitySet;
+
+struct SWorkerRegion {
+	int m_iID;
+	int m_iCapitalX;
+	int m_iCapitalY;
+	CitySet m_aCities;
+	int m_iImprovementNeed;
+	std::vector<int> m_aCurrentWorkers;
+	int m_iWantedWorkers;
+
+	SWorkerRegion();
+	SWorkerRegion(CitySet aCities, int iImprovementNeed, int iCapitalX, int iCapitalY);
+
+	bool OwnsWorker(int iWorkerID) const;
+	bool ContainsCity(int iCityID) const;
+	static void ResetCounter();
+	
+	struct compareID {
+		bool operator()(const SWorkerRegion& lhs, const SWorkerRegion& rhs) const {
+			return lhs.m_iID < rhs.m_iID;
+		}
+	};
+
+	bool operator<(const SWorkerRegion& rhs) const;
+	bool operator==(const SWorkerRegion& rhs) const;
+
+private:
+	static int iIDCounter;
+};
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //  CLASS:      CvHomelandAI
 //!  \brief		A player's AI to control units that are in reserve protecting their lands
@@ -237,19 +265,20 @@ private:
 	void PlotOpportunisticSettlementMoves();
 
 //------------------------------------- move to tactical AI
-#if defined(MOD_BALANCE_CORE)
 	void PlotGarrisonMoves();
 	void PlotSentryMoves();
 	void PlotSentryNavalMoves();
 	void PlotPatrolMoves();
 	void PlotUpgradeMoves();
 	void PlotAircraftRebase();
+	void PlotOpportunityAttacks();
 
 	void ExecuteUnitGift();
 	bool SendUnitGift(DomainTypes eDomain);
 
 	void ExecuteAircraftMoves();
 	void ExecutePatrolMoves();
+	void ExecuteOpportunityAttacks();
 
 	// Internal low-level utility routines
 	void EliminateAdjacentSentryPoints();
@@ -257,10 +286,10 @@ private:
 
 	std::vector<CvHomelandTarget> m_TargetedSentryPoints;
 	std::vector<CvHomelandTarget> m_TargetedNavalSentryPoints;
-#endif
 //-------------------------------------
 
 	void PlanImprovements();
+	void PlanWorkerDistribution();
 	void PlotWorkerMoves();
 	void PlotWriterMoves();
 	void PlotArtistMoves();
@@ -284,6 +313,7 @@ private:
 	// Routines to execute homeland moves
 	void ExecuteFirstTurnSettlerMoves();
 	bool ExecuteExplorerMoves(CvUnit* pUnit);
+	bool ExecuteOpportunisticSettlementMoves(CvUnit* pUnit);
 
 	void ExecuteWorkerMoves();
 	void ExecuteMovesToSafestPlot(CvUnit* pUnit);
@@ -310,7 +340,7 @@ private:
 	void ExecuteArchaeologistMoves();
 
 	bool FindUnitsForThisMove(AIHomelandMove eMove);
-	CvUnit* GetBestUnitToReachTarget(CvPlot* pTarget, int iMaxTurns);
+	CvUnit* GetBestUnitToReachTarget(CvPlot* pTarget, int iMaxTurns, int iMinStrengthTimes100 = 0);
 	bool MoveToTargetButDontEndTurn(CvUnit* pUnit, CvPlot* pTargetPlot, int iFlags);
 
 	CvPlot* FindArchaeologistTarget(CvUnit *pUnit);
@@ -319,17 +349,20 @@ private:
 		const set<BuilderDirective> ignoredDirectives, 
 		const list<int> allWorkers, 
 		const set<int> ignoredWorkers, 
-		const std::map<CvUnit*, ReachablePlots>& allWorkersReachablePlots);
+		const std::map<CvUnit*, ReachablePlots>& allWorkersReachablePlots,
+		bool bConsiderRegions) const;
 	int GetBuilderNumTurnsAway(
 		CvUnit* pUnit, 
 		BuilderDirective eDirective, 
-		const std::map<CvUnit*, ReachablePlots>& allWorkersReachablePlots);
+		const std::map<CvUnit*, ReachablePlots>& allWorkersReachablePlots) const;
 
 	void UnitProcessed(int iID);
 	bool ExecuteCultureBlast(CvUnit* pUnit);
 	bool ExecuteGoldenAgeMove(CvUnit* pUnit);
 	bool IsValidExplorerEndTurnPlot(const CvUnit* pUnit, CvPlot* pPlot) const;
 	void ClearCurrentMoveUnits(AIHomelandMove eNextMove);
+	bool IsWorkerAtAllocatedRegion(const CvUnit* pUnit, const CvPlot* pPlot = NULL) const;
+	CvPlot* GetWorkerRegionTargetPlot(const CvUnit* pUnit) const;
 
 	// Logging functions
 	CvString GetLogFileName(CvString& playerName) const;
@@ -341,6 +374,7 @@ private:
 	list<int> m_greatPeopleForImprovements;
 	std::map<UnitAITypes,std::vector<std::pair<int,int>>> m_automatedTargetPlots; //for human units
 	bool m_bNeedsUpdate;
+	std::vector<SWorkerRegion> m_aWorkerRegions;
 
 	CHomelandUnitArray m_CurrentMoveUnits;
 
@@ -352,10 +386,8 @@ private:
 FDataStream& operator>>(FDataStream&, CvHomelandAI&);
 FDataStream& operator<<(FDataStream&, const CvHomelandAI&);
 
-#if defined(MOD_BALANCE_CORE_MILITARY)
 extern const char* homelandMoveNames[];
 extern const char* directiveNames[];
-#endif
 
 struct SPatrolTarget {
 	CvPlot* pTarget;

@@ -24,7 +24,7 @@ inline int sqrti(int input)
 
 inline int range(int iNum, int iLow, int iHigh)
 {
-	ASSERT_DEBUG(iHigh >= iLow, "High should be higher than low");
+	ASSERT(iHigh >= iLow, "High should be higher than low");
 
 	if(iNum < iLow)
 	{
@@ -42,7 +42,7 @@ inline int range(int iNum, int iLow, int iHigh)
 
 inline float range(float fNum, float fLow, float fHigh)
 {
-	ASSERT_DEBUG(fHigh >= fLow, "High should be higher than low");
+	ASSERT(fHigh >= fLow, "High should be higher than low");
 
 	if(fNum < fLow)
 	{
@@ -234,10 +234,7 @@ bool isWorldUnitClass(UnitClassTypes eUnitClass);
 bool isTeamUnitClass(UnitClassTypes eUnitClass);
 bool isNationalUnitClass(UnitClassTypes eUnitClass);
 bool isLimitedUnitClass(UnitClassTypes eUnitClass);
-
-#if defined(MOD_BALANCE_CORE)
 bool isUnitLimitPerCity(UnitClassTypes eUnitClass);
-#endif
 
 bool isWorldProject(ProjectTypes eProject);
 bool isTeamProject(ProjectTypes eProject);
@@ -408,7 +405,7 @@ inline CvString GetLocalizedText(const char* szString, const T1& arg1, const T2&
 	return str;
 }
 
-#if !defined(FINAL_RELEASE)
+#if !defined(FINAL_RELEASE) || defined(VPDEBUG)
 #define NET_MESSAGE_DEBUG(x)		gDLL->netMessageDebugLog(x)
 #define NET_MESSAGE_DEBUG_OSTR(x)	{ std::ostringstream str; str << x; gDLL->netMessageDebugLog(str.str()); }
 #else
@@ -420,7 +417,6 @@ inline CvString GetLocalizedText(const char* szString, const T1& arg1, const T2&
 
 #endif
 
-#if defined(MOD_BALANCE_CORE)
 //take value and map it linearly to [0;100]. if outside of given thresholds, map to min/max. 
 int MapToPercent(int iValue, int iZeroAt, int iHundredAt);
 
@@ -503,6 +499,5 @@ public:
 };
 
 //------------------------------------------------------------------------------
+CvString FormatYieldTimes100(int iYieldTimes100);
 void PrintMemoryInfo(const char* hint);
-
-#endif

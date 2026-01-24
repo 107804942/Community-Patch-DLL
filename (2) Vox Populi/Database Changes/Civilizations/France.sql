@@ -58,10 +58,9 @@ SET
 			)
 		)
 	),
+	RangedCombat = (SELECT RangedCombat FROM Units WHERE Type = 'UNIT_TRIPLANE') + 1,
 	AirInterceptRange = (SELECT AirInterceptRange FROM Units WHERE Type = 'UNIT_TRIPLANE') + 1
 WHERE Type = 'UNIT_SPAD';
-
-DELETE FROM Unit_ResourceQuantityRequirements WHERE UnitType = 'UNIT_SPAD';
 
 INSERT INTO Unit_FreePromotions
 	(UnitType, PromotionType)
@@ -80,6 +79,7 @@ WHERE Type = 'BUILD_CHATEAU';
 UPDATE Improvements
 SET
 	NoFollowUp = 1,
+	ArtDefineTag = 'ART_DEF_IMPROVEMENT_CHATEAU_NEW',
 	IconAtlas = 'IMPROVEMENT_ATLAS_VP',
 	PortraitIndex = 2
 WHERE Type = 'IMPROVEMENT_CHATEAU';

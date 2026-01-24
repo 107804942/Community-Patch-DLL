@@ -3,14 +3,16 @@
 --- @class UIManager
 UIManager = {}
 
---- TODO docs
---- @param context Context
-function UIManager:DequeuePopup(context) end
+--- Remove `control` from the popup stack<br>
+--- @see UIManager.QueuePopup
+--- @param control Control
+function UIManager:DequeuePopup(control) end
 
---- TODO docs
---- @param context Context
---- @param popupPriority PopupPriority
-function UIManager:QueuePopup(context, popupPriority) end
+--- Add `control` to the popup stack (higher `ePopupPriority` on top)<br>
+--- You should always [dequeue](lua://UIManager.DequeuePopup) it when closing this popup
+--- @param control Control
+--- @param ePopupPriority PopupPriority
+function UIManager:QueuePopup(control, ePopupPriority) end
 
 --- Checks if `ALT` key is being pressed.
 --- @return boolean

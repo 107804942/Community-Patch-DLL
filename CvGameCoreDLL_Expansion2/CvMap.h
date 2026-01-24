@@ -38,7 +38,7 @@ public:
 	CvLandmass();
 	virtual ~CvLandmass();
 
-	void init(int iID, bool bWater);
+	void init(int iID, bool bLand);
 	int GetID() const;
 	void SetID(int iID);
 
@@ -89,6 +89,49 @@ protected:
 
 FDataStream& operator<<(FDataStream&, const CvLandmass&);
 FDataStream& operator>>(FDataStream&, CvLandmass&);
+
+
+//////////////////////////////////////////////////////////////////////////
+// An element of CvContinent is a contiguous set of land plots (including lakes and coasts), or of deep ocean plots
+//////////////////////////////////////////////////////////////////////////
+class CvContinent
+{
+public:
+	CvContinent();
+	virtual ~CvContinent();
+
+	void init(int iID, bool bWater);
+	int GetID() const;
+	void SetID(int iID);
+
+	int getNumTiles() const;
+	void changeNumTiles(int iChange);
+
+	bool isLand() const;
+
+	void ChangeCentroidX(int iChange);
+	void ChangeCentroidY(int iChange);
+	int GetCentroidX();
+	int GetCentroidY();
+
+	// for serialization
+	template<typename Continent, typename Visitor>
+	static void Serialize(Continent& continent, Visitor& visitor);
+	virtual void read(FDataStream& kStream);
+	virtual void write(FDataStream& kStream) const;
+
+protected:
+
+	int m_iID;
+	int m_iNumTiles;
+	bool m_bLand;
+	int m_iCentroidX;
+	int m_iCentroidY;
+};
+
+FDataStream& operator<<(FDataStream&, const CvContinent&);
+FDataStream& operator>>(FDataStream&, CvContinent&);
+
 
 class CvRiver
 {
@@ -251,9 +294,7 @@ public:
 
 	int getNumResources(ResourceTypes eIndex);
 	void changeNumResources(ResourceTypes eIndex, int iChange);
-#if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	void setNumResources(ResourceTypes eIndex);
-#endif
 
 	int getNumResourcesOnLand(ResourceTypes eIndex);
 	void changeNumResourcesOnLand(ResourceTypes eIndex, int iChange);
@@ -291,7 +332,6 @@ public:
 	{
 		return &(m_pMapPlots[plotNum(iX, iY)]);
 	}
-#if defined(MOD_BALANCE_CORE)
 	CvPlot** getNeighborsUnchecked(const CvPlot* pPlot) const
 	{
 		return m_pPlotNeighbors + plotNum(pPlot->getX(), pPlot->getY())*(NUM_DIRECTION_TYPES + 2);
@@ -311,7 +351,6 @@ public:
 
 	vector<int>& GetVisibilityScratchpad() { return m_vVisibilityScratchpad; }
 	vector<int>& GetKnownVisibilityScratchpad() { return m_vKnownVisibilityScratchpad; }
-#endif
 
 	CvPlotManager& plotManager() { return m_kPlotManager; }
 	DeferredFogPlots& deferredFogPlots() { return m_vDeferredFogPlots; }
@@ -330,7 +369,7 @@ public:
 	void recalculateAreas();
 	void calculateAreas();
 
-	// Landmass
+	// Landmasses
 	int getNumLandmasses();
 	CvLandmass* getLandmassById(int iID);
 	CvLandmass* getLandmassByIndex(int iIndex);
@@ -340,6 +379,11 @@ public:
 	CvLandmass* nextLandmass(int* pIterIdx, bool bRev=false);
 	void recalculateLandmasses();
 	void calculateLandmasses();
+
+	// Continents
+	CvContinent* getContinentById(int iID);
+	CvContinent* addContinent();
+	void recalculateContinents();
 
 	// Rivers
 	int GetNumRivers();
@@ -411,12 +455,10 @@ protected:
 	CvEnumMap<ResourceTypes, int> m_paiNumResourceOnLand;
 
 	CvPlot* m_pMapPlots;
-#if defined(MOD_BALANCE_CORE)
 	CvPlot** m_pPlotNeighbors;			//precomputed neighbors for each plot
 	CvPlot* m_apShuffledNeighbors[6];	//scratchpad for shuffled access to neighbors
 	vector<int> m_vVisibilityScratchpad;
 	vector<int> m_vKnownVisibilityScratchpad;
-#endif
 
 	uint8* m_pYields;
 	uint8* m_pPlayerCityRadiusCount;
@@ -424,10 +466,8 @@ protected:
 	uint8* m_pVisibilityCountThisTurnMax;	//maximum vis count this turn
 	uint8* m_pKnownVisibilityCount;         //current player's known vis count
 	char*  m_pRevealedOwner;
-#if defined(MOD_BALANCE_CORE)
 	bool*  m_pIsImpassable;
 	bool* m_pIsStrategic;
-#endif
 	bool* m_pRevealed;
 	char* m_pRevealedImprovementType;
 	char* m_pRevealedRouteType;
@@ -436,6 +476,7 @@ protected:
 
 	TContainer<CvArea> m_areas;
 	TContainer<CvLandmass> m_landmasses;
+	TContainer<CvContinent> m_continents;
 	TContainer<CvRiver> m_rivers;
 
 	//store non-zero values outside of CvPlot because it will be zero almost all the time

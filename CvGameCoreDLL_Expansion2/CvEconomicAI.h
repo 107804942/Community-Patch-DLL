@@ -175,11 +175,15 @@ public:
 
 	CvCity* GetBestGreatWorkCity(CvPlot *pStartPlot, GreatWorkType eGreatWork) const;
 
+	YieldTypes GetFocusYield() const;
+
 	void SetExplorersNeeded(int iValue);
 	int GetExplorersNeeded() const;
 
 	void SetNavalExplorersNeeded(int iValue);
 	int GetNavalExplorersNeeded() const;
+
+	int GetSoftSupplyCap() const;
 
 	const std::vector<SPlotWithScore>& GetExplorationPlots(DomainTypes domain);
 
@@ -221,7 +225,6 @@ public:
 	{
 		return m_iVisibleAntiquitySites;
 	};
-#if defined(MOD_BALANCE_CORE)
 	int GetVisibleAntiquitySitesOwnTerritory() const
 	{
 		return m_iVisibleAntiquitySitesOwn;
@@ -234,7 +237,6 @@ public:
 	{
 		return m_iVisibleAntiquitySitesNeutral;
 	};
-#endif
 	void UpdateExplorePlotsFromScratch();
 	void UpdateExplorePlotsLocally(CvPlot* pPlot);
 
@@ -281,13 +283,11 @@ private:
 	int m_iExplorersDisbanded;
 	int m_iLastTurnWorkerDisbanded;
 	int m_iVisibleAntiquitySites;
-#if defined(MOD_BALANCE_CORE)
 	int m_iExplorersNeeded;
 	int m_iNavalExplorersNeeded;
 	int m_iVisibleAntiquitySitesOwn;
 	int m_iVisibleHiddenAntiquitySitesOwn;
 	int m_iVisibleAntiquitySitesNeutral;
-#endif
 
 	std::vector<SPlotWithScore> m_vPlotsToExploreLand;
 	std::vector<SPlotWithScore> m_vPlotsToExploreSea;
@@ -304,8 +304,9 @@ FDataStream& operator>>(FDataStream&, CvPurchaseRequest&);
 namespace EconomicAIHelpers
 {
 
+bool IsPotentialLandExplorer(CvUnitEntry& kUnitInfo);
 bool IsPotentialNavalExplorer(UnitAITypes eType);
-int ScoreExplorePlot(CvPlot* pPlot, CvPlayer* pPlayer, DomainTypes eDomainType, bool bEmbarked);
+int ScoreExplorePlot(CvPlot* pPlot, CvPlayer* pPlayer, DomainTypes eDomainType, bool bEmbarked, bool bCanPopGoody);
 int GetWeightThresholdModifier(EconomicAIStrategyTypes eStrategy, CvPlayer* pPlayer);
 
 // Functions that check triggers to see if a strategy should be adopted/continued
