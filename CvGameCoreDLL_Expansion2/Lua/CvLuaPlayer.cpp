@@ -80,6 +80,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetStrategicResourceMod);
 	Method(GetResourceModFromReligion);
 	Method(IsShowImports);
+	Method(IsImportsCountTowardsMonopolies);
 	Method(IsResourceCityTradeable);
 	Method(IsResourceImproveable);
 	Method(IsResourceRevealed);
@@ -279,7 +280,6 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(ChangeJONSCulturePerTurnForFree);
 
 	Method(GetCulturePerTurnFromMinorCivs);
-	Method(GetCulturePerTurnFromMinor);
 
 	Method(GetCulturePerTurnFromReligion);
 	Method(GetCulturePerTurnFromBonusTurns);
@@ -739,10 +739,6 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetFriendshipNeededForNextLevel);
 	Method(GetMinorCivFavoriteMajor);
 	Method(GetMinorCivScienceFriendshipBonus);
-	Method(GetMinorCivCultureFriendshipBonus); // DEPRECATED
-	Method(GetMinorCivCurrentCultureFlatBonus);
-	Method(GetMinorCivCurrentCulturePerBuildingBonus);
-	Method(GetCurrentCultureBonus); // DEPRECATED
 	Method(GetMinorCivCurrentCultureBonus);
 	Method(GetMinorCivHappinessFriendshipBonus); // DEPRECATED
 	Method(GetMinorCivCurrentHappinessFlatBonus);
@@ -941,7 +937,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetAgricultureHistory);
 	Method(GetPowerHistory);
 
-	Method(GetReasonPlunderTradeRouteDisabled);
+	Method(GetReasonActionDisabled);
 	Method(GetReplayData);
 	Method(SetReplayDataValue);
 
@@ -1160,6 +1156,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetDealValue);
 	Method(GetDealMyValue);
 	Method(GetDealTheyreValue);
+	Method(IsCurrentDealOfferChanged);
 	Method(MayNotAnnex);
 
 	Method(GetEspionageCityStatus);
@@ -1905,6 +1902,14 @@ int CvLuaPlayer::lIsShowImports(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	lua_pushboolean(L, (pkPlayer->GetPlayerTraits()->IsImportsCountTowardsMonopolies() || pkPlayer->IsCSResourcesCountMonopolies()));
+	return 1;
+}
+
+int CvLuaPlayer::lIsImportsCountTowardsMonopolies(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	const bool bResult = pkPlayer->GetPlayerTraits()->IsImportsCountTowardsMonopolies();
+	lua_pushboolean(L, bResult);
 	return 1;
 }
 
@@ -3478,13 +3483,9 @@ int CvLuaPlayer::lChangeJONSCulturePerTurnForFree(lua_State* L)
 //int GetCulturePerTurnFromMinorCivs();
 int CvLuaPlayer::lGetCulturePerTurnFromMinorCivs(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvPlayerAI::GetCulturePerTurnFromMinorCivs);
-}
-//------------------------------------------------------------------------------
-//int GetCulturePerTurnFromMinor(int iMinor);
-int CvLuaPlayer::lGetCulturePerTurnFromMinor(lua_State* L)
-{
-	return BasicLuaMethod(L, &CvPlayerAI::GetCulturePerTurnFromMinor);
+	CvPlayer* pPlayer = GetInstance(L);
+	lua_pushinteger(L, pPlayer->GetYieldPerTurnFromMinorCivsTimes100(YIELD_CULTURE) / 100);
+	return 1;
 }
 //------------------------------------------------------------------------------
 //int GetCulturePerTurnFromReligion();
@@ -3908,7 +3909,7 @@ int CvLuaPlayer::lGetInfluenceSpyRankTooltip(lua_State* L)
 	CvString szRank = lua_tostring(L, 3);
 	PlayerTypes eOtherPlayer = (PlayerTypes)lua_tointeger(L, 4);
 
-	CvString szResult = "";
+	CvString szResult;
 	szResult = pkPlayer->GetCulture()->GetInfluenceSpyRankTooltip(szSpyName, szRank, eOtherPlayer);
 	lua_pushstring(L, szResult);
 	return 1;
@@ -4177,19 +4178,25 @@ int CvLuaPlayer::lGetFaithPerTurnFromCities(lua_State* L)
 //int GetFaithPerTurnFromMinorCivs();
 int CvLuaPlayer::lGetFaithPerTurnFromMinorCivs(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvPlayerAI::GetFaithPerTurnFromMinorCivs);
+	CvPlayer* pPlayer = GetInstance(L);
+	lua_pushinteger(L, pPlayer->GetYieldPerTurnFromMinorCivsTimes100(YIELD_FAITH) / 100);
+	return 1;
 }
 //------------------------------------------------------------------------------
 //int GetGoldPerTurnFromMinorCivs();
 int CvLuaPlayer::lGetGoldPerTurnFromMinorCivs(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvPlayerAI::GetGoldPerTurnFromMinorCivs);
+	CvPlayer* pPlayer = GetInstance(L);
+	lua_pushinteger(L, pPlayer->GetYieldPerTurnFromMinorCivsTimes100(YIELD_GOLD) / 100);
+	return 1;
 }
 //------------------------------------------------------------------------------
 //int GetSciencePerTurnFromMinorCivs();
 int CvLuaPlayer::lGetSciencePerTurnFromMinorCivs(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvPlayerAI::GetSciencePerTurnFromMinorCivs);
+	CvPlayer* pPlayer = GetInstance(L);
+	lua_pushinteger(L, pPlayer->GetYieldPerTurnFromMinorCivsTimes100(YIELD_SCIENCE) / 100);
+	return 1;
 }
 //------------------------------------------------------------------------------
 //int GetFaithPerTurnFromReligion();
@@ -4727,9 +4734,7 @@ int CvLuaPlayer::lGetUnhappinessFromCityPopulation(lua_State* L)
 int CvLuaPlayer::lGetUnhappinessFromCitySpecialists(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
-	CvCity* pAnnexedCity = CvLuaCity::GetInstance(L, 2, false);
-	CvCity* pPuppetedCity = CvLuaCity::GetInstance(L, 3, false);
-	const int iResult = pkPlayer->GetUnhappinessFromCitySpecialists(pAnnexedCity, pPuppetedCity);
+	const int iResult = pkPlayer->GetUnhappinessFromCitySpecialists();
 	lua_pushinteger(L, iResult);
 	return 1;
 }
@@ -4985,11 +4990,10 @@ int CvLuaPlayer::lGetTraitPopUnhappinessMod(lua_State* L)
 //------------------------------------------------------------------------------
 int CvLuaPlayer::lGetPuppetYieldPenalty(lua_State* L)
 {
-	CvPlayerAI* pkPlayer = GetInstance(L);
 	const YieldTypes eYield = (YieldTypes)lua_tointeger(L, 2);
 	PRECONDITION(eYield > NO_YIELD && eYield < NUM_YIELD_TYPES, "Unexpected yield in lGetPuppetYieldPenalty");
 
-	int iResult = pkPlayer->GetPlayerTraits()->GetPuppetPenaltyReduction() + pkPlayer->GetPuppetYieldPenaltyMod();
+	int iResult = 0;
 	switch (eYield)
 	{
 		case YIELD_FOOD:
@@ -4999,22 +5003,22 @@ int CvLuaPlayer::lGetPuppetYieldPenalty(lua_State* L)
 			iResult += /*0*/ GD_INT_GET(PUPPET_PRODUCTION_MODIFIER);
 			break;
 		case YIELD_SCIENCE:
-			iResult += /*-80 in VP*/ GD_INT_GET(PUPPET_SCIENCE_MODIFIER);
+			iResult += /*-25 in CP, 0 in VP*/ GD_INT_GET(PUPPET_SCIENCE_MODIFIER);
 			break;
 		case YIELD_GOLD:
-			iResult += /*-80 in VP*/ GD_INT_GET(PUPPET_GOLD_MODIFIER);
+			iResult += /*0*/ GD_INT_GET(PUPPET_GOLD_MODIFIER);
 			break;
 		case YIELD_FAITH:
-			iResult += /*-80 in VP*/ GD_INT_GET(PUPPET_FAITH_MODIFIER);
+			iResult += /*0*/ GD_INT_GET(PUPPET_FAITH_MODIFIER);
 			break;
 		case YIELD_TOURISM:
-			iResult += /*-80 in VP*/ GD_INT_GET(PUPPET_TOURISM_MODIFIER);
+			iResult += /*0*/ GD_INT_GET(PUPPET_TOURISM_MODIFIER);
 			break;
 		case YIELD_CULTURE:
-			iResult += /*-80 in VP*/ GD_INT_GET(PUPPET_CULTURE_MODIFIER);
+			iResult += /*-25 in CP, 0 in VP*/ GD_INT_GET(PUPPET_CULTURE_MODIFIER);
 			break;
 		case YIELD_GOLDEN_AGE_POINTS:
-			iResult += /*-80 in VP*/ GD_INT_GET(PUPPET_GOLDEN_AGE_MODIFIER);
+			iResult += /*0*/ GD_INT_GET(PUPPET_GOLDEN_AGE_MODIFIER);
 			break;
 		case NO_YIELD:
 		case YIELD_GREAT_GENERAL_POINTS:
@@ -5822,7 +5826,7 @@ int CvLuaPlayer::lGetInternationalTradeRouteTotal(lua_State* L)
 	{
 		kTradeConnection.m_eConnectionType = TRADE_CONNECTION_INTERNATIONAL;
 	}
-	else if (MOD_TRADE_INTERNAL_GOLD_ROUTES && pOriginCity->getTeam() == pDestCity->getTeam())
+	else if (MOD_TRADE_INTERNAL_GOLD_ROUTES)
 	{
 		kTradeConnection.m_eConnectionType = TRADE_CONNECTION_GOLD_INTERNAL;
 	}
@@ -5851,7 +5855,7 @@ int CvLuaPlayer::lGetInternationalTradeRouteScience(lua_State* L)
 	{
 		kTradeConnection.m_eConnectionType = TRADE_CONNECTION_INTERNATIONAL;
 	}
-	else if (MOD_TRADE_INTERNAL_GOLD_ROUTES && pOriginCity->getTeam() == pDestCity->getTeam())
+	else if (MOD_TRADE_INTERNAL_GOLD_ROUTES)
 	{
 		kTradeConnection.m_eConnectionType = TRADE_CONNECTION_GOLD_INTERNAL;
 	}
@@ -5879,7 +5883,7 @@ int CvLuaPlayer::lGetInternationalTradeRouteCulture(lua_State* L)
 	{
 		kTradeConnection.m_eConnectionType = TRADE_CONNECTION_INTERNATIONAL;
 	}
-	else if (MOD_TRADE_INTERNAL_GOLD_ROUTES && pOriginCity->getTeam() == pDestCity->getTeam())
+	else if (MOD_TRADE_INTERNAL_GOLD_ROUTES)
 	{
 		kTradeConnection.m_eConnectionType = TRADE_CONNECTION_GOLD_INTERNAL;
 	}
@@ -9219,46 +9223,11 @@ int CvLuaPlayer::lGetMinorCivScienceFriendshipBonus(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
-// antonjs: Deprecated, kept here for backwards compatibility
-int CvLuaPlayer::lGetMinorCivCultureFriendshipBonus(lua_State* L)
-{
-	CvPlayerAI* pkPlayer = GetInstance(L);
-	PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
-
-	int iValue = 0;
-	iValue += pkPlayer->GetMinorCivAI()->GetCultureFlatFriendshipBonus(ePlayer);
-	iValue += pkPlayer->GetMinorCivAI()->GetCulturePerBuildingFriendshipBonus(ePlayer);
-	lua_pushinteger(L, iValue);
-	return 1;
-}
-//------------------------------------------------------------------------------
-int CvLuaPlayer::lGetMinorCivCurrentCultureFlatBonus(lua_State* L)
-{
-	CvPlayerAI* pkPlayer = GetInstance(L);
-	PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
-	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentCultureFlatBonus(ePlayer));
-	return 1;
-}
-//------------------------------------------------------------------------------
-int CvLuaPlayer::lGetMinorCivCurrentCulturePerBuildingBonus(lua_State* L)
-{
-	CvPlayerAI* pkPlayer = GetInstance(L);
-	PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
-	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentCulturePerBuildingBonus(ePlayer));
-	return 1;
-}
-//------------------------------------------------------------------------------
-// antonjs: Deprecated, kept here for backwards compatibility
-int CvLuaPlayer::lGetCurrentCultureBonus(lua_State* L)
-{
-	return lGetMinorCivCurrentCultureBonus(L);
-}
-//------------------------------------------------------------------------------
 int CvLuaPlayer::lGetMinorCivCurrentCultureBonus(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
-	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentCultureBonus(ePlayer));
+	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentYieldBonusTimes100(ePlayer, YIELD_CULTURE) / 100);
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -9303,7 +9272,7 @@ int CvLuaPlayer::lGetMinorCivCurrentFaithBonus(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
-	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentFaithBonus(ePlayer));
+	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentYieldBonusTimes100(ePlayer, YIELD_FAITH) / 100);
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -9328,7 +9297,7 @@ int CvLuaPlayer::lGetMinorCivCurrentGoldBonus(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
-	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentGoldBonus(ePlayer));
+	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentYieldBonusTimes100(ePlayer, YIELD_GOLD) / 100);
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -9336,7 +9305,7 @@ int CvLuaPlayer::lGetMinorCivCurrentScienceBonus(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
-	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentScienceBonus(ePlayer));
+	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentYieldBonusTimes100(ePlayer, YIELD_SCIENCE) / 100);
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -9344,7 +9313,7 @@ int CvLuaPlayer::lGetCurrentCapitalFoodBonus(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
-	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentCapitalFoodBonus(ePlayer));
+	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentCityYieldBonusTimes100(ePlayer, YIELD_FOOD, true));
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -9352,7 +9321,7 @@ int CvLuaPlayer::lGetCurrentOtherCityFoodBonus(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
-	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentOtherCityFoodBonus(ePlayer));
+	lua_pushinteger(L, pkPlayer->GetMinorCivAI()->GetCurrentCityYieldBonusTimes100(ePlayer, YIELD_FOOD, false));
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -9940,7 +9909,7 @@ int CvLuaPlayer::lEndTurnsForReadyUnits(lua_State* L)
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	const bool bEndLinkedTurns = lua_toboolean(L, 2);
 	
-	pkPlayer->EndTurnsForReadyUnits(bEndLinkedTurns);
+	pkPlayer->EndTurnsForReadyUnits(true, bEndLinkedTurns);
 	return 1;
 }
 
@@ -10831,73 +10800,37 @@ int CvLuaPlayer::lGetPowerHistory(lua_State* /*L*/)
 {
 	return 0;
 }
-int CvLuaPlayer::lGetReasonPlunderTradeRouteDisabled(lua_State* L)
+int CvLuaPlayer::lGetReasonActionDisabled(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	int iUnitID = luaL_checkint(L, 2);
+	const char* szActionType = luaL_checkstring(L, 3);
 	CvUnit* pUnit = pkPlayer->getUnit(iUnitID);
-	ASSERT(pUnit);
+
+	CvString toolTip;
+
 	if (pUnit)
 	{
 		CvPlot* pPlot = pUnit->plot();
-		// this should only be called if we can't plunder any trade route and if a tooltip should be shown explaining why
-		ASSERT(!pUnit->canPlunderTradeRoute(pUnit->plot(), false) && pUnit->canPlunderTradeRoute(pPlot, true));
 
-		// First check: Is there a trade route here that we can't plunder because we're not at war with the civ?
-		bool bReasonFound = false;
-
-		std::vector<int> aiTradeUnitsAtPlot;
-		aiTradeUnitsAtPlot = pkPlayer->GetTrade()->GetOpposingTradeUnitsAtPlot(pPlot, false);
-
-		for (uint uiTradeRoute = 0; uiTradeRoute < aiTradeUnitsAtPlot.size(); uiTradeRoute++)
+		if (strcmp(szActionType, "MISSION_FOUND") == 0)
 		{
-			PlayerTypes eTradeUnitOwner = GC.getGame().GetGameTrade()->GetOwnerFromID(aiTradeUnitsAtPlot[uiTradeRoute]);
-			if (eTradeUnitOwner == NO_PLAYER)
-			{
-				// invalid TradeUnit
-				continue;
-			}
-
-			CorporationTypes eCorporation = GET_PLAYER(eTradeUnitOwner).GetCorporations()->GetFoundedCorporation();
-			if (eCorporation != NO_CORPORATION)
-			{
-				CvCorporationEntry* pkCorporation = GC.getCorporationInfo(eCorporation);
-				if (pkCorporation && pkCorporation->IsTradeRoutesInvulnerable())
-				{
-					// skip this reason for now, will be checked later
-					continue;
-				}
-			}
-
-			TeamTypes eTeam = GET_PLAYER(eTradeUnitOwner).getTeam();
-			if (pkPlayer->GetPlayerTraits()->IsCanPlunderWithoutWar())
-			{
-				PlayerTypes eTradeUnitDest = GC.getGame().GetGameTrade()->GetDestFromID(aiTradeUnitsAtPlot[uiTradeRoute]);
-				if (eTradeUnitDest == pkPlayer->GetID())
-				{
-					// can't plunder trade routes targeting ourselves as Morocco
-					bReasonFound = true;
-					break;
-				}
-			}
-			else
-			{
-				if (!GET_TEAM(pkPlayer->getTeam()).isAtWar(eTeam))
-				{
-					// must be at war with the player
-					bReasonFound = true;
-					break;
-				}
-			}
+			pUnit->canFoundCity(pPlot, false, false, false, &toolTip);
 		}
-
-		if (bReasonFound)
+		else if (strcmp(szActionType, "MISSION_CULTURE_BOMB") == 0)
 		{
-			lua_pushstring(L, pkPlayer->GetPlayerTraits()->IsCanPlunderWithoutWar() ? "TXT_KEY_MISSION_PLUNDER_TRADE_ROUTE_DISABLED_WITHOUT_WAR_HELP" : "TXT_KEY_MISSION_PLUNDER_TRADE_ROUTE_DISABLED_HELP");
+			pUnit->CanCultureBomb(pPlot, false, &toolTip);
 		}
-		else
+		else if (strcmp(szActionType, "MISSION_PLUNDER_TRADE_ROUTE") == 0)
 		{
-			// second check: is there a trade routes here that we can't plunder because of the other civ's corporation
+			// this should only be called if we can't plunder any trade route and if a tooltip should be shown explaining why
+			ASSERT(!pUnit->canPlunderTradeRoute(pPlot, false) && pUnit->canPlunderTradeRoute(pPlot, true));
+
+			// First check: Is there a trade route here that we can't plunder because we're not at war with the civ?
+			bool bReasonFound = false;
+
+			std::vector<int> aiTradeUnitsAtPlot = pkPlayer->GetTrade()->GetOpposingTradeUnitsAtPlot(pPlot, false);
+
 			for (uint uiTradeRoute = 0; uiTradeRoute < aiTradeUnitsAtPlot.size(); uiTradeRoute++)
 			{
 				PlayerTypes eTradeUnitOwner = GC.getGame().GetGameTrade()->GetOwnerFromID(aiTradeUnitsAtPlot[uiTradeRoute]);
@@ -10913,21 +10846,84 @@ int CvLuaPlayer::lGetReasonPlunderTradeRouteDisabled(lua_State* L)
 					CvCorporationEntry* pkCorporation = GC.getCorporationInfo(eCorporation);
 					if (pkCorporation && pkCorporation->IsTradeRoutesInvulnerable())
 					{
+						// skip this reason for now, will be checked later
+						continue;
+					}
+				}
+
+				TeamTypes eTeam = GET_PLAYER(eTradeUnitOwner).getTeam();
+				if (pkPlayer->GetPlayerTraits()->IsCanPlunderWithoutWar())
+				{
+					PlayerTypes eTradeUnitDest = GC.getGame().GetGameTrade()->GetDestFromID(aiTradeUnitsAtPlot[uiTradeRoute]);
+					if (eTradeUnitDest == pkPlayer->GetID())
+					{
+						// can't plunder trade routes targeting ourselves as Morocco
+						bReasonFound = true;
+						break;
+					}
+				}
+				else
+				{
+					if (!GET_TEAM(pkPlayer->getTeam()).isAtWar(eTeam))
+					{
+						// must be at war with the player
 						bReasonFound = true;
 						break;
 					}
 				}
 			}
-			// no other possible reasons (see canPlunderTradeRoute)
-			ASSERT(bReasonFound, "Didn't find a reason why the trade unit on this plot can't be plundered. Inconsistency between canPlunderTradeRoute and GetReasonPlunderTradeRouteDisabled");
-			lua_pushstring(L, "TXT_KEY_MISSION_PLUNDER_TRADE_ROUTE_DISABLED_CORPORATION_HELP");
+
+			if (bReasonFound)
+			{
+				GC.getGame().BuildCannotPerformActionHelpText(&toolTip, pkPlayer->GetPlayerTraits()->IsCanPlunderWithoutWar()
+					? "TXT_KEY_MISSION_PLUNDER_TRADE_ROUTE_DISABLED_WITHOUT_WAR_HELP"
+					: "TXT_KEY_MISSION_PLUNDER_TRADE_ROUTE_DISABLED_HELP");
+			}
+			else
+			{
+				// second check: is there a trade route here that we can't plunder because of the other civ's corporation
+				for (uint uiTradeRoute = 0; uiTradeRoute < aiTradeUnitsAtPlot.size(); uiTradeRoute++)
+				{
+					PlayerTypes eTradeUnitOwner = GC.getGame().GetGameTrade()->GetOwnerFromID(aiTradeUnitsAtPlot[uiTradeRoute]);
+					if (eTradeUnitOwner == NO_PLAYER)
+					{
+						// invalid TradeUnit
+						continue;
+					}
+
+					CorporationTypes eCorporation = GET_PLAYER(eTradeUnitOwner).GetCorporations()->GetFoundedCorporation();
+					if (eCorporation != NO_CORPORATION)
+					{
+						CvCorporationEntry* pkCorporation = GC.getCorporationInfo(eCorporation);
+						if (pkCorporation && pkCorporation->IsTradeRoutesInvulnerable())
+						{
+							bReasonFound = true;
+							break;
+						}
+					}
+				}
+				GC.getGame().BuildCannotPerformActionHelpText(&toolTip, "TXT_KEY_MISSION_PLUNDER_TRADE_ROUTE_DISABLED_CORPORATION_HELP");
+			}
+		}
+		else if (strcmp(szActionType, "MISSION_HEAL") == 0)
+		{
+			pUnit->canHeal(pPlot, false, &toolTip);
+		}
+		else if (strcmp(szActionType, "COMMAND_UPGRADE") == 0)
+		{
+			pUnit->CanUpgradeTo(pUnit->GetUpgradeUnitType(), false, &toolTip);
+		}
+		else if (strcmp(szActionType, "INTERFACEMODE_PARADROP") == 0)
+		{
+			pUnit->canParadrop(pPlot, false, &toolTip);
+		}
+		else if (strcmp(szActionType, "COMMAND_DELETE") == 0)
+		{
+			pUnit->canScrap(false, &toolTip);
 		}
 	}
-	else
-	{
-		lua_pushstring(L, "");
-	}
 
+	lua_pushstring(L, toolTip.c_str());
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -11999,7 +11995,7 @@ int CvLuaPlayer::lIsHasDefensivePact(lua_State* L)
 	for (int iPlayerLoop = 0; iPlayerLoop < MAX_PLAYERS; iPlayerLoop++)
 	{
 		PlayerTypes ePlayerLoop = (PlayerTypes) iPlayerLoop;
-		if(ePlayerLoop != eOtherPlayer && ePlayerLoop != NO_PLAYER && ePlayerLoop != pkPlayer->GetID())
+		if(ePlayerLoop != eOtherPlayer && ePlayerLoop != pkPlayer->GetID())
 		{
 			if(GET_TEAM(pkPlayer->getTeam()).IsHasDefensivePact(GET_PLAYER(ePlayerLoop).getTeam()))
 			{
@@ -12472,8 +12468,8 @@ int CvLuaPlayer::lGetUnimprovedAvailableLuxuryResource(lua_State* L)
 				continue;
 			}
 
-			int iBuildTurnsLeft = pPlot->getBuildTurnsLeft(eBuild, pkPlayer->GetID(), 0, 0);
-			if(iBuildTurnsLeft > 0 && iBuildTurnsLeft < 4000)
+			int iBuildTurnsLeft = pPlot->getBuildTurnsLeft(eBuild, pkPlayer->GetID());
+			if(iBuildTurnsLeft > 1 && iBuildTurnsLeft < 4000)
 			{
 				continue;
 			}
@@ -12989,7 +12985,7 @@ int CvLuaPlayer::lGetGoldPerTurnFromAnnexedMinors(lua_State* L)
 	CvPlayer* pkPlayer = GetInstance(L);
 	if (pkPlayer)
 	{
-		lua_pushinteger(L, pkPlayer->GetGoldPerTurnFromAnnexedMinors());
+		lua_pushinteger(L, pkPlayer->GetYieldPerTurnFromAnnexedMinorsTimes100(YIELD_GOLD) / 100);
 		return 1;
 	}
 	//BUG: This can't be right...
@@ -13002,7 +12998,7 @@ int CvLuaPlayer::lGetCulturePerTurnFromAnnexedMinors(lua_State* L)
 	CvPlayer* pkPlayer = GetInstance(L);
 	if (pkPlayer)
 	{
-		lua_pushinteger(L, pkPlayer->GetCulturePerTurnFromAnnexedMinors());
+		lua_pushinteger(L, pkPlayer->GetYieldPerTurnFromAnnexedMinorsTimes100(YIELD_CULTURE) / 100);
 		return 1;
 	}
 	//BUG: This can't be right...
@@ -13015,7 +13011,7 @@ int CvLuaPlayer::lGetFaithPerTurnFromAnnexedMinors(lua_State* L)
 	CvPlayer* pkPlayer = GetInstance(L);
 	if (pkPlayer)
 	{
-		lua_pushinteger(L, pkPlayer->GetFaithPerTurnFromAnnexedMinors());
+		lua_pushinteger(L, pkPlayer->GetYieldPerTurnFromAnnexedMinorsTimes100(YIELD_FAITH) / 100);
 		return 1;
 	}
 	//BUG: This can't be right...
@@ -13028,7 +13024,7 @@ int CvLuaPlayer::lGetSciencePerTurnFromAnnexedMinors(lua_State* L)
 	CvPlayer* pkPlayer = GetInstance(L);
 	if (pkPlayer)
 	{
-		lua_pushinteger(L, pkPlayer->GetSciencePerTurnFromAnnexedMinors());
+		lua_pushinteger(L, pkPlayer->GetYieldPerTurnFromAnnexedMinorsTimes100(YIELD_SCIENCE) / 100);
 		return 1;
 	}
 	//BUG: This can't be right...
@@ -13862,8 +13858,8 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 			aOpinions.push_back(kOpinion);
 		}
 		// Embassy?
-		bool bUsEmbassy = pDiplo->IsHasEmbassy(ePlayer);
-		bool bThemEmbassy = GET_PLAYER(ePlayer).GetDiplomacyAI()->IsHasEmbassy(pkPlayer->GetID());
+		bool bUsEmbassy = pDiplo->HasEmbassyAt(ePlayer);
+		bool bThemEmbassy = GET_PLAYER(ePlayer).GetDiplomacyAI()->HasEmbassyAt(pkPlayer->GetID());
 		if (bUsEmbassy && bThemEmbassy)
 		{
 			Opinion kOpinion;
@@ -13895,8 +13891,8 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 			aOpinions.push_back(kOpinion);
 		}
 		// Open Borders?
-		bool bThemOpen = pDiplo->IsHasOpenBorders(ePlayer);
-		bool bUsOpen = GET_PLAYER(ePlayer).GetDiplomacyAI()->IsHasOpenBorders(pkPlayer->GetID());
+		bool bThemOpen = pDiplo->HasOpenBordersFrom(ePlayer);
+		bool bUsOpen = GET_PLAYER(ePlayer).GetDiplomacyAI()->HasOpenBordersFrom(pkPlayer->GetID());
 		if (bThemOpen && bUsOpen)
 		{
 			Opinion kOpinion;
@@ -14389,12 +14385,12 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 			aOpinions.push_back(kOpinion);
 		}
 
-		iValue = pDiplo->GetNumSamePolicies(ePlayer);
+		iValue = pDiplo->GetPolicyScore(ePlayer);
 		if (iValue != 0)
 		{
 			Opinion kOpinion;
-			kOpinion.m_iValue = (iValue > 0) ? pDiplo->GetPolicyScore(ePlayer) : 0;
-			kOpinion.m_str = (iValue > 0) ? Localization::Lookup("TXT_KEY_DIPLO_SAME_POLICIES") : Localization::Lookup("TXT_KEY_DIPLO_DIFFERENT_POLICIES");
+			kOpinion.m_iValue = iValue;
+			kOpinion.m_str = pDiplo->GetNumSamePolicies(ePlayer) > 0 ? Localization::Lookup("TXT_KEY_DIPLO_SAME_POLICIES") : Localization::Lookup("TXT_KEY_DIPLO_DIFFERENT_POLICIES");
 			aOpinions.push_back(kOpinion);
 		}
 
@@ -14916,12 +14912,12 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 		// CAN BE BOTH POSITIVE AND NEGATIVE
 		////////////////////////////////////
 
-		iValue = pDiplo->GetNumSamePolicies(ePlayer);
+		iValue = pDiplo->GetPolicyScore(ePlayer);
 		if (iValue != 0)
 		{
 			Opinion kOpinion;
-			kOpinion.m_iValue = (bHideNegatives && iValue < 0) ? 0 : pDiplo->GetPolicyScore(ePlayer);
-			kOpinion.m_str = (iValue > 0) ? Localization::Lookup("TXT_KEY_DIPLO_SAME_POLICIES") : Localization::Lookup("TXT_KEY_DIPLO_DIFFERENT_POLICIES");
+			kOpinion.m_iValue = (bHideNegatives && iValue > 0) ? 0 : iValue;
+			kOpinion.m_str = pDiplo->GetNumSamePolicies(ePlayer) > 0 ? Localization::Lookup("TXT_KEY_DIPLO_SAME_POLICIES") : Localization::Lookup("TXT_KEY_DIPLO_DIFFERENT_POLICIES");
 			aOpinions.push_back(kOpinion);
 		}
 
@@ -15131,8 +15127,8 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 		////////////////////////////////////
 
 		// Embassy?
-		bool bUsEmbassy = pDiplo->IsHasEmbassy(ePlayer);
-		bool bThemEmbassy = GET_PLAYER(ePlayer).GetDiplomacyAI()->IsHasEmbassy(pkPlayer->GetID());
+		bool bUsEmbassy = pDiplo->HasEmbassyAt(ePlayer);
+		bool bThemEmbassy = GET_PLAYER(ePlayer).GetDiplomacyAI()->HasEmbassyAt(pkPlayer->GetID());
 		if (bUsEmbassy && bThemEmbassy)
 		{
 			Opinion kOpinion;
@@ -15155,8 +15151,8 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 			aOpinions.push_back(kOpinion);
 		}
 		// Open Borders?
-		bool bThemOpen = pDiplo->IsHasOpenBorders(ePlayer);
-		bool bUsOpen = GET_PLAYER(ePlayer).GetDiplomacyAI()->IsHasOpenBorders(pkPlayer->GetID());
+		bool bThemOpen = pDiplo->HasOpenBordersFrom(ePlayer);
+		bool bUsOpen = GET_PLAYER(ePlayer).GetDiplomacyAI()->HasOpenBordersFrom(pkPlayer->GetID());
 		if (bThemOpen && bUsOpen)
 		{
 			Opinion kOpinion;
@@ -16522,6 +16518,14 @@ int CvLuaPlayer::lGetDealTheyreValue(lua_State* L)
 }
 
 //------------------------------------------------------------------------------
+int CvLuaPlayer::lIsCurrentDealOfferChanged(lua_State* L)
+{
+	CvPlayerAI* pkThisPlayer = GetInstance(L);
+	lua_pushinteger(L, pkThisPlayer->GetDiplomacyAI()->GetCurrentDealOfferChanged());
+	return 1;
+}
+
+//------------------------------------------------------------------------------
 int CvLuaPlayer::lMayNotAnnex(lua_State* L)
 {
 	CvPlayerAI* pkThisPlayer = GetInstance(L);
@@ -16589,7 +16593,7 @@ int CvLuaPlayer::lGetTotalValueToMeNormal(lua_State* L)
 		return 1;
 	}
 
-	if (pkThisPlayer->GetDealAI()->WithinAcceptableRange(pkDeal->GetOtherPlayer(pkThisPlayer->GetID()), pkDeal->GetMaxValue(), iResult))
+	if (pkThisPlayer->GetDealAI()->WithinAcceptableRange(iResult))
 		iResult = 0;
  
 	lua_pushinteger(L, iResult);
@@ -16613,7 +16617,7 @@ int CvLuaPlayer::lGetTotalValueToMe(lua_State* L)
 		return 1;
 	}
 
-	if (pkThisPlayer->GetDealAI()->WithinAcceptableRange(pkDeal->GetOtherPlayer(pkThisPlayer->GetID()), pkDeal->GetMaxValue(), iResult))
+	if (pkThisPlayer->GetDealAI()->WithinAcceptableRange(iResult))
 		iResult = 0;
 
 	lua_pushinteger(L, iResult);
@@ -16945,6 +16949,8 @@ int CvLuaPlayer::lGetEspionageSpies(lua_State* L)
 			CvCity* pCity = pPlot->getPlotCity();
 			if (pCity)
 			{
+				lua_pushboolean(L, pCity->GetCityEspionage()->GetRevealCityScreen( pkThisPlayer->GetID() ) );
+				lua_setfield(L,t,"RevealCityScreen");
 				lua_pushinteger(L, pkPlayerEspionage->CalcNetworkPointsPerTurn(pSpy->GetSpyState(), pCity, uiSpy));
 			}
 			else
@@ -18368,18 +18374,15 @@ int CvLuaPlayer::lIsEventChoiceActive(lua_State* L)
 						for(int iLoop = 0; iLoop < GC.getNumEventInfos(); iLoop++)
 						{
 							EventTypes eEvent = (EventTypes)iLoop;
-							if(eEvent != NO_EVENT)
+							if(pkEventChoiceInfo->isParentEvent(eEvent))
 							{
-								if(pkEventChoiceInfo->isParentEvent(eEvent))
+								CvModEventInfo* pkEventInfo = GC.getEventInfo(eEvent);
+								if(pkEventInfo != NULL)
 								{
-									CvModEventInfo* pkEventInfo = GC.getEventInfo(eEvent);
-									if(pkEventInfo != NULL)
+									if(pkEventInfo->getNumChoices() == 1)
 									{
-										if(pkEventInfo->getNumChoices() == 1)
-										{
-											bResult = true;
-											break;
-										}
+										bResult = true;
+										break;
 									}
 								}
 							}
@@ -18503,8 +18506,6 @@ int CvLuaPlayer::lGetActivePlayerEventChoices(lua_State* L)
 	for (int iI = 0; iI < GC.getNumEventChoiceInfos(); iI++)
 	{
 		EventChoiceTypes eEventChoice = (EventChoiceTypes)iI;
-		if (eEventChoice == NO_EVENT_CHOICE)
-			continue;
 
 		CvModEventChoiceInfo* pkEventChoiceInfo = GC.getEventChoiceInfo(eEventChoice);
 		if (pkEventChoiceInfo != NULL)
@@ -18516,20 +18517,17 @@ int CvLuaPlayer::lGetActivePlayerEventChoices(lua_State* L)
 				for (int iLoop = 0; iLoop < GC.getNumEventInfos(); iLoop++)
 				{
 					EventTypes eEvent = (EventTypes)iLoop;
-					if (eEvent != NO_EVENT)
+					if (pkEventChoiceInfo->isParentEvent(eEvent))
 					{
-						if (pkEventChoiceInfo->isParentEvent(eEvent))
+						eParentEvent = eEvent;
+						CvModEventInfo* pkEventInfo = GC.getEventInfo(eEvent);
+						if (pkEventInfo != NULL)
 						{
-							eParentEvent = eEvent;
-							CvModEventInfo* pkEventInfo = GC.getEventInfo(eEvent);
-							if (pkEventInfo != NULL)
+							if (pkEventInfo->getNumChoices() == 1)
 							{
-								if (pkEventInfo->getNumChoices() == 1)
-								{
-									bNotChoice = true;
-								}
-								break;
+								bNotChoice = true;
 							}
+							break;
 						}
 					}
 				}
@@ -18569,8 +18567,6 @@ int CvLuaPlayer::lGetActiveCityEventChoices(lua_State* L)
 	for (int iI = 0; iI < GC.getNumCityEventChoiceInfos(); iI++)
 	{
 		CityEventChoiceTypes eEventChoice = (CityEventChoiceTypes)iI;
-		if (eEventChoice == NO_EVENT_CHOICE_CITY)
-			continue;
 
 		CvModEventCityChoiceInfo* pkEventChoiceInfo = GC.getCityEventChoiceInfo(eEventChoice);
 		if (pkEventChoiceInfo != NULL)
@@ -18587,20 +18583,17 @@ int CvLuaPlayer::lGetActiveCityEventChoices(lua_State* L)
 					for (int iLoop = 0; iLoop < GC.getNumCityEventInfos(); iLoop++)
 					{
 						CityEventTypes eEvent = (CityEventTypes)iLoop;
-						if (eEvent != NO_EVENT_CITY)
+						if (pkEventChoiceInfo->isParentEvent(eEvent))
 						{
-							if (pkEventChoiceInfo->isParentEvent(eEvent))
+							eParentEvent = eEvent;
+							CvModCityEventInfo* pkCityEventInfo = GC.getCityEventInfo(eEvent);
+							if (pkCityEventInfo != NULL)
 							{
-								eParentEvent = eEvent;
-								CvModCityEventInfo* pkCityEventInfo = GC.getCityEventInfo(eEvent);
-								if (pkCityEventInfo != NULL)
+								if (pkCityEventInfo->getNumChoices() == 1)
 								{
-									if (pkCityEventInfo->getNumChoices() == 1)
-									{
-										bNotChoice = true;
-									}
-									break;
+									bNotChoice = true;
 								}
+								break;
 							}
 						}
 					}
@@ -18647,8 +18640,6 @@ int CvLuaPlayer::lGetRecentPlayerEventChoices(lua_State* L)
 	for (int iI = 0; iI < GC.getNumEventChoiceInfos(); iI++)
 	{
 		EventChoiceTypes eEventChoice = (EventChoiceTypes)iI;
-		if (eEventChoice == NO_EVENT_CHOICE)
-			continue;
 
 		CvModEventChoiceInfo* pkEventChoiceInfo = GC.getEventChoiceInfo(eEventChoice);
 		if (pkEventChoiceInfo != NULL)
@@ -18660,23 +18651,20 @@ int CvLuaPlayer::lGetRecentPlayerEventChoices(lua_State* L)
 				for (int iLoop = 0; iLoop < GC.getNumEventInfos(); iLoop++)
 				{
 					EventTypes eEvent = (EventTypes)iLoop;
-					if (eEvent != NO_EVENT)
+					if (pkEventChoiceInfo->isParentEvent(eEvent))
 					{
-						if (pkEventChoiceInfo->isParentEvent(eEvent))
-						{							
-							CvModEventInfo* pkEventInfo = GC.getEventInfo(eEvent);
-							if (pkEventInfo != NULL)
+						CvModEventInfo* pkEventInfo = GC.getEventInfo(eEvent);
+						if (pkEventInfo != NULL)
+						{
+							if (pkEventInfo->getNumChoices() == 1)
 							{
-								if (pkEventInfo->getNumChoices() == 1)
-								{
-									bInstant = true;
-								}
-								if (pkEventInfo->getNumChoices() > 1)
-								{
-									eParentEvent = eEvent;
-								}
-								break;
+								bInstant = true;
 							}
+							if (pkEventInfo->getNumChoices() > 1)
+							{
+								eParentEvent = eEvent;
+							}
+							break;
 						}
 					}
 				}
@@ -18715,8 +18703,6 @@ int CvLuaPlayer::lGetRecentCityEventChoices(lua_State* L)
 	for (int iI = 0; iI < GC.getNumCityEventChoiceInfos(); iI++)
 	{
 		CityEventChoiceTypes eEventChoice = (CityEventChoiceTypes)iI;
-		if (eEventChoice == NO_EVENT_CHOICE_CITY)
-			continue;
 
 		CvModEventCityChoiceInfo* pkEventChoiceInfo = GC.getCityEventChoiceInfo(eEventChoice);
 		if (pkEventChoiceInfo != NULL)
@@ -18733,23 +18719,20 @@ int CvLuaPlayer::lGetRecentCityEventChoices(lua_State* L)
 					for (int iLoop = 0; iLoop < GC.getNumCityEventInfos(); iLoop++)
 					{
 						CityEventTypes eEvent = (CityEventTypes)iLoop;
-						if (eEvent != NO_EVENT_CITY)
+						if (pkEventChoiceInfo->isParentEvent(eEvent))
 						{
-							if (pkEventChoiceInfo->isParentEvent(eEvent))
+							CvModCityEventInfo* pkCityEventInfo = GC.getCityEventInfo(eEvent);
+							if (pkCityEventInfo != NULL)
 							{
-								CvModCityEventInfo* pkCityEventInfo = GC.getCityEventInfo(eEvent);
-								if (pkCityEventInfo != NULL)
+								if (pkCityEventInfo->getNumChoices() == 1)
 								{
-									if (pkCityEventInfo->getNumChoices() == 1)
-									{
-										bInstant = true;
-									}
-									else if (pkCityEventInfo->getNumChoices() > 1)
-									{
-										eParentEvent = eEvent;
-									}
-									break;
+									bInstant = true;
 								}
+								else if (pkCityEventInfo->getNumChoices() > 1)
+								{
+									eParentEvent = eEvent;
+								}
+								break;
 							}
 						}
 					}

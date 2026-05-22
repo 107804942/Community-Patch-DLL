@@ -160,11 +160,250 @@ struct SStrengthModifierInput
 	int m_iTheirDamage;
 };
 
+struct SUnitIDValueContainer
+{
+	typedef std::pair<int, int> value_type;
+
+	int m_iUnitID;
+	int m_iValue;
+	bool m_bHasValue;
+	mutable size_t m_iCachedHash;
+	mutable bool m_bHashValid;
+
+	std::vector<value_type> m_aExtraStorage;
+
+	SUnitIDValueContainer()
+		: m_iUnitID(0), m_iValue(0), m_bHasValue(false),
+		m_iCachedHash(0), m_bHashValid(false) {
+	}
+
+	void clear()
+	{
+		m_bHasValue = false;
+		m_aExtraStorage.clear();
+		m_bHashValid = false;
+	}
+
+	int GetValue(int iUnitID) const
+	{
+		if (!m_bHasValue)
+			return 0;
+
+		if (m_aExtraStorage.empty())
+		{
+			if (m_iUnitID == iUnitID)
+				return m_iValue;
+			else
+				return 0;
+		}
+
+		for (size_t k = 0; k < m_aExtraStorage.size(); k++)
+		{
+			if (m_aExtraStorage[k].first == iUnitID)
+			{
+				return m_aExtraStorage[k].second;
+			}
+		}
+
+		return 0;
+	}
+
+	void ChangeValue(int iUnitID, int iChange)
+	{
+		if (!m_bHasValue)
+		{
+			m_iUnitID = iUnitID;
+			m_iValue = iChange;
+			m_bHasValue = true;
+			m_bHashValid = false;
+			return;
+		}
+
+		if (m_aExtraStorage.empty())
+		{
+			if (m_iUnitID == iUnitID)
+			{
+				m_iValue += iChange;
+			}
+			else
+			{
+				// promote to vector
+				m_aExtraStorage.push_back(std::make_pair(m_iUnitID, m_iValue));
+				m_aExtraStorage.push_back(std::make_pair(iUnitID, iChange));
+			}
+			m_bHashValid = false;
+			return;
+		}
+
+		for (size_t k = 0; k < m_aExtraStorage.size(); k++)
+		{
+			if (m_aExtraStorage[k].first == iUnitID)
+			{
+				m_aExtraStorage[k].second += iChange;
+				m_bHashValid = false;
+				return;
+			}
+		}
+
+		m_aExtraStorage.push_back(std::make_pair(iUnitID, iChange));
+		m_bHashValid = false;
+	}
+
+	void SetValue(int iUnitID, int iValue)
+	{
+		if (!m_bHasValue)
+		{
+			m_iUnitID = iUnitID;
+			m_iValue = iValue;
+			m_bHasValue = true;
+			m_bHashValid = false;
+			return;
+		}
+
+		if (m_aExtraStorage.empty())
+		{
+			if (m_iUnitID == iUnitID)
+			{
+				m_iValue = iValue;
+			}
+			else
+			{
+				// promote to vector
+				m_aExtraStorage.push_back(std::make_pair(m_iUnitID, m_iValue));
+				m_aExtraStorage.push_back(std::make_pair(iUnitID, iValue));
+			}
+			m_bHashValid = false;
+			return;
+		}
+
+		for (size_t k = 0; k < m_aExtraStorage.size(); k++)
+		{
+			if (m_aExtraStorage[k].first == iUnitID)
+			{
+				m_aExtraStorage[k].second = iValue;
+				m_bHashValid = false;
+				return;
+			}
+		}
+
+		m_bHashValid = false;
+		m_aExtraStorage.push_back(std::make_pair(iUnitID, iValue));
+	}
+
+	size_t GetHash() const
+	{
+		if (m_bHashValid)
+			return m_iCachedHash;
+
+		size_t h = 0;
+
+		if (m_bHasValue)
+		{
+			if (m_aExtraStorage.empty())
+			{
+				size_t k = static_cast<size_t>(m_iUnitID);
+				size_t v = static_cast<size_t>(m_iValue / 5); // bin damage every 5 points
+				h = (k << 4) ^ v; // shift + XOR
+			}
+			else
+			{
+				for (std::vector<std::pair<int, int> >::size_type i = 0; i < m_aExtraStorage.size(); ++i)
+				{
+					size_t k = static_cast<size_t>(m_aExtraStorage[i].first);
+					size_t v = static_cast<size_t>(m_aExtraStorage[i].second / 5); // bin damage
+					h ^= (k << 4) ^ v; // order-independent XOR
+				}
+
+				// mix in main unit/value
+				size_t kMain = static_cast<size_t>(m_iUnitID);
+				size_t vMain = static_cast<size_t>(m_iValue / 5);
+				h ^= (kMain << 4) ^ vMain;
+			}
+		}
+
+		m_iCachedHash = h;
+		m_bHashValid = true;
+		return h;
+	}
+
+	void swap(SUnitIDValueContainer& other)
+	{
+		std::swap(m_iUnitID, other.m_iUnitID);
+		std::swap(m_iValue, other.m_iValue);
+		std::swap(m_bHasValue, other.m_bHasValue);
+		std::swap(m_iCachedHash, other.m_iCachedHash);
+		std::swap(m_bHashValid, other.m_bHashValid);
+		m_aExtraStorage.swap(other.m_aExtraStorage);
+	}
+
+	// ================= ITERATOR =================
+	struct const_iterator
+	{
+		const SUnitIDValueContainer* parent;
+		size_t index;
+
+		const_iterator(const SUnitIDValueContainer* p, size_t i)
+			: parent(p), index(i) {
+		}
+
+		const value_type operator*() const
+		{
+			if (parent->m_aExtraStorage.empty())
+			{
+				return value_type(parent->m_iUnitID, parent->m_iValue);
+			}
+			else
+			{
+				return parent->m_aExtraStorage[index];
+			}
+		}
+
+		const_iterator& operator++()
+		{
+			++index;
+			return *this;
+		}
+
+		bool operator!=(const const_iterator& other) const
+		{
+			return index != other.index || parent != other.parent;
+		}
+	};
+
+	const_iterator begin() const
+	{
+		if (!m_bHasValue)
+			return const_iterator(this, 0);
+
+		return const_iterator(this, 0);
+	}
+
+	const_iterator end() const
+	{
+		if (!m_bHasValue)
+			return const_iterator(this, 0);
+
+		if (m_aExtraStorage.empty())
+			return const_iterator(this, 1);
+
+		return const_iterator(this, m_aExtraStorage.size());
+	}
+};
+
+namespace std {
+	template<>
+	void swap(SUnitIDValueContainer& a, SUnitIDValueContainer& b)
+	{
+		a.swap(b);
+	}
+}
+
 enum AreaEffectType
 {
 	AE_GREAT_GENERAL,
 	AE_SAPPER,
-	AE_SIEGETOWER
+	AE_SIEGETOWER,
+	AE_PASSIVE_HEAL
 };
 
 enum SquadsEndMovementType
@@ -299,13 +538,13 @@ public:
 
 	bool IsAngerFreeUnit() const;
 
-	int getMeleeCombatDamageCity(int iStrength, const CvCity* pCity, int& iSelfDamageInflicted, int iGarrisonMaxHP, int& iGarrisonDamage, bool bIncludeRand) const;
-	int getMeleeCombatDamage(int iStrength, int iOpponentStrength, int& iSelfDamageInflicted, bool bIncludeRand, const CvUnit* pkOtherUnit, int iExtraDefenderDamage = 0) const;
+	int getMeleeCombatDamageCity(int iStrength, const CvCity* pCity, int& iSelfDamageInflicted, int iGarrisonMaxHP, int& iGarrisonDamage, bool bIncludeRand, int iExtraSelfDamage = 0, int iExtraCityDamage = 0, const CvUnit* pGarrisonOverride = NULL) const;
+	int getMeleeCombatDamage(int iStrength, int iOpponentStrength, int& iSelfDamageInflicted, bool bIncludeRand, const CvUnit* pkOtherUnit, int iExtraSelfDamage = 0, int iExtraDefenderDamage = 0) const;
 	void move(CvPlot& targetPlot, bool bShow, bool bNoMovementCost = false);
 	bool jumpToNearestValidPlot();
 	bool jumpToNearestValidPlotWithinRange(int iRange, CvPlot* pStartPlot=NULL);
 
-	bool canScrap(bool bTestVisible = false) const;
+	bool canScrap(bool bTestVisible = false, CvString* toolTipSink = NULL) const;
 	void scrap(bool bDelay = true);
 	int GetScrapGold() const;
 
@@ -343,14 +582,17 @@ public:
 	bool canCargoAllMove() const;
 	int getUnitAICargo(UnitAITypes eUnitAI) const;
 
-	bool canHold(const CvPlot* pPlot) const; // skip turn
-	bool canSleep(const CvPlot* pPlot) const;
-	bool canFortify(const CvPlot* pPlot) const;
+	bool canHold(const CvPlot* pPlot, bool bTestVisibility = false) const; // skip turn
+	bool canSleep(const CvPlot* pPlot, bool bTestVisibility = false) const;
+	bool canFortify(const CvPlot* pPlot, bool bTestVisibility = false) const;
 	bool canAirPatrol(const CvPlot* pPlot) const;
 
 	bool IsRangeAttackIgnoreLOS() const;
 	int GetRangeAttackIgnoreLOSCount() const;
 	void ChangeRangeAttackIgnoreLOSCount(int iChange);
+    
+	int GetSeeThrough() const;
+    void ChangeSeeThrough(int iChange);
 
 	bool canSetUpForRangedAttack(const CvPlot* pPlot) const; //no longer used
 	bool isSetUpForRangedAttack() const; //no longer used
@@ -405,29 +647,31 @@ public:
 	int GetEmbarkAbilityCount() const;
 	void ChangeEmbarkAbilityCount(int iChange);
 
-	bool canHeal(const CvPlot* pPlot, bool bCheckMovement = true) const;
-	bool canSentry(const CvPlot* pPlot) const;
+	bool canHeal(const CvPlot* pPlot, bool bCheckMovement = true, CvString* toolTipSink = NULL) const;
+	bool canSentry(const CvPlot* pPlot, bool bTestVisibility = false) const;
 
 	int healRate(const CvPlot* pPlot) const;
 	int healTurns(const CvPlot* pPlot) const;
 	void doHeal();
 	void DoAttrition();
 	int GetDanger(const CvPlot* pAtPlot=NULL) const;
-	int GetDanger(const CvPlot* pAtPlot, const UnitIdContainer& unitsToIgnore, int iExtraDamage) const;
+	int GetDanger(const CvPlot* pAtPlot, const SUnitIDValueContainer& unitDamageDealt, int iExtraDamage) const;
 
-	const CvPlot* getAirliftFromPlot(const CvPlot* pPlot) const;
+	int ActualHealRate(const CvPlot* pPlot, bool bCheckMovement = true) const;
+
+	const CvPlot* getAirliftFromPlot(const CvPlot* pPlot, bool bIgnoreMoves = false) const;
 	const CvPlot* getAirliftToPlot(const CvPlot* pPlot, bool bIncludeCities) const;
 
-	bool canAirlift(const CvPlot* pPlot) const;
-	bool canAirliftAt(const CvPlot* pPlot, int iX, int iY) const;
+	bool canAirlift(const CvPlot* pPlot, bool bIgnoreMoves = false) const;
+	bool canAirliftAt(const CvPlot* pPlot, int iX, int iY, bool bIgnoreMoves = false) const;
 	bool airlift(int iX, int iY);
 
 	bool isNukeVictim(const CvPlot* pPlot, TeamTypes eTeam) const;
 	bool canNuke() const;
 	bool canNukeAt(const CvPlot* pPlot, int iX, int iY) const;
 
-	bool canParadrop(const CvPlot* pPlot, bool bOnlyTestVisibility) const;
-	bool canParadropAt(const CvPlot* pPlot, int iX, int iY) const;
+	bool canParadrop(const CvPlot* pPlot, bool bOnlyTestVisibility, CvString* toolTipSink = NULL) const;
+	bool canParadropAt(const CvPlot* pPlot, int iX, int iY, bool bOnlyTestVisibility = false) const;
 	bool paradrop(int iX, int iY, bool& bAnimationShown);
 
 	bool canMakeTradeRoute(const CvPlot* pPlot) const;
@@ -472,7 +716,7 @@ public:
 	bool shouldPillage(const CvPlot* pPlot, bool bConservative = false, bool bIgnoreMovement = false) const;
 	bool pillage();
 
-	bool canFoundCity(const CvPlot* pPlot, bool bIgnoreDistanceToExistingCities = false, bool bIgnoreHappiness = false, bool bForAliveCheck = false) const;
+	bool canFoundCity(const CvPlot* pPlot, bool bIgnoreDistanceToExistingCities = false, bool bIgnoreHappiness = false, bool bForAliveCheck = false, CvString* toolTipSink = NULL) const;
 	bool foundCity();
 
 	bool canJoinCity(const CvPlot* pPlot, SpecialistTypes eSpecialist) const;
@@ -523,7 +767,7 @@ public:
 	bool CanBuildSpaceship(const CvPlot* pPlot, bool bVisible) const;
 	bool DoBuildSpaceship();
 
-	bool CanCultureBomb(const CvPlot* pPlot, bool bTestVisible = false) const;
+	bool CanCultureBomb(const CvPlot* pPlot, bool bTestVisible = false, CvString* toolTipSink = NULL) const;
 	bool isCultureBomb() const;
 	bool DoCultureBomb();
 	void PerformCultureBomb(int iRadius);
@@ -540,7 +784,7 @@ public:
 	bool canBlastTourism(const CvPlot* pPlot, bool bTestVisible = false) const;
 	bool blastTourism();
 
-	bool canBuild(const CvPlot* pPlot, BuildTypes eBuild, bool bTestVisible = false, bool bTestGold = true, bool bTestEra = false) const;
+	bool canBuild(const CvPlot* pPlot, BuildTypes eBuild, bool bTestVisible = false, bool bTestGold = true, bool bTestEra = false, CvString* toolTipSink = NULL) const;
 	bool build(BuildTypes eBuild);
 
 	int getBuilderStrength() const;
@@ -558,7 +802,7 @@ public:
 
 	bool isReadyForUpgrade() const;
 	bool CanUpgradeRightNow(bool bOnlyTestVisible) const;
-	bool CanUpgradeTo(UnitTypes eUpgradeUnitType, bool bOnlyTestVisible) const;
+	bool CanUpgradeTo(UnitTypes eUpgradeUnitType, bool bOnlyTestVisible, CvString* toolTipSink = NULL) const;
 	bool CanUpgradeInTerritory(bool bOnlyTestVisible) const;
 	UnitTypes GetUpgradeUnitType() const;
 	int upgradePrice(UnitTypes eUnit) const;
@@ -641,7 +885,6 @@ public:
 
 	bool canBuildRoute() const;
 	BuildTypes getBuildType() const;
-	bool IsWorking() const;
 	int workRate(bool bMax, BuildTypes eBuild = NO_BUILD) const;
 
 	bool isNoBadGoodies() const;
@@ -684,16 +927,18 @@ public:
 	void ChangeBaseCombatStrength(int iValue);
 	int GetBaseCombatStrength() const;
 	int GetBestAttackStrength() const; //ranged or melee, whichever is greater
-	int GetDamageCombatModifier(bool bForDefenseAgainstRanged = false, int iAssumedDamage = 0) const;
+	int GetDamageCombatModifier(bool bForDefenseAgainstRanged = false, int iAssumeSelfDamage = 0) const;
 
 	int GetCombatModifierFromCapitalDistance(const CvPlot* pBattlePlot) const;
 
 	int GetGenericMeleeStrengthModifier(const CvUnit* pOtherUnit, const CvPlot* pBattlePlot, bool bAttacking,
 									bool bIgnoreUnitAdjacencyBoni, const CvPlot* pFromPlot = NULL, bool bQuickAndDirty = false) const;
 	int GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot, const CvUnit* pDefender, 
-									bool bIgnoreUnitAdjacencyBoni = false, bool bQuickAndDirty = false, int iAssumeExtraDamage = 0) const;
+									bool bIgnoreUnitAdjacencyBoni = false, bool bQuickAndDirty = false,
+									int iAssumeSelfDamage = 0, int iAssumeExtraOtherDamage = 0) const;
 	int GetMaxDefenseStrength(const CvPlot* pInPlot, const CvUnit* pAttacker, const CvPlot* pFromPlot, 
-									bool bFromRangedAttack = false, bool bQuickAndDirty = false, int iAssumeExtraDamage = 0) const;
+									bool bFromRangedAttack = false, bool bQuickAndDirty = false,
+									int iAssumeSelfDamage = 0) const;
 
 	int GetEmbarkedUnitDefense() const;
 
@@ -702,12 +947,13 @@ public:
 
 	int GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* pCity, bool bAttacking, 
 									const CvPlot* pMyPlot = NULL, const CvPlot* pOtherPlot = NULL, 
-									bool bIgnoreUnitAdjacencyBoni = false, bool bQuickAndDirty = false, int iAssumeExtraDamage = 0) const;
+									bool bIgnoreUnitAdjacencyBoni = false, bool bQuickAndDirty = false,
+									int iAssumeExtraDamage = 0, int iAssumeExtraOtherDamage = 0) const;
 	int GetAirCombatDamage(const CvUnit* pDefender, const CvCity* pCity, int iGarrisonMaxHP, int& iGarrisonDamage, bool bIncludeRand,
-									int iAssumeExtraDefenderDamage = 0,
+									int iAssumeSelfDamage = 0, int iAssumeExtraDefenderDamage = 0,
 									const CvPlot* pTargetPlot = NULL, const CvPlot* pFromPlot = NULL, bool bQuickAndDirty = false) const;
 	int GetRangeCombatDamage(const CvUnit* pDefender, const CvCity* pCity, int iGarrisonMaxHP, int& iGarrisonDamage, bool bIncludeRand,
-									int iAssumeExtraDefenderDamage = 0,
+									int iAssumeSelfDamage = 0, int iAssumeExtraDefenderDamage = 0,
 									const CvPlot* pTargetPlot = NULL, const CvPlot* pFromPlot = NULL, 
 									bool bIgnoreUnitAdjacencyBoni = false, bool bQuickAndDirty = false) const;
 	int GetRangeCombatSplashDamage(const CvPlot* pTargetPlot) const;
@@ -726,7 +972,7 @@ public:
 	bool IsEverFortifyable() const;
 	int fortifyModifier() const;
 
-	int experienceNeeded() const;
+	int experienceNeeded(int iOverrideLevel = -1) const;
 	int maxXPValue() const;
 
 	bool ignoreBuildingDefense() const;
@@ -821,6 +1067,8 @@ public:
 	void ChangeNearbyHealNeutralTerritory(int iValue);
 	int getNearbyHealFriendlyTerritory() const;
 	void ChangeNearbyHealFriendlyTerritory(int iValue);
+	int GetPassiveAoEHeal() const;
+	void ChangePassiveAoEHeal(int iValue);
 	void ChangeIsGiveInvisibility(int iValue);
 	int GetIsGiveInvisibility() const;
 	bool isGiveInvisibility() const;
@@ -868,6 +1116,9 @@ public:
 	bool HasSpottedRuin() const;
 	void SetSpottedRuin(bool bValue);
 
+	bool HasRevealedPlot() const;
+	void SetRevealedPlot(bool bValue);
+
 	bool IsGainsXPFromScouting() const;
 	int GetGainsXPFromScouting() const;
 	void ChangeGainsXPFromScouting(int iValue);
@@ -882,7 +1133,7 @@ public:
 	int GetExtraXPOnKill() const;
 	void ChangeExtraXPOnKill(int iValue);
 
-	bool IsGainsYieldFromScouting() const;
+	bool IsGainsYieldFromScoutingTimes100() const;
 
 	int GetCaptureDefeatedEnemyChance() const;
 	void ChangeCaptureDefeatedEnemyChance(int iValue);
@@ -1100,6 +1351,7 @@ public:
 	int addDamageReceivedThisTurn(int iDamage, CvUnit* pAttacker=NULL);
 	void flipDamageReceivedPerTurn();
 	bool isProjectedToDieNextTurn() const;
+	int GetDamageTakenLastTurn() const;
 
 	int getMoves() const;
 	void changeMoves(int iChange);
@@ -1113,8 +1365,10 @@ public:
 	bool IsInForeignOwnedTerritory() const;
 
 	int getExperienceTimes100() const;
-	void setExperienceTimes100(int iNewValueTimes100, int iMax = -1, bool bDontShow = false);
-	void changeExperienceTimes100(int iChangeTimes100, int iMax = -1, bool bFromCombat = false, bool bInBorders = false, bool bUpdateGlobal = false, bool bFromHuman = false);
+	void setExperienceTimes100(int iNewValueTimes100, int iMax = -1, bool bDontShow = false, bool bStartingXP = false);
+	void changeExperienceTimes100(int iChangeTimes100, int iMax = -1, bool bFromCombat = false, bool bInBorders = false, bool bUpdateGlobal = false, bool bFromHuman = false, bool bStartingXP = false);
+
+	int getStartingExperienceTimes100() const;
 
 	int getLevel() const;
 	void setLevel(int iNewValue);
@@ -1165,6 +1419,9 @@ public:
 	int getAlwaysHealCount() const;
 	bool isAlwaysHeal() const;
 	void changeAlwaysHealCount(int iChange);
+
+	int GetFlatHealRate() const;
+	void ChangeFlatHealRate(int iChange);
 
 	int getHealOutsideFriendlyCount() const;
 	bool isHealOutsideFriendly() const;
@@ -1453,6 +1710,8 @@ public:
 	void ChangeFreeAttackMoves(int iChange);
 	bool IsFightWellDamaged() const;
 	void ChangeIsFightWellDamaged(int iChange);
+	bool IsRequiresLeadership() const;
+	void ChangeRequiresLeadershipCount(int iChange);
 
 	int GetGoodyHutYieldBonus() const;
 	void ChangeGoodyHutYieldBonus(int iChange);
@@ -1745,8 +2004,8 @@ public:
 	int getYieldFromBarbarianKills(YieldTypes eIndex) const;
 	void changeYieldFromBarbarianKills(YieldTypes eIndex, int iChange);
 
-	int getYieldFromScouting(YieldTypes eIndex) const;
-	void changeYieldFromScouting(YieldTypes eIndex, int iChange);
+	int getYieldFromScoutingTimes100(YieldTypes eIndex) const;
+	void changeYieldFromScoutingTimes100(YieldTypes eIndex, int iChange);
 	int getYieldFromAncientRuins(YieldTypes eIndex) const;
 	void changeYieldFromAncientRuins(YieldTypes eIndex, int iChange);
 	int getYieldFromTRPlunder(YieldTypes eIndex) const;
@@ -2084,6 +2343,7 @@ protected:
 	int m_iTurnSliceCreated; // not serialized
 	bool m_bImmobile;
 	int m_iExperienceTimes100;
+	int m_iStartingExperienceTimes100;
 	int m_iLevel;
 	int m_iCargo;
 	int m_iCargoCapacity;
@@ -2100,6 +2360,7 @@ protected:
 	int m_iRivalTerritoryCount;
 	int m_iIsSlowInEnemyLandCount;
 	int m_iRangeAttackIgnoreLOSCount;
+    int m_iSeeThrough;
 	int m_iCityAttackOnlyCount;
 	int m_iCaptureDefeatedEnemyCount;
 	int m_iOriginCity;
@@ -2112,6 +2373,7 @@ protected:
 	std::map<PromotionTypes, int> m_TurnPromotionGained;
 	int m_iRangedSupportFireCount;
 	int m_iAlwaysHealCount;
+	int m_iFlatHealRate;
 	int m_iHealOutsideFriendlyCount;
 	int m_iRiverDoubleMoveCount;
 	int m_iEmbarkFlatCostCount;
@@ -2238,12 +2500,14 @@ protected:
 	int m_iNearbyHealEnemyTerritory;
 	int m_iNearbyHealNeutralTerritory;
 	int m_iNearbyHealFriendlyTerritory;
+	int m_iPassiveAoEHeal;
 	int m_iCanCrossMountainsCount;
 	int m_iCanCrossOceansCount;
 	int m_iCanCrossIceCount;
 	int m_iNumTilesRevealedThisTurn;
 	bool m_bSpottedEnemy;
 	bool m_bSpottedRuin;
+	bool m_bRevealedPlot;
 	int m_iGainsXPFromScouting;
 	int m_iXPFromPillaging;
 	int m_iExtraXPOnKill;
@@ -2312,6 +2576,7 @@ protected:
 	int m_iFreeAttackMoves;
 	int m_iCanMoraleBreak;
 	int m_iDamageAoEFortified;
+	int m_iRequiresLeadershipCount;
 	int m_iWorkRateMod;
 	int m_iDamageReductionCityAssault;
 	int m_iGoodyHutYieldBonus;
@@ -2389,7 +2654,7 @@ protected:
 	UnitClassCounter m_extraUnitClassAttackMod;
 	UnitClassCounter m_extraUnitClassDefenseMod;
 	std::vector<int> m_aiNumTimesAttackedThisTurn;
-	std::vector<int> m_yieldFromScouting;
+	std::vector<int> m_yieldFromScoutingTimes100;
 	std::vector<int> m_piYieldFromAncientRuins;
 	std::vector<int> m_piYieldFromTRPlunder;
 	std::vector<int> m_yieldFromKills;
@@ -2516,6 +2781,7 @@ SYNC_ARCHIVE_VAR(int, m_iReconCount)
 SYNC_ARCHIVE_VAR(int, m_iGameTurnCreated)
 SYNC_ARCHIVE_VAR(bool, m_bImmobile)
 SYNC_ARCHIVE_VAR(int, m_iExperienceTimes100)
+SYNC_ARCHIVE_VAR(int, m_iStartingExperienceTimes100)
 SYNC_ARCHIVE_VAR(int, m_iLevel)
 SYNC_ARCHIVE_VAR(int, m_iCargo)
 SYNC_ARCHIVE_VAR(int, m_iCargoCapacity)
@@ -2532,6 +2798,7 @@ SYNC_ARCHIVE_VAR(int, m_iEnemyRouteCount)
 SYNC_ARCHIVE_VAR(int, m_iRivalTerritoryCount)
 SYNC_ARCHIVE_VAR(int, m_iIsSlowInEnemyLandCount)
 SYNC_ARCHIVE_VAR(int, m_iRangeAttackIgnoreLOSCount)
+SYNC_ARCHIVE_VAR(int, m_iSeeThrough)
 SYNC_ARCHIVE_VAR(int, m_iCityAttackOnlyCount)
 SYNC_ARCHIVE_VAR(int, m_iCaptureDefeatedEnemyCount)
 SYNC_ARCHIVE_VAR(int, m_iOriginCity)
@@ -2544,6 +2811,7 @@ SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::map<PromotionTypes, int>), m_Promoti
 SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::map<PromotionTypes, int>), m_TurnPromotionGained)
 SYNC_ARCHIVE_VAR(int, m_iRangedSupportFireCount)
 SYNC_ARCHIVE_VAR(int, m_iAlwaysHealCount)
+SYNC_ARCHIVE_VAR(int, m_iFlatHealRate)
 SYNC_ARCHIVE_VAR(int, m_iHealOutsideFriendlyCount)
 SYNC_ARCHIVE_VAR(int, m_iRiverDoubleMoveCount)
 SYNC_ARCHIVE_VAR(int, m_iEmbarkFlatCostCount)
@@ -2670,6 +2938,7 @@ SYNC_ARCHIVE_VAR(int, m_iNumberOfCultureBombs)
 SYNC_ARCHIVE_VAR(int, m_iNearbyHealEnemyTerritory)
 SYNC_ARCHIVE_VAR(int, m_iNearbyHealNeutralTerritory)
 SYNC_ARCHIVE_VAR(int, m_iNearbyHealFriendlyTerritory)
+SYNC_ARCHIVE_VAR(int, m_iPassiveAoEHeal)
 SYNC_ARCHIVE_VAR(int, m_iCanCrossMountainsCount)
 SYNC_ARCHIVE_VAR(int, m_iCanCrossOceansCount)
 SYNC_ARCHIVE_VAR(int, m_iCanCrossIceCount)
@@ -2791,7 +3060,7 @@ SYNC_ARCHIVE_VAR(FeatureTypeCounter, m_extraFeatureDefensePercent)
 SYNC_ARCHIVE_VAR(UnitClassCounter, m_extraUnitClassAttackMod)
 SYNC_ARCHIVE_VAR(UnitClassCounter, m_extraUnitClassDefenseMod)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiNumTimesAttackedThisTurn)
-SYNC_ARCHIVE_VAR(std::vector<int>, m_yieldFromScouting)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_yieldFromScoutingTimes100)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_piYieldFromAncientRuins)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_piYieldFromTRPlunder)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_yieldFromKills)

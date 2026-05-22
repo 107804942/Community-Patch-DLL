@@ -8,6 +8,7 @@ A minidump (crash dump) is a diagnostic file that captures the state of the game
 - [Locating Minidump Files](#locating-minidump-files)
 - [Filename Format](#filename-format)
 - [Version String Format](#version-string-format)
+- [Obtaining Symbol Files (PDB)](#obtaining-symbol-files-pdb)
 - [Analyzing Minidumps](#analyzing-minidumps)
   - [Using Visual Studio](#using-visual-studio)
   - [Using WinDbg](#using-windbg)
@@ -59,9 +60,9 @@ CvMiniDump_YYYYMMDD_HHMMSS_<version>_<buildtype>.dmp
 
 **Examples:**
 ```
-CvMiniDump_20260111_143025_5.1_Release.dmp
-CvMiniDump_20260111_143025_5.1-3-gabc123d_Release.dmp
-CvMiniDump_20260111_143025_5.1_abc123d_Debug.dmp
+CvMiniDump_20260111_143025_5.1-0-gb44ce57d_Release.dmp
+CvMiniDump_20260111_143025_5.1-3-gabc123d_Debug.dmp
+CvMiniDump_20260111_143025_No-Tag_abc123d_Debug.dmp
 ```
 
 **Components:**
@@ -71,10 +72,11 @@ CvMiniDump_20260111_143025_5.1_abc123d_Debug.dmp
 - `<buildtype>`: Either "Debug" or "Release"
 
 **Version Identifier Formats:**
-- `5.1` - Built exactly on release tag Release-5.1
-- `5.1-3-gabc123d` - Built 3 commits after Release-5.1 at commit abc123d (git describe format)
-- `5.1_abc123d` - Built on tag with uncommitted changes at commit abc123d
-- `Tag_abc123d` - Built when no release tags exist in repository
+- `5.1-0-gb44ce57d` - Built exactly on release tag Release-5.1 (0 commits after tag, at commit b44ce57d)
+- `5.1-3-gabc123d` - Built 3 commits after Release-5.1 at commit abc123d (git describe --long format)
+- `No-Tag_abc123d` - Built when no release tags exist in repository (at commit abc123d)
+
+**Note:** The version identifier always includes the commit hash (even on exact tags) to ensure precise version tracking and prevent ambiguity when debugging crashes. The "Clean" or "Dirty" status (indicating uncommitted changes) is recorded in the minidump's internal user stream but does not appear in the filename.
 
 This naming helps identify when the crash occurred and which exact version of the DLL was running.
 
@@ -91,10 +93,10 @@ Release-<version>[-<distance>-g<commit>] <status>
 
 | Version String | Meaning |
 |----------------|---------|
-| `Release-5.1 Clean` | Built exactly on Release-5.1 tag, no uncommitted changes |
-| `Release-5.1 Dirty` | Built on Release-5.1 tag with uncommitted changes |
+| `Release-5.1-0-gb44ce57d Clean` | Built exactly on Release-5.1 tag (0 commits after tag, at commit b44ce57d) |
+| `Release-5.1-0-gb44ce57d Dirty` | Built on Release-5.1 tag with uncommitted changes at commit b44ce57d |
 | `Release-5.1-3-gabc123d Clean` | Built 3 commits after Release-5.1 at commit abc123d |
-| `Release-5.1 abc123d Dirty` | Built on Release-5.1 with local changes at commit abc123d |
+| `Release-5.1-3-gabc123d Dirty` | Built 3 commits after Release-5.1 with local changes at commit abc123d |
 | `No-Tag abc123d Clean` | Built when no release tags exist in repository |
 
 **Understanding Git Describe Format:**
@@ -120,11 +122,25 @@ This allows developers to immediately know:
 3. **Game log** - Printed at startup: `"Gamecore was built from git version Release-5.1-3-gabc123d Clean"`
 4. **WinDbg output** - Visible when analyzing the dump with `!analyze -v`
 
+## Obtaining Symbol Files (PDB)
+
+Symbol files (`.pdb`) are essential for meaningful minidump analysis. Without matching PDB files, you'll only see raw memory addresses instead of function names, source files, and line numbers.
+
+**Where to find PDB files:**
+
+| Source | Contains | How to Get |
+|--------|----------|------------|
+| **Debug.zip** (GitHub Release) | Release and Debug DLL+PDB for Standard and 43 Civ variants | Download from the [Releases page](https://github.com/LoneGazebo/Community-Patch-DLL/releases). The `Release/` subfolder has the PDB matching the installer DLL. |
+| **CI Artifacts** | Release and Debug DLL+PDB for Clang and MSVC builds | Download from the GitHub Actions build for the specific commit (e.g. `VP_Clang_Release_*`). Note: CI artifacts are built from the final tagged commit and may not match the DLL shipped in the installer (see below). |
+| **Local Build** | PDB for your build | `BuildOutput\Release\` (MSVC) or `clang-output\Release\` (Clang) after building |
+
+**Important:** The PDB must match the exact DLL binary. For analyzing user crash dumps, always use the PDB from **Debug.zip** — it was built alongside the installer DLL and has a matching PDB signature. CI artifacts are built from the tagged commit after the installer is packaged, so their PDB signatures will not match the shipped DLL.
+
 ## Analyzing Minidumps
 
 ### Using Visual Studio
 
-Visual Studio can open and analyze minidump files, but may have limitations with Release builds or when debug symbols (PDB files) are not available.
+Visual Studio can open and analyze minidump files.
 
 **Steps:**
 1. Open Visual Studio (2008, 2013, 2019, or 2022)
@@ -134,10 +150,9 @@ Visual Studio can open and analyze minidump files, but may have limitations with
 5. Examine the **Call Stack** window to see where the crash occurred
 6. Use the **Autos** or **Locals** windows to inspect variable values
 
-**Limitations:**
-- May require matching PDB files (symbol files) from the exact build
-- Some Release builds may have limited information due to optimizations
-- Visual Studio may refuse to load some dumps
+**If symbols aren't loading automatically**, set the symbol path:
+- Debug → Options → Debugging → Symbols
+- Add the folder containing the matching `CvGameCore_Expansion2.pdb` from Debug.zip (see [Obtaining Symbol Files](#obtaining-symbol-files-pdb) above)
 
 ### Using WinDbg
 
@@ -276,10 +291,12 @@ If you need to disable minidump generation (not recommended for debugging):
 **Build-Time Version Generation:**
 
 The version identifier is generated by running `update_commit_id.bat` (or `.sh`) before compilation, which:
-1. Runs `git describe --tags HEAD` to get version info
+1. Runs `git describe --tags --long HEAD` to get version info (the `--long` flag ensures commit hash is always included, even on exact tags)
 2. Checks for uncommitted changes (Clean vs Dirty)
 3. Writes to `commit_id.inc` which is included at compile time
 4. Results in `CURRENT_GAMECORE_VERSION` constant embedded in the DLL
+
+**Why `--long`?** This ensures every build has a commit hash in the version string, even when built on an exact release tag. This prevents ambiguity when debugging crashes and ensures minidump filenames are always unique and traceable to exact commits.
 
 **For Developers:**
 

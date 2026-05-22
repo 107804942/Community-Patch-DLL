@@ -78,7 +78,7 @@ void CvTacticalDominanceZone::SetZoneCity(CvCity* pCity)
 
 eTacticalDominanceFlags CvTacticalDominanceZone::GetRangedDominanceFlag(int iDominancePercentage) const
 {
-	if ( GetEnemyRangedStrength() <= 0 && GetFriendlyRangedStrength() > 0)
+	if ( GetEnemyRangedStrength() == 0 && GetFriendlyRangedStrength() > 0)
 	{
 		return TACTICAL_DOMINANCE_FRIENDLY;
 	}
@@ -123,7 +123,7 @@ eTacticalDominanceFlags CvTacticalDominanceZone::GetUnitCountDominanceFlag(int i
 
 eTacticalDominanceFlags CvTacticalDominanceZone::GetNavalRangedDominanceFlag(int iDominancePercentage) const
 {
-	if (GetEnemyNavalRangedStrength() <= 0 && GetFriendlyNavalRangedStrength() > 0)
+	if (GetEnemyNavalRangedStrength() == 0 && GetFriendlyNavalRangedStrength() > 0)
 	{
 		return TACTICAL_DOMINANCE_FRIENDLY;
 	}
@@ -347,14 +347,14 @@ bool CvTacticalDominanceZone::HasNeighborZone(PlayerTypes eOwner) const
 eTacticalDominanceFlags CvTacticalDominanceZone::SetOverallDominance(int iDominancePercentage)
 {
 	// Look at ratio of friendly to enemy strength
-	if(GetOverallEnemyStrength()+GetOverallFriendlyStrength()<=0)
+	if(GetOverallEnemyStrength() == 0 && GetOverallFriendlyStrength() == 0)
 	{
 		m_eOverallDominanceFlag = TACTICAL_DOMINANCE_NO_UNITS_VISIBLE; //also covers cities ...
 	}
 	else
 	{
 		// Otherwise compute it by strength
-		if (GetOverallEnemyStrength() <= 0 && GetTotalFriendlyUnitCount() > 0) //make sure the denominator is valid later on
+		if (GetOverallEnemyStrength() == 0 && GetTotalFriendlyUnitCount() > 0) //make sure the denominator is valid later on
 		{
 			m_eOverallDominanceFlag = TACTICAL_DOMINANCE_FRIENDLY;
 		}
@@ -986,7 +986,9 @@ void CvTacticalAnalysisMap::PrioritizeZones()
 		if (pZoneCity && pZoneCity->HasAccessToArea(pZone->GetAreaID()))
 		{
 			//should we take into account distance to the border as well? probably dominance is enough
-			iBaseValue += (int)sqrt(pZoneCity->getEconomicValue(m_ePlayer)*100.f/iMostValuableCity);
+			//economic value can be negative for captured cities with high maintenance, clamp to 0
+			float fEconomicRatio = pZoneCity->getEconomicValue(m_ePlayer) * 100.f / iMostValuableCity;
+			iBaseValue += (int)sqrt(max(0.f, fEconomicRatio));
 
 			if (GET_PLAYER(m_ePlayer).GetTacticalAI()->IsInFocusArea(pZoneCity->plot()))
 			{

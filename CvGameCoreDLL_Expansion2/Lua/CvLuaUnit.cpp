@@ -92,6 +92,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(Embark);
 
 	Method(IsRangeAttackIgnoreLOS);
+	Method(GetSeeThrough);
 
 	Method(CanAirlift);
 	Method(CanAirliftAt);
@@ -228,6 +229,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(IsFound);
 	Method(IsFoundAbroad);
 	Method(IsWork);
+	Method(GetBuildDisabledReasonString);
 	Method(IsGoldenAge);
 	Method(CanCoexistWithEnemyUnit);
 	Method(IsContractUnit);
@@ -1197,7 +1199,7 @@ int CvLuaUnit::lGetMeleeCombatDamage(lua_State* L)
 	int iResult = 0;
 	int iAttackerDamage = 0;
 
-	iResult = pkUnit->getMeleeCombatDamage(iStrength, iOpponentStrength, iAttackerDamage, bIncludeRand, pkOtherUnit, iExtraDefenderDamage);
+	iResult = pkUnit->getMeleeCombatDamage(iStrength, iOpponentStrength, iAttackerDamage, bIncludeRand, pkOtherUnit, 0, iExtraDefenderDamage);
 
 	lua_pushinteger(L, iResult);
 	lua_pushinteger(L, iAttackerDamage);
@@ -1454,7 +1456,7 @@ int CvLuaUnit::lCanHeal(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 	CvPlot* pkPlot = CvLuaPlot::GetInstance(L, 2);
-	const bool bResult = pkUnit->IsHurt() && pkUnit->canHeal(pkPlot);
+	const bool bResult = pkUnit->IsHurt() && pkUnit->ActualHealRate(pkPlot) > 0;
 
 	lua_pushboolean(L, bResult);
 	return 1;
@@ -1559,6 +1561,12 @@ int CvLuaUnit::lIsRangeAttackIgnoreLOS(lua_State* L)
 	return BasicLuaMethod(L, &CvUnit::IsRangeAttackIgnoreLOS);
 }
 //------------------------------------------------------------------------------
+//int GetSeeThrough(CyPlot* pPlot);
+int CvLuaUnit::lGetSeeThrough(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvUnit::GetSeeThrough);
+}
+//------------------------------------------------------------------------------
 //bool canAirlift(CyPlot* pPlot);
 int CvLuaUnit::lCanAirlift(lua_State* L)
 {
@@ -1623,15 +1631,28 @@ int CvLuaUnit::lCanRangeStrike(lua_State* L)
 	return BasicLuaMethod(L, &CvUnit::canRangeStrike);
 }
 //------------------------------------------------------------------------------
-//bool CanRangeStrikeAt(int iX, int iY)
+//bool CanRangeStrikeAt(int iX, int iY [, int sourceX, int sourceY, bool ignoreVision] )
 int CvLuaUnit::lCanEverRangeStrikeAt(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 	const int x = lua_tointeger(L, 2);
 	const int y = lua_tointeger(L, 3);
 
-	const bool bResult = pkUnit->canEverRangeStrikeAt(x, y);
-	lua_pushboolean(L, bResult);
+	if ( lua_gettop(L) >= 5 )
+	{
+		const int sx = lua_tointeger(L, 4);
+		const int sy = lua_tointeger(L, 5);
+		const CvPlot* pTargetPlot = GC.getMap().plot(sx,sy) ;
+		const bool ignoreVision = luaL_optbool(L, 6, false) ; 
+		const bool bResult = pkUnit->canEverRangeStrikeAt(x, y, pTargetPlot, ignoreVision);
+		lua_pushboolean(L, bResult);
+	}
+	else 
+	{
+		const bool bResult = pkUnit->canEverRangeStrikeAt(x, y);
+		lua_pushboolean(L, bResult);
+	}
+
 	return 1;
 }
 
@@ -2855,6 +2876,24 @@ int CvLuaUnit::lIsWork(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
+// string GetBuildDisabledReasonString(int iBuildID)
+int CvLuaUnit::lGetBuildDisabledReasonString(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const BuildTypes eBuild = (BuildTypes)lua_tointeger(L, 2);
+
+	CvString toolTip = "";
+	if (eBuild >= 0 && eBuild < GC.getNumBuildInfos())
+	{
+		CvPlot* pPlot = pkUnit->plot();
+		if (pPlot)
+			pkUnit->canBuild(pPlot, eBuild, false, false, false, &toolTip);
+	}
+
+	lua_pushstring(L, toolTip.c_str());
+	return 1;
+}
+//------------------------------------------------------------------------------
 //bool isGoldenAge();
 int CvLuaUnit::lIsGoldenAge(lua_State* L)
 {
@@ -3363,7 +3402,7 @@ int CvLuaUnit::lGetRangeCombatDamage(lua_State* L)
 		iGarrisonMaxHP = pkCity->GetGarrisonedUnit()->GetMaxHitPoints();
 
 	int iGarrisonDamage = 0;
-	int iResult = pkUnit->GetRangeCombatDamage(pkDefender, pkCity, iGarrisonMaxHP, iGarrisonDamage, bIncludeRand, 0, NULL, NULL, false, false);
+	int iResult = pkUnit->GetRangeCombatDamage(pkDefender, pkCity, iGarrisonMaxHP, iGarrisonDamage, bIncludeRand);
 
 	lua_pushinteger(L, iResult);
 	return 1;
@@ -6530,28 +6569,21 @@ int CvLuaUnit::lGetMonopolyAttackBonus(lua_State* L)
 	for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 	{
 		ResourceTypes eResourceLoop = (ResourceTypes) iResourceLoop;
-		if(eResourceLoop != NO_RESOURCE)
+		CvResourceInfo* pInfo = GC.getResourceInfo(eResourceLoop);
+		if (pInfo && pInfo->isMonopoly())
 		{
-			CvResourceInfo* pInfo = GC.getResourceInfo(eResourceLoop);
-			if (pInfo && pInfo->isMonopoly())
+			// Strategic monopolies
+			if (GET_PLAYER(pkUnit->getOwner()).HasStrategicMonopoly(eResourceLoop) && (pInfo->getMonopolyAttackBonus() > 0 || pInfo->getMonopolyAttackBonus(MONOPOLY_STRATEGIC) > 0))
 			{
-				// Strategic monopolies
-				if (GET_PLAYER(pkUnit->getOwner()).HasStrategicMonopoly(eResourceLoop) && (pInfo->getMonopolyAttackBonus() > 0 || pInfo->getMonopolyAttackBonus(MONOPOLY_STRATEGIC) > 0))
-				{
-					iAttackBonus +=  pInfo->getMonopolyAttackBonus();
-					iAttackBonus += pInfo->getMonopolyAttackBonus(MONOPOLY_STRATEGIC);
-				}
-				// Global monopolies
-				if (GET_PLAYER(pkUnit->getOwner()).HasGlobalMonopoly(eResourceLoop) && pInfo->getMonopolyAttackBonus(MONOPOLY_GLOBAL) > 0)
-				{
-					int iTempBonus = pInfo->getMonopolyAttackBonus(MONOPOLY_GLOBAL);
-					if (iTempBonus != 0)
-					{
-						iTempBonus += GET_PLAYER(pkUnit->getOwner()).GetMonopolyModPercent(); // Global monopolies get the mod percent boost from policies.
-					}
-
-					iAttackBonus += iTempBonus;
-				}
+				iAttackBonus +=  pInfo->getMonopolyAttackBonus();
+				iAttackBonus += pInfo->getMonopolyAttackBonus(MONOPOLY_STRATEGIC);
+			}
+			// Global monopolies
+			if (GET_PLAYER(pkUnit->getOwner()).HasGlobalMonopoly(eResourceLoop) && pInfo->getMonopolyAttackBonus(MONOPOLY_GLOBAL) > 0)
+			{
+				int iTempBonus = pInfo->getMonopolyAttackBonus(MONOPOLY_GLOBAL);
+				iTempBonus += GET_PLAYER(pkUnit->getOwner()).GetMonopolyModPercent(); // Global monopolies get the mod percent boost from policies.
+				iAttackBonus += iTempBonus;
 			}
 		}
 	}
@@ -6567,28 +6599,21 @@ int CvLuaUnit::lGetMonopolyDefenseBonus(lua_State* L)
 	for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 	{
 		ResourceTypes eResourceLoop = (ResourceTypes) iResourceLoop;
-		if(eResourceLoop != NO_RESOURCE)
+		CvResourceInfo* pInfo = GC.getResourceInfo(eResourceLoop);
+		if (pInfo && pInfo->isMonopoly())
 		{
-			CvResourceInfo* pInfo = GC.getResourceInfo(eResourceLoop);
-			if (pInfo && pInfo->isMonopoly())
+			// Strategic monopolies
+			if (GET_PLAYER(pkUnit->getOwner()).HasStrategicMonopoly(eResourceLoop) && (pInfo->getMonopolyDefenseBonus() > 0 || pInfo->getMonopolyDefenseBonus(MONOPOLY_STRATEGIC) > 0))
 			{
-				// Strategic monopolies
-				if (GET_PLAYER(pkUnit->getOwner()).HasStrategicMonopoly(eResourceLoop) && (pInfo->getMonopolyDefenseBonus() > 0 || pInfo->getMonopolyDefenseBonus(MONOPOLY_STRATEGIC) > 0))
-				{
-					iDefenseBonus +=  pInfo->getMonopolyDefenseBonus();
-					iDefenseBonus += pInfo->getMonopolyAttackBonus(MONOPOLY_STRATEGIC);
-				}
-				// Global monopolies
-				if (GET_PLAYER(pkUnit->getOwner()).HasGlobalMonopoly(eResourceLoop) && pInfo->getMonopolyDefenseBonus(MONOPOLY_GLOBAL) > 0)
-				{
-					int iTempBonus = pInfo->getMonopolyDefenseBonus(MONOPOLY_GLOBAL);
-					if (iTempBonus != 0)
-					{
-						iTempBonus += GET_PLAYER(pkUnit->getOwner()).GetMonopolyModPercent(); // Global monopolies get the mod percent boost from policies.
-					}
-
-					iDefenseBonus += iTempBonus;
-				}
+				iDefenseBonus +=  pInfo->getMonopolyDefenseBonus();
+				iDefenseBonus += pInfo->getMonopolyAttackBonus(MONOPOLY_STRATEGIC);
+			}
+			// Global monopolies
+			if (GET_PLAYER(pkUnit->getOwner()).HasGlobalMonopoly(eResourceLoop) && pInfo->getMonopolyDefenseBonus(MONOPOLY_GLOBAL) > 0)
+			{
+				int iTempBonus = pInfo->getMonopolyDefenseBonus(MONOPOLY_GLOBAL);
+				iTempBonus += GET_PLAYER(pkUnit->getOwner()).GetMonopolyModPercent(); // Global monopolies get the mod percent boost from policies.
+				iDefenseBonus += iTempBonus;
 			}
 		}
 	}

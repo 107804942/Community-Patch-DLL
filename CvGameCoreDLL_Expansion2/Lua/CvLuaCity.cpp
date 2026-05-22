@@ -394,6 +394,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 
 	Method(IsOccupied);
 	Method(SetOccupied);
+	Method(IsIgnoreCityForHappiness);
 
 	Method(IsPuppet);
 	Method(SetPuppet);
@@ -1634,8 +1635,8 @@ int CvLuaCity::lGetBuildingYieldRateTimes100(lua_State* L)
 	iYieldTimes100 += pCity->plot()->IsTradeUnitRoute() ? pkBuildingInfo->GetYieldChangeFromPassingTR(eYield) * 100 : 0;
 	iYieldTimes100 += (pkBuildingInfo->GetYieldChangePerCityStateStrategicResource(eYield) * kPlayer.GetNumStrategicResourcesFromMinors() * 100).Truncate();
 	iYieldTimes100 += pkBuildingInfo->GetYieldChangeEraScalingTimes100(eYield) * max(1, static_cast<int>(kPlayer.GetCurrentEra()));
-	iYieldTimes100 += pkBuildingInfo->GetYieldPerFriend(eYield) * kPlayer.GetNumCSFriends() * 100;
-	iYieldTimes100 += pkBuildingInfo->GetYieldPerAlly(eYield) * kPlayer.GetNumCSAllies() * 100;
+	iYieldTimes100 += pkBuildingInfo->GetYieldPerFriendTimes100(eYield) * kPlayer.GetNumCSFriends();
+	iYieldTimes100 += pkBuildingInfo->GetYieldPerAllyTimes100(eYield) * kPlayer.GetNumCSAllies();
 	iYieldTimes100 += pkBuildingInfo->GetYieldChangePerMonopoly(eYield) * kPlayer.GetNumGlobalMonopolies() * 100;
 	iYieldTimes100 += (pkBuildingInfo->GetYieldChangePerBuilding(eYield) * pCity->GetCityBuildings()->GetNumBuildings() * 100).Truncate();
 
@@ -4393,6 +4394,12 @@ int CvLuaCity::lIsOccupied(lua_State* L)
 	return BasicLuaMethod(L, &CvCity::IsOccupied);
 }
 //------------------------------------------------------------------------------
+//bool IsIgnoreCityForHappiness();
+int CvLuaCity::lIsIgnoreCityForHappiness(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvCity::IsIgnoreCityForHappiness);
+}
+//------------------------------------------------------------------------------
 //void SetOccupied(bool bValue);
 int CvLuaCity::lSetOccupied(lua_State* L)
 {
@@ -4713,10 +4720,6 @@ int CvLuaCity::lGetYieldFromCityYieldTimes100(lua_State* L)
 	for(int iI = 0; iI < NUM_YIELD_TYPES; iI++)
 	{
 		YieldTypes eIndex2 = (YieldTypes)iI;
-		if(eIndex2 == NO_YIELD)
-		{
-			continue;
-		}
 		if (eIndex2 == eIndex1)
 		{
 			continue;
@@ -6484,22 +6487,15 @@ int CvLuaCity::lIsCityEventChoiceActive(lua_State* L)
 						for(int iLoop = 0; iLoop < GC.getNumCityEventInfos(); iLoop++)
 						{
 							CityEventTypes eEvent = (CityEventTypes)iLoop;
-							if(eEvent != NO_EVENT_CITY)
+							CvModCityEventInfo* pkEventInfo = GC.getCityEventInfo(eEvent);
+							if(pkEventInfo != NULL)
 							{
-								CvModCityEventInfo* pkEventInfo = GC.getCityEventInfo(eEvent);
-								if(pkEventInfo != NULL)
+								if(pkEventChoiceInfo->isParentEvent(eEvent))
 								{
-									if(pkEventChoiceInfo->isParentEvent(eEvent))
+									if(pkEventInfo->getNumChoices() == 1)
 									{
-										CvModCityEventInfo* pkEventInfo = GC.getCityEventInfo(eEvent);
-										if(pkEventInfo != NULL)
-										{
-											if(pkEventInfo->getNumChoices() == 1)
-											{
-												bResult = true;
-												break;
-											}
-										}
+										bResult = true;
+										break;
 									}
 								}
 							}
