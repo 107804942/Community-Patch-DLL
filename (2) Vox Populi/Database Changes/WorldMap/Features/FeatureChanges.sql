@@ -19,11 +19,3 @@ INSERT INTO Feature_TerrainBooleans
 	(FeatureType, TerrainType)
 VALUES
 	('FEATURE_JUNGLE', 'TERRAIN_PLAINS');
-
--- Atoll map effects
-UPDATE Features
-SET
-	Defense = 25,
-	Movement = 4,
-	SeeThrough = 1
-WHERE Type = 'FEATURE_ATOLL';

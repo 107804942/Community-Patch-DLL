@@ -44,25 +44,29 @@ VALUES
 	('UNIT_ENGLISH_SHIPOFTHELINE', 'PROMOTION_SPLASH_2');
 
 ----------------------------------------------------------
--- Unique Unit: Longbowman (Crossbowman)
+-- Unique Unit: Redcoat (Fusilier)
 ----------------------------------------------------------
+INSERT INTO Civilization_UnitClassOverrides
+	(CivilizationType, UnitClassType, UnitType)
+VALUES
+	('CIVILIZATION_ENGLAND', 'UNITCLASS_RIFLEMAN', 'UNIT_REDCOAT');
+
 UPDATE Units
 SET
 	ObsoleteTech = (
 		SELECT ObsoleteTech FROM Units WHERE Type = (
 			SELECT DefaultUnit FROM UnitClasses WHERE Type = (
-				SELECT UnitClassType FROM Unit_ClassUpgrades WHERE UnitType = 'UNIT_CROSSBOWMAN'
+				SELECT UnitClassType FROM Unit_ClassUpgrades WHERE UnitType = 'UNIT_RIFLEMAN'
 			)
 		)
-	),
-	Combat = (SELECT Combat FROM Units WHERE Type = 'UNIT_CROSSBOWMAN') + 1
-WHERE Type = 'UNIT_ENGLISH_LONGBOWMAN';
+	)
+WHERE Type = 'UNIT_REDCOAT';
 
 INSERT INTO Unit_FreePromotions
 	(UnitType, PromotionType)
 VALUES
-	('UNIT_ENGLISH_LONGBOWMAN', 'PROMOTION_AGINCOURT'),
-	('UNIT_ENGLISH_LONGBOWMAN', 'PROMOTION_ASSIZE_OF_ARMS');
+	('UNIT_REDCOAT', 'PROMOTION_SUN_NEVER_SETS'),
+	('UNIT_REDCOAT', 'PROMOTION_RULE_BRITANNIA');
 
 ----------------------------------------------------------
 -- Unique Building: White Tower (Ironworks)

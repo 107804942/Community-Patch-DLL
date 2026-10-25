@@ -26,7 +26,7 @@ namespace LeagueHelpers
 	EraTypes GetNextGameEraForTrigger();
 	EraTypes GetNextGameEraForTrigger(EraTypes eThisEra);
 	bool IsBuildingForTriggerBuiltAnywhere(BuildingTypes eBuilding);
-	bool IsResolutionForTriggerActive(ResolutionTypes eType);
+	ResolutionTypes IsResolutionForTriggerActive(ResolutionTypes eType);
 
 	typedef vector<PlayerTypes> PlayerList;
 
@@ -730,8 +730,8 @@ private:
 	void CheckResolutionsValid();
 	void AssignNewHost();
 	
-	void DoEnactResolution(CvEnactProposal* pProposal, bool bFromLua = false);
-	void DoRepealResolution(CvRepealProposal* pProposal, bool bFromLua = false);
+	void DoEnactResolution(CvEnactProposal* pProposal);
+	void DoRepealResolution(CvRepealProposal* pProposal);
 
 	void DoClearProposals();
 	void DoPutProposalsOnHold();

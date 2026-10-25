@@ -67,6 +67,7 @@ WHERE Type IN (
 	'UNITCLASS_SS_ENGINE',
 	'UNITCLASS_SS_BOOSTER',
 	'UNITCLASS_SIEGE_TOWER',
+	'UNITCLASS_ASAMU',
 
 	-- Combat units that cannot be spawned by Barbarians
 	-- Chariot Archer

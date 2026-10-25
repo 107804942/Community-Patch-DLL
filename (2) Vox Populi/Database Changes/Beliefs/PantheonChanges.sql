@@ -627,12 +627,5 @@ VALUES
 	('BELIEF_CAILLEACH', 'IMPROVEMENT_MINE', 'YIELD_GOLD', 1),
 	('BELIEF_CAILLEACH', 'IMPROVEMENT_MINE', 'YIELD_CULTURE', 1);
 
--- Help the AI select a good pantheon belief for India
-UPDATE Beliefs
-SET AI_GoodStartingPantheon = 1
-WHERE Type IN (
-	'BELIEF_ANCESTOR_WORSHIP',
-	'BELIEF_MESSENGER_GODS',
-	'BELIEF_GOD_KING',
-	'BELIEF_GODDESS_LOVE'
-);
+-- help the AI select a good pantheon belief for India
+UPDATE Beliefs SET AI_GoodStartingPantheon = 1 WHERE Type IN ('BELIEF_ANCESTOR_WORSHIP', 'BELIEF_MESSENGER_GODS', 'BELIEF_GOD_KING', 'BELIEF_GODDESS_LOVE');

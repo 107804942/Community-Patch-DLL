@@ -405,8 +405,7 @@ bool CvBarbarians::DoStealFromCity(CvUnit* pUnit, CvCity* pCity)
 	//pretend the unit attacks this city
 	//city pays them off so they don't do damage
 	int iAttackerDamage = 0;
-	int iGarrisonDamage = 0;
-	int iDefenderDamage = TacticalAIHelpers::GetSimulatedDamageFromAttackOnCity(pCity, pUnit, pUnit->plot(), iAttackerDamage, iGarrisonDamage);
+	int iDefenderDamage = TacticalAIHelpers::GetSimulatedDamageFromAttackOnCity(pCity, pUnit, pUnit->plot(), iAttackerDamage);
 
 	//tried but failed
 	if (iDefenderDamage <= 0 || iAttackerDamage >= pUnit->GetCurrHitPoints() || pUnit->GetCurrHitPoints() <= 1)

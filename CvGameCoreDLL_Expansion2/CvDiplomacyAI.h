@@ -34,16 +34,15 @@ public:
 		int iGoldAmount;
 	};
 
-	CvDiplomacyAI(void);
-	~CvDiplomacyAI(void);
-	void Uninit();
-	inline void SetTeam(TeamTypes eTeam) { m_eTeam = eTeam; }
-
 	// ************************************
 	// Initialization & Serialization
 	// ************************************
 
+	CvDiplomacyAI(void);
+	~CvDiplomacyAI(void);
 	void Init(CvPlayer* pPlayer);
+	void Uninit();
+	inline void SetTeam(TeamTypes eTeam) { m_eTeam = eTeam; }
 	template<typename DiplomacyAI, typename Visitor>
 	static void Serialize(DiplomacyAI& diplomacyAI, Visitor& visitor);
 	void Read(FDataStream& kStream);
@@ -62,18 +61,18 @@ public:
 	// Helper Functions
 	// ************************************
 
-	bool IsPlayerValid(PlayerTypes eOtherPlayer, bool bIncludeTeammates = false, bool bIncludeNoCities = false) const;
-	int GetNumValidMajorCivs(bool bIncludeTeammates = false, bool bIncludeNoCities = false) const;
-	vector<PlayerTypes> GetAllValidMajorCivs(bool bIncludeTeammates = false, bool bIncludeNoCities = false) const;
+	bool IsPlayerValid(PlayerTypes eOtherPlayer, bool bMyTeamIsValid = false) const;
+	int GetNumValidMajorCivs() const;
+	vector<PlayerTypes> GetAllValidMajorCivs() const;
 
 	bool IsAtWar(PlayerTypes eOtherPlayer) const;
 	bool IsAlwaysAtWar(PlayerTypes eOtherPlayer) const;
 	bool IsTeammate(PlayerTypes eOtherPlayer) const;
-	bool IsHasMet(PlayerTypes eOtherPlayer, bool bIncludeTeammates = false) const;
+	bool IsHasMet(PlayerTypes eOtherPlayer, bool bMyTeamIsValid = false) const;
 	bool IsHasDefensivePact(PlayerTypes eOtherPlayer) const;
 	bool IsHasResearchAgreement(PlayerTypes eOtherPlayer) const;
-	bool HasEmbassyAt(PlayerTypes eOtherPlayer) const;
-	bool HasOpenBordersFrom(PlayerTypes eOtherPlayer) const;
+	bool IsHasEmbassy(PlayerTypes eOtherPlayer) const;
+	bool IsHasOpenBorders(PlayerTypes eOtherPlayer) const;
 	bool IsVassal(PlayerTypes eOtherPlayer) const;
 	bool IsMaster(PlayerTypes eOtherPlayer) const;
 	bool IsVoluntaryVassalage(PlayerTypes eOtherPlayer) const;
@@ -313,12 +312,6 @@ public:
 	// Trade
 	bool IsCantMatchDeal(PlayerTypes ePlayer);
 	void SetCantMatchDeal(PlayerTypes ePlayer, bool bValue);
-
-	int GetCurrentDealOfferGenerous() const;
-	void SetCurrentDealOfferGenerous(bool bValue);
-	int GetCurrentDealOfferChanged() const;
-	void SetCurrentDealOfferChanged(bool bValue);
-
 
 	// Demands
 	int GetNumDemandsMade(PlayerTypes ePlayer) const;
@@ -1527,11 +1520,10 @@ public:
 	bool WantsMapsFromPlayer(PlayerTypes ePlayer);
 
 	// Offers
-	bool IsMakeLuxuryOffer(PlayerTypes ePlayer, CvDeal* pDeal) const;
-	bool IsMakeGenerousOffer(PlayerTypes ePlayer, CvDeal* pDeal, bool& bRandPassed) const;
-	bool IsGoldGenerousOffer(PlayerTypes ePlayer, CvDeal* pDeal) const;
-	bool IsLuxuryGenerousOffer(PlayerTypes ePlayer, CvDeal* pDeal) const;
-	bool IsTechGenerousOffer(PlayerTypes ePlayer, CvDeal* pDeal) const;
+	bool IsMakeGenerousOffer(PlayerTypes ePlayer, CvDeal* pDeal, bool& bRandPassed);
+	bool IsGoldGenerousOffer(PlayerTypes ePlayer, CvDeal* pDeal);
+	bool IsLuxuryGenerousOffer(PlayerTypes ePlayer, CvDeal* pDeal);
+	bool IsTechGenerousOffer(PlayerTypes ePlayer, CvDeal* pDeal);
 
 	// Sharing Approach
 	bool IsShareApproachAcceptable(PlayerTypes ePlayer);
@@ -1762,6 +1754,9 @@ public:
 	void LogMinorCivBuyout(PlayerTypes eMinor, int iGoldPaid, bool bSaving);
 	void LogMinorStatusChange(PlayerTypes eMinor, const char* msg);
 
+	std::vector<CvDeal*> GetDealsToRenew(PlayerTypes eOtherPlayer = NO_PLAYER, bool bOnlyCheckedDeals = false);
+	void CancelRenewDeal(PlayerTypes eOtherPlayer = NO_PLAYER, RenewalReason eReason = NO_REASON, bool bJustLogging = false, CvDeal* pPassDeal = NULL, bool bOnlyCheckedDeals = false, bool bSendNetworkMessage = true);
+
 	// Methods for injecting tests
 	void TestUIDiploStatement(PlayerTypes eToPlayer, DiploStatementTypes eStatement, int iArg1);
 
@@ -1929,8 +1924,6 @@ private:
 	char m_aeDoFType[MAX_MAJOR_CIVS];
 	int m_aiDenouncedPlayerTurn[MAX_MAJOR_CIVS];
 	bool m_abCantMatchDeal[MAX_MAJOR_CIVS];
-	bool m_bCurrentDealOfferGenerous; // not serialized
-	bool m_bCurrentDealOfferChanged; // not serialized
 	unsigned char m_aiNumDemandsMade[MAX_MAJOR_CIVS];
 	int m_aiDemandMadeTurn[MAX_MAJOR_CIVS];
 	char m_aiDemandTooSoonNumTurns[MAX_MAJOR_CIVS];

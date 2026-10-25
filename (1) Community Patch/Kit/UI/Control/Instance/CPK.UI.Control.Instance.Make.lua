@@ -1,40 +1,27 @@
-local lua_type = type
-local lua_next = next
+local lua_error = error
 local lua_tostring = tostring
-local lua_loadstring = loadstring
+local lua_table_concat = table.concat
 local lua_setmetatable = setmetatable
 
-local IsString = CPK.Type.IsString
-
+local TableKeys = CPK.Table.Keys
+local TableEmpty = CPK.Table.Empty
+local TableHashify = CPK.Table.Hashify
 local AssertIsTable = CPK.Assert.IsTable
 local AssertIsString = CPK.Assert.IsString
 
-local InstanceError = CPK.UI.Control.Instance.Error
+local function Error(parent, ...)
+	local s = lua_tostring
+	local c = lua_table_concat
+	local m = c({ ... }, '\n')
+			.. '\n' .. 'Details:\n\t'
+			.. c({
+				'State   -> ' .. s(StateName),
+				'Parent  -> ' .. s(parent) .. '\t' .. s(parent:GetID())
+				'Context -> ' .. s(ContextPtr) .. '\t' .. s(ContextPtr:GetID())
+			}, '\n\t')
 
---- @class ControlInstance
---- @field [1] string # Instance name
---- @field [2] boolean # Is released
---- @field [3] Control | nil # Root control
---- @field [4] Control | nil # Parent control
---- @field [string] Control | nil
-
-local ControlInstanceMeta = {
-	__index = function(self, id)
-		-- Prevent stack overflow
-		if lua_type(id) == 'number' then
-			return nil
-		end
-
-		if self[2] then
-			InstanceError(self, 'Failed to access `' .. lua_tostring(id) .. '`. Use-after-release!')
-		end
-
-		InstanceError(self, 'Failed to access `' .. lua_tostring(id) .. '`. Id not found!')
-	end,
-	__newindex = function(self)
-		InstanceError(self, 'Instance modification is prohibited!')
-	end
-}
+	lua_error(m, 2)
+end
 
 --- Creates a new UI control instance from XML.
 ---
@@ -53,57 +40,55 @@ local ControlInstanceMeta = {
 ---
 --- @param name string # `<Instance Name="...">` as defined in XML
 --- @param parent Control | nil # Parent control (defaults to `ContextPtr`)
---- @return ControlInstance # Table of child controls indexed by XML ID
+--- @return table<string, Control> # Table of child controls indexed by XML ID
 --- @return Control # Root control for the created instance (Always ControlBase)
 local function MakeControlInstance(name, parent)
-	local context = lua_loadstring('return ContextPtr')()
-
-	parent = parent or context
-
-	AssertIsTable(context)
+	parent = parent or ContextPtr
+	AssertIsTable(ContextPtr)
 	AssertIsTable(parent)
 	AssertIsString(name)
 
-	local inst = { name, nil, nil, parent } --[[@as ControlInstance]]
+	local elem = '<Instance Name="' .. name .. '">'
+	local fail = 'Failed to instantiate ' .. elem
+
+	local inst = {} --[[@as table<string, Control>]]
 	local proxy = {} --[[@as table<string, Control>]]
 
 	lua_setmetatable(proxy, {
 		__newindex = function(_, key, val)
 			if inst[key] then
-				InstanceError(inst, 'Duplicate control id: `' .. key .. '`!')
+				Error(parent, fail, 'Duplicate control ID: "' .. key .. '"')
 			end
 
 			inst[key] = val
 		end
 	})
 
-	local root = context:BuildInstanceForControl(name, proxy, parent)
-	inst[3] = root
+	local root = ContextPtr:BuildInstanceForControl(name, proxy, parent)
+	local known = TableHashify(TableKeys(inst))
 
 	if lua_tostring(root):match(': 00000000$') then
 		parent:ReleaseChild(root)
-		inst[2] = true
-		InstanceError(inst, 'Instance not found or lacks root element in xml file!')
+		Error(parent, fail, elem .. ' not found or lacks root element in XML!')
 	end
 
-	local hasId = false
-
-	for key, _ in lua_next, inst do
-		if IsString(key) then
-			hasId = true
-			break
-		end
-	end
-
-	if not hasId then
+	if TableEmpty(inst) then
 		parent:ReleaseChild(root)
-		inst[2] = true
-		InstanceError(inst, 'Instance defines no id attributes within!')
+		Error(parent, fail, elem .. ' defines no ID attributes within!')
 	end
 
-	inst[2] = false
-
-	lua_setmetatable(inst, ControlInstanceMeta)
+	lua_setmetatable(inst, {
+		rootId = root:GetID(),
+		parent = parent,
+		freed = false,
+		__index = function(_, key)
+			if known[key] then
+				Error(parent, 'Failed to access "' .. key .. '"', 'Use-after-release!')
+			else
+				Error(parent, 'Failed to access "' .. key .. '"', 'ID not defined in XML!')
+			end
+		end
+	})
 
 	return inst, root
 end

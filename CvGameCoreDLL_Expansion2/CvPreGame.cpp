@@ -925,8 +925,9 @@ bool GetGameOption(const char* szOptionName, int& iValue)
 	for(std::vector<CustomOption>::const_iterator it = s_GameOptions.begin();
 	        it != s_GameOptions.end(); ++it)
 	{
-		const char* szCurrentOptionName = (*it).GetName();
-		if(strcmp(szCurrentOptionName, szOptionName) == 0)
+		size_t bytes = 0;
+		const char* szCurrentOptionName = (*it).GetName(bytes);
+		if(strncmp(szCurrentOptionName, szOptionName, bytes) == 0)
 		{
 			iValue = (*it).GetValue();
 			return true;
@@ -1011,8 +1012,9 @@ bool SetGameOption(const char* szOptionName, int iValue)
 	for(size_t i = 0; i < s_GameOptions.size(); i++)
 	{
 		const CustomOption& option = s_GameOptions[i];
-		const char* szCurrentOptionName = option.GetName();
-		if(strcmp(szCurrentOptionName, szOptionName) == 0)
+		size_t bytes = 0;
+		const char* szCurrentOptionName = option.GetName(bytes);
+		if(strncmp(szCurrentOptionName, szOptionName, bytes) == 0)
 		{
 			//I'd like to just set the value here, but that doesn't seem possible
 			//so instead, create a new CustomOption type and assign it to this index.
@@ -1492,8 +1494,9 @@ bool GetMapOption(const char* szOptionName, int& iValue)
 	for(std::vector<CustomOption>::const_iterator it = s_MapOptions.begin();
 	        it != s_MapOptions.end(); ++it)
 	{
-		const char* szCurrentOptionName = (*it).GetName();
-		if(strcmp(szCurrentOptionName, szOptionName) == 0)
+		size_t bytes = 0;
+		const char* szCurrentOptionName = (*it).GetName(bytes);
+		if(strncmp(szCurrentOptionName, szOptionName, bytes) == 0)
 		{
 			iValue = (*it).GetValue();
 			return true;
@@ -1533,8 +1536,9 @@ bool SetMapOption(const char* szOptionName, int iValue)
 	for(size_t i = 0; i < s_MapOptions.size(); i++)
 	{
 		const CustomOption& option = s_MapOptions[i];
-		const char* szCurrentOptionName = option.GetName();
-		if(strcmp(szCurrentOptionName, szOptionName) == 0)
+		size_t bytes = 0;
+		const char* szCurrentOptionName = option.GetName(bytes);
+		if(strncmp(szCurrentOptionName, szOptionName, bytes) == 0)
 		{
 			//I'd like to just set the value here, but that doesn't seem possible
 			//so instead, create a new CustomOption type and assign it to this index.
@@ -3189,12 +3193,11 @@ void setNickname(PlayerTypes p, const CvString& n)
 		if(!n.IsEmpty())
 		{
 			size_t _pos = n.rfind('@');
+			size_t _cNum = n.length() - _pos;
 			// The max player name length is defined as 64 in ffirewiretypes, the max size of the string past that can only be 64 if we represent it as binary, currently representing it as HEX
-			if(_pos != string::npos && _pos > 0 && _pos < 64)
+			if((_pos > 0 && _pos < 64) && _cNum < 32)
 			{
-				size_t _cNum = n.length() - _pos;
-				if(_cNum < 32)
-					_szName.erase(_pos, _cNum);
+				_szName.erase(_pos, _cNum);
 			}
 		}
 		s_displayNicknames[p] = (CvString)_szName;

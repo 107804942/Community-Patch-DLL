@@ -202,7 +202,7 @@ bool LeagueHelpers::IsBuildingForTriggerBuiltAnywhere(BuildingTypes eBuilding)
 	}
 	return false;
 }
-bool LeagueHelpers::IsResolutionForTriggerActive(ResolutionTypes eType)
+ResolutionTypes LeagueHelpers::IsResolutionForTriggerActive(ResolutionTypes eType)
 {
 	if(eType != NO_RESOLUTION)
 	{
@@ -212,12 +212,11 @@ bool LeagueHelpers::IsResolutionForTriggerActive(ResolutionTypes eType)
 		{
 			if (it->GetType() == eType)
 			{
-				return true;
+				return eType;
 			}
 		}
-		return false;
 	}
-	return true;
+	return NO_RESOLUTION;
 }
 
 
@@ -1401,6 +1400,10 @@ void CvActiveResolution::DoEffects(PlayerTypes ePlayer)
 			for (int iMinor = MAX_MAJOR_CIVS; iMinor < MAX_CIV_PLAYERS; iMinor++)
 			{
 				PlayerTypes eMinor = (PlayerTypes) iMinor;
+				if(eMinor == NO_PLAYER)
+				{
+					continue;
+				}
 				if (GET_PLAYER(eMinor).isAlive() && GET_PLAYER(eMinor).GetMinorCivAI()->GetBaseFriendshipWithMajor(ePlayer) < iNeutral)
 				{
 					if (pLeague->IsMember(eMinor))
@@ -1551,11 +1554,19 @@ void CvActiveResolution::DoEffects(PlayerTypes ePlayer)
 		GC.getGame().GetGameTrade()->ClearAllCivTradeRoutes(eTargetPlayer, true);
 		GET_PLAYER(eTargetPlayer).GetCorporations()->ClearCorporationFromForeignCities(false, true, true);
 
-		if (GET_PLAYER(ePlayer).getTeam() != GET_PLAYER(eTargetPlayer).getTeam() && GET_PLAYER(ePlayer).isAlive() && GET_PLAYER(ePlayer).isMajorCiv())
+		for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 		{
-			if (!GET_TEAM(GET_PLAYER(ePlayer).getTeam()).IsVassal(GET_PLAYER(eTargetPlayer).getTeam()) && !GET_TEAM(GET_PLAYER(eTargetPlayer).getTeam()).IsVassal(GET_PLAYER(ePlayer).getTeam()))
+			PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
+
+			if (GET_PLAYER(eLoopPlayer).getTeam() == GET_PLAYER(eTargetPlayer).getTeam())
+				continue;
+
+			if (GET_PLAYER(eLoopPlayer).isAlive() && GET_PLAYER(eLoopPlayer).isMajorCiv())
 			{
-				GC.getGame().GetGameDeals().DoCancelDealsBetweenPlayers(ePlayer, eTargetPlayer, false);
+				if (GET_TEAM(GET_PLAYER(eLoopPlayer).getTeam()).IsVassal(GET_PLAYER(eTargetPlayer).getTeam()) || GET_TEAM(GET_PLAYER(eTargetPlayer).getTeam()).IsVassal(GET_PLAYER(eLoopPlayer).getTeam()))
+					continue;
+
+				GC.getGame().GetGameDeals().DoCancelDealsBetweenPlayers(eLoopPlayer, eTargetPlayer, false);
 			}
 		}
 
@@ -3241,21 +3252,25 @@ bool CvLeague::IsResolutionEffectsValid(ResolutionTypes eResolution, int iPropos
 				return false;
 			}
 		}
-		for (int i = 0; i < GC.getNumLeagueSpecialSessionInfos(); i++)
+		if (eDiploVictory != NO_VICTORY)
 		{
-			LeagueSpecialSessionTypes e = (LeagueSpecialSessionTypes)i;
-			CvLeagueSpecialSessionEntry* pSessionInfo = GC.getLeagueSpecialSessionInfo(e);
-			if(pSessionInfo->IsUnitedNations() && pSessionInfo->GetResolutionTrigger() != NO_RESOLUTION)
+			for (int i = 0; i < GC.getNumLeagueSpecialSessionInfos(); i++)
 			{
-				if(!LeagueHelpers::IsResolutionForTriggerActive(pSessionInfo->GetResolutionTrigger()))
+				LeagueSpecialSessionTypes e = (LeagueSpecialSessionTypes)i;
+				CvLeagueSpecialSessionEntry* pSessionInfo = GC.getLeagueSpecialSessionInfo(e);
+				if(pSessionInfo->IsUnitedNations())
 				{
-					if (sTooltipSink != NULL)
+					ResolutionTypes eResolution = LeagueHelpers::IsResolutionForTriggerActive(pSessionInfo->GetResolutionTrigger());
+					if(eResolution == NO_RESOLUTION)
 					{
-						(*sTooltipSink) += "[NEWLINE][NEWLINE][COLOR_WARNING_TEXT]";
-						(*sTooltipSink) += Localization::Lookup("TXT_KEY_LEAGUE_OVERVIEW_INVALID_RESOLUTION_PREREQ").toUTF8();
-						(*sTooltipSink) += "[ENDCOLOR]";
+						if (sTooltipSink != NULL)
+						{
+							(*sTooltipSink) += "[NEWLINE][NEWLINE][COLOR_WARNING_TEXT]";
+							(*sTooltipSink) += Localization::Lookup("TXT_KEY_LEAGUE_OVERVIEW_INVALID_RESOLUTION_PREREQ").toUTF8();
+							(*sTooltipSink) += "[ENDCOLOR]";
+						}
+						return false;
 					}
-					return false;
 				}
 			}
 		}
@@ -3397,7 +3412,7 @@ bool CvLeague::IsResolutionEffectsValid(ResolutionTypes eResolution, int iPropos
 
 	if (pInfo->GetVassalMaintenanceGoldPercent() != 0 || pInfo->IsEndAllCurrentVassals())
 	{
-		if (!MOD_BALANCE_VP || !GC.getGame().isOption(GAMEOPTION_ENABLE_VASSALAGE))
+		if (GC.getGame().isOption(GAMEOPTION_NO_VASSALAGE))
 		{
 			if (sTooltipSink != NULL)
 			{
@@ -3411,7 +3426,7 @@ bool CvLeague::IsResolutionEffectsValid(ResolutionTypes eResolution, int iPropos
 		for (int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
 		{
 			PlayerTypes eLoopPlayer = (PlayerTypes) iPlayerLoop;
-			if (GET_PLAYER(eLoopPlayer).isAlive() && !GET_PLAYER(eLoopPlayer).isMinorCiv())
+			if ((eLoopPlayer != NO_PLAYER) && GET_PLAYER(eLoopPlayer).isAlive() && !GET_PLAYER(eLoopPlayer).isMinorCiv())
 			{
 				if (GET_TEAM(GET_PLAYER(eLoopPlayer).getTeam()).GetNumVassals() > 0)
 				{
@@ -3942,7 +3957,7 @@ int CvLeague::GetPotentialVotesForMember(PlayerTypes ePlayer, PlayerTypes eFromP
 						for (int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
 						{
 							eLoopPlayer = (PlayerTypes) iPlayerLoop;
-							if(GET_PLAYER(eLoopPlayer).isAlive() && !GET_PLAYER(eLoopPlayer).isMinorCiv() && (eLoopPlayer != eFromPlayer))
+							if((eLoopPlayer != NO_PLAYER) && GET_PLAYER(eLoopPlayer).isAlive() && !GET_PLAYER(eLoopPlayer).isMinorCiv() && (eLoopPlayer != eFromPlayer))
 							{
 								iNumVotes += GET_PLAYER(eFromPlayer).GetLeagueAI()->GetVoteCommitment(eLoopPlayer, it->GetID(), vChoices[i], /*bEnact*/ true);
 								iNumVotes += GET_PLAYER(eFromPlayer).GetLeagueAI()->GetVoteCommitment(eLoopPlayer, it->GetID(), vChoices[i], /*bEnact*/ false);
@@ -5318,7 +5333,7 @@ int CvLeague::GetExtraVotesForFollowingReligion(PlayerTypes ePlayer)
 						for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 						{
 							eLoopPlayer = (PlayerTypes) iPlayerLoop;
-							if(GET_PLAYER(eLoopPlayer).isAlive() && !GET_PLAYER(eLoopPlayer).isMinorCiv() && (eLoopPlayer != ePlayer))
+							if((eLoopPlayer != NO_PLAYER) && GET_PLAYER(eLoopPlayer).isAlive() && !GET_PLAYER(eLoopPlayer).isMinorCiv() && (eLoopPlayer != ePlayer))
 							{
 								if (GET_PLAYER(eLoopPlayer).GetReligions()->HasReligionInMostCities(eReligion))
 								{
@@ -5627,11 +5642,11 @@ bool CvLeague::IsOpenDoorActive(PlayerTypes eTargetMinor)
 }
 void CvLeague::DoEnactResolutionPublic(CvEnactProposal* pProposal)
 {
-	DoEnactResolution(pProposal, true);
+	DoEnactResolution(pProposal);
 }
 void CvLeague::DoRepealResolutionPublic(CvRepealProposal* pProposal)
 {
-	DoRepealResolution(pProposal, true);
+	DoRepealResolution(pProposal);
 }
 CvString CvLeague::GetResolutionName(ResolutionTypes eResolution, int iResolutionID, int iProposerChoice, bool bIncludePrefix)
 {
@@ -5709,7 +5724,7 @@ CvString CvLeague::GetResolutionName(ResolutionTypes eResolution, int iResolutio
 				}
 			}
 		}
-		if (!bDone)
+		else if (!bDone)
 		{
 			for (RepealProposalList::iterator it = m_vRepealProposals.begin(); it != m_vRepealProposals.end(); ++it)
 			{
@@ -7275,7 +7290,7 @@ void CvLeague::StartSession()
 	for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 	{
 		PlayerTypes ePlayer = PlayerTypes(iPlayerLoop);
-		if (GET_PLAYER(ePlayer).isAlive())
+		if (ePlayer != NO_PLAYER && GET_PLAYER(ePlayer).isAlive())
 		{
 			int iDelegates = CalculateStartingVotesForMember(ePlayer);
 			if (iDelegates > 0)
@@ -8434,9 +8449,9 @@ void CvLeague::AssignNewHost()
 	SetHostMember(eNewHost);
 }
 
-void CvLeague::DoEnactResolution(CvEnactProposal* pProposal, bool bFromLua)
+void CvLeague::DoEnactResolution(CvEnactProposal* pProposal)
 {
-	ASSERT(bFromLua || pProposal->IsPassed(GetVotesSpentThisSession()), "Doing a proposal that has not been passed.");
+	ASSERT(pProposal->IsPassed(GetVotesSpentThisSession()), "Doing a proposal that has not been passed.");
 
 	CvActiveResolution resolution(pProposal);
 	for (uint i = 0; i < m_vMembers.size(); i++)
@@ -8467,9 +8482,9 @@ void CvLeague::DoEnactResolution(CvEnactProposal* pProposal, bool bFromLua)
 	m_iNumResolutionsEverEnacted++;
 }
 
-void CvLeague::DoRepealResolution(CvRepealProposal* pProposal, bool bFromLua)
+void CvLeague::DoRepealResolution(CvRepealProposal* pProposal)
 {
-	ASSERT(bFromLua || pProposal->IsPassed(GetVotesSpentThisSession()), "Doing a proposal that has not been passed.");
+	ASSERT(pProposal->IsPassed(GetVotesSpentThisSession()), "Doing a proposal that has not been passed.");
 
 	int iFound = 0;
 	for (ActiveResolutionList::iterator it = m_vActiveResolutions.begin(); it != m_vActiveResolutions.end(); )
@@ -8836,7 +8851,7 @@ void CvLeague::CheckProjectsProgress()
 				for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 				{
 					PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
-					if (!GET_PLAYER(eLoopPlayer).isAlive())
+					if (eLoopPlayer == NO_PLAYER || !GET_PLAYER(eLoopPlayer).isAlive())
 						continue;
 
 					CvPlayer &kPlayer = GET_PLAYER(eLoopPlayer);
@@ -11209,7 +11224,7 @@ CvLeagueAI::KnowledgeLevels CvLeagueAI::GetKnowledgeGivenToOtherPlayer(PlayerTyp
 	// Shared Ideology
 	PolicyBranchTypes eMyIdeology = GetPlayer()->GetPlayerPolicies()->GetLateGamePolicyTree();
 	PolicyBranchTypes eTheirIdeology = GET_PLAYER(eToPlayer).GetPlayerPolicies()->GetLateGamePolicyTree();
-	bool bShareIdeology = ((eMyIdeology == eTheirIdeology) && (eMyIdeology != NO_POLICY_BRANCH_TYPE));
+	bool bShareIdeology = ((eMyIdeology == eTheirIdeology) && (eMyIdeology != NO_POLICY_BRANCH_TYPE) && (eTheirIdeology != NO_POLICY_BRANCH_TYPE));
 
 	// Espionage
 	bool bSpyVisitingUs = GetPlayer()->GetEspionage()->IsOtherDiplomatVisitingMe(eToPlayer);
@@ -11692,7 +11707,7 @@ void CvLeagueAI::AllocateVotes(CvLeague* pLeague)
 	for (int i = 0; i < MAX_MAJOR_CIVS; i++)
 	{
 		PlayerTypes ePlayer = (PlayerTypes)i;
-		if (!pLeague->IsMember(ePlayer))
+		if (ePlayer == NO_PLAYER || !pLeague->IsMember(ePlayer))
 			continue;
 
 		if (GetPlayer()->GetID() == ePlayer)

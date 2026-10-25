@@ -122,7 +122,6 @@ public:
 	}
 	inline void AddFriendlyMeleeStrength(int iStrength)
 	{
-		ASSERT(iStrength >= 0);
 		m_iFriendlyMeleeStrength += iStrength;
 	}
 	inline unsigned int GetEnemyMeleeStrength() const
@@ -131,7 +130,6 @@ public:
 	}
 	inline void AddEnemyMeleeStrength(int iStrength)
 	{
-		ASSERT(iStrength >= 0);
 		m_iEnemyMeleeStrength += iStrength;
 	}
 	inline unsigned int GetFriendlyRangedStrength() const
@@ -140,7 +138,6 @@ public:
 	}
 	inline void AddFriendlyRangedStrength(int iRangedStrength)
 	{
-		ASSERT(iRangedStrength >= 0);
 		m_iFriendlyRangedStrength += iRangedStrength;
 	}
 	inline unsigned int GetEnemyRangedStrength() const
@@ -149,7 +146,6 @@ public:
 	}
 	inline void AddEnemyRangedStrength(int iRangedStrength)
 	{
-		ASSERT(iRangedStrength >= 0);
 		m_iEnemyRangedStrength += iRangedStrength;
 	}
 	inline unsigned int GetFriendlyNavalStrength() const
@@ -158,7 +154,6 @@ public:
 	}
 	inline void AddFriendlyNavalStrength(int iStrength)
 	{
-		ASSERT(iStrength >= 0);
 		m_iFriendlyNavalStrength += iStrength;
 	}
 	inline unsigned int GetEnemyNavalStrength() const
@@ -167,7 +162,6 @@ public:
 	}
 	inline void AddEnemyNavalStrength(int iStrength)
 	{
-		ASSERT(iStrength >= 0);
 		m_iEnemyNavalStrength += iStrength;
 	}
 	inline unsigned int GetFriendlyNavalRangedStrength() const
@@ -176,7 +170,6 @@ public:
 	}
 	inline void AddFriendlyNavalRangedStrength(int iRangedStrength)
 	{
-		ASSERT(iRangedStrength >= 0);
 		m_iFriendlyNavalRangedStrength += iRangedStrength;
 	}
 	inline unsigned int GetEnemyNavalRangedStrength() const
@@ -185,7 +178,6 @@ public:
 	}
 	inline void AddEnemyNavalRangedStrength(int iRangedStrength)
 	{
-		ASSERT(iRangedStrength >= 0);
 		m_iEnemyNavalRangedStrength += iRangedStrength;
 	}
 	inline int GetTotalFriendlyUnitCount() const
@@ -210,7 +202,6 @@ public:
 	}
 	inline void AddNeutralStrength(int iUnitStrength)
 	{
-		ASSERT(iUnitStrength >= 0);
 		m_iNeutralUnitStrength += iUnitStrength;
 	}
 	inline int GetNeutralUnitCount() const

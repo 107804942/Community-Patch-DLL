@@ -139,10 +139,40 @@ void CvUnitMission::PushMission(CvUnit* hUnit, MissionTypes eMission, int iData1
 					// Don't bother looking if this is the build that removes this feature
 					if (!pkBuildInfo->isFeatureRemoveOnly(eFeature)) {
 						
-						BuildTypes eRemoveBuild = GetRemoveFeatureBuild(eFeature, GET_PLAYER(hUnit->getOwner()).getTeam());
-						if (eRemoveBuild != NO_BUILD)
-						{
-							CvBuildInfo* pRemoveBuild = GC.getBuildInfo(eRemoveBuild);
+						// We need to find the build that will remove eFeature.
+						CvBuildInfo* pRemoveBuild = NULL;
+						
+						// Assumes that the BuildFeatures table has an extra column RemoveOnly
+						for(int iI = 0; iI < GC.getNumBuildInfos(); iI++) {
+							CvBuildInfo* pRemoveBuildInfo = GC.getBuildInfo((BuildTypes) iI);
+							if(pRemoveBuildInfo) {
+								if(pRemoveBuildInfo->isFeatureRemoveOnly(eFeature)) {
+									CvTeamTechs* pTechs = GET_TEAM(GET_PLAYER(hUnit->getOwner()).getTeam()).GetTeamTechs();
+									TechTypes eObsoleteTech = (TechTypes) pRemoveBuildInfo->getFeatureObsoleteTech(eFeature);
+
+									if (eObsoleteTech == NO_TECH || !pTechs->HasTech(eObsoleteTech)) {
+										TechTypes ePrereqTech = (TechTypes) pRemoveBuildInfo->getFeatureTech(eFeature);
+									
+										// We have a candidate build for removing this feature
+										if (ePrereqTech == NO_TECH) {
+											if (pRemoveBuild == NULL) {
+												pRemoveBuild = pRemoveBuildInfo;
+											}
+									}
+									else if (pTechs->HasTech(ePrereqTech)) {
+											if (pRemoveBuild == NULL) {
+												pRemoveBuild = pRemoveBuildInfo;
+										}
+										else if (GC.getTechInfo(ePrereqTech)->GetGridX() > GC.getTechInfo((TechTypes)pRemoveBuild->getFeatureTech(eFeature))->GetGridX()) {
+												pRemoveBuild = pRemoveBuildInfo;
+											}
+										}
+									}
+								}
+							}
+						}
+						
+						if (pRemoveBuild != NULL) {
 							MissionData removeMission;
 							removeMission.eMissionType = eMission;
 							removeMission.iData1 = pRemoveBuild->GetID();
@@ -450,7 +480,7 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 			{
 				// check if we need to declare war first
 				// show a DOW popup only if the enemy unit is visible when the move order is given
-				if(hUnit->CheckDOWNeededForMove(pkMissionData->iData1, pkMissionData->iData2, hUnit->getOwner() == GC.getGame().getActivePlayer() && iSteps == 0 && pkMissionData->iPushTurn == GC.getGame().getGameTurn()))
+				if(hUnit->CheckDOWNeededForMove(pkMissionData->iData1, pkMissionData->iData2, iSteps == 0 && pkMissionData->iPushTurn == GC.getGame().getGameTurn()))
 				{
 					hUnit->ClearMissionQueue();
 					return;
@@ -496,7 +526,7 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 
 					int iResult = CvUnit::MOVE_RESULT_CANCEL;
 
-					if (MOD_SQUADS && hUnit->GetSquadNumber() > -1 && (kMissionData.iFlags & CvUnit::MOVEFLAG_CONTINUE_TO_CLOSEST_PLOT) && !hUnit->m_kLastPath.empty()) {
+					if (MOD_SQUADS && (kMissionData.iFlags & CvUnit::MOVEFLAG_CONTINUE_TO_CLOSEST_PLOT) && !hUnit->m_kLastPath.empty()) {
 						// If moving as a squad, continue previous re-routed path instead of original destination again
 						iResult = hUnit->UnitAttackWithMove(hUnit->m_kLastPath.back().m_iX, hUnit->m_kLastPath.back().m_iY, kMissionData.iFlags);
 					}
@@ -508,7 +538,7 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 
 					if (iResult == CvUnit::MOVE_RESULT_CANCEL)
 					{
-						if (MOD_SQUADS && hUnit->GetSquadNumber() > -1 && (kMissionData.iFlags & CvUnit::MOVEFLAG_CONTINUE_TO_CLOSEST_PLOT))
+						if (MOD_SQUADS && (kMissionData.iFlags & CvUnit::MOVEFLAG_CONTINUE_TO_CLOSEST_PLOT))
 						{
 							if (hUnit->m_kLastPath.empty())
 							{
@@ -527,7 +557,7 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 					{
 						//nothing to attack, continue movement
 						int iResult = 0;
-						if (MOD_SQUADS && hUnit->GetSquadNumber() > -1 && (kMissionData.iFlags & CvUnit::MOVEFLAG_CONTINUE_TO_CLOSEST_PLOT)) {
+						if (MOD_SQUADS && (kMissionData.iFlags & CvUnit::MOVEFLAG_CONTINUE_TO_CLOSEST_PLOT)) {
 							// If moving as a squad, continue previous re-routed path instead of original destination again
 							iResult = hUnit->UnitPathTo(hUnit->m_kLastPath.back().m_iX, hUnit->m_kLastPath.back().m_iY, kMissionData.iFlags);
 						}
@@ -551,7 +581,7 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 								hUnit->SetIsGrouped(false);
 							}
 
-							if (MOD_SQUADS && hUnit->GetSquadNumber() > -1 && (kMissionData.iFlags & CvUnit::MOVEFLAG_CONTINUE_TO_CLOSEST_PLOT))
+							if (MOD_SQUADS && (kMissionData.iFlags & CvUnit::MOVEFLAG_CONTINUE_TO_CLOSEST_PLOT))
 							{
 								// Wait for rest of squad once arrived
 								hUnit->TryEndSquadMovement();
@@ -720,7 +750,7 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps)
 				if(hUnit->m_kLastPath.empty())
 				{
 					bDone = true;
-					if (MOD_SQUADS && hUnit->GetSquadNumber() > -1 && (kMissionData.iFlags & CvUnit::MOVEFLAG_CONTINUE_TO_CLOSEST_PLOT))
+					if (MOD_SQUADS && (kMissionData.iFlags & CvUnit::MOVEFLAG_CONTINUE_TO_CLOSEST_PLOT))
 					{
 						// Wait for rest of squad once arrived
 						hUnit->TryEndSquadMovement();
@@ -1034,21 +1064,21 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 	}
 	else if(iMission == CvTypes::getMISSION_SKIP())
 	{
-		if(hUnit->canHold(pPlot, bTestVisible))
+		if(hUnit->canHold(pPlot))
 		{
 			return true;
 		}
 	}
 	else if(iMission == CvTypes::getMISSION_SLEEP())
 	{
-		if(hUnit->canSleep(pPlot, bTestVisible))
+		if(hUnit->canSleep(pPlot))
 		{
 			return true;
 		}
 	}
 	else if(iMission == CvTypes::getMISSION_FORTIFY())
 	{
-		if(hUnit->canFortify(pPlot, bTestVisible))
+		if(hUnit->canFortify(pPlot))
 		{
 			return true;
 		}
@@ -1069,21 +1099,14 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 	}
 	else if(iMission == CvTypes::getMISSION_HEAL())
 	{
-		if (hUnit->IsHurt())
+		if(hUnit->IsHurt() && hUnit->canHeal(pPlot, false)) //next turn is also ok
 		{
-			if (hUnit->ActualHealRate(pPlot, false)) // next turn is also ok
-			{
-				return true;
-			}
-			else if (bTestVisible && !hUnit->canHeal(pPlot, false))
-			{
-				return true; // show a tooltip explaining why we can't heal
-			}
+			return true;
 		}
 	}
 	else if(iMission == CvTypes::getMISSION_ALERT())
 	{
-		if(hUnit->canSentry(pPlot, bTestVisible))
+		if(hUnit->canSentry(pPlot))
 		{
 			return true;
 		}
@@ -1104,7 +1127,7 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 	}
 	else if(iMission == CvTypes::getMISSION_PARADROP())
 	{
-		if(hUnit->canParadropAt(pPlot, iData1, iData2, bTestVisible))
+		if(hUnit->canParadropAt(pPlot, iData1, iData2))
 		{
 			return true;
 		}
@@ -1139,7 +1162,7 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 	}
 	else if(iMission == CvTypes::getMISSION_FOUND())
 	{
-		if(hUnit->canFoundCity(pPlot, bTestVisible, bTestVisible))
+		if(hUnit->canFoundCity(pPlot, bTestVisible))
 		{
 			return true;
 		}

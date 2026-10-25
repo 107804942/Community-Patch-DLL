@@ -151,8 +151,3 @@ INSERT INTO Building_GoldenAgeYieldMod
 	(BuildingType, YieldType, Yield)
 VALUES
 	('BUILDING_NILOMETER', 'YIELD_FOOD', 10);
-
-INSERT INTO Building_RiverPlotYieldChanges
-	(BuildingType, YieldType, Yield)
-VALUES
-	('BUILDING_NILOMETER', 'YIELD_FOOD', 1);

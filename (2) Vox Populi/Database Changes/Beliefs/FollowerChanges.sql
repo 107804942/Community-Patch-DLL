@@ -57,17 +57,12 @@ UPDATE Beliefs SET MinFollowers = 0 WHERE Type = 'BELIEF_ASCETISM';
 INSERT INTO Belief_MaxYieldPerFollowerPercent
 	(BeliefType, YieldType, Max)
 VALUES
-	('BELIEF_ASCETISM', 'YIELD_FOOD', 50);
+	('BELIEF_ASCETISM', 'YIELD_FOOD', 100);
 
 INSERT INTO Belief_MaxYieldPerFollower
 	(BeliefType, YieldType, Max)
 VALUES
-	('BELIEF_ASCETISM', 'YIELD_FOOD', 999);
-
-INSERT INTO Belief_YieldChangeAnySpecialist
-	(BeliefType, YieldType, Yield)
-VALUES
-	('BELIEF_ASCETISM', 'YIELD_FOOD', 4);
+	('BELIEF_ASCETISM', 'YIELD_FOOD', 15);
 
 -- Religious Community (now Diligence)
 INSERT INTO Belief_MaxYieldPerFollowerPercent
@@ -78,12 +73,7 @@ VALUES
 INSERT INTO Belief_MaxYieldPerFollower
 	(BeliefType, YieldType, Max)
 VALUES
-	('BELIEF_RELIGIOUS_COMMUNITY', 'YIELD_PRODUCTION', 999);
-
-INSERT INTO Belief_YieldPerActiveTR
-	(BeliefType, YieldType, Yield)
-VALUES
-	('BELIEF_RELIGIOUS_COMMUNITY', 'YIELD_PRODUCTION', 2);
+	('BELIEF_RELIGIOUS_COMMUNITY', 'YIELD_PRODUCTION', 15);
 
 -- Divine Inspiration (now Creativity)
 INSERT INTO Belief_MaxYieldPerFollowerPercent
@@ -94,12 +84,12 @@ VALUES
 INSERT INTO Belief_MaxYieldPerFollower
 	(BeliefType, YieldType, Max)
 VALUES
-	('BELIEF_DIVINE_INSPIRATION', 'YIELD_CULTURE', 999);
+	('BELIEF_DIVINE_INSPIRATION', 'YIELD_CULTURE', 6);
 
-INSERT INTO Belief_GreatWorkYieldChanges
-	(BeliefType, YieldType, Yield)
+INSERT INTO Belief_YieldChangeAnySpecialist
+(BeliefType, YieldType, Yield)
 VALUES
-	('BELIEF_DIVINE_INSPIRATION', 'YIELD_CULTURE', 1);
+	('BELIEF_DIVINE_INSPIRATION', 'YIELD_FAITH', 2);
 
 -- Choral Music (now Scholarship)
 UPDATE Beliefs SET MinFollowers = 0 WHERE Type = 'BELIEF_CHORAL_MUSIC';
@@ -107,35 +97,23 @@ UPDATE Beliefs SET MinFollowers = 0 WHERE Type = 'BELIEF_CHORAL_MUSIC';
 INSERT INTO Belief_MaxYieldPerFollowerPercent
 	(BeliefType, YieldType, Max)
 VALUES
-	('BELIEF_CHORAL_MUSIC', 'YIELD_SCIENCE', 34);
+	('BELIEF_CHORAL_MUSIC', 'YIELD_SCIENCE', 50);
 
 INSERT INTO Belief_MaxYieldPerFollower
 	(BeliefType, YieldType, Max)
 VALUES
-	('BELIEF_CHORAL_MUSIC', 'YIELD_SCIENCE', 999);
-
-INSERT INTO Belief_BuildingClassYieldChanges
-	(BeliefType, BuildingClassType, YieldType, YieldChange)
-VALUES
-	('BELIEF_CHORAL_MUSIC', 'BUILDINGCLASS_UNIVERSITY', 'YIELD_SCIENCE', 2);
+	('BELIEF_CHORAL_MUSIC', 'YIELD_SCIENCE', 15);
 
 -- Feed the World (now Thrift)
 INSERT INTO Belief_MaxYieldPerFollowerPercent
 	(BeliefType, YieldType, Max)
 VALUES
-	('BELIEF_FEED_WORLD', 'YIELD_GOLD', 50);
+	('BELIEF_FEED_WORLD', 'YIELD_GOLD', 100);
 
 INSERT INTO Belief_MaxYieldPerFollower
 	(BeliefType, YieldType, Max)
 VALUES
-	('BELIEF_FEED_WORLD', 'YIELD_GOLD', 999);
-
-INSERT INTO Belief_ResourceYieldChanges
-	(BeliefType, ResourceType, YieldType, Yield)
-SELECT
-	'BELIEF_FEED_WORLD', Type, 'YIELD_GOLD', 1
-FROM Resources
-WHERE ResourceClassType = 'RESOURCECLASS_BONUS';
+	('BELIEF_FEED_WORLD', 'YIELD_GOLD', 10);
 
 -- Liturgical Drama (now Gurukulam)
 UPDATE Beliefs SET MinFollowers = 0 WHERE Type = 'BELIEF_LITURGICAL_DRAMA';
@@ -154,7 +132,6 @@ VALUES
 INSERT INTO Belief_YieldChangeAnySpecialist
 	(BeliefType, YieldType, Yield)
 VALUES
-	('BELIEF_COMMUNALISM', 'YIELD_FOOD', 2),
 	('BELIEF_COMMUNALISM', 'YIELD_PRODUCTION', 2);
 
 INSERT INTO Belief_TradeRouteYieldChange

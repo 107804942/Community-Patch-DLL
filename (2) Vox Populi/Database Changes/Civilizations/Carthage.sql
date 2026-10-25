@@ -15,6 +15,10 @@ VALUES
 	('TRAIT_PHOENICIAN_HERITAGE', 'YIELD_GOLD', 100),
 	('TRAIT_PHOENICIAN_HERITAGE', 'YIELD_SCIENCE', 25);
 
+UPDATE Civilization_FreeUnits
+SET UnitClassType = 'UNITCLASS_ASAMU'
+WHERE CivilizationType = 'CIVILIZATION_CARTHAGE' AND UnitClassType = 'UNITCLASS_SETTLER';
+
 ----------------------------------------------------------
 -- Unique Unit: Quinquereme (Trireme)
 ----------------------------------------------------------
@@ -64,29 +68,40 @@ VALUES
 	('UNIT_CARTHAGINIAN_FOREST_ELEPHANT', 'PROMOTION_AT_THE_GATES');
 
 ----------------------------------------------------------
--- Unique Building: Tophet (Shrine)
+-- Unique Unit: Asamu
 ----------------------------------------------------------
-INSERT INTO Civilization_BuildingClassOverrides
-	(CivilizationType, BuildingClassType, BuildingType)
+INSERT INTO Civilization_UnitClassOverrides
+	(CivilizationType, UnitClassType, UnitType)
 VALUES
-	('CIVILIZATION_CARTHAGE', 'BUILDINGCLASS_SHRINE', 'BUILDING_TOPHET');
+	('CIVILIZATION_CARTHAGE', 'UNITCLASS_ASAMU', 'UNIT_ASAMU');
 
-INSERT INTO Building_YieldChanges
-	(BuildingType, YieldType, Yield)
-VALUES
-	('BUILDING_TOPHET', 'YIELD_GOLD', 1);
+UPDATE Units
+SET
+	Moves = 2,
+	PurchaseOnly = 1,
+	MoveAfterPurchase = 1,
+	Found = 1
+WHERE Type = 'UNIT_ASAMU';
 
-INSERT INTO Building_YieldFromPurchase
-	(BuildingType, YieldType, Yield)
+INSERT INTO Unit_ClassUpgrades
+	(UnitType, UnitClassType)
 VALUES
-	('BUILDING_TOPHET', 'YIELD_CULTURE', 5),
-	('BUILDING_TOPHET', 'YIELD_FOOD', 5);
+	('UNIT_ASAMU', 'UNITCLASS_PIONEER');
 
-INSERT INTO Building_YieldFromFaithPurchase
-	(BuildingType, YieldType, Yield)
+INSERT INTO Unit_BuildOnFound
+	(UnitType, BuildingClassType)
 VALUES
-	('BUILDING_TOPHET', 'YIELD_CULTURE', 5),
-	('BUILDING_TOPHET', 'YIELD_FOOD', 5);
+	('UNIT_ASAMU', 'BUILDINGCLASS_LIGHTHOUSE'); -- coastal only
+
+INSERT INTO Unit_FreePromotions
+	(UnitType, PromotionType)
+VALUES
+	('UNIT_ASAMU', 'PROMOTION_ELISHAS_GUILE');
+
+INSERT INTO Unit_AITypes
+	(UnitType, UnitAIType)
+VALUES
+	('UNIT_ASAMU', 'UNITAI_SETTLE');
 
 ----------------------------------------------------------
 -- Unique Building: Great Cothon (East India Company)

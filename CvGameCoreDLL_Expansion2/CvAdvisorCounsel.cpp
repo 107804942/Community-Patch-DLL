@@ -1400,7 +1400,6 @@ void CvAdvisorCounsel::BuildCounselList(PlayerTypes ePlayer)
 		{
 			// warn the player they are about to not be an ally with a minor civ
 			iMessageRating = 80;
-			// cppcheck-suppress knownConditionTrueFalse
 			if(eEnemyPlayer != NO_PLAYER)
 			{
 				strLoc = Localization::Lookup("TXT_KEY_DIPLOSTRATEGY_ALMOST_LOST_CITY_STATE_ALLY_WAR_WITH_MAJOR");
@@ -1469,7 +1468,6 @@ void CvAdvisorCounsel::BuildCounselList(PlayerTypes ePlayer)
 		{
 			// warn the player they are about to not be an friend with a minor civ
 			iMessageRating = 60;
-			// cppcheck-suppress knownConditionTrueFalse
 			if(eEnemyPlayer != NO_PLAYER)
 			{
 				strLoc = Localization::Lookup("TXT_KEY_DIPLOSTRATEGY_ALMOST_LOST_CITY_STATE_FRIENDSHIP_WAR_WITH_MAJOR");
@@ -1536,7 +1534,7 @@ void CvAdvisorCounsel::BuildCounselList(PlayerTypes ePlayer)
 		}
 		else
 		{
-			// cppcheck-suppress knownConditionTrueFalse
+			iMessageRating = 20;
 			if(eEnemyPlayer != NO_PLAYER)
 			{
 				strLoc = Localization::Lookup("TXT_KEY_DIPLOSTRATEGY_BEFRIEND_CITY_STATE_WAR_WITH_MAJOR");

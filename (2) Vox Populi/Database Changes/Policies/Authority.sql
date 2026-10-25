@@ -31,6 +31,11 @@ SET
 	BarbarianCombatBonus = 25
 WHERE Type = 'POLICY_HONOR';
 
+INSERT INTO Policy_CityYieldChanges
+	(PolicyType, YieldType, Yield)
+VALUES
+	('POLICY_HONOR', 'YIELD_PRODUCTION', 1);
+
 INSERT INTO Policy_YieldFromKills
 	(PolicyType, YieldType, Yield)
 VALUES
@@ -97,8 +102,7 @@ WHERE Type = 'POLICY_MILITARY_TRADITION';
 INSERT INTO Policy_YieldPerCityOverStrengthThreshold
 	(PolicyType, YieldType, Yield)
 VALUES
-	('POLICY_MILITARY_TRADITION', 'YIELD_CULTURE', 2),
-	('POLICY_MILITARY_TRADITION', 'YIELD_PRODUCTION', 2);
+	('POLICY_MILITARY_TRADITION', 'YIELD_CULTURE', 2);
 
 -- Military Caste (Now Dominance)
 UPDATE Policies
@@ -109,24 +113,10 @@ SET
 	PortraitIndex = 22
 WHERE Type = 'POLICY_MILITARY_CASTE';
 
-CREATE TEMP TABLE Helper (
-	YieldType TEXT,
-	Yield INTEGER
-);
-
-INSERT INTO Helper
+INSERT INTO Policy_YieldFromXMilitaryUnits
+	(PolicyType, YieldType, Yield)
 VALUES
-	('YIELD_PRODUCTION', 1),
-	('YIELD_CULTURE_LOCAL', 2);
-
-INSERT INTO Policy_ResourceYieldChanges
-	(PolicyType, ResourceType, YieldType, Yield)
-SELECT
-	'POLICY_MILITARY_CASTE', a.Type, b.YieldType, b.Yield
-FROM Resources a, Helper b
-WHERE a.ResourceUsage = 1;
-
-DROP TABLE Helper;
+	('POLICY_MILITARY_CASTE', 'YIELD_PRODUCTION', 10);
 
 INSERT INTO Policy_FreePromotions
 	(PolicyType, PromotionType)

@@ -1641,7 +1641,7 @@ bool CvSpecialUnitInfo::CacheResults(Database::Results& kResults, CvDatabaseUtil
 	m_bCityLoad = kResults.GetBool("CityLoad");
 
 	const char* szSpecialUnitType = GetType();
-	kUtility.PopulateArrayByExistence(m_pbCarrierUnitAITypes, "UnitAIInfos", "SpecialUnit_CarrierUnitAI", "UnitAIType", "SpecialUnitType", szSpecialUnitType, NUM_UNITAI_TYPES);
+	kUtility.PopulateArrayByExistence(m_pbCarrierUnitAITypes, "UnitAIInfos", "SpecialUnit_CarrierUnitAI", "UnitAIType", "SpecialUnitType", szSpecialUnitType);
 	kUtility.PopulateArrayByValue(m_piProductionTraits, "Traits", "SpecialUnit_ProductionTraits", "TraitType", "SpecialUnitType", szSpecialUnitType, "Trait");
 
 	return true;
@@ -2270,9 +2270,9 @@ const char* CvCivilizationInfo::getCityNames(int i) const
 	return i>=0 ? m_vCityNames[i].c_str() : "vilanova";
 }
 //------------------------------------------------------------------------------
-vector<CvString> CvCivilizationInfo::getSpyNames() const
+const char* CvCivilizationInfo::getSpyNames(int i) const
 {
-	return m_vSpyNames;
+	return i>=0 ? m_vSpyNames[i].c_str() : "john doe";
 }
 //------------------------------------------------------------------------------
 bool CvCivilizationInfo::isCoastalCiv() const
@@ -2448,6 +2448,7 @@ bool CvCivilizationInfo::CacheResults(Database::Results& kResults, CvDatabaseUti
 		}
 
 		pResults->Reset();
+
 	}
 
 	//FreeUnits
@@ -2475,6 +2476,7 @@ bool CvCivilizationInfo::CacheResults(Database::Results& kResults, CvDatabaseUti
 		}
 
 		pResults->Reset();
+
 	}
 
 	kUtility.PopulateArrayByExistence(m_pbCivilizationFreeBuildingClass,
@@ -8748,7 +8750,6 @@ CvEraInfo::CvEraInfo() :
 	m_iTradeRouteProductionBonusTimes100(0),
 	m_iLeaguePercent(0),
 	m_iWarmongerPercent(0),
-	m_iSpecialistExtraFoodCost(0),
 	m_bVassalageEnabled(false),
 	m_bNoGoodies(false),
 	m_bNoBarbUnits(false),
@@ -8929,11 +8930,6 @@ int CvEraInfo::getWarmongerPercent() const
 	return m_iWarmongerPercent;
 }
 //------------------------------------------------------------------------------
-int CvEraInfo::getSpecialistExtraFoodCost() const
-{
-	return m_iSpecialistExtraFoodCost;
-}
-//------------------------------------------------------------------------------
 const char* CvEraInfo::getArtPrefix() const
 {
 	return m_strArtPrefix.c_str();
@@ -9036,7 +9032,6 @@ bool CvEraInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& kUt
 	m_iTradeRouteProductionBonusTimes100 = kResults.GetInt("TradeRouteProductionBonusTimes100");
 	m_iLeaguePercent			= kResults.GetInt("LeaguePercent");
 	m_iWarmongerPercent			= kResults.GetInt("WarmongerPercent");
-	m_iSpecialistExtraFoodCost	= kResults.GetInt("SpecialistExtraFoodCost");
 	m_bVassalageEnabled			= kResults.GetBool("VassalageEnabled");
 
 	m_strCityBombardEffectTag	= kResults.GetText("CityBombardEffectTag");
@@ -9798,7 +9793,6 @@ CvModEventChoiceInfo::CvModEventChoiceInfo() :
 	 m_iCityHappinessGlobal(0),
 	 m_iFreeScaledUnits(0),
 	 m_iSpecialistsGreatPersonPointsPerTurn(0),
-	 m_iMaxAirUnitsChange(0),
 	 m_strDisabledTooltip(""),
 	 m_bVassal(false),
 	 m_bMaster(false),
@@ -9990,11 +9984,6 @@ int CvModEventChoiceInfo::getFreeScaledUnits() const
 int CvModEventChoiceInfo::getSpecialistsGreatPersonPointsPerTurn() const
 {
 	return m_iSpecialistsGreatPersonPointsPerTurn;
-}
-//------------------------------------------------------------------------------
-int CvModEventChoiceInfo::getMaxAirUnitsChange() const
-{
-	return m_iMaxAirUnitsChange;
 }
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getPlayerHappiness() const
@@ -10379,7 +10368,6 @@ bool CvModEventChoiceInfo::CacheResults(Database::Results& kResults, CvDatabaseU
 	m_iRandomBarbs = kResults.GetInt("RandomBarbarianSpawn");
 	m_iFreeScaledUnits = kResults.GetInt("FreeUnitsTechAppropriate");
 	m_iSpecialistsGreatPersonPointsPerTurn = kResults.GetInt("SpecialistsGreatPersonPointsPerTurn");
-	m_iMaxAirUnitsChange = kResults.GetInt("MaxAirUnitsChange");
 
 	m_iPlayerHappiness = kResults.GetInt("PlayerHappiness");
 	m_iCityHappinessGlobal = kResults.GetInt("HappinessPerCity");

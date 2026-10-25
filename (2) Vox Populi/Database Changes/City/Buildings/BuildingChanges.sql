@@ -33,10 +33,7 @@ UPDATE Buildings
 SET
 	EventTourism = 7,
 	NoUnhappfromXSpecialists = 1,
-	VassalLevyEra = 2,
-	ThemingBonusHelp = 'TXT_KEY_PALACE_THEMING_BONUS_HELP',
-	GreatWorkSlotType = 'GREAT_WORK_SLOT_LITERATURE',
-	GreatWorkCount = 3
+	VassalLevyEra = 2
 WHERE BuildingClass = 'BUILDINGCLASS_PALACE';
 
 INSERT INTO Helper
@@ -63,25 +60,11 @@ SELECT
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_PALACE';
 
--- Any three Great Works of Literature can be themed
--- Bonus and AIPriority to be swept in BuildingSweeps.sql
-INSERT INTO Building_ThemingBonuses
-	(BuildingType, Description)
-SELECT Type, 'TXT_KEY_THEMING_BONUS_PALACE'
-FROM Buildings
-WHERE BuildingClass = 'BUILDINGCLASS_PALACE';
-
 ----------------------------------------------------------------------------
 -- Guild support/theming line (which starts at Monument for some reason)
 ----------------------------------------------------------------------------
 
 -- Monument
-UPDATE Buildings
-SET
-	GreatWorkSlotType = 'GREAT_WORK_SLOT_ART_ARTIFACT',
-	GreatWorkCount = 1
-WHERE BuildingClass = 'BUILDINGCLASS_MONUMENT';
-
 INSERT INTO Building_YieldChanges
 	(BuildingType, YieldType, Yield)
 SELECT
@@ -89,7 +72,7 @@ SELECT
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_MONUMENT';
 
--- Theater
+-- Amphitheater
 UPDATE Buildings
 SET Help = 'TXT_KEY_BUILDING_AMPHITHEATER_HELP'
 WHERE Type = 'BUILDING_AMPHITHEATER';
@@ -114,12 +97,12 @@ SELECT
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_AMPHITHEATER';
 
--- Bonus and AIPriority to be swept in BuildingSweeps.sql
+-- Bonus and AIPriority to be swept in ThemingSweeps.sql
 INSERT INTO Helper
 	(Description, RequiresOwner, RequiresAnyButOwner)
 VALUES
-	('TXT_KEY_THEMING_BONUS_AMPHITHEATER_NATIONAL', 1, 0),
-	('TXT_KEY_THEMING_BONUS_AMPHITHEATER_GLOBAL', 0, 1);
+	('TXT_KEY_THEMING_BONUS_AMPHITHEATER_NATIONAL', 1, NULL),
+	('TXT_KEY_THEMING_BONUS_AMPHITHEATER_GLOBAL', NULL, 1);
 
 INSERT INTO Building_ThemingBonuses
 	(BuildingType, Description, RequiresOwner, RequiresAnyButOwner)
@@ -219,13 +202,13 @@ WHERE a.BuildingClass = 'BUILDINGCLASS_BROADCAST_TOWER';
 DELETE FROM Helper;
 
 -- Any two Great Work of Music can be themed
--- Bonus and AIPriority to be swept in BuildingSweeps.sql
+-- Bonus and AIPriority to be swept in ThemingSweeps.sql
 INSERT INTO Helper
 	(Description, SameEra, ConsecutiveEras, UniqueEras)
 VALUES
-	('TXT_KEY_THEMING_BONUS_BROADCAST_TOWER_NATIONAL', 1, 0, 0),
-	('TXT_KEY_THEMING_BONUS_BROADCAST_TOWER_CLASSICS', 0, 1, 0),
-	('TXT_KEY_THEMING_BONUS_BROADCAST_TOWER_ALL', 0, 0, 1);
+	('TXT_KEY_THEMING_BONUS_BROADCAST_TOWER_NATIONAL', 1, NULL, NULL),
+	('TXT_KEY_THEMING_BONUS_BROADCAST_TOWER_CLASSICS', NULL, 1, NULL),
+	('TXT_KEY_THEMING_BONUS_BROADCAST_TOWER_ALL', NULL, NULL, 1);
 
 INSERT INTO Building_ThemingBonuses
 	(BuildingType, Description, SameEra, ConsecutiveEras, UniqueEras)
@@ -241,10 +224,7 @@ DELETE FROM Helper;
 
 -- Shrine
 UPDATE Buildings
-SET
-	PrereqTech = 'TECH_AGRICULTURE',
-	GreatWorkSlotType = 'GREAT_WORK_SLOT_MUSIC',
-	GreatWorkCount = 1
+SET PrereqTech = 'TECH_AGRICULTURE'
 WHERE BuildingClass = 'BUILDINGCLASS_SHRINE';
 
 INSERT INTO Building_YieldChanges
@@ -262,6 +242,8 @@ WHERE Type = 'BUILDING_TEMPLE';
 UPDATE Buildings
 SET
 	ReligiousPressureModifier = 25,
+	GreatWorkSlotType = 'GREAT_WORK_SLOT_MUSIC',
+	GreatWorkCount = 1,
 	ReligiousUnrestFlatReduction = 1
 WHERE BuildingClass = 'BUILDINGCLASS_TEMPLE';
 
@@ -326,7 +308,7 @@ WHERE BuildingClass = 'BUILDINGCLASS_AQUEDUCT';
 INSERT INTO Building_GrowthExtraYield
 	(BuildingType, YieldType, Yield)
 SELECT
-	Type, 'YIELD_PRODUCTION', 60
+	Type, 'YIELD_PRODUCTION', 25
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_AQUEDUCT';
 
@@ -835,6 +817,8 @@ WHERE BuildingClass = 'BUILDINGCLASS_WALLS';
 UPDATE Buildings
 SET
 	CitySupplyModifier = 5,
+	GreatWorkSlotType = 'GREAT_WORK_SLOT_ART_ARTIFACT',
+	GreatWorkCount = 1,
 	EmpireSizeModifierReduction = -5
 WHERE BuildingClass = 'BUILDINGCLASS_CASTLE';
 
@@ -861,6 +845,7 @@ WHERE BuildingClass = 'BUILDINGCLASS_ARSENAL';
 UPDATE Buildings
 SET
 	PrereqTech = 'TECH_RADAR',
+	RangedStrikeModifier = 10,
 	CitySupplyModifier = 5,
 	HealRateChange = 20,
 	DistressFlatReduction = 1,
@@ -1258,17 +1243,10 @@ SELECT
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_CHANCERY';
 
-INSERT INTO Building_YieldPerFriendTimes100
+INSERT INTO Building_YieldPerAlly
 	(BuildingType, YieldType, Yield)
 SELECT
-	Type, 'YIELD_PRODUCTION', 50
-FROM Buildings
-WHERE BuildingClass = 'BUILDINGCLASS_CHANCERY';
-
-INSERT INTO Building_YieldPerAllyTimes100
-	(BuildingType, YieldType, Yield)
-SELECT
-	Type, 'YIELD_PRODUCTION', 50
+	Type, 'YIELD_PRODUCTION', 2
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_CHANCERY';
 
@@ -1280,19 +1258,27 @@ SELECT
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_WIRE_SERVICE';
 
-INSERT INTO Building_YieldPerFriendTimes100
+INSERT INTO Building_YieldPerFriend
 	(BuildingType, YieldType, Yield)
 SELECT
-	Type, 'YIELD_CULTURE', 100
+	Type, 'YIELD_CULTURE', 1
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_WIRE_SERVICE';
 
-INSERT INTO Building_YieldPerAllyTimes100
+INSERT INTO Helper
+	(YieldType)
+VALUES
+	('YIELD_SCIENCE'),
+	('YIELD_CULTURE');
+
+INSERT INTO Building_YieldPerAlly
 	(BuildingType, YieldType, Yield)
 SELECT
-	Type, 'YIELD_SCIENCE', 100
-FROM Buildings
-WHERE BuildingClass = 'BUILDINGCLASS_WIRE_SERVICE';
+	a.Type, b.YieldType, 1
+FROM Buildings a, Helper b
+WHERE a.BuildingClass = 'BUILDINGCLASS_WIRE_SERVICE';
+
+DELETE FROM Helper;
 
 ----------------------------------------------------------------------------
 -- Guilds
@@ -1692,7 +1678,7 @@ FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_STABLE';
 
 UPDATE Building_UnitCombatProductionModifiers
-SET Modifier = 20
+SET Modifier = 33
 WHERE BuildingType IN (
 	SELECT Type FROM Buildings
 	WHERE BuildingClass = 'BUILDINGCLASS_STABLE'
@@ -1713,21 +1699,6 @@ FROM Buildings a, Helper b
 WHERE a.BuildingClass = 'BUILDINGCLASS_STABLE';
 
 DELETE FROM Helper;
-
--- Observatory
-UPDATE Buildings SET Mountain = 0 WHERE Type = 'BUILDING_OBSERVATORY';
-
-INSERT INTO Building_YieldChanges
-	(BuildingType, YieldType, Yield)
-SELECT
-	Type, 'YIELD_SCIENCE', 4
-FROM Buildings
-WHERE BuildingClass = 'BUILDINGCLASS_OBSERVATORY';
-
-INSERT INTO Building_YieldPerXTerrainTimes100
-	(BuildingType, TerrainType, YieldType, Yield)
-VALUES
-	('BUILDING_OBSERVATORY', 'TERRAIN_MOUNTAIN', 'YIELD_SCIENCE', 100);
 
 -- Windmill
 UPDATE Buildings
@@ -1841,44 +1812,6 @@ WHERE a.BuildingClass = 'BUILDINGCLASS_COALING_STATION';
 
 DELETE FROM Helper;
 
--- Shopping Mall
-
-INSERT INTO Helper
-	(YieldType, Yield)
-VALUES
-	('YIELD_GOLD', 2),
-	('YIELD_TOURISM', 3);
-
-INSERT INTO Building_YieldChanges
-	(BuildingType, YieldType, Yield)
-SELECT
-	a.Type, b.YieldType, b.Yield
-FROM Buildings a, Helper b
-WHERE a.BuildingClass = 'BUILDINGCLASS_SHOPPING_MALL';
-
-DELETE FROM Helper;
-
-INSERT INTO Building_YieldFromPurchase
-	(BuildingType, YieldType, Yield)
-SELECT
-	Type, 'YIELD_TOURISM', 5
-FROM Buildings
-WHERE BuildingClass = 'BUILDINGCLASS_SHOPPING_MALL';
-
-INSERT INTO Building_BuildingClassLocalYieldChanges
-	(BuildingType, BuildingClassType, YieldType, YieldChange)
-SELECT
-	b.Type, c.FranchiseBuildingClass, 'YIELD_GOLD', 4
-FROM Buildings b, Corporations c
-WHERE b.BuildingClass = 'BUILDINGCLASS_SHOPPING_MALL';
-
-INSERT INTO Building_BuildingClassLocalYieldChanges
-	(BuildingType, BuildingClassType, YieldType, YieldChange)
-SELECT
-	b.Type, c.FranchiseBuildingClass, 'YIELD_CULTURE', 2
-FROM Buildings b, Corporations c
-WHERE b.BuildingClass = 'BUILDINGCLASS_SHOPPING_MALL';
-
 -- Refinery
 INSERT INTO Building_YieldChanges
 	(BuildingType, YieldType, Yield)
@@ -1989,19 +1922,27 @@ SELECT
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_SCRIVENERS_OFFICE';
 
-INSERT INTO Building_YieldPerFriendTimes100
+INSERT INTO Building_YieldPerFriend
 	(BuildingType, YieldType, Yield)
 SELECT
-	Type, 'YIELD_FOOD', 100
+	Type, 'YIELD_FOOD', 1
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_SCRIVENERS_OFFICE';
 
-INSERT INTO Building_YieldPerAllyTimes100
+INSERT INTO Helper
+	(YieldType)
+VALUES
+	('YIELD_FOOD'),
+	('YIELD_FAITH');
+
+INSERT INTO Building_YieldPerAlly
 	(BuildingType, YieldType, Yield)
 SELECT
-	Type, 'YIELD_FAITH', 100
-FROM Buildings
-WHERE BuildingClass = 'BUILDINGCLASS_SCRIVENERS_OFFICE';
+	a.Type, b.YieldType, 1
+FROM Buildings a, Helper b
+WHERE a.BuildingClass = 'BUILDINGCLASS_SCRIVENERS_OFFICE';
+
+DELETE FROM Helper;
 
 -- Heroic Epic
 UPDATE Buildings

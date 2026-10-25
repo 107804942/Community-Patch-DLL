@@ -29,7 +29,7 @@ SELECT
 FROM GreatPersons;
 
 ----------------------------------------------------------
--- Unique Unit: Hwacha (Trebuchet)
+-- Unique Unit: Hwach'a (Trebuchet)
 ----------------------------------------------------------
 UPDATE Units
 SET
@@ -40,7 +40,8 @@ SET
 			)
 		)
 	),
-	Combat = (SELECT Combat FROM Units WHERE Type = 'UNIT_TREBUCHET') + 7,
+	Combat = (SELECT Combat FROM Units WHERE Type = 'UNIT_TREBUCHET') + 5,
+	RangedCombat = (SELECT RangedCombat FROM Units WHERE Type = 'UNIT_TREBUCHET') + 1,
 	BaseSightRange = (SELECT BaseSightRange FROM Units WHERE Type = 'UNIT_TREBUCHET') + 1,
 	DefaultUnitAI = 'UNITAI_RANGED'
 WHERE Type = 'UNIT_KOREAN_HWACHA';
@@ -58,8 +59,7 @@ AND PromotionType IN (
 INSERT INTO Unit_FreePromotions
 	(UnitType, PromotionType)
 VALUES
-	('UNIT_KOREAN_HWACHA', 'PROMOTION_SIEGE_VOLLEY'),
-	('UNIT_KOREAN_HWACHA', 'PROMOTION_SPLASH_1');
+	('UNIT_KOREAN_HWACHA', 'PROMOTION_LOGISTICS');
 
 ----------------------------------------------------------
 -- Unique Unit: Turtle Ship (Caravel)

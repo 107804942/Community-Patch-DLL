@@ -67,6 +67,11 @@ SET
 	PortraitIndex = 57
 WHERE Type = 'POLICY_ARISTOCRACY';
 
+INSERT INTO Policy_CityYieldChanges
+	(PolicyType, YieldType, Yield)
+VALUES
+	('POLICY_ARISTOCRACY', 'YIELD_PRODUCTION', 1);
+
 INSERT INTO Policy_FreeBuilding
 	(PolicyType, BuildingClassType, Count)
 VALUES
@@ -77,6 +82,7 @@ UPDATE Policies
 SET
 	GarrisonedCityRangeStrikeModifier = 0,
 	GarrisonFreeMaintenance = 0,
+	PlotCultureExponentModifier = -20,
 	PortraitIndex = 59
 WHERE Type = 'POLICY_OLIGARCHY';
 

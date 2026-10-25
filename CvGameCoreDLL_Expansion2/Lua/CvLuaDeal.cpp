@@ -57,6 +57,7 @@ void CvLuaDeal::PushMethods(lua_State* L, int t)
 	Method(GetReasonsItemUntradeable);
 	Method(BlockTemporaryForPermanentTrade);
 
+	Method(IsCheckedForRenewal);
 	Method(GetRenewDealMessage);
 	Method(AddGoldTrade);
 	Method(AddGoldPerTurnTrade);

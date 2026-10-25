@@ -51,7 +51,6 @@ public:
 	int GetNumRequiredTier3Tenets() const;
 	bool InfluenceAllRequired() const;
 	bool IdeologyRequired() const;
-	PolicyTypes PolicyType() const;
 	bool IsRepeatable() const;
 	int GetHappiness() const;
 	int GetEmpireSizeModifierReduction() const;
@@ -68,9 +67,6 @@ public:
 	int GetCultureMedianModifier() const;
 	int GetReligiousUnrestModifier() const;
 	int GetSpySecurityModifier() const;
-	int GetCitySupplyFlat() const;
-	EventTypes GetEventToStart() const;
-	CityEventTypes GetCityEventToStart() const;
 
 	const char* GetMovieArtDef() const;
 
@@ -110,7 +106,6 @@ protected:
 	int m_iNumRequiredTier3Tenets;
 	bool m_bInfluenceAllRequired;
 	bool m_bIdeologyRequired;
-	PolicyTypes m_ePolicyType;
 	int m_iHappiness;
 	int m_iEmpireSizeModifierReduction;
 	int m_iEmpireSizeModifierPerCityMod;
@@ -126,9 +121,6 @@ protected:
 	int m_iCultureMedianModifier;
 	int m_iReligiousUnrestModifier;
 	int m_iSpySecurityModifier;
-	int m_iCitySupplyFlat;
-	EventTypes m_eEventToStart;
-	CityEventTypes m_eCityEventToStart;
 
 	CvString m_strCreateSound;
 	CvString m_strMovieArtDef;

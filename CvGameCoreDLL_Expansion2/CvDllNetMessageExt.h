@@ -19,7 +19,6 @@ namespace NetMessageExt
 		void SetDisableAutomaticFaithPurchase(PlayerTypes ePlayer, bool bValue);
 		void DoApplyVassalTax(TeamTypes eMaster, PlayerTypes eVassal, int iPercent);
 		void DoLiberateVassal(TeamTypes eMaster, TeamTypes eVassal);
-		void DoClearDealRenewalID(PlayerTypes ePlayer1, PlayerTypes ePlayer2);
 		//void RefreshTradeRouteCache(PlayerTypes ePlayer);
 	}
 
@@ -33,7 +32,6 @@ namespace NetMessageExt
 		void SetDisableAutomaticFaithPurchase(PlayerTypes ePlayer, bool bValue);
 		void DoApplyVassalTax(TeamTypes eMaster, PlayerTypes eVassal, int iPercent);
 		void DoLiberateVassal(TeamTypes eMaster, TeamTypes eVassal);
-		void DoClearDealRenewalID(PlayerTypes ePlayer1, PlayerTypes ePlayer2);
 		//void RefreshTradeRouteCache(PlayerTypes ePlayer);
 	}
 }

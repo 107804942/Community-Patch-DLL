@@ -52,7 +52,7 @@ CvCitySiteEvaluator::CvCitySiteEvaluator()
 }
 
 /// Is it valid for this player to found a city here?
-bool CvCitySiteEvaluator::CanFoundCity(const CvPlot* pPlot, const CvPlayer* pPlayer, bool bIgnoreDistanceToExistingCities, CvString* toolTipSink) const
+bool CvCitySiteEvaluator::CanFoundCity(const CvPlot* pPlot, const CvPlayer* pPlayer, bool bIgnoreDistanceToExistingCities) const
 {
 	ASSERT(pPlot);
 	if(!pPlot)
@@ -80,8 +80,7 @@ bool CvCitySiteEvaluator::CanFoundCity(const CvPlot* pPlot, const CvPlayer* pPla
 
 	if(!pPlot->isValidMovePlot(pPlayer ? pPlayer->GetID() : NO_PLAYER ))
 	{
-		if (!pPlot->isMountain() || !(pPlayer && pPlayer->WorkersMountainPass()))
-			return false;
+		return false;
 	}
 
 	if (pPlot->IsNaturalWonder())
@@ -172,15 +171,7 @@ bool CvCitySiteEvaluator::CanFoundCity(const CvPlot* pPlot, const CvPlayer* pPla
 		int iDistanceToExisting = GC.getGame().GetClosestCityDistanceInPlots(pPlot);
 		//watch out, it's <=
 		if (iDistanceToExisting <= iMinDist)
-		{
-			if (toolTipSink != NULL)
-			{
-				if (!toolTipSink->empty())
-					(*toolTipSink) += "[NEWLINE]";
-				GC.getGame().BuildCannotPerformActionHelpText(toolTipSink, "TXT_KEY_MISSION_BUILD_CITY_DISABLED_TOO_CLOSE", "", "", iMinDist);
-			}
 			return false;
-		}
 	}
 
 	return true;

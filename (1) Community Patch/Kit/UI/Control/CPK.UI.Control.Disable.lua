@@ -17,9 +17,9 @@ end
 --- ```
 --- @param control Control
 --- @param ... Control
---- @return Control ...
 local function ControlDisable(control, ...)
-	return ArgsEach(ControlDisableOne, control, ...)
+	ControlDisableOne(control)
+	ArgsEach(ControlDisableOne, ...)
 end
 
 CPK.UI.Control.Disable = ControlDisable

@@ -125,7 +125,7 @@ UnitTypes CvUnitProductionAI::RecommendUnit(UnitAITypes eUnitAIType, bool bAllow
 		if(pkUnitInfo)
 		{
 			// Make sure it matches the requested unit AI type
-			if (!pkUnitInfo->GetUnitAIType(eUnitAIType))
+			if (eUnitAIType != NO_UNITAI && !pkUnitInfo->GetUnitAIType(eUnitAIType))
 				continue;
 
 			if (!bAllowStrategicResource && pkUnitInfo->GetResourceType() != NO_RESOURCE)
@@ -450,30 +450,6 @@ int CvUnitProductionAI::CheckUnitBuildSanity(UnitTypes eUnit, bool bForOperation
 			iBonus += 500;
 		}
 
-		if (pkUnitEntry->GetDefaultUnitAIType() == UNITAI_CITY_SPECIAL)
-		{
-			// Roughly one per 6 units seems sensible
-			int iNum = kPlayer.GetNumUnitsWithUnitAI(UNITAI_CITY_SPECIAL, true);
-			if (eCurrentlyProducing != NO_UNIT && !bForPurchase)
-			{
-				CvUnitEntry* pkCurrentlyProducing = GC.getUnitInfo(eCurrentlyProducing);
-				if (pkCurrentlyProducing)
-				{
-					if (pkCurrentlyProducing->GetDefaultUnitAIType() == UNITAI_CITY_SPECIAL)
-						iNum--;
-				}
-			}
-			int iNumArmies = iNumLandUnits / 6;
-			if (iNum < iNumArmies)
-			{
-				iBonus += 2000 * max(3 - iNum, 1);
-
-				// If we are planning a city attack, pretty much force this
-				if (bForOperation)
-					iBonus += 10000;
-			}
-		}
-
 		//Sanity check for buildable support units.
 		if (!bFree && pkUnitEntry->IsCityAttackSupport() && !bForOperation)
 		{
@@ -612,10 +588,6 @@ int CvUnitProductionAI::CheckUnitBuildSanity(UnitTypes eUnit, bool bForOperation
 					{
 						PlayerTypes eLoopPlayer = warPlayers[i];
 
-						// War type is only tracked for major civs
-						if (GET_PLAYER(eLoopPlayer).isMinorCiv())
-							continue;
-
 						if (kPlayer.GetMilitaryAI()->GetWarType(eLoopPlayer) == WARTYPE_SEA)
 						{
 							if (std::find(vUnfriendlyMajors.begin(), vUnfriendlyMajors.end(), eLoopPlayer) != vUnfriendlyMajors.end())
@@ -668,10 +640,6 @@ int CvUnitProductionAI::CheckUnitBuildSanity(UnitTypes eUnit, bool bForOperation
 					for (size_t i=0; i<warPlayers.size(); i++)
 					{
 						PlayerTypes eLoopPlayer = warPlayers[i];
-
-						// War type is only tracked for major civs
-						if (GET_PLAYER(eLoopPlayer).isMinorCiv())
-							continue;
 
 						if (kPlayer.GetMilitaryAI()->GetWarType(eLoopPlayer) == WARTYPE_LAND)
 						{
@@ -760,7 +728,7 @@ int CvUnitProductionAI::CheckUnitBuildSanity(UnitTypes eUnit, bool bForOperation
 			{
 				PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
 
-				if (eLoopPlayer != kPlayer.GetID() && kPlayer.GetDiplomacyAI()->IsPlayerValid(eLoopPlayer) && 
+				if (eLoopPlayer != NO_PLAYER && eLoopPlayer != kPlayer.GetID() && kPlayer.GetDiplomacyAI()->IsPlayerValid(eLoopPlayer) && 
 					(kPlayer.GetProximityToPlayer(eLoopPlayer) == PLAYER_PROXIMITY_NEIGHBORS || GET_TEAM(kPlayer.getTeam()).isAtWar(GET_PLAYER(eLoopPlayer).getTeam())))
 				{
 					int iTheirAir = GET_PLAYER(eLoopPlayer).GetNumUnitsWithUnitAI(UNITAI_DEFENSE_AIR, false) + GET_PLAYER(eLoopPlayer).GetNumUnitsWithUnitAI(UNITAI_ATTACK_AIR, false);
@@ -942,9 +910,12 @@ int CvUnitProductionAI::CheckUnitBuildSanity(UnitTypes eUnit, bool bForOperation
 							for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
 							{
 								const YieldTypes eYield = static_cast<YieldTypes>(iI);
-								if (pEntry->GetYieldFromKills(eYield) > 0)
+								if (eYield != NO_YIELD)
 								{
-									iReligiousBonus += (pEntry->GetYieldFromKills(eYield) / 5);
+									if (pEntry->GetYieldFromKills(eYield) > 0)
+									{
+										iReligiousBonus += (pEntry->GetYieldFromKills(eYield) / 5);
+									}
 								}
 							}
 						}
@@ -1142,6 +1113,10 @@ int CvUnitProductionAI::CheckUnitBuildSanity(UnitTypes eUnit, bool bForOperation
 		//Archaeologists? Only if we have digs nearby.
 		if(pkUnitEntry->GetDefaultUnitAIType() == UNITAI_ARCHAEOLOGIST)
 		{
+			if(kPlayer.isMinorCiv())
+			{
+				return SR_IMPOSSIBLE;
+			}
 			static EconomicAIStrategyTypes eWantArch = (EconomicAIStrategyTypes) GC.getInfoTypeForString("ECONOMICAISTRATEGY_NEED_ARCHAEOLOGISTS");
 			if(!kPlayer.GetEconomicAI()->IsUsingStrategy(eWantArch))
 			{
@@ -1171,10 +1146,12 @@ int CvUnitProductionAI::CheckUnitBuildSanity(UnitTypes eUnit, bool bForOperation
 						break;
 
 					const YieldTypes eYield = static_cast<YieldTypes>(iI);
-
-					if(kPlayer.GetPlayerTraits()->GetArtifactYieldChanges(eYield) > 0)
+					if(eYield != NO_YIELD)
 					{
-						iBonus += 500;
+						if(kPlayer.GetPlayerTraits()->GetArtifactYieldChanges(eYield) > 0)
+						{
+							iBonus += 500;
+						}
 					}
 				}
 			}
@@ -1362,7 +1339,9 @@ int CvUnitProductionAI::CheckUnitBuildSanity(UnitTypes eUnit, bool bForOperation
 		}
 
 		//Promotion Bonus
-		//consider performance, if bonus is very small it doesn't matter in the end
+		//disabled for performance, bonus is very small, doesn't matter in the end
+
+		/*
 		int iPromotionBonus = 0;
 		for(int iI = 0; iI < GC.getNumPromotionInfos() && bCombat; iI++)
 		{
@@ -1370,10 +1349,6 @@ int CvUnitProductionAI::CheckUnitBuildSanity(UnitTypes eUnit, bool bForOperation
 			CvPromotionEntry* pkPromotionInfo = GC.getPromotionInfo(ePromotion);
 			if(pkPromotionInfo)
 			{
-				// Promotions that are not lost usually mean unique units
-				// but this also hits many negative or unit-line free promos.
-				// So needs rewrite, but can probably just ignore!
-				/*
 				if (pkUnitEntry->GetFreePromotions(iI))
 				{
 					if (!pkPromotionInfo->IsLostWithUpgrade())
@@ -1381,32 +1356,35 @@ int CvUnitProductionAI::CheckUnitBuildSanity(UnitTypes eUnit, bool bForOperation
 						iPromotionBonus += 5;
 					}
 				}
-				*/
-				// pseudo unique units, e.g. Mongolia
-				if(kPlayer.GetPlayerTraits()->HasFreePromotionUnitClass(iI, pkUnitEntry->GetUnitClassType()))
-				{
-					iPromotionBonus += 100;
-				}
-				// mostly accounted-for in flavors. etc. So small bonus?
-				if(kPlayer.GetPlayerTraits()->HasFreePromotionUnitCombat(iI, pkUnitEntry->GetUnitCombatType()))
-				{
-					iPromotionBonus += 10;
-				}
-				// not currently used, but probably same as above
 				if(kPlayer.IsFreePromotion(ePromotion))
 				{
-					iPromotionBonus += 10;
+					if(::IsPromotionValidForUnitCombatType(ePromotion, eUnit))
+					{
+						iPromotionBonus += 5;
+					}
 				}
-				// in case someone adds many promos with traits, do not let this loop blow up
-				// also, if we find a "pseudo unique unit" we can stop looping
-				if (iPromotionBonus >= 100)
-					break;
+				if(kPlayer.GetPlayerTraits()->HasFreePromotionUnitClass(iI, pkUnitEntry->GetUnitClassType()))
+				{
+					if(::IsPromotionValidForUnitCombatType(ePromotion, eUnit))
+					{
+						iPromotionBonus += 5;
+					}
+				}
+				if(kPlayer.GetPlayerTraits()->HasFreePromotionUnitCombat(iI, pkUnitEntry->GetUnitCombatType()))
+				{
+					if(::IsPromotionValidForUnitCombatType(ePromotion, eUnit))
+					{
+						iPromotionBonus += 5;
+					}
+				}
 			}
 		}
+		
 		if (iPromotionBonus != 0)
 		{
 			iBonus += iPromotionBonus;
 		}
+		*/
 	
 		//Uniques? They're generally good enough to spam.
 		if(kPlayer.getCivilizationInfo().isCivilizationUnitOverridden(pkUnitEntry->GetUnitClassType()))
@@ -1526,10 +1504,13 @@ int CvUnitProductionAI::CheckUnitBuildSanity(UnitTypes eUnit, bool bForOperation
 	for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
 	{
 		const YieldTypes eYield = static_cast<YieldTypes>(iI);
-		int iYieldAmountOnComplete = GC.getUnitInfo(eUnit)->GetYieldOnCompletion(eYield);
-		if (iYieldAmountOnComplete > 0)
+		if (eYield != NO_YIELD)
 		{
-			iInstantYieldBonus += (iYieldAmountOnComplete * iInstantYieldImportanceScale);
+			int iYieldAmountOnComplete = GC.getUnitInfo(eUnit)->GetYieldOnCompletion(eYield);
+			if (iYieldAmountOnComplete > 0)
+			{
+				iInstantYieldBonus += (iYieldAmountOnComplete * iInstantYieldImportanceScale);
+			}
 		}
 	}
 

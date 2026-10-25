@@ -119,7 +119,12 @@ protected:
 	static int lAddThirdPartyWar(lua_State* L);
 	static int lAddDeclarationOfFriendship(lua_State* L);
 	static int lAddVoteCommitment(lua_State* L);
+
 	static int lGetRenewDealMessage(lua_State* L);
+	static int lIsCheckedForRenewal(lua_State* L)
+	{
+		return BasicLuaMethod(L, &CvDeal::IsCheckedForRenewal);
+	};
 	static int lChangeGoldTrade(lua_State* L)
 	{
 		return BasicLuaMethod(L, &CvDeal::ChangeGoldTrade);

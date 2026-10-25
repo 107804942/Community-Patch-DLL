@@ -1,19 +1,27 @@
 ----------------------------------------------------------
 -- Unique Ability: Dutch East India Company
 ----------------------------------------------------------
-UPDATE Traits SET LuxuryHappinessRetention = 0 WHERE Type = 'TRAIT_LUXURY_RETENTION';
+UPDATE Traits
+SET
+	LuxuryHappinessRetention = 0,
+	ImportsCountTowardsMonopolies = 1
+WHERE Type = 'TRAIT_LUXURY_RETENTION';
+
+INSERT INTO Trait_LuxuryYieldChanges
+	(TraitType, YieldType, Yield)
+VALUES
+	('TRAIT_LUXURY_RETENTION', 'YIELD_GOLD', 1),
+	('TRAIT_LUXURY_RETENTION', 'YIELD_CULTURE', 1);
 
 INSERT INTO Trait_YieldFromImport
 	(TraitType, YieldType, Yield)
 VALUES
-	('TRAIT_LUXURY_RETENTION', 'YIELD_GOLD', 3),
-	('TRAIT_LUXURY_RETENTION', 'YIELD_CULTURE', 2);
+	('TRAIT_LUXURY_RETENTION', 'YIELD_GOLD', 4);
 
 INSERT INTO Trait_YieldFromExport
 	(TraitType, YieldType, Yield)
 VALUES
-	('TRAIT_LUXURY_RETENTION', 'YIELD_GOLD', 3),
-	('TRAIT_LUXURY_RETENTION', 'YIELD_CULTURE', 2);
+	('TRAIT_LUXURY_RETENTION', 'YIELD_GOLD', 4);
 
 ----------------------------------------------------------
 -- Unique Unit: Sea Beggar (Corvette)

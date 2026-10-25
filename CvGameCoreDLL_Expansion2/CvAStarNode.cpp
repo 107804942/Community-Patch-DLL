@@ -19,7 +19,6 @@ void CvAStarNode::clear()
 	m_iStartMovesForTurn = 1; //safe default
 
 	m_bIsOpen = false;
-	m_bIsStopNode = false;
 	m_pParent = NULL;
 
 	m_apChildren.clear();

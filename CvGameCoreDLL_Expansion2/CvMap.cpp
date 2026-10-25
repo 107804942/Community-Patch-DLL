@@ -14,7 +14,6 @@
 #include "CvCity.h"
 #include "CvGlobals.h"
 #include "CvPlayerAI.h"
-#include "CvEconomicAI.h"
 #include "CvRandom.h"
 #include "CvGameCoreUtils.h"
 #include "CvFractal.h"
@@ -575,7 +574,6 @@ CvMap::CvMap()
 	, m_vPlotsAtRange3()
 	, m_vPlotsShared()
 	, m_plotPopupCount()
-	, m_bMapGenerated(false)
 {
 	ASSERT(sgCvMapInstanceCount == 0);
 	++sgCvMapInstanceCount;
@@ -692,7 +690,6 @@ void CvMap::InitPlots()
 	m_vPlotsWithLineOfSightFromPlot3.clear();
 	m_vPlotsWithLineOfSightToPlot2.clear();
 	m_vPlotsWithLineOfSightToPlot3.clear();
-	m_bMapGenerated = false;
 }
 
 //	--------------------------------------------------------------------------------
@@ -1080,7 +1077,6 @@ void CvMap::updateAdjacency()
 	m_vPlotsWithLineOfSightToPlot3.resize(numPlots(), vector<CvPlot*>());
 	m_vPlotsAtRange2.resize(numPlots(), vector<CvPlot*>());
 	m_vPlotsAtRange3.resize(numPlots(), vector<CvPlot*>());
-	m_bMapGenerated = true;
 }
 
 //	--------------------------------------------------------------------------------
@@ -1764,7 +1760,6 @@ void CvMap::Serialize(Map& map, Visitor& visitor)
 	visitor(map.m_bWrapX);
 	visitor(map.m_bWrapY);
 	visitor(map.m_guid);
-	visitor(map.m_bMapGenerated);
 
 	PRECONDITION((0 < GC.getNumResourceInfos()), "GC.getNumResourceInfos() is not greater than zero but an array is being allocated");
 	visitor(map.m_paiNumResource);
@@ -2969,41 +2964,12 @@ void CvMap::DoKillCountDecay(float fDecayFactor)
 
 void CvMap::LineOfSightChanged(const CvPlot* pPlot)
 {
-	if (!pPlot)
-		return;
-
-	// Don't call during map generation
-	if (!m_bMapGenerated)
-		return;
-
-	int idx = pPlot->GetPlotIndex();
-
-	// Snapshot old sets before clearing
-	const vector<CvPlot*> oldFrom2 = GetPlotsAtRangeX(pPlot, 2, true, true);
-	const vector<CvPlot*> oldFrom3 = GetPlotsAtRangeX(pPlot, 3, true, true);
-
-	m_vPlotsWithLineOfSightFromPlot2[idx].clear();
-	m_vPlotsWithLineOfSightFromPlot3[idx].clear();
-	m_vPlotsWithLineOfSightToPlot2[idx].clear();
-	m_vPlotsWithLineOfSightToPlot3[idx].clear();
-
-	// Force recompute now by accessing
-	const vector<CvPlot*>& newFrom2 = GetPlotsAtRangeX(pPlot, 2, true, true);
-	const vector<CvPlot*>& newFrom3 = GetPlotsAtRangeX(pPlot, 3, true, true);
-
-	if (oldFrom2 != newFrom2 || oldFrom3 != newFrom3)
+	if (pPlot)
 	{
-		for (int iI = 0; iI < MAX_MAJOR_CIVS; iI++)
-		{
-			CvPlayer& pkPlayer = GET_PLAYER((PlayerTypes)iI);
-			if (!pkPlayer.isEverAlive())
-				continue;
-
-			if (oldFrom2 != newFrom2)
-				pkPlayer.GetEconomicAI()->UpdateExplorePlotLoS(pPlot, 2, oldFrom2, newFrom2);
-			if (oldFrom3 != newFrom3)
-				pkPlayer.GetEconomicAI()->UpdateExplorePlotLoS(pPlot, 3, oldFrom3, newFrom3);
-		}
+		m_vPlotsWithLineOfSightFromPlot2[pPlot->GetPlotIndex()].clear();
+		m_vPlotsWithLineOfSightFromPlot3[pPlot->GetPlotIndex()].clear();
+		m_vPlotsWithLineOfSightToPlot2[pPlot->GetPlotIndex()].clear();
+		m_vPlotsWithLineOfSightToPlot3[pPlot->GetPlotIndex()].clear();
 	}
 }
 

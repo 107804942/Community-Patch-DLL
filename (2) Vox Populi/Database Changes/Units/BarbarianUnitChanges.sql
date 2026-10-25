@@ -30,6 +30,3 @@ SET ShowInPedia = 1
 WHERE Type = 'UNIT_BARBARIAN_HORSEMAN';
 
 -- Galley
-UPDATE Units
-SET Moves = (SELECT Moves FROM Units WHERE Type = 'UNIT_VP_GALLEY') - 1
-WHERE Type = 'UNIT_GALLEY';
